@@ -9,7 +9,7 @@ import (
 
 // TestNewCmd 测试创建新Cmd实例
 func TestNewCmd(t *testing.T) {
-	cmd := NewCmd("test", flag.ExitOnError)
+	cmd := NewCmd("test", "t", flag.ExitOnError)
 	if cmd == nil {
 		t.Fatal("NewCmd returned nil")
 	}
@@ -20,7 +20,7 @@ func TestNewCmd(t *testing.T) {
 
 // TestBindFlags 测试标志绑定功能
 func TestBindFlags(t *testing.T) {
-	cmd := NewCmd("test", flag.ExitOnError)
+	cmd := NewCmd("test", "t", flag.ExitOnError)
 
 	// 测试字符串标志
 	strFlag := cmd.String("name", "n", "default", "name help")
@@ -52,7 +52,7 @@ func TestBindFlags(t *testing.T) {
 
 // TestHelpFlag 测试帮助标志功能
 func TestHelpFlag(t *testing.T) {
-	cmd := NewCmd("test", flag.ExitOnError)
+	cmd := NewCmd("test", "t", flag.ExitOnError)
 	if !cmd.helpFlagBound {
 		t.Error("helpFlagBound should be true")
 	}
@@ -66,7 +66,7 @@ func TestHelpFlag(t *testing.T) {
 
 // TestFlagConflict 测试长短标志冲突检测
 func TestFlagConflict(t *testing.T) {
-	cmd := NewCmd("test", flag.ExitOnError)
+	cmd := NewCmd("test", "t", flag.ExitOnError)
 	cmd.String("name", "n", "default", "name help")
 
 	// 模拟命令行参数同时使用长短标志
@@ -80,7 +80,7 @@ func TestFlagConflict(t *testing.T) {
 
 // TestIsFlagSet 测试标志设置检测
 func TestIsFlagSet(t *testing.T) {
-	cmd := NewCmd("test", flag.ExitOnError)
+	cmd := NewCmd("test", "t", flag.ExitOnError)
 	cmd.String("name", "n", "default", "name help")
 
 	// 测试未设置标志
@@ -100,7 +100,7 @@ func TestIsFlagSet(t *testing.T) {
 
 // TestHelpContent 测试自定义帮助内容
 func TestHelpContent(t *testing.T) {
-	cmd := NewCmd("test", flag.ExitOnError)
+	cmd := NewCmd("test", "t", flag.ExitOnError)
 	cmd.Help = "Custom help content"
 
 	if cmd.Help != "Custom help content" {
@@ -110,17 +110,23 @@ func TestHelpContent(t *testing.T) {
 
 // TestGenerateHelpInfo 测试帮助信息生成函数
 func TestGenerateHelpInfo(t *testing.T) {
-	cmd := NewCmd("test", flag.ExitOnError)
+	cmd := NewCmd("test", "t", flag.ExitOnError)
 	cmd.String("name", "n", "default", "name help")
 	cmd.Int("port", "p", 8080, "port help")
 
 	// 生成帮助信息
 	helpInfo := generateHelpInfo(cmd, true)
 
-	// 验证命令名
-	expectedHeader := "命令: test\n"
+	// 验证命令名（带短名称）
+	expectedHeader := "命令: test(t)\n"
 	if !strings.Contains(helpInfo, expectedHeader) {
 		t.Errorf("Expected help info to contain '%s', got '%s'", expectedHeader, helpInfo)
+	}
+
+	// 验证用法说明
+	expectedUsage := "用法: test [选项] [参数]"
+	if !strings.Contains(helpInfo, expectedUsage) {
+		t.Errorf("Expected help info to contain '%s', got '%s'", expectedUsage, helpInfo)
 	}
 
 	// 验证选项标题
@@ -144,17 +150,17 @@ func TestGenerateHelpInfo(t *testing.T) {
 // TestGenerateHelpInfoWithSubcommands 测试包含子命令的帮助信息生成
 func TestGenerateHelpInfoWithSubcommands(t *testing.T) {
 	// 创建主命令
-	mainCmd := NewCmd("main", flag.ExitOnError)
+	mainCmd := NewCmd("main", "m", flag.ExitOnError)
 	mainCmd.Description = "主命令描述"
 	mainCmd.String("config", "c", "config.json", "配置文件路径")
 
 	// 添加子命令
-	subCmd1 := NewCmd("sub1", flag.ExitOnError)
+	subCmd1 := NewCmd("sub1", "s1", flag.ExitOnError)
 	subCmd1.Description = "子命令1描述"
 	subCmd1.Int("port", "p", 8080, "监听端口")
 	mainCmd.AddSubCmd(subCmd1)
 
-	subCmd2 := NewCmd("sub2", flag.ExitOnError)
+	subCmd2 := NewCmd("sub2", "s2", flag.ExitOnError)
 	subCmd2.Description = "子命令2描述"
 	subCmd2.Bool("verbose", "v", false, "详细输出")
 	mainCmd.AddSubCmd(subCmd2)

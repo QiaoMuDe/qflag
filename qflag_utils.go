@@ -3,6 +3,7 @@ package qflag
 import (
 	"flag"
 	"fmt"
+	"sort"
 )
 
 // bindHelpFlag 绑定-h/--help标志到显示帮助信息的逻辑
@@ -62,31 +63,46 @@ func (c *Cmd) isFlagSet(name string) bool {
 	return flag.Value.String() != flag.DefValue
 }
 
-// generateHelpInfo 自动生成帮助信息
-// 参数:
-//
-//	cmd: 命令指针
-//	isMainCommand: 是否为主命令，如果为true则会包含子命令信息
-//
-// 返回:
-//
-//	生成的帮助信息字符串
+// generateHelpInfo 生成命令帮助信息
+// cmd: 当前命令
+// isMainCommand: 是否是主命令
+// 返回值: 命令帮助信息
 func generateHelpInfo(cmd *Cmd, isMainCommand bool) string {
 	var helpInfo string
 
-	// 第一行：命令名
-	helpInfo += fmt.Sprintf(helpHeaderTemplate, cmd.fs.Name())
+	// 命令名（支持短名称显示）
+	if cmd.ShortName != "" {
+		helpInfo += fmt.Sprintf(cmdNameWithShortTemplate, cmd.fs.Name(), cmd.ShortName)
+	} else {
+		helpInfo += fmt.Sprintf(cmdNameTemplate, cmd.fs.Name())
+	}
 
-	// 第二行：命令描述
-	helpInfo += fmt.Sprintf(helpDescriptionTemplate, cmd.Description)
+	// 命令描述
+	if cmd.Description != "" {
+		helpInfo += fmt.Sprintf(cmdDescriptionTemplate, cmd.Description)
+	}
 
-	// 第五行：选项标题
-	helpInfo += helpOptionsHeader
+	// 命令用法
+	if isMainCommand && len(cmd.subCmds) > 0 {
+		helpInfo += fmt.Sprintf(cmdUsageWithSubCmdTemplate, cmd.fs.Name())
+	} else {
+		helpInfo += fmt.Sprintf(cmdUsageTemplate, cmd.fs.Name())
+	}
 
-	// 添加标志信息
+	// 选项标题
+	helpInfo += optionsHeaderTemplate
+
+	// 收集所有标志信息
+	var flags []struct {
+		shortFlag string
+		longFlag  string
+		usage     string
+		defValue  string
+	}
+
 	cmd.fs.VisitAll(func(f *flag.Flag) {
-		// 跳过帮助标志
-		if f.Name == cmd.helpFlagName || f.Name == cmd.helpShortName {
+		// 如果是短标志，跳过处理（会在对应的长标志处理时一并处理）
+		if _, ok := cmd.shortToLong.Load(f.Name); ok {
 			return
 		}
 
@@ -96,15 +112,34 @@ func generateHelpInfo(cmd *Cmd, isMainCommand bool) string {
 			shortFlag = v.(string)
 		}
 
-		// 格式化标志行
-		helpInfo += fmt.Sprintf(helpOptionTemplate, shortFlag, f.Name, f.Usage, f.DefValue)
+		// 收集标志信息
+		flags = append(flags, struct {
+			shortFlag string
+			longFlag  string
+			usage     string
+			defValue  string
+		}{shortFlag, f.Name, f.Usage, f.DefValue})
 	})
 
+	// 按短标志字母顺序排序
+	sort.Slice(flags, func(i, j int) bool {
+		return flags[i].shortFlag < flags[j].shortFlag
+	})
+
+	// 生成排序后的标志信息
+	for _, flag := range flags {
+		if flag.shortFlag != "" {
+			helpInfo += fmt.Sprintf(optionTemplate, flag.shortFlag, flag.longFlag, flag.usage, flag.defValue)
+		} else {
+			helpInfo += fmt.Sprintf("  --%s\t%s (默认值: %s)\n", flag.longFlag, flag.usage, flag.defValue)
+		}
+	}
+
 	// 如果有子命令，添加子命令信息
-	if isMainCommand && len(cmd.SubCmds) > 0 {
-		helpInfo += helpSubCommandsHeader
-		for _, subCmd := range cmd.SubCmds {
-			helpInfo += fmt.Sprintf(helpSubCommandTemplate, subCmd.fs.Name(), subCmd.Help)
+	if isMainCommand && len(cmd.subCmds) > 0 {
+		helpInfo += subCmdsHeaderTemplate
+		for _, subCmd := range cmd.subCmds {
+			helpInfo += fmt.Sprintf(subCmdTemplate, subCmd.fs.Name(), subCmd.Description)
 		}
 	}
 
@@ -116,11 +151,10 @@ func (c *Cmd) printHelp() {
 	if c.Help != "" {
 		fmt.Println(c.Help)
 	} else {
-		// 自动生成帮助信息，假设当前命令是主命令
-		fmt.Println(generateHelpInfo(c, true))
+		// 自动生成帮助信息
+		fmt.Println(generateHelpInfo(c, c.parentCmd == nil))
 	}
 	fmt.Println()
-	c.fs.Usage() // 打印flag原生帮助信息
 }
 
 // errorIf 辅助函数，将非空字符串转为error，空字符串返回nil

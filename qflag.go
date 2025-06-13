@@ -9,9 +9,24 @@ import (
 	"sync"
 )
 
-// NewCmd 创建新的命令实例，参数name为命令名称，errorHandling指定错误处理方式。
-// errorHandling可选值：flag.ContinueOnError、flag.ExitOnError、flag.PanicOnError
-func NewCmd(name string, errorHandling flag.ErrorHandling) *Cmd {
+// NewCmd 创建新的命令实例
+// 参数:
+// name: 命令名称
+// shortName: 命令短名称
+// errorHandling: 错误处理方式
+// 返回值: *Cmd命令实例指针
+// errorHandling可选值: flag.ContinueOnError、flag.ExitOnError、flag.PanicOnError
+func NewCmd(name string, shortName string, errorHandling flag.ErrorHandling) *Cmd {
+	// 检查命令名称是否为空
+	if name == "" {
+		panic("cmd name cannot be empty")
+	}
+
+	// 设置默认的错误处理方式
+	if errorHandling == 0 {
+		errorHandling = flag.ContinueOnError
+	}
+
 	cmd := &Cmd{
 		fs:            flag.NewFlagSet(name, errorHandling), // 创建新的flag集
 		shortToLong:   sync.Map{},                           // 存储长短标志的映射关系
@@ -20,7 +35,10 @@ func NewCmd(name string, errorHandling flag.ErrorHandling) *Cmd {
 		helpShortName: "h",                                  // 默认的帮助标志短名称
 		Help:          "",                                   // 允许用户直接设置帮助内容
 		Description:   "",                                   // 允许用户直接设置命令描述
+		Name:          name,                                 // 命令名称，用于帮助信息中显示
+		ShortName:     shortName,                            // 命令短名称，用于帮助信息中显示
 	}
+
 	cmd.bindHelpFlag() // 自动绑定帮助标志
 	return cmd
 }
@@ -29,8 +47,13 @@ func NewCmd(name string, errorHandling flag.ErrorHandling) *Cmd {
 // 参数:
 // subCmds: 子命令的切片
 func (c *Cmd) AddSubCmd(subCmds ...*Cmd) {
-	// 将子命令关联到当前命令
-	c.SubCmds = append(c.SubCmds, subCmds...)
+	// 将子命令关联到当前命令并设置父命令指针
+	for _, cmd := range subCmds {
+		cmd.parentCmd = c
+	}
+
+	// 将子命令添加到当前命令的子命令列表中
+	c.subCmds = append(c.subCmds, subCmds...)
 }
 
 // Parse 解析命令行参数，自动检查长短标志互斥，并处理帮助标志
