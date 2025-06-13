@@ -1,6 +1,7 @@
 package qflag
 
 import (
+	"flag"
 	"fmt"
 )
 
@@ -61,12 +62,62 @@ func (c *Cmd) isFlagSet(name string) bool {
 	return flag.Value.String() != flag.DefValue
 }
 
+// generateHelpInfo 自动生成帮助信息
+// 参数:
+//
+//	cmd: 命令指针
+//	isMainCommand: 是否为主命令，如果为true则会包含子命令信息
+//
+// 返回:
+//
+//	生成的帮助信息字符串
+func generateHelpInfo(cmd *Cmd, isMainCommand bool) string {
+	var helpInfo string
+
+	// 第一行：命令名
+	helpInfo += fmt.Sprintf(helpHeaderTemplate, cmd.fs.Name())
+
+	// 第二行：命令描述
+	helpInfo += fmt.Sprintf(helpDescriptionTemplate, cmd.Description)
+
+	// 第五行：选项标题
+	helpInfo += helpOptionsHeader
+
+	// 添加标志信息
+	cmd.fs.VisitAll(func(f *flag.Flag) {
+		// 跳过帮助标志
+		if f.Name == cmd.helpFlagName || f.Name == cmd.helpShortName {
+			return
+		}
+
+		// 获取短标志（如果存在）
+		shortFlag := ""
+		if v, ok := cmd.longToShort.Load(f.Name); ok {
+			shortFlag = v.(string)
+		}
+
+		// 格式化标志行
+		helpInfo += fmt.Sprintf(helpOptionTemplate, shortFlag, f.Name, f.Usage, f.DefValue)
+	})
+
+	// 如果有子命令，添加子命令信息
+	if isMainCommand && len(cmd.SubCmds) > 0 {
+		helpInfo += helpSubCommandsHeader
+		for _, subCmd := range cmd.SubCmds {
+			helpInfo += fmt.Sprintf(helpSubCommandTemplate, subCmd.fs.Name(), subCmd.Help)
+		}
+	}
+
+	return helpInfo
+}
+
 // printHelp 打印帮助内容，优先显示用户自定义的HelpContent
 func (c *Cmd) printHelp() {
 	if c.Help != "" {
 		fmt.Println(c.Help)
 	} else {
-		fmt.Println("未设置帮助内容, 请通过cmd.HelpContent赋值")
+		// 自动生成帮助信息，假设当前命令是主命令
+		fmt.Println(generateHelpInfo(c, true))
 	}
 	fmt.Println()
 	c.fs.Usage() // 打印flag原生帮助信息

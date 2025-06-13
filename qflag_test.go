@@ -2,6 +2,8 @@ package qflag
 
 import (
 	"flag"
+	"fmt"
+	"strings"
 	"testing"
 )
 
@@ -103,5 +105,85 @@ func TestHelpContent(t *testing.T) {
 
 	if cmd.Help != "Custom help content" {
 		t.Errorf("Expected Help 'Custom help content', got '%s'", cmd.Help)
+	}
+}
+
+// TestGenerateHelpInfo 测试帮助信息生成函数
+func TestGenerateHelpInfo(t *testing.T) {
+	cmd := NewCmd("test", flag.ExitOnError)
+	cmd.String("name", "n", "default", "name help")
+	cmd.Int("port", "p", 8080, "port help")
+
+	// 生成帮助信息
+	helpInfo := generateHelpInfo(cmd, true)
+
+	// 验证命令名
+	expectedHeader := "命令: test\n"
+	if !strings.Contains(helpInfo, expectedHeader) {
+		t.Errorf("Expected help info to contain '%s', got '%s'", expectedHeader, helpInfo)
+	}
+
+	// 验证选项标题
+	expectedOptionsHeader := "选项:\n"
+	if !strings.Contains(helpInfo, expectedOptionsHeader) {
+		t.Errorf("Expected help info to contain '%s', got '%s'", expectedOptionsHeader, helpInfo)
+	}
+
+	// 验证标志信息
+	expectedNameFlag := "-n, --name"
+	if !strings.Contains(helpInfo, expectedNameFlag) {
+		t.Errorf("Expected help info to contain '%s', got '%s'", expectedNameFlag, helpInfo)
+	}
+
+	expectedPortFlag := "-p, --port"
+	if !strings.Contains(helpInfo, expectedPortFlag) {
+		t.Errorf("Expected help info to contain '%s', got '%s'", expectedPortFlag, helpInfo)
+	}
+}
+
+// TestGenerateHelpInfoWithSubcommands 测试包含子命令的帮助信息生成
+func TestGenerateHelpInfoWithSubcommands(t *testing.T) {
+	// 创建主命令
+	mainCmd := NewCmd("main", flag.ExitOnError)
+	mainCmd.Description = "主命令描述"
+	mainCmd.String("config", "c", "config.json", "配置文件路径")
+
+	// 添加子命令
+	subCmd1 := NewCmd("sub1", flag.ExitOnError)
+	subCmd1.Description = "子命令1描述"
+	subCmd1.Int("port", "p", 8080, "监听端口")
+	mainCmd.AddSubCmd(subCmd1)
+
+	subCmd2 := NewCmd("sub2", flag.ExitOnError)
+	subCmd2.Description = "子命令2描述"
+	subCmd2.Bool("verbose", "v", false, "详细输出")
+	mainCmd.AddSubCmd(subCmd2)
+
+	// 生成帮助信息
+	helpInfo := generateHelpInfo(mainCmd, true)
+	fmt.Println(helpInfo)
+
+	// 验证命令描述
+	expectedDesc := "主命令描述\n"
+	if !strings.Contains(helpInfo, expectedDesc) {
+		t.Errorf("Expected help info to contain '%s', got '%s'", expectedDesc, helpInfo)
+	}
+
+	// 验证子命令标题
+	expectedSubHeader := "子命令:\n"
+	if !strings.Contains(helpInfo, expectedSubHeader) {
+		t.Errorf("Expected help info to contain '%s', got '%s'", expectedSubHeader, helpInfo)
+	}
+
+	// 验证子命令1
+	expectedSub1 := "sub1"
+	if !strings.Contains(helpInfo, expectedSub1) {
+		t.Errorf("Expected help info to contain '%s', got '%s'", expectedSub1, helpInfo)
+	}
+
+	// 验证子命令2
+	expectedSub2 := "sub2"
+	if !strings.Contains(helpInfo, expectedSub2) {
+		t.Errorf("Expected help info to contain '%s', got '%s'", expectedSub2, helpInfo)
 	}
 }

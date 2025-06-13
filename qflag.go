@@ -19,6 +19,7 @@ func NewCmd(name string, errorHandling flag.ErrorHandling) *Cmd {
 		helpFlagName:  "help",                               // 默认的帮助标志名称
 		helpShortName: "h",                                  // 默认的帮助标志短名称
 		Help:          "",                                   // 允许用户直接设置帮助内容
+		Description:   "",                                   // 允许用户直接设置命令描述
 	}
 	cmd.bindHelpFlag() // 自动绑定帮助标志
 	return cmd

@@ -11,11 +11,23 @@ type Cmd struct {
 	shortToLong   sync.Map      // 短标志到长标志的映射（键：短标志，值：长标志）
 	longToShort   sync.Map      // 长标志到短标志的映射（键：长标志，值：短标志）
 	Help          string        // 自定义帮助内容，可由用户直接赋值
+	Description   string        // 自定义描述，用于帮助信息中显示
 	helpFlagName  string        // 帮助标志的长名称，默认"help"
 	helpShortName string        // 帮助标志的短名称，默认"h"
 	helpFlagBound bool          // 标记帮助标志是否已绑定
 	SubCmds       []*Cmd        // 子命令列表, 用于关联子命令
 }
+
+// 帮助信息模板常量
+const (
+	helpHeaderTemplate      = "命令: %s\n\n"
+	helpDescriptionTemplate = "描述: %s\n\n"
+	helpUsageTemplate       = "用法: %s [选项] [参数]\n\n"
+	helpOptionsHeader       = "选项:\n"
+	helpOptionTemplate      = "  -%s, --%s\t%s (默认值: %s)\n"
+	helpSubCommandsHeader   = "\n子命令:\n"
+	helpSubCommandTemplate  = "  %s\t%s\n"
+)
 
 // IntFlag 整数类型标志结构体，包含标志元数据和值访问接口
 type IntFlag struct {
