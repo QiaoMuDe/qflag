@@ -8,14 +8,15 @@ import (
 // Cmd 命令行标志管理结构体，封装参数解析、长短标志互斥及帮助系统。
 type Cmd struct {
 	/* 内部使用属性*/
-	fs            *flag.FlagSet // 底层flag集合, 处理参数解析
-	shortToLong   sync.Map      // 短标志到长标志的映射（键：短标志，值：长标志）
-	longToShort   sync.Map      // 长标志到短标志的映射（键：长标志，值：短标志）
-	helpFlagName  string        // 帮助标志的长名称，默认"help"
-	helpShortName string        // 帮助标志的短名称，默认"h"
-	helpFlagBound bool          // 标记帮助标志是否已绑定
-	subCmds       []*Cmd        // 子命令列表, 用于关联子命令
-	parentCmd     *Cmd          // 父命令指针，用于递归调用, 根命令的父命令为nil
+	fs            *flag.FlagSet               // 底层flag集合, 处理参数解析
+	shortToLong   sync.Map                    // 短标志到长标志的映射（键：短标志，值：长标志）
+	longToShort   sync.Map                    // 长标志到短标志的映射（键：长标志，值：短标志）
+	helpFlagName  string                      // 帮助标志的长名称，默认"help"
+	helpShortName string                      // 帮助标志的短名称，默认"h"
+	helpFlagBound bool                        // 标记帮助标志是否已绑定
+	subCmds       []*Cmd                      // 子命令列表, 用于关联子命令
+	parentCmd     *Cmd                        // 父命令指针，用于递归调用, 根命令的父命令为nil
+	flagRegistry  map[interface{}]interface{} // 新增：指针到Flag的映射
 
 	/* 外部可访问属性 */
 	Help        string // 自定义帮助内容，可由用户直接赋值

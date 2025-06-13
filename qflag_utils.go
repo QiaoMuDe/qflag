@@ -85,6 +85,8 @@ func generateHelpInfo(cmd *Cmd, isMainCommand bool) string {
 	// 命令用法
 	if isMainCommand && len(cmd.subCmds) > 0 {
 		helpInfo += fmt.Sprintf(cmdUsageWithSubCmdTemplate, cmd.fs.Name())
+	} else if cmd.parentCmd != nil {
+		helpInfo += fmt.Sprintf(cmdUsageSubCmdTemplate, cmd.parentCmd.fs.Name(), cmd.fs.Name())
 	} else {
 		helpInfo += fmt.Sprintf(cmdUsageTemplate, cmd.fs.Name())
 	}

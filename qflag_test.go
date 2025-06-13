@@ -110,41 +110,102 @@ func TestHelpContent(t *testing.T) {
 
 // TestGenerateHelpInfo 测试帮助信息生成函数
 func TestGenerateHelpInfo(t *testing.T) {
-	cmd := NewCmd("test", "t", flag.ExitOnError)
-	cmd.String("name", "n", "default", "name help")
-	cmd.Int("port", "p", 8080, "port help")
+	// 场景1: 只有主命令，没有标志和子命令
+	t.Run("OnlyMainCommand", func(t *testing.T) {
+		cmd := NewCmd("test", "t", flag.ExitOnError)
+		fmt.Println("=== 场景: 只有主命令，没有标志和子命令 ===")
+		helpInfo := generateHelpInfo(cmd, true)
+		fmt.Println(helpInfo)
 
-	// 生成帮助信息
-	helpInfo := generateHelpInfo(cmd, true)
+		// 验证命令名
+		expectedHeader := "命令: test(t)\n"
+		if !strings.Contains(helpInfo, expectedHeader) {
+			t.Errorf("Expected help info to contain '%s', got '%s'", expectedHeader, helpInfo)
+		}
 
-	// 验证命令名（带短名称）
-	expectedHeader := "命令: test(t)\n"
-	if !strings.Contains(helpInfo, expectedHeader) {
-		t.Errorf("Expected help info to contain '%s', got '%s'", expectedHeader, helpInfo)
-	}
+		// 验证用法说明
+		expectedUsage := "用法: test [选项] [参数]"
+		if !strings.Contains(helpInfo, expectedUsage) {
+			t.Errorf("Expected help info to contain '%s', got '%s'", expectedUsage, helpInfo)
+		}
+	})
 
-	// 验证用法说明
-	expectedUsage := "用法: test [选项] [参数]"
-	if !strings.Contains(helpInfo, expectedUsage) {
-		t.Errorf("Expected help info to contain '%s', got '%s'", expectedUsage, helpInfo)
-	}
+	// 场景2: 主命令有标志
+	t.Run("MainCommandWithFlags", func(t *testing.T) {
+		cmd := NewCmd("test", "t", flag.ExitOnError)
+		cmd.String("name", "n", "default", "name help")
+		cmd.Int("port", "p", 8080, "port help")
 
-	// 验证选项标题
-	expectedOptionsHeader := "选项:\n"
-	if !strings.Contains(helpInfo, expectedOptionsHeader) {
-		t.Errorf("Expected help info to contain '%s', got '%s'", expectedOptionsHeader, helpInfo)
-	}
+		fmt.Println("=== 场景: 主命令带标志 ===")
+		helpInfo := generateHelpInfo(cmd, true)
+		fmt.Println(helpInfo)
 
-	// 验证标志信息
-	expectedNameFlag := "-n, --name"
-	if !strings.Contains(helpInfo, expectedNameFlag) {
-		t.Errorf("Expected help info to contain '%s', got '%s'", expectedNameFlag, helpInfo)
-	}
+		// 验证选项标题
+		expectedOptionsHeader := "选项:\n"
+		if !strings.Contains(helpInfo, expectedOptionsHeader) {
+			t.Errorf("Expected help info to contain '%s', got '%s'", expectedOptionsHeader, helpInfo)
+		}
 
-	expectedPortFlag := "-p, --port"
-	if !strings.Contains(helpInfo, expectedPortFlag) {
-		t.Errorf("Expected help info to contain '%s', got '%s'", expectedPortFlag, helpInfo)
-	}
+		// 验证标志信息
+		expectedNameFlag := "-n, --name"
+		if !strings.Contains(helpInfo, expectedNameFlag) {
+			t.Errorf("Expected help info to contain '%s', got '%s'", expectedNameFlag, helpInfo)
+		}
+
+		expectedPortFlag := "-p, --port"
+		if !strings.Contains(helpInfo, expectedPortFlag) {
+			t.Errorf("Expected help info to contain '%s', got '%s'", expectedPortFlag, helpInfo)
+		}
+	})
+
+	// 场景3: 主命令有子命令
+	t.Run("MainCommandWithSubcommands", func(t *testing.T) {
+		mainCmd := NewCmd("main", "m", flag.ExitOnError)
+		mainCmd.Description = "主命令描述"
+		subCmd := NewCmd("sub", "s", flag.ExitOnError)
+		subCmd.Description = "子命令描述"
+		mainCmd.AddSubCmd(subCmd)
+
+		fmt.Println("=== 场景: 主命令带子命令 ===")
+		helpInfo := generateHelpInfo(mainCmd, true)
+		fmt.Println(helpInfo)
+
+		// 验证子命令标题
+		expectedSubHeader := "子命令:\n"
+		if !strings.Contains(helpInfo, expectedSubHeader) {
+			t.Errorf("Expected help info to contain '%s', got '%s'", expectedSubHeader, helpInfo)
+		}
+
+		// 验证子命令信息
+		expectedSubCmd := "sub"
+		if !strings.Contains(helpInfo, expectedSubCmd) {
+			t.Errorf("Expected help info to contain '%s', got '%s'", expectedSubCmd, helpInfo)
+		}
+	})
+
+	// 场景4: 子命令的帮助信息
+	t.Run("SubcommandHelpInfo", func(t *testing.T) {
+		mainCmd := NewCmd("main", "m", flag.ExitOnError)
+		subCmd := NewCmd("sub", "s", flag.ExitOnError)
+		subCmd.String("config", "c", "config.json", "配置文件路径")
+		mainCmd.AddSubCmd(subCmd)
+
+		fmt.Println("=== 场景: 子命令帮助信息 ===")
+		helpInfo := generateHelpInfo(subCmd, false)
+		fmt.Println(helpInfo)
+
+		// 验证子命令用法说明
+		expectedUsage := "用法: main sub [选项] [参数]"
+		if !strings.Contains(helpInfo, expectedUsage) {
+			t.Errorf("Expected help info to contain '%s', got '%s'", expectedUsage, helpInfo)
+		}
+
+		// 验证子命令标志
+		expectedConfigFlag := "-c, --config"
+		if !strings.Contains(helpInfo, expectedConfigFlag) {
+			t.Errorf("Expected help info to contain '%s', got '%s'", expectedConfigFlag, helpInfo)
+		}
+	})
 }
 
 // TestGenerateHelpInfoWithSubcommands 测试包含子命令的帮助信息生成
@@ -166,6 +227,7 @@ func TestGenerateHelpInfoWithSubcommands(t *testing.T) {
 	mainCmd.AddSubCmd(subCmd2)
 
 	// 生成帮助信息
+	fmt.Println("=== 场景: 主命令带子命令 ===")
 	helpInfo := generateHelpInfo(mainCmd, true)
 	fmt.Println(helpInfo)
 

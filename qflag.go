@@ -33,6 +33,7 @@ func NewCmd(name string, shortName string, errorHandling flag.ErrorHandling) *Cm
 		longToShort:   sync.Map{},                           // 存储长短标志的映射关系
 		helpFlagName:  "help",                               // 默认的帮助标志名称
 		helpShortName: "h",                                  // 默认的帮助标志短名称
+		flagRegistry:  make(map[interface{}]interface{}),    // 初始化指针注册表
 		Help:          "",                                   // 允许用户直接设置帮助内容
 		Description:   "",                                   // 允许用户直接设置命令描述
 		Name:          name,                                 // 命令名称，用于帮助信息中显示
@@ -41,6 +42,18 @@ func NewCmd(name string, shortName string, errorHandling flag.ErrorHandling) *Cm
 
 	cmd.bindHelpFlag() // 自动绑定帮助标志
 	return cmd
+}
+
+// GetFlagByPtr 通过指针获取对应的Flag对象
+// 参数: p - 绑定的指针
+// 返回值: 对应的Flag对象和错误信息
+// 如果指针未注册，则返回错误
+func (c *Cmd) GetFlagByPtr(p interface{}) (interface{}, error) {
+	flag, exists := c.flagRegistry[p]
+	if !exists {
+		return nil, fmt.Errorf("指针未注册: %v", p)
+	}
+	return flag, nil
 }
 
 // AddSubCmd 关联一个或多个子命令到当前命令
@@ -114,6 +127,69 @@ func (c *Cmd) String(name, shortName, defValue, help string) *StringFlag {
 		c.fs.String(shortName, defValue, help) // 绑定短标志
 	}
 	return f
+}
+
+// StringVar 绑定字符串类型标志到指针并内部注册Flag对象
+// 参数依次为: 指针、长标志名、短标志、默认值、帮助说明
+func (c *Cmd) StringVar(p *string, name, shortName, defValue, help string) {
+	c.fs.StringVar(p, name, defValue, help) // 绑定长标志
+	f := &StringFlag{
+		cmd:       c,         // 命令对象
+		name:      name,      // 长标志名
+		shortName: shortName, // 短标志名
+		defValue:  defValue,  // 默认值
+		help:      help,      // 帮助说明
+		value:     p,         // 标志对象
+	}
+	c.flagRegistry[p] = f // 注册Flag对象
+
+	if shortName != "" && shortName != c.helpShortName {
+		c.shortToLong.Store(shortName, name)         // 存储短到长的映射关系
+		c.longToShort.Store(name, shortName)         // 存储长到短的映射关系
+		c.fs.StringVar(p, shortName, defValue, help) // 绑定短标志
+	}
+}
+
+// IntVar 绑定整数类型标志到指针并内部注册Flag对象
+// 参数依次为: 指针、长标志名、短标志、默认值、帮助说明
+func (c *Cmd) IntVar(p *int, name, shortName string, defValue int, help string) {
+	c.fs.IntVar(p, name, defValue, help) // 绑定长标志
+	f := &IntFlag{
+		cmd:       c,         // 命令对象
+		name:      name,      // 长标志名
+		shortName: shortName, // 短标志名
+		defValue:  defValue,  // 默认值
+		help:      help,      // 帮助说明
+		value:     p,         // 标志对象
+	}
+	c.flagRegistry[p] = f // 注册Flag对象
+
+	if shortName != "" && shortName != c.helpShortName {
+		c.shortToLong.Store(shortName, name)      // 存储短到长的映射关系
+		c.longToShort.Store(name, shortName)      // 存储长到短的映射关系
+		c.fs.IntVar(p, shortName, defValue, help) // 绑定短标志
+	}
+}
+
+// BoolVar 绑定布尔类型标志到指针并内部注册Flag对象
+// 参数依次为: 指针、长标志名、短标志、默认值、帮助说明
+func (c *Cmd) BoolVar(p *bool, name, shortName string, defValue bool, help string) {
+	c.fs.BoolVar(p, name, defValue, help) // 绑定长标志
+	f := &BoolFlag{
+		cmd:       c,         // 命令对象
+		name:      name,      // 长标志名
+		shortName: shortName, // 短标志名
+		defValue:  defValue,  // 默认值
+		help:      help,      // 帮助说明
+		value:     p,         // 标志对象
+	}
+	c.flagRegistry[p] = f // 注册Flag对象
+
+	if shortName != "" && shortName != c.helpShortName {
+		c.shortToLong.Store(shortName, name)       // 存储短到长的映射关系
+		c.longToShort.Store(name, shortName)       // 存储长到短的映射关系
+		c.fs.BoolVar(p, shortName, defValue, help) // 绑定短标志
+	}
 }
 
 // Int 添加整数类型标志，返回标志对象。参数依次为长标志名、短标志、默认值、帮助说明
