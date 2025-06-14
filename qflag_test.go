@@ -3,6 +3,7 @@ package qflag
 import (
 	"flag"
 	"fmt"
+	"os"
 	"strings"
 	"testing"
 )
@@ -69,8 +70,15 @@ func TestFlagConflict(t *testing.T) {
 	cmd := NewCmd("test", "t", flag.ExitOnError)
 	cmd.String("name", "n", "default", "name help")
 
-	// 模拟命令行参数同时使用长短标志
-	err := cmd.Parse([]string{"--name", "value", "-n", "value"})
+	// 模拟命令行参数同时使用长短标志并过滤-test.*标志
+	args := []string{"--name", "value", "-n", "value"}
+	filteredArgs := []string{}
+	for _, arg := range args {
+		if !strings.HasPrefix(arg, "-test.") {
+			filteredArgs = append(filteredArgs, arg)
+		}
+	}
+	err := cmd.Parse(filteredArgs)
 	if err == nil {
 		t.Error("Expected error for flag conflict")
 	} else if err.Error() != "不能同时使用 --name 和 -n" {
@@ -88,8 +96,15 @@ func TestIsFlagSet(t *testing.T) {
 		t.Error("Expected isFlagSet to return false before parsing")
 	}
 
-	// 测试设置标志
-	err := cmd.Parse([]string{"--name", "value"})
+	// 测试设置标志并过滤-test.*标志
+	args := []string{"--name", "value"}
+	filteredArgs := []string{}
+	for _, arg := range args {
+		if !strings.HasPrefix(arg, "-test.") {
+			filteredArgs = append(filteredArgs, arg)
+		}
+	}
+	err := cmd.Parse(filteredArgs)
 	if err != nil {
 		t.Errorf("Unexpected error: %v", err)
 	}
@@ -105,6 +120,58 @@ func TestHelpContent(t *testing.T) {
 
 	if cmd.Usage() != "Custom help content" {
 		t.Errorf("Expected Help 'Custom help content', got '%s'", cmd.Usage())
+	}
+}
+
+// TestGlobalDefaultCmd 测试全局默认命令功能
+func TestGlobalDefaultCmd(t *testing.T) {
+	// 测试全局String函数
+	strFlag := String("gname", "gn", "gdefault", "global name help")
+	if *strFlag.value != "gdefault" {
+		t.Errorf("全局String标志默认值错误, 预期 'gdefault', 实际 '%s'", *strFlag.value)
+	}
+
+	// 测试全局Int函数
+	intFlag := Int("gport", "gp", 9090, "global port help")
+	if *intFlag.value != 9090 {
+		t.Errorf("全局Int标志默认值错误, 预期 9090, 实际 %d", *intFlag.value)
+	}
+
+	// 测试全局Bool函数
+	boolFlag := Bool("gverbose", "gv", true, "global verbose help")
+	if *boolFlag.value != true {
+		t.Errorf("全局Bool标志默认值错误, 预期 true, 实际 %t", *boolFlag.value)
+	}
+
+	// 测试全局Float函数
+	floatFlag := Float("gpi", "gπ", 3.14, "global pi help")
+	if *floatFlag.value != 3.14 {
+		t.Errorf("全局Float标志默认值错误, 预期 3.14, 实际 %f", *floatFlag.value)
+	}
+}
+
+// TestGlobalFlagConflict 测试全局命令标志冲突
+func TestGlobalFlagConflict(t *testing.T) {
+	// 重置默认命令以避免测试污染
+	defaultCmd = NewCmd("main", "", flag.ExitOnError)
+	String("gname", "gn", "", "global name help")
+
+	// 同时使用长短标志应返回错误
+	// 准备测试参数
+	testArgs := []string{"--gname", "value", "-gn", "value"}
+
+	// 保存原始os.Args并在测试后恢复
+	originalArgs := os.Args
+	defer func() { os.Args = originalArgs }()
+
+	// 设置os.Args为测试参数
+	os.Args = append([]string{os.Args[0]}, testArgs...)
+
+	err := Parse()
+	if err == nil {
+		t.Error("预期检测到全局标志冲突, 但未返回错误")
+	} else if err.Error() != "不能同时使用 --gname 和 -gn" {
+		t.Errorf("全局标志冲突错误信息不正确, 预期 '不能同时使用 --gname 和 -gn', 实际 '%s'", err.Error())
 	}
 }
 
@@ -199,29 +266,63 @@ func TestGenerateHelpInfo(t *testing.T) {
 		if !strings.Contains(helpInfo, expectedUsage) {
 			t.Errorf("Expected help info to contain '%s', got '%s'", expectedUsage, helpInfo)
 		}
+	})
 
-		// 验证子命令标志
+	// 场景5: 全局命令帮助信息
+	t.Run("GlobalCommandHelpInfo", func(t *testing.T) {
+		// 重置默认命令
+		defaultCmd = NewCmd("main", "", flag.ContinueOnError)
+		String("gname", "gn", "gdefault", "global name help")
+		Int("gport", "gp", 9090, "global port help")
+
+		fmt.Println("=== 场景: 全局命令帮助信息 ===")
+		// 设置测试参数，避免依赖os.Args
+		testArgs := []string{"--gname", "test", "-gp", "8888"}
+		// 忽略未知标志以避免测试框架干扰
+		defaultCmd.Parse(testArgs)
+		helpInfo := generateHelpInfo(defaultCmd, true)
+		fmt.Println(helpInfo)
+
+		// 验证全局命令标志
+		expectedNameFlag := "-gn, --gname"
+		if !strings.Contains(helpInfo, expectedNameFlag) {
+			t.Errorf("Expected help info to contain '%s', got '%s'", expectedNameFlag, helpInfo)
+		}
+
+		expectedPortFlag := "-gp, --gport"
+		if !strings.Contains(helpInfo, expectedPortFlag) {
+			t.Errorf("Expected help info to contain '%s', got '%s'", expectedPortFlag, helpInfo)
+		}
+	})
+	// 测试子命令标志
+	t.Run("SubcommandFlags", func(t *testing.T) {
+		mainCmd := NewCmd("main", "m", flag.ExitOnError)
+		subCmd := NewCmd("sub", "s", flag.ExitOnError)
+		subCmd.String("config", "c", "config.json", "配置文件路径")
+		mainCmd.AddSubCmd(subCmd)
+
+		helpInfo := generateHelpInfo(subCmd, false)
 		expectedConfigFlag := "-c, --config"
 		if !strings.Contains(helpInfo, expectedConfigFlag) {
-			t.Errorf("Expected help info to contain '%s', got '%s'", expectedConfigFlag, helpInfo)
+			t.Errorf("子命令帮助信息应包含 '%s', 实际 '%s'", expectedConfigFlag, helpInfo)
 		}
 	})
 }
 
 // TestGenerateHelpInfoWithSubcommands 测试包含子命令的帮助信息生成
 func TestGenerateHelpInfoWithSubcommands(t *testing.T) {
-	// 创建主命令
-	mainCmd := NewCmd("main", "m", flag.ExitOnError)
+	// 创建主命令，使用ContinueOnError模式以忽略未知标志
+	mainCmd := NewCmd("main", "m", flag.ContinueOnError)
 	mainCmd.SetDescription("主命令描述")
 	mainCmd.String("config", "c", "config.json", "配置文件路径")
 
 	// 添加子命令
-	subCmd1 := NewCmd("sub1", "s1", flag.ExitOnError)
+	subCmd1 := NewCmd("sub1", "s1", flag.ContinueOnError)
 	subCmd1.SetDescription("子命令1描述")
 	subCmd1.Int("port", "p", 8080, "监听端口")
 	mainCmd.AddSubCmd(subCmd1)
 
-	subCmd2 := NewCmd("sub2", "s2", flag.ExitOnError)
+	subCmd2 := NewCmd("sub2", "s2", flag.ContinueOnError)
 	subCmd2.SetDescription("子命令2描述")
 	subCmd2.Bool("verbose", "v", false, "详细输出")
 	mainCmd.AddSubCmd(subCmd2)

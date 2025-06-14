@@ -9,6 +9,72 @@ import (
 	"sync"
 )
 
+// 默认命令实例，用于简化使用方式，类似标准flag包
+var defaultCmd = NewCmd("main", "", flag.ExitOnError)
+
+// String 创建字符串类型标志（全局默认命令）
+// 参数依次为：长标志名、短标志、默认值、帮助说明
+func String(name, shortName, defValue, usage string) *StringFlag {
+	return defaultCmd.String(name, shortName, defValue, usage)
+}
+
+// Int 创建整数类型标志（全局默认命令）
+// 参数依次为：长标志名、短标志、默认值、帮助说明
+func Int(name, shortName string, defValue int, usage string) *IntFlag {
+	return defaultCmd.Int(name, shortName, defValue, usage)
+}
+
+// Bool 创建布尔类型标志（全局默认命令）
+// 参数依次为：长标志名、短标志、默认值、帮助说明
+func Bool(name, shortName string, defValue bool, usage string) *BoolFlag {
+	return defaultCmd.Bool(name, shortName, defValue, usage)
+}
+
+// Float 创建浮点数类型标志（全局默认命令）
+// 参数依次为：长标志名、短标志、默认值、帮助说明
+func Float(name, shortName string, defValue float64, usage string) *FloatFlag {
+	return defaultCmd.Float(name, shortName, defValue, usage)
+}
+
+// StringVar 绑定字符串类型标志到指针（全局默认命令）
+// 参数依次为：指针、长标志名、短标志、默认值、帮助说明
+func StringVar(p *string, name, shortName, defValue, usage string) {
+	defaultCmd.StringVar(p, name, shortName, defValue, usage)
+}
+
+// IntVar 绑定整数类型标志到指针（全局默认命令）
+// 参数依次为：指针、长标志名、短标志、默认值、帮助说明
+func IntVar(p *int, name, shortName string, defValue int, usage string) {
+	defaultCmd.IntVar(p, name, shortName, defValue, usage)
+}
+
+// BoolVar 绑定布尔类型标志到指针（全局默认命令）
+// 参数依次为：指针、长标志名、短标志、默认值、帮助说明
+func BoolVar(p *bool, name, shortName string, defValue bool, usage string) {
+	defaultCmd.BoolVar(p, name, shortName, defValue, usage)
+}
+
+// FloatVar 绑定浮点数类型标志到指针（全局默认命令）
+// 参数依次为：指针、长标志名、短标志、默认值、帮助说明
+func FloatVar(p *float64, name, shortName string, defValue float64, usage string) {
+	defaultCmd.FloatVar(p, name, shortName, defValue, usage)
+}
+
+// Parse 解析命令行参数（全局默认命令）
+func Parse() error {
+	return defaultCmd.Parse(os.Args[1:])
+}
+
+// AddSubCmd 给全局默认命令添加子命令
+func AddSubCmd(subCmds ...*Cmd) {
+	defaultCmd.AddSubCmd(subCmds...)
+}
+
+// GetFlagByPtr 通过指针获取标志（全局默认命令）
+func GetFlagByPtr(p interface{}) (interface{}, error) {
+	return defaultCmd.GetFlagByPtr(p)
+}
+
 // NewCmd 创建新的命令实例
 // 参数:
 // name: 命令名称
@@ -24,7 +90,7 @@ func NewCmd(name string, shortName string, errorHandling flag.ErrorHandling) *Cm
 
 	// 设置默认的错误处理方式
 	if errorHandling == 0 {
-		errorHandling = flag.ContinueOnError
+		errorHandling = flag.ExitOnError
 	}
 
 	cmd := &Cmd{
