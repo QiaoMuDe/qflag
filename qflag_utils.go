@@ -129,7 +129,7 @@ func generateHelpInfo(cmd *Cmd, isMainCommand bool) string {
 		longFlag  string
 		shortFlag string
 		usage     string
-		defValue  interface{}
+		defValue  string
 	}
 
 	// 使用Flag接口统一访问标志属性
@@ -139,12 +139,12 @@ func generateHelpInfo(cmd *Cmd, isMainCommand bool) string {
 			longFlag  string
 			shortFlag string
 			usage     string
-			defValue  interface{}
+			defValue  string
 		}{
 			longFlag:  flag.Name(),
 			shortFlag: flag.ShortName(),
 			usage:     flag.Usage(),
-			defValue:  flag.DefaultValue(),
+			defValue:  fmt.Sprintf("%v", flag.getDefaultAny()),
 		})
 	}
 
@@ -165,8 +165,13 @@ func generateHelpInfo(cmd *Cmd, isMainCommand bool) string {
 			longFlag  string
 			shortFlag string
 			usage     string
-			defValue  interface{}
-		}{f.Name, shortFlag, f.Usage, f.DefValue})
+			defValue  string
+		}{
+			longFlag:  f.Name,
+			shortFlag: shortFlag,
+			usage:     f.Usage,
+			defValue:  fmt.Sprintf("%v", f.DefValue),
+		})
 	})
 
 	// 按短标志字母顺序排序，有短标志的选项优先

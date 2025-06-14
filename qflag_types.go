@@ -5,25 +5,26 @@ import (
 	"sync"
 )
 
-// Cmd 命令行标志管理结构体，封装参数解析、长短标志互斥及帮助系统。
+// Cmd 命令行标志管理结构体,封装参数解析、长短标志互斥及帮助系统。
 type Cmd struct {
 	/* 内部使用属性*/
 	fs            *flag.FlagSet        // 底层flag集合, 处理参数解析
-	shortToLong   sync.Map             // 短标志到长标志的映射（键：短标志，值：长标志）
-	longToShort   sync.Map             // 长标志到短标志的映射（键：长标志，值：短标志）
-	helpFlagName  string               // 帮助标志的长名称，默认"help"
-	helpShortName string               // 帮助标志的短名称，默认"h"
+	shortToLong   sync.Map             // 短标志到长标志的映射（键：短标志,值：长标志）
+	longToShort   sync.Map             // 长标志到短标志的映射（键：长标志,值：短标志）
+	helpFlagName  string               // 帮助标志的长名称,默认"help"
+	helpShortName string               // 帮助标志的短名称,默认"h"
 	helpFlagBound bool                 // 标记帮助标志是否已绑定
 	subCmds       []*Cmd               // 子命令列表, 用于关联子命令
-	parentCmd     *Cmd                 // 父命令指针，用于递归调用, 根命令的父命令为nil
-	flagRegistry  map[interface{}]Flag // 标志注册表，用于通过指针查找标志元数据
-	usage         string               // 自定义帮助内容，可由用户直接赋值
-	description   string               // 自定义描述，用于帮助信息中显示
-	name          string               // 命令名称，用于帮助信息中显示
-	shortName     string               // 命令短名称，用于帮助信息中显示
+	parentCmd     *Cmd                 // 父命令指针,用于递归调用, 根命令的父命令为nil
+	flagRegistry  map[interface{}]Flag // 标志注册表,用于通过指针查找标志元数据
+	usage         string               // 自定义帮助内容,可由用户直接赋值
+	description   string               // 自定义描述,用于帮助信息中显示
+	name          string               // 命令名称,用于帮助信息中显示
+	shortName     string               // 命令短名称,用于帮助信息中显示
 	args          []string             // 命令行参数切片
-	addMu         sync.Mutex           // 互斥锁，确保并发安全操作
+	addMu         sync.Mutex           // 互斥锁,确保并发安全操作
 	parseOnce     sync.Once            // 用于确保命令只被解析一次
+	setMu         sync.Mutex           // 互斥锁,确保并发安全操作
 }
 
 // 标志类型
@@ -36,7 +37,7 @@ const (
 	FlagTypeFloat                  // 浮点数类型
 )
 
-// Command 命令接口定义，封装命令的核心功能
+// Command 命令接口定义,封装命令的核心功能
 // 提供属性访问和子命令管理的标准方法
 // 实现类应确保线程安全的标志操作
 //
@@ -82,13 +83,21 @@ func (c *Cmd) ShortName() string { return c.shortName }
 func (c *Cmd) Description() string { return c.description }
 
 // SetDescription 设置命令描述
-func (c *Cmd) SetDescription(desc string) { c.description = desc }
+func (c *Cmd) SetDescription(desc string) {
+	c.setMu.Lock()
+	defer c.setMu.Unlock()
+	c.description = desc
+}
 
 // Usage 命令用法
 func (c *Cmd) Usage() string { return c.usage }
 
 // SetUsage 设置命令用法
-func (c *Cmd) SetUsage(usage string) { c.usage = usage }
+func (c *Cmd) SetUsage(usage string) {
+	c.setMu.Lock()
+	defer c.setMu.Unlock()
+	c.usage = usage
+}
 
 // SubCmds 子命令列表
 func (c *Cmd) SubCmds() []*Cmd { return c.subCmds }
@@ -124,79 +133,179 @@ const (
 	subCmdTemplate             = "  %s\t%s\n"                                       // 子命令模板
 )
 
-// Flag 所有标志类型的通用接口，定义了标志的元数据访问方法
+// Flag 所有标志类型的通用接口,定义了标志的元数据访问方法
 type Flag interface {
-	Name() string              // 获取标志的名称
-	ShortName() string         // 获取标志的短名称
-	Usage() string             // 获取标志的用法
-	DefaultValue() interface{} // 获取标志的默认值
-	Type() FlagType            // 获取标志类型
+	Name() string       // 获取标志的名称
+	ShortName() string  // 获取标志的短名称
+	Usage() string      // 获取标志的用法
+	Type() FlagType     // 获取标志类型
+	getDefaultAny() any // 新增通用方法(内部使用)
 }
 
-// IntFlag 整数类型标志结构体，包含标志元数据和值访问接口
+// TypedFlag 所有标志类型的通用接口,定义了标志的元数据访问方法和默认值访问方法
+type TypedFlag[T any] interface {
+	Flag           // 继承标志接口
+	GetDefault() T // 获取标志的默认值
+	GetValue() T   // 获取标志的实际值
+	SetValue(T)    // 设置标志的值
+}
+
+// IntFlag 整数类型标志结构体,包含标志元数据和值访问接口
 type IntFlag struct {
-	cmd       *Cmd   // 所属的命令实例
-	name      string // 长标志名称（如"port"）
-	shortName string // 短标志字符（如"p"，空表示无短标志）
-	defValue  int    // 默认值
-	usage     string // 帮助说明
-	value     *int   // 标志值指针，通过flag库绑定
+	cmd       *Cmd         // 所属的命令实例
+	name      string       // 长标志名称（如"port"）
+	shortName string       // 短标志字符（如"p",空表示无短标志）
+	defValue  int          // 默认值
+	usage     string       // 帮助说明
+	value     *int         // 标志值指针,通过flag库绑定
+	getRu     sync.RWMutex // 用于确保标志值访问的线程安全
+	setMu     sync.Mutex   // 用于确保标志值设置操作的线程安全
 }
 
 // 实现Flag接口
-func (f *IntFlag) Name() string              { return f.name }
-func (f *IntFlag) ShortName() string         { return f.shortName }
-func (f *IntFlag) Usage() string             { return f.usage }
-func (f *IntFlag) DefaultValue() interface{} { return f.defValue }
-func (f *IntFlag) Type() FlagType            { return FlagTypeInt }
+func (f *IntFlag) Name() string       { return f.name }
+func (f *IntFlag) ShortName() string  { return f.shortName }
+func (f *IntFlag) Usage() string      { return f.usage }
+func (f *IntFlag) GetDefault() int    { return f.defValue }
+func (f *IntFlag) Type() FlagType     { return FlagTypeInt }
+func (f *IntFlag) getDefaultAny() any { return f.defValue }
+
+// GetValue 获取标志的实际值（带线程安全保护）
+// 返回值优先级：解析值 > 默认值
+func (f *IntFlag) GetValue() int {
+	f.getRu.RLock()         // 加读锁
+	defer f.getRu.RUnlock() // 确保锁释放
+
+	if f.value != nil { // 优先返回解析值
+		return *f.value
+	}
+	return f.defValue // 其次返回默认值
+}
+
+// SetValue 设置标志的值（带线程安全保护）
+func (f *IntFlag) SetValue(value int) {
+	f.setMu.Lock()
+	defer f.setMu.Unlock()
+
+	f.value = &value
+}
 
 // StringFlag 字符串类型标志结构体
 type StringFlag struct {
-	cmd       *Cmd    // 所属的命令实例
-	name      string  // 长标志名称
-	shortName string  // 短标志字符
-	defValue  string  // 默认值
-	usage     string  // 帮助说明
-	value     *string // 标志值指针
+	cmd       *Cmd         // 所属的命令实例
+	name      string       // 长标志名称
+	shortName string       // 短标志字符
+	defValue  string       // 默认值
+	usage     string       // 帮助说明
+	value     *string      // 标志值指针
+	getRu     sync.RWMutex // 用于确保标志值访问的线程安全
+	setMu     sync.Mutex   // 用于确保标志值设置操作的线程安全
 }
 
 // 实现Flag接口
-func (f *StringFlag) Name() string              { return f.name }
-func (f *StringFlag) ShortName() string         { return f.shortName }
-func (f *StringFlag) Usage() string             { return f.usage }
-func (f *StringFlag) DefaultValue() interface{} { return f.defValue }
-func (f *StringFlag) Type() FlagType            { return FlagTypeString }
+func (f *StringFlag) Name() string       { return f.name }
+func (f *StringFlag) ShortName() string  { return f.shortName }
+func (f *StringFlag) Usage() string      { return f.usage }
+func (f *StringFlag) GetDefault() string { return f.defValue }
+func (f *StringFlag) Type() FlagType     { return FlagTypeString }
+func (f *StringFlag) getDefaultAny() any { return f.defValue }
+
+// GetValue 获取标志的实际值（带线程安全保护）
+// 返回值优先级：解析值 > 默认值
+func (f *StringFlag) GetValue() string {
+	f.getRu.RLock()         // 加读锁
+	defer f.getRu.RUnlock() // 确保锁释放
+
+	if f.value != nil { // 优先返回解析值
+		return *f.value
+	}
+	return f.defValue // 其次返回默认值
+}
+
+// SetValue 设置标志的值（带线程安全保护）
+func (f *StringFlag) SetValue(value string) {
+	f.setMu.Lock()
+	defer f.setMu.Unlock()
+
+	f.value = &value
+}
 
 // BoolFlag 布尔类型标志结构体
 type BoolFlag struct {
-	cmd       *Cmd   // 所属的命令实例
-	name      string // 长标志名称
-	shortName string // 短标志字符
-	defValue  bool   // 默认值
-	usage     string // 帮助说明
-	value     *bool  // 标志值指针
+	cmd       *Cmd         // 所属的命令实例
+	name      string       // 长标志名称
+	shortName string       // 短标志字符
+	defValue  bool         // 默认值
+	usage     string       // 帮助说明
+	value     *bool        // 标志值指针
+	getRu     sync.RWMutex // 用于确保标志值访问的线程安全
+	setMu     sync.Mutex   // 用于确保标志值设置操作的线程安全
 }
 
 // 实现Flag接口
-func (f *BoolFlag) Name() string              { return f.name }
-func (f *BoolFlag) ShortName() string         { return f.shortName }
-func (f *BoolFlag) Usage() string             { return f.usage }
-func (f *BoolFlag) DefaultValue() interface{} { return f.defValue }
-func (f *BoolFlag) Type() FlagType            { return FlagTypeBool }
+func (f *BoolFlag) Name() string       { return f.name }
+func (f *BoolFlag) ShortName() string  { return f.shortName }
+func (f *BoolFlag) Usage() string      { return f.usage }
+func (f *BoolFlag) GetDefault() bool   { return f.defValue }
+func (f *BoolFlag) Type() FlagType     { return FlagTypeBool }
+func (f *BoolFlag) getDefaultAny() any { return f.defValue }
+
+// GetValue 获取标志的实际值（带线程安全保护）
+// 返回值优先级：解析值 > 默认值
+func (f *BoolFlag) GetValue() bool {
+	f.getRu.RLock()         // 加读锁
+	defer f.getRu.RUnlock() // 确保锁释放
+
+	if f.value != nil { // 优先返回解析值
+		return *f.value
+	}
+	return f.defValue // 其次返回默认值
+}
+
+// SetValue 设置标志的值（带线程安全保护）
+func (f *BoolFlag) SetValue(value bool) {
+	f.setMu.Lock()
+	defer f.setMu.Unlock()
+
+	f.value = &value
+}
 
 // FloatFlag 浮点型标志结构体
 type FloatFlag struct {
-	cmd       *Cmd     // 所属的命令实例
-	name      string   // 长标志名称
-	shortName string   // 短标志字符
-	defValue  float64  // 默认值
-	usage     string   // 帮助说明
-	value     *float64 // 标志值指针
+	cmd       *Cmd         // 所属的命令实例
+	name      string       // 长标志名称
+	shortName string       // 短标志字符
+	defValue  float64      // 默认值
+	usage     string       // 帮助说明
+	value     *float64     // 标志值指针
+	getRu     sync.RWMutex // 用于确保标志值访问的线程安全
+	setMu     sync.Mutex   // 用于确保标志值设置操作的线程安全
 }
 
 // 实现Flag接口
-func (f *FloatFlag) Name() string              { return f.name }
-func (f *FloatFlag) ShortName() string         { return f.shortName }
-func (f *FloatFlag) Usage() string             { return f.usage }
-func (f *FloatFlag) DefaultValue() interface{} { return f.defValue }
-func (f *FloatFlag) Type() FlagType            { return FlagTypeFloat }
+func (f *FloatFlag) Name() string        { return f.name }
+func (f *FloatFlag) ShortName() string   { return f.shortName }
+func (f *FloatFlag) Usage() string       { return f.usage }
+func (f *FloatFlag) GetDefault() float64 { return f.defValue }
+func (f *FloatFlag) Type() FlagType      { return FlagTypeFloat }
+func (f *FloatFlag) getDefaultAny() any  { return f.defValue }
+
+// GetValue 获取标志的实际值（带线程安全保护）
+// 返回值优先级：解析值 > 默认值
+func (f *FloatFlag) GetValue() float64 {
+	f.getRu.RLock()         // 加读锁
+	defer f.getRu.RUnlock() // 确保锁释放
+
+	if f.value != nil { // 优先返回解析值
+		return *f.value
+	}
+	return f.defValue // 其次返回默认值
+}
+
+// SetValue 设置标志的值（带线程安全保护）
+func (f *FloatFlag) SetValue(value float64) {
+	f.setMu.Lock()
+	defer f.setMu.Unlock()
+
+	f.value = &value
+}

@@ -114,8 +114,8 @@ func TestIntFlag_Methods(t *testing.T) {
 	if f.Usage() != "integer flag test" {
 		t.Errorf("IntFlag.Usage() = %q, want %q", f.Usage(), "integer flag test")
 	}
-	if f.DefaultValue() != defValue {
-		t.Errorf("IntFlag.DefaultValue() = %v, want %v", f.DefaultValue(), defValue)
+	if f.GetDefault() != defValue {
+		t.Errorf("IntFlag.GetDefault() = %v, want %v", f.GetDefault(), defValue)
 	}
 	if f.Type() != FlagTypeInt {
 		t.Errorf("IntFlag.Type() = %v, want %v", f.Type(), FlagTypeInt)
@@ -146,8 +146,8 @@ func TestStringFlag_Methods(t *testing.T) {
 	if f.Usage() != "string flag test" {
 		t.Errorf("StringFlag.Usage() = %q, want %q", f.Usage(), "string flag test")
 	}
-	if f.DefaultValue() != defValue {
-		t.Errorf("StringFlag.DefaultValue() = %v, want %v", f.DefaultValue(), defValue)
+	if f.GetDefault() != defValue {
+		t.Errorf("StringFlag.GetDefault() = %v, want %v", f.GetDefault(), defValue)
 	}
 	if f.Type() != FlagTypeString {
 		t.Errorf("StringFlag.Type() = %v, want %v", f.Type(), FlagTypeString)
@@ -178,8 +178,8 @@ func TestBoolFlag_Methods(t *testing.T) {
 	if f.Usage() != "bool flag test" {
 		t.Errorf("BoolFlag.Usage() = %q, want %q", f.Usage(), "bool flag test")
 	}
-	if f.DefaultValue() != defValue {
-		t.Errorf("BoolFlag.DefaultValue() = %v, want %v", f.DefaultValue(), defValue)
+	if f.GetDefault() != defValue {
+		t.Errorf("BoolFlag.GetDefault() = %v, want %v", f.GetDefault(), defValue)
 	}
 	if f.Type() != FlagTypeBool {
 		t.Errorf("BoolFlag.Type() = %v, want %v", f.Type(), FlagTypeBool)
@@ -210,8 +210,8 @@ func TestFloatFlag_Methods(t *testing.T) {
 	if f.Usage() != "float flag test" {
 		t.Errorf("FloatFlag.Usage() = %q, want %q", f.Usage(), "float flag test")
 	}
-	if f.DefaultValue() != defValue {
-		t.Errorf("FloatFlag.DefaultValue() = %v, want %v", f.DefaultValue(), defValue)
+	if f.GetDefault() != defValue {
+		t.Errorf("FloatFlag.GetDefault() = %v, want %v", f.GetDefault(), defValue)
 	}
 	if f.Type() != FlagTypeFloat {
 		t.Errorf("FloatFlag.Type() = %v, want %v", f.Type(), FlagTypeFloat)
