@@ -1,6 +1,43 @@
 # qflag API文档
 
 ## API文档
+
+### Flag接口
+
+所有标志类型实现的通用接口
+
+```go
+type Flag interface {
+    Name() string       // 获取标志名称
+    ShortName() string  // 获取短标志名称
+    Usage() string      // 获取使用说明
+    Type() FlagType     // 获取标志类型
+    getDefaultAny() any // 获取默认值(any类型)
+}
+```
+
+### TypedFlag接口
+
+泛型标志接口，继承自Flag接口
+
+```go
+type TypedFlag[T any] interface {
+    Flag               // 继承Flag接口
+    GetDefault() T     // 获取类型化默认值
+    GetValue() T       // 获取类型化当前值
+    SetValue(T)        // 设置类型化值
+}
+```
+
+### 标志注册表
+
+Cmd结构体中的flagRegistry字段类型已更新为：
+
+```go
+map[interface{}]Flag
+```
+
+可以存储任何实现了Flag接口的标志类型实例。
 ### Cmd结构体
 #### NewCmd
 

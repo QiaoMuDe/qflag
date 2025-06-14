@@ -92,7 +92,7 @@ func AddSubCmd(subCmds ...*Cmd) error {
 }
 
 // GetFlagByPtr 通过指针获取标志（全局默认命令）
-func GetFlagByPtr(p interface{}) (interface{}, error) {
+func GetFlagByPtr(p any) (any, error) {
 	return QCommandLine.GetFlagByPtr(p)
 }
 
@@ -136,7 +136,7 @@ func NewCmd(name string, shortName string, errorHandling flag.ErrorHandling) *Cm
 // 参数: p - 绑定的指针
 // 返回值: 对应的Flag对象和错误信息
 // 如果指针未注册, 则返回错误
-func (c *Cmd) GetFlagByPtr(p interface{}) (interface{}, error) {
+func (c *Cmd) GetFlagByPtr(p any) (any, error) {
 	flag, exists := c.flagRegistry[p]
 	if !exists {
 		return nil, fmt.Errorf("指针未注册: %v", p)
