@@ -21,6 +21,9 @@ type Cmd struct {
 	description   string               // 自定义描述，用于帮助信息中显示
 	name          string               // 命令名称，用于帮助信息中显示
 	shortName     string               // 命令短名称，用于帮助信息中显示
+	args          []string             // 命令行参数切片
+	addMu         sync.Mutex           // 互斥锁，确保并发安全操作
+	parseOnce     sync.Once            // 用于确保命令只被解析一次
 }
 
 // Command 命令接口定义，封装命令的核心功能
@@ -55,6 +58,8 @@ type Command interface {
 	IntVar(name, shortName, usage string, defValue int) *IntFlag          // 添加整数类型标志
 	BoolVar(name, shortName, usage string, defValue bool) *BoolFlag       // 添加布尔类型标志
 	FloatVar(name, shortName, usage string, defValue float64) *FloatFlag  // 添加浮点数类型标志
+	Args() []string                                                       // 获取命令行参数切片
+	Arg(i int) string                                                     // 获取命令行参数
 }
 
 // Name 命令名称
@@ -77,6 +82,18 @@ func (c *Cmd) SetUsage(usage string) { c.usage = usage }
 
 // SubCmds 子命令列表
 func (c *Cmd) SubCmds() []*Cmd { return c.subCmds }
+
+// Args 命令行参数切片
+func (c *Cmd) Args() []string { return c.args }
+
+// Arg 获取命令行参数
+func (c *Cmd) Arg(i int) string {
+	if i < len(c.args) {
+		return c.args[i]
+	}
+
+	return ""
+}
 
 // 帮助信息模板常量
 const (

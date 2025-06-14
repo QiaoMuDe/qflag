@@ -9,70 +9,93 @@ import (
 	"sync"
 )
 
-// 默认命令实例，用于简化使用方式，类似标准flag包
-var defaultCmd = NewCmd("main", "", flag.ExitOnError)
+// QCommandLine 全局默认Cmd实例
+var QCommandLine *Cmd
+
+// Parse 解析命令行参数（全局默认命令）
+// parsed 标记是否已解析过
+var parsed bool
+var parseOnce sync.Once
+
+// 在包初始化时创建全局默认Cmd实例
+func init() {
+	// 处理可能的空os.Args情况
+	if len(os.Args) == 0 {
+		// 如果os.Args为空,则创建一个新的Cmd对象,命令行参数为空,错误处理方式为ExitOnError
+		QCommandLine = NewCmd("", "", flag.ExitOnError)
+	} else {
+		// 如果os.Args不为空,则创建一个新的Cmd对象,命令行参数为os.Args[0],错误处理方式为ExitOnError
+		QCommandLine = NewCmd(os.Args[0], "", flag.ExitOnError)
+	}
+}
 
 // String 创建字符串类型标志（全局默认命令）
 // 参数依次为：长标志名、短标志、默认值、帮助说明
 func String(name, shortName, defValue, usage string) *StringFlag {
-	return defaultCmd.String(name, shortName, defValue, usage)
+	return QCommandLine.String(name, shortName, defValue, usage)
 }
 
 // Int 创建整数类型标志（全局默认命令）
 // 参数依次为：长标志名、短标志、默认值、帮助说明
 func Int(name, shortName string, defValue int, usage string) *IntFlag {
-	return defaultCmd.Int(name, shortName, defValue, usage)
+	return QCommandLine.Int(name, shortName, defValue, usage)
 }
 
 // Bool 创建布尔类型标志（全局默认命令）
 // 参数依次为：长标志名、短标志、默认值、帮助说明
 func Bool(name, shortName string, defValue bool, usage string) *BoolFlag {
-	return defaultCmd.Bool(name, shortName, defValue, usage)
+	return QCommandLine.Bool(name, shortName, defValue, usage)
 }
 
 // Float 创建浮点数类型标志（全局默认命令）
 // 参数依次为：长标志名、短标志、默认值、帮助说明
 func Float(name, shortName string, defValue float64, usage string) *FloatFlag {
-	return defaultCmd.Float(name, shortName, defValue, usage)
+	return QCommandLine.Float(name, shortName, defValue, usage)
 }
 
 // StringVar 绑定字符串类型标志到指针（全局默认命令）
 // 参数依次为：指针、长标志名、短标志、默认值、帮助说明
 func StringVar(p *string, name, shortName, defValue, usage string) {
-	defaultCmd.StringVar(p, name, shortName, defValue, usage)
+	QCommandLine.StringVar(p, name, shortName, defValue, usage)
 }
 
 // IntVar 绑定整数类型标志到指针（全局默认命令）
 // 参数依次为：指针、长标志名、短标志、默认值、帮助说明
 func IntVar(p *int, name, shortName string, defValue int, usage string) {
-	defaultCmd.IntVar(p, name, shortName, defValue, usage)
+	QCommandLine.IntVar(p, name, shortName, defValue, usage)
 }
 
 // BoolVar 绑定布尔类型标志到指针（全局默认命令）
 // 参数依次为：指针、长标志名、短标志、默认值、帮助说明
 func BoolVar(p *bool, name, shortName string, defValue bool, usage string) {
-	defaultCmd.BoolVar(p, name, shortName, defValue, usage)
+	QCommandLine.BoolVar(p, name, shortName, defValue, usage)
 }
 
 // FloatVar 绑定浮点数类型标志到指针（全局默认命令）
 // 参数依次为：指针、长标志名、短标志、默认值、帮助说明
 func FloatVar(p *float64, name, shortName string, defValue float64, usage string) {
-	defaultCmd.FloatVar(p, name, shortName, defValue, usage)
+	QCommandLine.FloatVar(p, name, shortName, defValue, usage)
 }
 
 // Parse 解析命令行参数（全局默认命令）
+// 该函数保证只会执行一次解析操作
 func Parse() error {
-	return defaultCmd.Parse(os.Args[1:])
+	var err error
+	parseOnce.Do(func() {
+		err = QCommandLine.Parse(os.Args[1:])
+		parsed = true
+	})
+	return err
 }
 
 // AddSubCmd 给全局默认命令添加子命令
 func AddSubCmd(subCmds ...*Cmd) {
-	defaultCmd.AddSubCmd(subCmds...)
+	QCommandLine.AddSubCmd(subCmds...)
 }
 
 // GetFlagByPtr 通过指针获取标志（全局默认命令）
 func GetFlagByPtr(p interface{}) (interface{}, error) {
-	return defaultCmd.GetFlagByPtr(p)
+	return QCommandLine.GetFlagByPtr(p)
 }
 
 // NewCmd 创建新的命令实例
@@ -104,10 +127,26 @@ func NewCmd(name string, shortName string, errorHandling flag.ErrorHandling) *Cm
 		description:   "",                                   // 允许用户直接设置命令描述
 		name:          name,                                 // 命令名称, 用于帮助信息中显示
 		shortName:     shortName,                            // 命令短名称, 用于帮助信息中显示
+		args:          []string{},                           // 命令行参数
 	}
 
 	cmd.bindHelpFlag() // 自动绑定帮助标志
 	return cmd
+}
+
+// hasCycle 检测命令间是否存在循环引用
+// parent: 当前命令
+// child: 待添加的子命令
+// 返回值: 如果存在循环引用则返回true
+func hasCycle(parent, child *Cmd) bool {
+	current := parent
+	for current != nil {
+		if current == child {
+			return true
+		}
+		current = current.parentCmd
+	}
+	return false
 }
 
 // GetFlagByPtr 通过指针获取对应的Flag对象
@@ -125,56 +164,86 @@ func (c *Cmd) GetFlagByPtr(p interface{}) (interface{}, error) {
 // AddSubCmd 关联一个或多个子命令到当前命令
 // 参数:
 // subCmds: 子命令的切片
-func (c *Cmd) AddSubCmd(subCmds ...*Cmd) {
-	// 将子命令关联到当前命令并设置父命令指针
-	for _, cmd := range subCmds {
-		cmd.parentCmd = c
+// 返回值: 错误信息，如果检测到循环引用或nil子命令
+func (c *Cmd) AddSubCmd(subCmds ...*Cmd) error {
+	c.addMu.Lock()
+	defer c.addMu.Unlock()
+
+	// 检查子命令是否为空或nil
+	if len(subCmds) == 0 {
+		return fmt.Errorf("没有可添加的子命令")
 	}
 
-	// 将子命令添加到当前命令的子命令列表中
-	c.subCmds = append(c.subCmds, subCmds...)
+	// 合并处理：设置父命令指针并添加到子命令列表
+	for _, cmd := range subCmds {
+		if cmd == nil {
+			return fmt.Errorf("子命令不能为nil")
+		}
+
+		// 检测循环引用
+		if hasCycle(c, cmd) {
+			return fmt.Errorf("检测到循环引用: 命令 %s 已存在于父命令链中", cmd.name)
+		}
+
+		cmd.parentCmd = c                  // 设置父命令指针
+		c.subCmds = append(c.subCmds, cmd) // 添加到子命令列表
+	}
+	return nil
 }
 
 // Parse 解析命令行参数, 自动检查长短标志互斥, 并处理帮助标志
 func (c *Cmd) Parse(args []string) error {
-	// 1. 调用flag库解析参数
-	if err := c.fs.Parse(args); err != nil {
-		return err
-	}
+	var err error
 
-	// 2. 检查是否使用-h/--help标志
-	if c.isHelpRequested() {
-		c.printHelp()
-		os.Exit(0)
-	}
-
-	// 3. 检查长短标志互斥（跳过帮助标志）
-	var conflictMsg string
-	c.longToShort.Range(func(longKey, shortVal interface{}) bool {
-		longFlag := longKey.(string)   // 获取长标志名称
-		shortFlag := shortVal.(string) // 获取短标志名称
-
-		// 跳过帮助标志的互斥检查
-		if longFlag == c.helpFlagName || shortFlag == c.helpShortName {
-			return true
+	// 确保只解析一次
+	c.parseOnce.Do(func() {
+		// 1. 调用flag库解析参数
+		if parseErr := c.fs.Parse(args); parseErr != nil {
+			err = parseErr
 		}
 
-		// 检查标志是否同时被设置
-		longChanged := c.isFlagSet(longFlag)   // 检查长标志是否被设置
-		shortChanged := c.isFlagSet(shortFlag) // 检查短标志是否被设置
-
-		// 如果两个标志都发生变化, 则表示冲突
-		if longChanged && shortChanged {
-			conflictMsg = fmt.Sprintf("Cannot use both --%s and -%s", longFlag, shortFlag)
-			return false // 终止遍历
+		// 2. 检查是否使用-h/--help标志
+		if c.isHelpRequested() {
+			c.printHelp()
+			os.Exit(0)
 		}
 
-		return true // 继续遍历
+		// 3. 检查长短标志互斥（跳过帮助标志）
+		var conflictMsg string
+		c.longToShort.Range(func(longKey, shortVal interface{}) bool {
+			longFlag := longKey.(string)   // 获取长标志名称
+			shortFlag := shortVal.(string) // 获取短标志名称
+
+			// 跳过帮助标志的互斥检查
+			if longFlag == c.helpFlagName || shortFlag == c.helpShortName {
+				return true
+			}
+
+			// 检查标志是否同时被设置
+			longChanged := c.isFlagSet(longFlag)   // 检查长标志是否被设置
+			shortChanged := c.isFlagSet(shortFlag) // 检查短标志是否被设置
+
+			// 如果两个标志都发生变化, 则表示冲突
+			if longChanged && shortChanged {
+				conflictMsg = fmt.Sprintf("Cannot use both --%s and -%s", longFlag, shortFlag)
+				return false // 终止遍历
+			}
+
+			return true // 继续遍历
+		})
+
+		// 4. 设置命令行参数
+		c.args = append(c.args, c.fs.Args()...)
+
+		// 返回冲突错误（如果有）
+		if conflictMsg != "" {
+			err = fmt.Errorf("%s", conflictMsg)
+		}
 	})
 
-	// 返回冲突错误（如果有）
-	if conflictMsg != "" {
-		return fmt.Errorf("%s", conflictMsg)
+	// 检查是否报错
+	if err != nil {
+		return err
 	}
 	return nil
 }

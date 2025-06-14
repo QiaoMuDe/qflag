@@ -153,7 +153,7 @@ func TestGlobalDefaultCmd(t *testing.T) {
 // TestGlobalFlagConflict 测试全局命令标志冲突
 func TestGlobalFlagConflict(t *testing.T) {
 	// 重置默认命令以避免测试污染
-	defaultCmd = NewCmd("main", "", flag.ExitOnError)
+	QCommandLine = NewCmd("main", "", flag.ExitOnError)
 	String("gname", "gn", "", "global name help")
 
 	// 同时使用长短标志应返回错误
@@ -271,7 +271,7 @@ func TestGenerateHelpInfo(t *testing.T) {
 	// 场景5: 全局命令帮助信息
 	t.Run("GlobalCommandHelpInfo", func(t *testing.T) {
 		// 重置默认命令
-		defaultCmd = NewCmd("main", "", flag.ContinueOnError)
+		QCommandLine = NewCmd("main", "", flag.ContinueOnError)
 		String("gname", "gn", "gdefault", "global name help")
 		Int("gport", "gp", 9090, "global port help")
 
@@ -279,8 +279,8 @@ func TestGenerateHelpInfo(t *testing.T) {
 		// 设置测试参数，避免依赖os.Args
 		testArgs := []string{"--gname", "test", "-gp", "8888"}
 		// 忽略未知标志以避免测试框架干扰
-		defaultCmd.Parse(testArgs)
-		helpInfo := generateHelpInfo(defaultCmd, true)
+		QCommandLine.Parse(testArgs)
+		helpInfo := generateHelpInfo(QCommandLine, true)
 		fmt.Println(helpInfo)
 
 		// 验证全局命令标志
