@@ -22,26 +22,6 @@ func TestBindHelpFlag(t *testing.T) {
 	}
 }
 
-// TestIsHelpRequested 测试检测帮助请求
-func TestIsHelpRequested(t *testing.T) {
-	cmd := NewCmd("test", "t", flag.ExitOnError)
-	cmd.bindHelpFlag()
-
-	// 初始状态应为false
-	if cmd.isHelpRequested() {
-		t.Error("help should not be requested initially")
-	}
-
-	// 设置帮助标志
-	err := cmd.fs.Set(cmd.helpFlagName, "true")
-	if err != nil {
-		t.Fatal(err)
-	}
-	if !cmd.isHelpRequested() {
-		t.Error("help should be requested after setting flag")
-	}
-}
-
 // TestPrintUsage 测试打印用法
 func TestPrintUsage(t *testing.T) {
 	// 测试自定义用法信息

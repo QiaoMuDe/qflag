@@ -126,6 +126,7 @@ func NewCmd(name string, shortName string, errorHandling flag.ErrorHandling) *Cm
 		name:          name,                                 // 命令名称, 用于帮助信息中显示
 		shortName:     shortName,                            // 命令短名称, 用于帮助信息中显示
 		args:          []string{},                           // 命令行参数
+		helpFlag:      new(bool),                            // 默认的帮助标志
 	}
 
 	cmd.bindHelpFlag() // 自动绑定帮助标志
@@ -147,7 +148,7 @@ func (c *Cmd) GetFlagByPtr(p any) (any, error) {
 // AddSubCmd 关联一个或多个子命令到当前命令
 // 参数:
 // subCmds: 子命令的切片
-// 返回值: 错误信息，如果检测到循环引用或nil子命令
+// 返回值: 错误信息, 如果检测到循环引用或nil子命令
 func (c *Cmd) AddSubCmd(subCmds ...*Cmd) error {
 	c.addMu.Lock()
 	defer c.addMu.Unlock()
@@ -187,7 +188,7 @@ func (c *Cmd) Parse(args []string) error {
 		}
 
 		// 2. 检查是否使用-h/--help标志
-		if c.isHelpRequested() {
+		if *c.helpFlag {
 			if c.fs.ErrorHandling() != flag.ContinueOnError {
 				c.printUsage() // 只有在ExitOnError或PanicOnError时才打印使用说明
 				os.Exit(0)
@@ -195,37 +196,8 @@ func (c *Cmd) Parse(args []string) error {
 			return
 		}
 
-		// 3. 检查长短标志互斥（跳过帮助标志和空长标志）
-		// var conflictMsg string
-		// c.longToShort.Range(func(longKey, shortVal interface{}) bool {
-		// 	longFlag := longKey.(string)   // 获取长标志名称
-		// 	shortFlag := shortVal.(string) // 获取短标志名称
-
-		// 	// 跳过帮助标志和空长短标志的互斥检查
-		// 	if longFlag == c.helpFlagName || shortFlag == c.helpShortName || longFlag == "" || shortFlag == "" {
-		// 		return true
-		// 	}
-
-		// 	// 检查标志是否同时被设置
-		// 	longChanged := c.isFlagSet(longFlag)   // 检查长标志是否被设置
-		// 	shortChanged := c.isFlagSet(shortFlag) // 检查短标志是否被设置
-
-		// 	// 如果两个标志都发生变化, 则表示冲突
-		// 	if longChanged && shortChanged {
-		// 		conflictMsg = fmt.Sprintf("Cannot use both --%s and -%s", longFlag, shortFlag)
-		// 		return false // 终止遍历
-		// 	}
-
-		// 	return true // 继续遍历
-		// })
-
-		// 4. 设置命令行参数
+		// 3. 设置命令行参数
 		c.args = append(c.args, c.fs.Args()...)
-
-		// // 返回冲突错误（如果有）
-		// if conflictMsg != "" {
-		// 	err = fmt.Errorf("%s", conflictMsg)
-		// }
 	})
 
 	// 检查是否报错

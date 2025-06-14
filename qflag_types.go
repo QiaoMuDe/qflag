@@ -13,7 +13,9 @@ type Cmd struct {
 	longToShort   sync.Map             // 长标志到短标志的映射（键：长标志,值：短标志）
 	helpFlagName  string               // 帮助标志的长名称,默认"help"
 	helpShortName string               // 帮助标志的短名称,默认"h"
+	helpFlag      *bool                // 帮助标志指针,用于绑定和检查
 	helpFlagBound bool                 // 标记帮助标志是否已绑定
+	helpOnce      sync.Once            // 用于确保帮助标志只被绑定一次
 	subCmds       []*Cmd               // 子命令列表, 用于关联子命令
 	parentCmd     *Cmd                 // 父命令指针,用于递归调用, 根命令的父命令为nil
 	flagRegistry  map[interface{}]Flag // 标志注册表,用于通过指针查找标志元数据
@@ -132,6 +134,8 @@ const (
 	optionTemplate2            = "  --%s\t%s (默认值: %s)\n"                           // 选项模板2
 	subCmdsHeaderTemplate      = "\nSubcommands:\n"                                 // 子命令头部
 	subCmdTemplate             = "  %s\t%s\n"                                       // 子命令模板
+	notesHeaderTemplate        = "\nNotes:\n"                                       // 注意事项头部
+	noteItemTemplate           = "  %d、%s\n"                                        // 注意事项项
 )
 
 // Flag 所有标志类型的通用接口,定义了标志的元数据访问方法

@@ -8,89 +8,30 @@ import (
 
 // bindHelpFlag 绑定-h/--help标志到显示帮助信息的逻辑
 func (c *Cmd) bindHelpFlag() {
+	// 检查是否已绑定
 	if c.helpFlagBound {
 		return // 避免重复绑定
 	}
 
-	var showHelp bool
-
-	// 绑定长帮助标志
-	c.fs.BoolVar(&showHelp, c.helpFlagName, false, "Show help information")
-	// 绑定短帮助标志（若设置）
-	if c.helpShortName != "" {
-		c.fs.BoolVar(&showHelp, c.helpShortName, false, "Show help information")
-		c.shortToLong.Store(c.helpShortName, c.helpFlagName) // 存储短到长的映射关系
-		c.longToShort.Store(c.helpFlagName, c.helpShortName) // 存储长到短的映射关系
-	}
-
-	// 设置帮助标志已绑定
-	c.helpFlagBound = true
-}
-
-// isHelpRequested 检测帮助标志是否被用户设置
-func (c *Cmd) isHelpRequested() bool {
-	// 检查长帮助标志
-	if c.isFlagSet(c.helpFlagName) {
-		return true
-	}
-	// 检查短帮助标志
-	if c.helpShortName != "" {
-		return c.isFlagSet(c.helpShortName)
-	}
-	return false
-}
-
-// isFlagSet 检查指定名称的标志是否被用户显式设置
-// 参数:
-//
-//	name - 标志名称(长格式或短格式)
-//
-// 返回值:
-//
-//	bool - true表示标志被显式设置，false表示未设置或使用默认值
-func (c *Cmd) isFlagSet(name string) bool {
-	// 首先尝试直接查找标志
-	flag := c.fs.Lookup(name)
-	if flag == nil {
-		// 如果找不到，检查是否是短标志
-		if longName, ok := c.shortToLong.Load(name); ok {
-			flag = c.fs.Lookup(longName.(string))
-		} else {
-			// 检查是否是长标志的短形式
-			if shortName, ok := c.longToShort.Load(name); ok {
-				flag = c.fs.Lookup(shortName.(string))
-			}
+	// 初始化帮助标志
+	c.helpOnce.Do(func() {
+		if c.helpFlag == nil {
+			c.helpFlag = new(bool) // 为空时自动初始化
 		}
-		if flag == nil {
-			return false
-		}
-	}
 
-	// 通过注册表获取标志元数据
-	if f, ok := c.flagRegistry[flag.Value]; ok {
-		switch f.Type() {
-		case FlagTypeBool:
-			// 布尔标志特殊处理
-			currentVal := flag.Value.String()
-			return (currentVal == "true" && flag.DefValue == "false") ||
-				(currentVal == "false" && flag.DefValue == "true")
-		case FlagTypeInt:
-			// 修改整数标志判断逻辑：只要当前值与默认值不同就认为已设置
-			return flag.Value.String() != flag.DefValue
-		case FlagTypeString:
-			// 字符串标志：当前值与默认值不同
-			return flag.Value.String() != flag.DefValue
-		case FlagTypeFloat:
-			// 浮点标志：当前值与默认值不同
-			return flag.Value.String() != flag.DefValue
-		default:
-			// 未知类型：使用默认比较
-			return flag.Value.String() != flag.DefValue
-		}
-	}
+		// 绑定帮助长标志
+		c.fs.BoolVar(c.helpFlag, c.helpFlagName, false, "Show help information")
 
-	// 默认处理
-	return flag.Value.String() != flag.DefValue
+		// 绑定短帮助标志（若设置）
+		if c.helpShortName != "" {
+			c.fs.BoolVar(c.helpFlag, c.helpShortName, false, "Show help information")
+			c.shortToLong.Store(c.helpShortName, c.helpFlagName) // 存储短到长的映射关系
+			c.longToShort.Store(c.helpFlagName, c.helpShortName) // 存储长到短的映射关系
+		}
+
+		// 设置帮助标志已绑定
+		c.helpFlagBound = true
+	})
 }
 
 // generateHelpInfo 生成命令帮助信息
@@ -211,6 +152,10 @@ func generateHelpInfo(cmd *Cmd, isMainCommand bool) string {
 			helpInfo += fmt.Sprintf(subCmdTemplate, subCmd.fs.Name(), subCmd.description)
 		}
 	}
+
+	// 添加注意事项
+	helpInfo += notesHeaderTemplate
+	helpInfo += fmt.Sprintf(noteItemTemplate, 1, "In the case where both long options and short options are used at the same time, the option specified last shall take precedence.")
 
 	return helpInfo
 }
