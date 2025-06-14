@@ -34,7 +34,7 @@ type TypedFlag[T any] interface {
 Cmd结构体中的flagRegistry字段类型已更新为：
 
 ```go
-map[interface{}]Flag
+map[any]Flag
 ```
 
 可以存储任何实现了Flag接口的标志类型实例。

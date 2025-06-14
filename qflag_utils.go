@@ -1,7 +1,6 @@
 package qflag
 
 import (
-	"flag"
 	"fmt"
 	"sort"
 )
@@ -19,29 +18,22 @@ func (c *Cmd) bindHelpFlagAndShowInstallPathFlag() {
 			c.helpFlag = new(bool) // 为空时自动初始化
 		}
 
-		// 绑定帮助长标志
-		c.fs.BoolVar(c.helpFlag, c.helpFlagName, false, "Show help information")
-
-		// 绑定短帮助标志（若设置）
-		if c.helpShortName != "" {
-			c.fs.BoolVar(c.helpFlag, c.helpShortName, false, "Show help information")
-			c.shortToLong.Store(c.helpShortName, c.helpFlagName) // 存储短到长的映射关系
-			c.longToShort.Store(c.helpFlagName, c.helpShortName) // 存储长到短的映射关系
-		}
+		// 绑定帮助标志
+		c.BoolVar(c.helpFlag, c.helpFlagName, c.helpFlagShortName, false, "Show help information")
 
 		// 绑定显示安装路径标志
 		if c.showInstallPathFlag == nil {
 			c.showInstallPathFlag = new(bool)
 		}
-		// 仅绑定长选项
-		c.BoolVar(c.showInstallPathFlag, c.showInstallPathFlagName, "", false, "Show install path")
 
-		// 绑定短选项
-		if c.showInstallPathFlagShortName != "" {
-			c.fs.BoolVar(c.showInstallPathFlag, c.showInstallPathFlagShortName, false, "Show install path")
-			c.shortToLong.Store(c.showInstallPathFlagShortName, c.showInstallPathFlagName) // 存储短到长的映射关系
-			c.longToShort.Store(c.showInstallPathFlagName, c.showInstallPathFlagShortName) // 存储长到短的映射关系
-		}
+		// 绑定显示安装路径标志
+		c.BoolVar(c.showInstallPathFlag, c.showInstallPathFlagName, c.showInstallPathFlagShortName, false, "Show install path")
+
+		// 添加内置标志到检测映射
+		c.builtinFlagNameMap.Store(helpFlagName, true)
+		c.builtinFlagNameMap.Store(helpFlagShortName, true)
+		c.builtinFlagNameMap.Store(showInstallPathFlagName, true)
+		c.builtinFlagNameMap.Store(showInstallPathFlagShortName, true)
 
 		// 设置帮助标志已绑定
 		c.helpFlagBound = true
@@ -102,32 +94,6 @@ func generateHelpInfo(cmd *Cmd, isMainCommand bool) string {
 			defValue:  fmt.Sprintf("%v", flag.getDefaultAny()),
 		})
 	}
-
-	cmd.fs.VisitAll(func(f *flag.Flag) {
-		// 如果是短标志，跳过处理（会在对应的长标志处理时一并处理）
-		if _, ok := cmd.shortToLong.Load(f.Name); ok {
-			return
-		}
-
-		// 获取短标志（如果存在）
-		shortFlag := ""
-		if v, ok := cmd.longToShort.Load(f.Name); ok {
-			shortFlag = v.(string)
-		}
-
-		// 收集标志信息
-		flags = append(flags, struct {
-			longFlag  string
-			shortFlag string
-			usage     string
-			defValue  string
-		}{
-			longFlag:  f.Name,
-			shortFlag: shortFlag,
-			usage:     f.Usage,
-			defValue:  fmt.Sprintf("%v", f.DefValue),
-		})
-	})
 
 	// 按短标志字母顺序排序，有短标志的选项优先
 	sort.Slice(flags, func(i, j int) bool {

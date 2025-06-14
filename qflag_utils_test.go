@@ -8,16 +8,18 @@ import (
 // TestBindHelpFlag 测试绑定帮助标志
 func TestBindHelpFlag(t *testing.T) {
 	cmd := NewCmd("test", "t", flag.ExitOnError)
-	cmd.bindHelpFlag()
+	cmd.bindHelpFlagAndShowInstallPathFlag()
 
 	// 验证帮助标志已绑定
 	if !cmd.helpFlagBound {
 		t.Error("help flag should be bound")
 	}
-	if cmd.fs.Lookup(cmd.helpFlagName) == nil {
+	if !cmd.FlagExists(cmd.helpFlagName) {
 		t.Error("help flag should be registered")
 	}
-	if cmd.helpShortName != "" && cmd.fs.Lookup(cmd.helpShortName) == nil {
+
+	// 当短帮助标志名存在时，检查该标志是否已注册，若未注册则报错。
+	if cmd.helpFlagShortName != "" && !cmd.FlagExists(cmd.helpFlagShortName) {
 		t.Error("short help flag should be registered")
 	}
 }

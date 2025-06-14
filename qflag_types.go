@@ -8,29 +8,38 @@ import (
 // Cmd 命令行标志管理结构体,封装参数解析、长短标志互斥及帮助系统。
 type Cmd struct {
 	/* 内部使用属性*/
-	fs                           *flag.FlagSet        // 底层flag集合, 处理参数解析
-	shortToLong                  sync.Map             // 短标志到长标志的映射（键：短标志,值：长标志）
-	longToShort                  sync.Map             // 长标志到短标志的映射（键：长标志,值：短标志）
-	helpFlagName                 string               // 帮助标志的长名称,默认"help"
-	helpShortName                string               // 帮助标志的短名称,默认"h"
-	helpFlag                     *bool                // 帮助标志指针,用于绑定和检查
-	helpFlagBound                bool                 // 标记帮助标志是否已绑定
-	helpOnce                     sync.Once            // 用于确保帮助标志只被绑定一次
-	showInstallPathFlagName      string               // 安装路径标志的长名称,默认"show-install-path"
-	showInstallPathFlagShortName string               // 安装路径标志的短名称,默认"sip"
-	showInstallPathFlag          *bool                // 安装路径标志指针,用于绑定和检查
-	subCmds                      []*Cmd               // 子命令列表, 用于关联子命令
-	parentCmd                    *Cmd                 // 父命令指针,用于递归调用, 根命令的父命令为nil
-	flagRegistry                 map[interface{}]Flag // 标志注册表,用于通过指针查找标志元数据
-	usage                        string               // 自定义帮助内容,可由用户直接赋值
-	description                  string               // 自定义描述,用于帮助信息中显示
-	name                         string               // 命令名称,用于帮助信息中显示
-	shortName                    string               // 命令短名称,用于帮助信息中显示
-	args                         []string             // 命令行参数切片
-	addMu                        sync.Mutex           // 互斥锁,确保并发安全操作
-	parseOnce                    sync.Once            // 用于确保命令只被解析一次
-	setMu                        sync.Mutex           // 互斥锁,确保并发安全操作
+	fs                           *flag.FlagSet // 底层flag集合, 处理参数解析
+	shortToLong                  sync.Map      // 短标志到长标志的映射（键：短标志,值：长标志）
+	longToShort                  sync.Map      // 长标志到短标志的映射（键：长标志,值：短标志）
+	helpFlagName                 string        // 帮助标志的长名称,默认"help"
+	helpFlagShortName            string        // 帮助标志的短名称,默认"h"
+	helpFlag                     *bool         // 帮助标志指针,用于绑定和检查
+	helpFlagBound                bool          // 标记帮助标志是否已绑定
+	helpOnce                     sync.Once     // 用于确保帮助标志只被绑定一次
+	showInstallPathFlagName      string        // 安装路径标志的长名称,默认"show-install-path"
+	showInstallPathFlagShortName string        // 安装路径标志的短名称,默认"sip"
+	showInstallPathFlag          *bool         // 安装路径标志指针,用于绑定和检查
+	subCmds                      []*Cmd        // 子命令列表, 用于关联子命令
+	parentCmd                    *Cmd          // 父命令指针,用于递归调用, 根命令的父命令为nil
+	flagRegistry                 map[any]Flag  // 标志注册表,用于通过指针查找标志元数据
+	usage                        string        // 自定义帮助内容,可由用户直接赋值
+	description                  string        // 自定义描述,用于帮助信息中显示
+	name                         string        // 命令名称,用于帮助信息中显示
+	shortName                    string        // 命令短名称,用于帮助信息中显示
+	args                         []string      // 命令行参数切片
+	addMu                        sync.Mutex    // 互斥锁,确保并发安全操作
+	parseOnce                    sync.Once     // 用于确保命令只被解析一次
+	setMu                        sync.Mutex    // 互斥锁,确保并发安全操作
+	builtinFlagNameMap           sync.Map      // 用于存储内置标志名称的映射
 }
+
+// 内置标志名称
+var (
+	helpFlagName                 = "help"
+	helpFlagShortName            = "h"
+	showInstallPathFlagName      = "show-install-path"
+	showInstallPathFlagShortName = "sip"
+)
 
 // 标志类型
 type FlagType int
@@ -65,7 +74,6 @@ type Command interface {
 
 	// 标志操作
 	Parse(args []string) error                                            // 解析命令行参数
-	GetFlagByPtr(ptr interface{}) (Flag, bool)                            // 通过标志指针获取标志元数据
 	String(name, shortName, usage string, defValue string) *StringFlag    // 添加字符串类型标志
 	Int(name, shortName, usage string, defValue int) *IntFlag             // 添加整数类型标志
 	Bool(name, shortName, usage string, defValue bool) *BoolFlag          // 添加布尔类型标志
@@ -74,8 +82,10 @@ type Command interface {
 	IntVar(name, shortName, usage string, defValue int) *IntFlag          // 添加整数类型标志
 	BoolVar(name, shortName, usage string, defValue bool) *BoolFlag       // 添加布尔类型标志
 	FloatVar(name, shortName, usage string, defValue float64) *FloatFlag  // 添加浮点数类型标志
-	Args() []string                                                       // 获取命令行参数切片
-	Arg(i int) string                                                     // 获取命令行参数
+	Args() []string                                                       // 获取非标志参数切片
+	Arg(i int) string                                                     // 获取指定索引的非标志参数
+	NArgs() int                                                           // 获取非标志参数的数量
+	FlagExists(name string) bool                                          // 检查指定名称的标志是否存在
 }
 
 // Name 命令名称
@@ -107,17 +117,45 @@ func (c *Cmd) SetUsage(usage string) {
 // SubCmds 子命令列表
 func (c *Cmd) SubCmds() []*Cmd { return c.subCmds }
 
-// Args 命令行参数切片
+// FlagExists 检查指定名称的标志是否存在
+// 参数:
+//
+//	name - 标志名称
+//
+// 返回值:
+//
+//	bool - 标志是否存在
+//
+// 说明:
+// 该方法首先在长短标志映射中查找,如果未找到,则继续在底层flag集合中查找。
+func (c *Cmd) FlagExists(name string) bool {
+	// 先在长短标志映射中查找
+	if _, ok := c.longToShort.Load(name); ok {
+		return true
+	}
+
+	// 然后在短标志映射中查找
+	if _, ok := c.shortToLong.Load(name); ok {
+		return true
+	}
+
+	// 最后在底层flag集合中查找
+	return c.fs.Lookup(name) != nil
+}
+
+// Args 获取非标志参数切片
 func (c *Cmd) Args() []string { return c.args }
 
-// Arg 获取命令行参数
+// Arg 获取指定索引的非标志参数
 func (c *Cmd) Arg(i int) string {
 	if i >= 0 && i < len(c.args) {
 		return c.args[i]
 	}
-
 	return ""
 }
+
+// NArgs 获取非标志参数的数量
+func (c *Cmd) NArgs() int { return len(c.args) }
 
 // PrintUsage 打印命令的帮助信息, 优先打印用户的帮助信息, 否则自动生成帮助信息
 func (c *Cmd) PrintUsage() {

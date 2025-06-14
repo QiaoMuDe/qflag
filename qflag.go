@@ -93,11 +93,6 @@ func AddSubCmd(subCmds ...*Cmd) error {
 	return QCommandLine.AddSubCmd(subCmds...)
 }
 
-// GetFlagByPtr 通过指针获取标志（全局默认命令）
-func GetFlagByPtr(p any) (any, error) {
-	return QCommandLine.GetFlagByPtr(p)
-}
-
 // NewCmd 创建新的命令实例
 // 参数:
 // name: 命令名称
@@ -120,11 +115,11 @@ func NewCmd(name string, shortName string, errorHandling flag.ErrorHandling) *Cm
 		fs:                           flag.NewFlagSet(name, errorHandling), // 创建新的flag集
 		shortToLong:                  sync.Map{},                           // 存储长短标志的映射关系
 		longToShort:                  sync.Map{},                           // 存储长短标志的映射关系
-		helpFlagName:                 "help",                               // 默认的帮助标志名称
-		helpShortName:                "h",                                  // 默认的帮助标志短名称
-		showInstallPathFlagName:      "show-install-path",                  // 默认的显示安装路径标志名称
-		showInstallPathFlagShortName: "sip",                                // 默认的显示安装路径标志短名称
-		flagRegistry:                 make(map[interface{}]Flag),           // 初始化指针注册表
+		helpFlagName:                 helpFlagName,                         // 默认的帮助标志名称
+		helpFlagShortName:            helpFlagShortName,                    // 默认的帮助标志短名称
+		showInstallPathFlagName:      showInstallPathFlagName,              // 默认的显示安装路径标志名称
+		showInstallPathFlagShortName: showInstallPathFlagShortName,         // 默认的显示安装路径标志短名称
+		flagRegistry:                 make(map[any]Flag),                   // 初始化指针注册表
 		usage:                        "",                                   // 允许用户直接设置帮助内容
 		description:                  "",                                   // 允许用户直接设置命令描述
 		name:                         name,                                 // 命令名称, 用于帮助信息中显示
@@ -137,18 +132,6 @@ func NewCmd(name string, shortName string, errorHandling flag.ErrorHandling) *Cm
 	// 自动绑定帮助标志和显示安装路径标志
 	cmd.bindHelpFlagAndShowInstallPathFlag()
 	return cmd
-}
-
-// GetFlagByPtr 通过指针获取对应的Flag对象
-// 参数: p - 绑定的指针
-// 返回值: 对应的Flag对象和错误信息
-// 如果指针未注册, 则返回错误
-func (c *Cmd) GetFlagByPtr(p any) (any, error) {
-	flag, exists := c.flagRegistry[p]
-	if !exists {
-		return nil, fmt.Errorf("指针未注册: %v", p)
-	}
-	return flag, nil
 }
 
 // AddSubCmd 关联一个或多个子命令到当前命令
@@ -215,6 +198,14 @@ func (c *Cmd) Parse(args []string) error {
 
 // String 添加字符串类型标志, 参数含义与Int方法一致
 func (c *Cmd) String(name, shortName, defValue, usage string) *StringFlag {
+	// 指定的标志是否为保留标志
+	if _, ok := c.builtinFlagNameMap.Load(name); ok {
+		panic(fmt.Sprintf("Flag name %s is reserved", name))
+	}
+	if _, ok := c.builtinFlagNameMap.Load(shortName); ok {
+		panic(fmt.Sprintf("Flag short name %s is reserved", shortName))
+	}
+
 	var value string
 	c.fs.StringVar(&value, name, defValue, usage) // 绑定长标志到变量
 	f := &StringFlag{
@@ -225,17 +216,31 @@ func (c *Cmd) String(name, shortName, defValue, usage string) *StringFlag {
 		usage:     usage,     // 帮助说明
 		value:     &value,    // 标志对象
 	}
-	if shortName != "" && shortName != c.helpShortName {
+
+	// 绑定短标志并跳过帮助标志
+	if shortName != "" {
 		c.shortToLong.Store(shortName, name)               // 存储短到长的映射关系
 		c.longToShort.Store(name, shortName)               // 存储长到短的映射关系
 		c.fs.StringVar(&value, shortName, defValue, usage) // 绑定短标志到同一个变量
 	}
+
+	// 注册Flag对象
+	c.flagRegistry[&value] = f
+
 	return f
 }
 
 // StringVar 绑定字符串类型标志到指针并内部注册Flag对象
 // 参数依次为: 指针、长标志名、短标志、默认值、帮助说明
 func (c *Cmd) StringVar(p *string, name, shortName, defValue, usage string) {
+	// 指定的标志是否为保留标志
+	if _, ok := c.builtinFlagNameMap.Load(name); ok {
+		panic(fmt.Sprintf("Flag name %s is reserved", name))
+	}
+	if _, ok := c.builtinFlagNameMap.Load(shortName); ok {
+		panic(fmt.Sprintf("Flag short name %s is reserved", shortName))
+	}
+
 	c.fs.StringVar(p, name, defValue, usage) // 绑定长标志
 	f := &StringFlag{
 		cmd:       c,         // 命令对象
@@ -245,18 +250,28 @@ func (c *Cmd) StringVar(p *string, name, shortName, defValue, usage string) {
 		usage:     usage,     // 帮助说明
 		value:     p,         // 标志对象
 	}
-	c.flagRegistry[p] = f // 注册Flag对象
 
-	if shortName != "" && shortName != c.helpShortName {
+	if shortName != "" {
 		c.shortToLong.Store(shortName, name)          // 存储短到长的映射关系
 		c.longToShort.Store(name, shortName)          // 存储长到短的映射关系
 		c.fs.StringVar(p, shortName, defValue, usage) // 绑定短标志
 	}
+
+	// 注册Flag对象
+	c.flagRegistry[p] = f
 }
 
 // IntVar 绑定整数类型标志到指针并内部注册Flag对象
 // 参数依次为: 指针、长标志名、短标志、默认值、帮助说明
 func (c *Cmd) IntVar(p *int, name, shortName string, defValue int, usage string) {
+	// 指定的标志是否为保留标志
+	if _, ok := c.builtinFlagNameMap.Load(name); ok {
+		panic(fmt.Sprintf("Flag name %s is reserved", name))
+	}
+	if _, ok := c.builtinFlagNameMap.Load(shortName); ok {
+		panic(fmt.Sprintf("Flag short name %s is reserved", shortName))
+	}
+
 	c.fs.IntVar(p, name, defValue, usage) // 绑定长标志
 	f := &IntFlag{
 		cmd:       c,         // 命令对象
@@ -266,18 +281,28 @@ func (c *Cmd) IntVar(p *int, name, shortName string, defValue int, usage string)
 		usage:     usage,     // 帮助说明
 		value:     p,         // 标志对象
 	}
-	c.flagRegistry[p] = f // 注册Flag对象
 
-	if shortName != "" && shortName != c.helpShortName {
+	if shortName != "" {
 		c.shortToLong.Store(shortName, name)       // 存储短到长的映射关系
 		c.longToShort.Store(name, shortName)       // 存储长到短的映射关系
 		c.fs.IntVar(p, shortName, defValue, usage) // 绑定短标志
 	}
+
+	// 注册Flag对象
+	c.flagRegistry[p] = f
 }
 
 // BoolVar 绑定布尔类型标志到指针并内部注册Flag对象
 // 参数依次为: 指针、长标志名、短标志、默认值、帮助说明
 func (c *Cmd) BoolVar(p *bool, name, shortName string, defValue bool, usage string) {
+	// 指定的标志是否为保留标志
+	if _, ok := c.builtinFlagNameMap.Load(name); ok {
+		panic(fmt.Sprintf("Flag name %s is reserved", name))
+	}
+	if _, ok := c.builtinFlagNameMap.Load(shortName); ok {
+		panic(fmt.Sprintf("Flag short name %s is reserved", shortName))
+	}
+
 	c.fs.BoolVar(p, name, defValue, usage) // 绑定长标志
 	f := &BoolFlag{
 		cmd:       c,         // 命令对象
@@ -287,17 +312,27 @@ func (c *Cmd) BoolVar(p *bool, name, shortName string, defValue bool, usage stri
 		usage:     usage,     // 帮助说明
 		value:     p,         // 标志对象
 	}
-	c.flagRegistry[p] = f // 注册Flag对象
 
-	if shortName != "" && shortName != c.helpShortName {
+	if shortName != "" {
 		c.shortToLong.Store(shortName, name)        // 存储短到长的映射关系
 		c.longToShort.Store(name, shortName)        // 存储长到短的映射关系
 		c.fs.BoolVar(p, shortName, defValue, usage) // 绑定短标志
 	}
+
+	// 注册Flag对象
+	c.flagRegistry[p] = f
 }
 
 // Int 添加整数类型标志, 返回标志对象。参数依次为长标志名、短标志、默认值、帮助说明
 func (c *Cmd) Int(name, shortName string, defValue int, usage string) *IntFlag {
+	// 指定的标志是否为保留标志
+	if _, ok := c.builtinFlagNameMap.Load(name); ok {
+		panic(fmt.Sprintf("Flag name %s is reserved", name))
+	}
+	if _, ok := c.builtinFlagNameMap.Load(shortName); ok {
+		panic(fmt.Sprintf("Flag short name %s is reserved", shortName))
+	}
+
 	var value int
 	c.fs.IntVar(&value, name, defValue, usage) // 绑定长标志到变量
 	f := &IntFlag{
@@ -309,16 +344,28 @@ func (c *Cmd) Int(name, shortName string, defValue int, usage string) *IntFlag {
 		value:     &value,    // 标志对象
 	}
 	// 非帮助标志才记录映射（避免覆盖帮助标志）
-	if shortName != "" && shortName != c.helpShortName {
+	if shortName != "" {
 		c.shortToLong.Store(shortName, name)            // 存储短到长的映射关系
 		c.longToShort.Store(name, shortName)            // 存储长到短的映射关系
 		c.fs.IntVar(&value, shortName, defValue, usage) // 绑定短标志到同一个变量
 	}
+
+	// 注册Flag对象
+	c.flagRegistry[&value] = f
+
 	return f
 }
 
 // Bool 添加布尔类型标志, 参数含义与Int方法一致
 func (c *Cmd) Bool(name, shortName string, defValue bool, usage string) *BoolFlag {
+	// 指定的标志是否为保留标志
+	if _, ok := c.builtinFlagNameMap.Load(name); ok {
+		panic(fmt.Sprintf("Flag name %s is reserved", name))
+	}
+	if _, ok := c.builtinFlagNameMap.Load(shortName); ok {
+		panic(fmt.Sprintf("Flag short name %s is reserved", shortName))
+	}
+
 	var value bool
 	c.fs.BoolVar(&value, name, defValue, usage) // 绑定长标志到变量
 	f := &BoolFlag{
@@ -329,16 +376,27 @@ func (c *Cmd) Bool(name, shortName string, defValue bool, usage string) *BoolFla
 		usage:     usage,     // 帮助说明
 		value:     &value,    // 标志对象
 	}
-	if shortName != "" && shortName != c.helpShortName {
+	if shortName != "" {
 		c.shortToLong.Store(shortName, name)             // 存储短到长的映射关系
 		c.longToShort.Store(name, shortName)             // 存储长到短的映射关系
 		c.fs.BoolVar(&value, shortName, defValue, usage) // 绑定短标志到同一个变量
 	}
+
+	// 注册Flag对象
+	c.flagRegistry[&value] = f
 	return f
 }
 
 // Float 添加浮点型标志, 返回标志对象。参数依次为长标志名、短标志、默认值、帮助说明
 func (c *Cmd) Float(name, shortName string, defValue float64, usage string) *FloatFlag {
+	// 指定的标志是否为保留标志
+	if _, ok := c.builtinFlagNameMap.Load(name); ok {
+		panic(fmt.Sprintf("Flag name %s is reserved", name))
+	}
+	if _, ok := c.builtinFlagNameMap.Load(shortName); ok {
+		panic(fmt.Sprintf("Flag short name %s is reserved", shortName))
+	}
+
 	var value float64
 	c.fs.Float64Var(&value, name, defValue, usage) // 绑定长标志到变量
 	f := &FloatFlag{
@@ -350,17 +408,28 @@ func (c *Cmd) Float(name, shortName string, defValue float64, usage string) *Flo
 		value:     &value,    // 标志对象
 	}
 	// 非帮助标志才记录映射（避免覆盖帮助标志）
-	if shortName != "" && shortName != c.helpShortName {
+	if shortName != "" {
 		c.shortToLong.Store(shortName, name)                // 存储短到长的映射关系
 		c.longToShort.Store(name, shortName)                // 存储长到短的映射关系
 		c.fs.Float64Var(&value, shortName, defValue, usage) // 绑定短标志到同一个变量
 	}
+
+	// 注册Flag对象
+	c.flagRegistry[&value] = f
 	return f
 }
 
 // FloatVar 绑定浮点型标志到指针并内部注册Flag对象
 // 参数依次为: 指针、长标志名、短标志、默认值、帮助说明
 func (c *Cmd) FloatVar(p *float64, name, shortName string, defValue float64, usage string) {
+	// 指定的标志是否为保留标志
+	if _, ok := c.builtinFlagNameMap.Load(name); ok {
+		panic(fmt.Sprintf("Flag name %s is reserved", name))
+	}
+	if _, ok := c.builtinFlagNameMap.Load(shortName); ok {
+		panic(fmt.Sprintf("Flag short name %s is reserved", shortName))
+	}
+
 	c.fs.Float64Var(p, name, defValue, usage) // 绑定长标志
 	f := &FloatFlag{
 		cmd:       c,         // 命令对象
@@ -370,11 +439,13 @@ func (c *Cmd) FloatVar(p *float64, name, shortName string, defValue float64, usa
 		usage:     usage,     // 帮助说明
 		value:     p,         // 标志对象
 	}
-	c.flagRegistry[p] = f // 注册Flag对象
 
-	if shortName != "" && shortName != c.helpShortName {
+	if shortName != "" {
 		c.shortToLong.Store(shortName, name)           // 存储短到长的映射关系
 		c.longToShort.Store(name, shortName)           // 存储长到短的映射关系
 		c.fs.Float64Var(p, shortName, defValue, usage) // 绑定短标志
 	}
+
+	// 注册Flag对象
+	c.flagRegistry[p] = f
 }
