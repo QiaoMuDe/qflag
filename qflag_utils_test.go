@@ -47,19 +47,27 @@ func TestPrintUsage(t *testing.T) {
 	// 测试自定义用法信息
 	cmd1 := NewCmd("test", "t", flag.ExitOnError)
 	cmd1.SetUsage("Custom usage message")
-	cmd1.PrintUsage()
+	if testing.Verbose() {
+		cmd1.PrintUsage()
+	}
 
 	// 测试自动生成的用法信息
 	cmd2 := NewCmd("test2", "", flag.ExitOnError)
 	cmd2.SetDescription("Test description")
 	cmd2.Bool("verbose", "v", false, "verbose output")
-	cmd2.PrintUsage()
+	if testing.Verbose() {
+		cmd2.PrintUsage()
+	}
 
 	// 测试带子命令的用法信息
 	cmd3 := NewCmd("parent", "", flag.ExitOnError)
 	subCmd := NewCmd("child", "", flag.ExitOnError)
-	cmd3.AddSubCmd(subCmd)
-	cmd3.PrintUsage()
+	if err := cmd3.AddSubCmd(subCmd); err != nil {
+		t.Errorf("AddSubCmd error: %v", err)
+	}
+	if testing.Verbose() {
+		cmd3.PrintUsage()
+	}
 }
 
 // TestHasCycle 测试检测循环引用
@@ -75,9 +83,13 @@ func TestHasCycle(t *testing.T) {
 	}
 
 	// 添加子命令
-	cmd1.AddSubCmd(cmd2)
+	if err := cmd1.AddSubCmd(cmd2); err != nil {
+		t.Errorf("AddSubCmd error: %v", err)
+	}
 	cmd2.parentCmd = cmd1
-	cmd2.AddSubCmd(cmd3)
+	if err := cmd2.AddSubCmd(cmd3); err != nil {
+		t.Errorf("AddSubCmd error: %v", err)
+	}
 	cmd3.parentCmd = cmd2
 
 	// 检测循环

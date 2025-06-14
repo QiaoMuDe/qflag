@@ -21,8 +21,7 @@ go get gitee.com/MM-Q/qflag
 - 允许自定义帮助内容和命令描述
 
 ## 使用示例
-
-### 基本用法
+### 基本使用示例
 
 ```go
 package main
@@ -30,28 +29,21 @@ package main
 import (
 	"flag"
 	"fmt"
-	"os"
 	"gitee.com/MM-Q/qflag"
 )
 
 func main() {
-	// 创建命令实例
-	cmd := qflag.NewCmd("demo", "d", flag.ExitOnError)
-	cmd.Description = "qflag示例程序"
-
-	// 添加标志
-	nameFlag := cmd.String("name", "n", "", "姓名")
-	ageFlag := cmd.Int("age", "a", 0, "年龄")
-	verboseFlag := cmd.Bool("verbose", "v", false, "详细输出")
+	// 使用全局实例创建字符串标志
+	port := qflag.Int("port", "p", 8080, "服务端口号")
+	debug := qflag.Bool("debug", "d", false, "调试模式")
 
 	// 解析命令行参数
-	if err := cmd.Parse(os.Args[1:]); err != nil {
+	if err := qflag.Parse(); err != nil {
 		fmt.Println("参数解析错误:", err)
 		return
 	}
 
-	// 使用标志值
-	fmt.Printf("姓名: %s, 年龄: %d, 详细输出: %v\n", *nameFlag.value, *ageFlag.value, *verboseFlag.value)
+	fmt.Printf("服务端口: %d, 调试模式: %v\n", *port, *debug)
 }
 ```
 
@@ -64,25 +56,32 @@ import (
 	"flag"
 	"fmt"
 	"gitee.com/MM-Q/qflag"
+	"os"
 )
 
 func main() {
-	// 创建主命令
-	mainCmd := qflag.NewCmd("main", "m", flag.ExitOnError)
-	mainCmd.Description = "主命令"
+	// 使用全局实例创建主命令
+	qflag.QCommandLine.Description = "主命令"
 
 	// 创建子命令
 	subCmd := qflag.NewCmd("sub", "s", flag.ExitOnError)
 	subCmd.Description = "子命令"
 	subCmd.String("config", "c", "config.json", "配置文件路径")
 
-	// 添加子命令到主命令
-	mainCmd.AddSubCmd(subCmd)
+	// 添加子命令到全局实例
+	qflag.AddSubCmd(subCmd)
 
 	// 解析命令行参数
-	if err := mainCmd.Parse(os.Args[1:]); err != nil {
+	if err := qflag.Parse(); err != nil {
 		fmt.Println("参数解析错误:", err)
-		return
+		os.Exit(1)
+	}
+
+	// 检查是否执行子命令
+	if len(qflag.QCommandLine.Args()) > 0 && qflag.QCommandLine.Args()[0] == "sub" {
+		// 获取子命令配置参数
+		configFile := subCmd.String("config", "c", "config.json", "配置文件路径")
+		fmt.Printf("执行子命令，配置文件路径: %s\n", *configFile)
 	}
 }
 ```

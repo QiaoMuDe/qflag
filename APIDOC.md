@@ -54,3 +54,43 @@ func (c *Cmd) AddSubCmd(subCmds ...*Cmd)
 ```go
 func (c *Cmd) Parse(args []string) error
 ```
+
+#### Float
+
+添加浮点数类型标志
+
+```go
+func (c *Cmd) Float(name, shortName string, defValue float64, help string) *FloatFlag
+```
+
+#### StringVar
+
+添加字符串类型标志变量
+
+```go
+func (c *Cmd) StringVar(p *string, name, shortName, defValue, help string)
+```
+
+#### IntVar
+
+添加整数类型标志变量
+
+```go
+func (c *Cmd) IntVar(p *int, name, shortName string, defValue int, help string)
+```
+
+#### BoolVar
+
+添加布尔类型标志变量
+
+```go
+func (c *Cmd) BoolVar(p *bool, name, shortName string, defValue bool, help string)
+```
+
+#### FloatVar
+
+添加浮点数类型标志变量
+
+```go
+func (c *Cmd) FloatVar(p *float64, name, shortName string, defValue float64, help string)
+```

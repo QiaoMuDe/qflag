@@ -12,9 +12,7 @@ import (
 // QCommandLine 全局默认Cmd实例
 var QCommandLine *Cmd
 
-// Parse 解析命令行参数（全局默认命令）
-// parsed 标记是否已解析过
-var parsed bool
+// parseOnce 保证Parse函数只会执行一次
 var parseOnce sync.Once
 
 // 在包初始化时创建全局默认Cmd实例
@@ -83,14 +81,14 @@ func Parse() error {
 	var err error
 	parseOnce.Do(func() {
 		err = QCommandLine.Parse(os.Args[1:])
-		parsed = true
 	})
 	return err
 }
 
 // AddSubCmd 给全局默认命令添加子命令
-func AddSubCmd(subCmds ...*Cmd) {
-	QCommandLine.AddSubCmd(subCmds...)
+// 返回值: 错误信息, 如果检测到循环引用或nil子命令
+func AddSubCmd(subCmds ...*Cmd) error {
+	return QCommandLine.AddSubCmd(subCmds...)
 }
 
 // GetFlagByPtr 通过指针获取标志（全局默认命令）
@@ -190,18 +188,21 @@ func (c *Cmd) Parse(args []string) error {
 
 		// 2. 检查是否使用-h/--help标志
 		if c.isHelpRequested() {
-			c.printUsage()
-			os.Exit(0)
+			if c.fs.ErrorHandling() != flag.ContinueOnError {
+				c.printUsage() // 只有在ExitOnError或PanicOnError时才打印使用说明
+				os.Exit(0)
+			}
+			return
 		}
 
-		// 3. 检查长短标志互斥（跳过帮助标志）
+		// 3. 检查长短标志互斥（跳过帮助标志和空长标志）
 		var conflictMsg string
 		c.longToShort.Range(func(longKey, shortVal interface{}) bool {
 			longFlag := longKey.(string)   // 获取长标志名称
 			shortFlag := shortVal.(string) // 获取短标志名称
 
-			// 跳过帮助标志的互斥检查
-			if longFlag == c.helpFlagName || shortFlag == c.helpShortName {
+			// 跳过帮助标志和空长短标志的互斥检查
+			if longFlag == c.helpFlagName || shortFlag == c.helpShortName || longFlag == "" || shortFlag == "" {
 				return true
 			}
 
