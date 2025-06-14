@@ -81,6 +81,7 @@ func FloatVar(p *float64, name, shortName string, defValue float64, usage string
 func Parse() error {
 	var err error
 	parseOnce.Do(func() {
+		// 解析命令行参数
 		err = QCommandLine.Parse(os.Args[1:])
 	})
 	return err
@@ -116,21 +117,25 @@ func NewCmd(name string, shortName string, errorHandling flag.ErrorHandling) *Cm
 	}
 
 	cmd := &Cmd{
-		fs:            flag.NewFlagSet(name, errorHandling), // 创建新的flag集
-		shortToLong:   sync.Map{},                           // 存储长短标志的映射关系
-		longToShort:   sync.Map{},                           // 存储长短标志的映射关系
-		helpFlagName:  "help",                               // 默认的帮助标志名称
-		helpShortName: "h",                                  // 默认的帮助标志短名称
-		flagRegistry:  make(map[interface{}]Flag),           // 初始化指针注册表
-		usage:         "",                                   // 允许用户直接设置帮助内容
-		description:   "",                                   // 允许用户直接设置命令描述
-		name:          name,                                 // 命令名称, 用于帮助信息中显示
-		shortName:     shortName,                            // 命令短名称, 用于帮助信息中显示
-		args:          []string{},                           // 命令行参数
-		helpFlag:      new(bool),                            // 默认的帮助标志
+		fs:                           flag.NewFlagSet(name, errorHandling), // 创建新的flag集
+		shortToLong:                  sync.Map{},                           // 存储长短标志的映射关系
+		longToShort:                  sync.Map{},                           // 存储长短标志的映射关系
+		helpFlagName:                 "help",                               // 默认的帮助标志名称
+		helpShortName:                "h",                                  // 默认的帮助标志短名称
+		showInstallPathFlagName:      "show-install-path",                  // 默认的显示安装路径标志名称
+		showInstallPathFlagShortName: "sip",                                // 默认的显示安装路径标志短名称
+		flagRegistry:                 make(map[interface{}]Flag),           // 初始化指针注册表
+		usage:                        "",                                   // 允许用户直接设置帮助内容
+		description:                  "",                                   // 允许用户直接设置命令描述
+		name:                         name,                                 // 命令名称, 用于帮助信息中显示
+		shortName:                    shortName,                            // 命令短名称, 用于帮助信息中显示
+		args:                         []string{},                           // 命令行参数
+		helpFlag:                     new(bool),                            // 默认的帮助标志
+		showInstallPathFlag:          new(bool),                            // 默认的显示安装路径标志
 	}
 
-	cmd.bindHelpFlag() // 自动绑定帮助标志
+	// 自动绑定帮助标志和显示安装路径标志
+	cmd.bindHelpFlagAndShowInstallPathFlag()
 	return cmd
 }
 

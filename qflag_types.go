@@ -8,25 +8,28 @@ import (
 // Cmd 命令行标志管理结构体,封装参数解析、长短标志互斥及帮助系统。
 type Cmd struct {
 	/* 内部使用属性*/
-	fs            *flag.FlagSet        // 底层flag集合, 处理参数解析
-	shortToLong   sync.Map             // 短标志到长标志的映射（键：短标志,值：长标志）
-	longToShort   sync.Map             // 长标志到短标志的映射（键：长标志,值：短标志）
-	helpFlagName  string               // 帮助标志的长名称,默认"help"
-	helpShortName string               // 帮助标志的短名称,默认"h"
-	helpFlag      *bool                // 帮助标志指针,用于绑定和检查
-	helpFlagBound bool                 // 标记帮助标志是否已绑定
-	helpOnce      sync.Once            // 用于确保帮助标志只被绑定一次
-	subCmds       []*Cmd               // 子命令列表, 用于关联子命令
-	parentCmd     *Cmd                 // 父命令指针,用于递归调用, 根命令的父命令为nil
-	flagRegistry  map[interface{}]Flag // 标志注册表,用于通过指针查找标志元数据
-	usage         string               // 自定义帮助内容,可由用户直接赋值
-	description   string               // 自定义描述,用于帮助信息中显示
-	name          string               // 命令名称,用于帮助信息中显示
-	shortName     string               // 命令短名称,用于帮助信息中显示
-	args          []string             // 命令行参数切片
-	addMu         sync.Mutex           // 互斥锁,确保并发安全操作
-	parseOnce     sync.Once            // 用于确保命令只被解析一次
-	setMu         sync.Mutex           // 互斥锁,确保并发安全操作
+	fs                           *flag.FlagSet        // 底层flag集合, 处理参数解析
+	shortToLong                  sync.Map             // 短标志到长标志的映射（键：短标志,值：长标志）
+	longToShort                  sync.Map             // 长标志到短标志的映射（键：长标志,值：短标志）
+	helpFlagName                 string               // 帮助标志的长名称,默认"help"
+	helpShortName                string               // 帮助标志的短名称,默认"h"
+	helpFlag                     *bool                // 帮助标志指针,用于绑定和检查
+	helpFlagBound                bool                 // 标记帮助标志是否已绑定
+	helpOnce                     sync.Once            // 用于确保帮助标志只被绑定一次
+	showInstallPathFlagName      string               // 安装路径标志的长名称,默认"show-install-path"
+	showInstallPathFlagShortName string               // 安装路径标志的短名称,默认"sip"
+	showInstallPathFlag          *bool                // 安装路径标志指针,用于绑定和检查
+	subCmds                      []*Cmd               // 子命令列表, 用于关联子命令
+	parentCmd                    *Cmd                 // 父命令指针,用于递归调用, 根命令的父命令为nil
+	flagRegistry                 map[interface{}]Flag // 标志注册表,用于通过指针查找标志元数据
+	usage                        string               // 自定义帮助内容,可由用户直接赋值
+	description                  string               // 自定义描述,用于帮助信息中显示
+	name                         string               // 命令名称,用于帮助信息中显示
+	shortName                    string               // 命令短名称,用于帮助信息中显示
+	args                         []string             // 命令行参数切片
+	addMu                        sync.Mutex           // 互斥锁,确保并发安全操作
+	parseOnce                    sync.Once            // 用于确保命令只被解析一次
+	setMu                        sync.Mutex           // 互斥锁,确保并发安全操作
 }
 
 // 标志类型

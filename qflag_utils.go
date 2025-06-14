@@ -6,8 +6,8 @@ import (
 	"sort"
 )
 
-// bindHelpFlag 绑定-h/--help标志到显示帮助信息的逻辑
-func (c *Cmd) bindHelpFlag() {
+// bindHelpFlagAndShowInstallPathFlag 绑定-h/--help标志到显示帮助信息的逻辑
+func (c *Cmd) bindHelpFlagAndShowInstallPathFlag() {
 	// 检查是否已绑定
 	if c.helpFlagBound {
 		return // 避免重复绑定
@@ -27,6 +27,20 @@ func (c *Cmd) bindHelpFlag() {
 			c.fs.BoolVar(c.helpFlag, c.helpShortName, false, "Show help information")
 			c.shortToLong.Store(c.helpShortName, c.helpFlagName) // 存储短到长的映射关系
 			c.longToShort.Store(c.helpFlagName, c.helpShortName) // 存储长到短的映射关系
+		}
+
+		// 绑定显示安装路径标志
+		if c.showInstallPathFlag == nil {
+			c.showInstallPathFlag = new(bool)
+		}
+		// 仅绑定长选项
+		c.BoolVar(c.showInstallPathFlag, c.showInstallPathFlagName, "", false, "Show install path")
+
+		// 绑定短选项
+		if c.showInstallPathFlagShortName != "" {
+			c.fs.BoolVar(c.showInstallPathFlag, c.showInstallPathFlagShortName, false, "Show install path")
+			c.shortToLong.Store(c.showInstallPathFlagShortName, c.showInstallPathFlagName) // 存储短到长的映射关系
+			c.longToShort.Store(c.showInstallPathFlagName, c.showInstallPathFlagShortName) // 存储长到短的映射关系
 		}
 
 		// 设置帮助标志已绑定
