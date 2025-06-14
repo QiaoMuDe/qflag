@@ -6,6 +6,7 @@ import (
 	"flag"
 	"fmt"
 	"os"
+	"path/filepath"
 	"sync"
 )
 
@@ -22,8 +23,8 @@ func init() {
 		// 如果os.Args为空,则创建一个新的Cmd对象,命令行参数为空,错误处理方式为ExitOnError
 		QCommandLine = NewCmd("", "", flag.ExitOnError)
 	} else {
-		// 如果os.Args不为空,则创建一个新的Cmd对象,命令行参数为os.Args[0],错误处理方式为ExitOnError
-		QCommandLine = NewCmd(os.Args[0], "", flag.ExitOnError)
+		// 如果os.Args不为空,则创建一个新的Cmd对象,命令行参数为filepath.Base(os.Args[0]),错误处理方式为ExitOnError
+		QCommandLine = NewCmd(filepath.Base(os.Args[0]), "", flag.ExitOnError)
 	}
 }
 
