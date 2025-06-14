@@ -165,7 +165,7 @@ func (c *Cmd) Parse(args []string) error {
 
 		// 如果两个标志都发生变化, 则表示冲突
 		if longChanged && shortChanged {
-			conflictMsg = fmt.Sprintf("不能同时使用 --%s 和 -%s", longFlag, shortFlag)
+			conflictMsg = fmt.Sprintf("Cannot use both --%s and -%s", longFlag, shortFlag)
 			return false // 终止遍历
 		}
 

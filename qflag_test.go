@@ -81,8 +81,8 @@ func TestFlagConflict(t *testing.T) {
 	err := cmd.Parse(filteredArgs)
 	if err == nil {
 		t.Error("Expected error for flag conflict")
-	} else if err.Error() != "不能同时使用 --name 和 -n" {
-		t.Errorf("Expected error message '不能同时使用 --name 和 -n', got '%s'", err.Error())
+	} else if err.Error() != "Cannot use both --name and -n" {
+		t.Errorf("Expected error message 'Cannot use both --name and -n', got '%s'", err.Error())
 	}
 }
 
@@ -169,9 +169,9 @@ func TestGlobalFlagConflict(t *testing.T) {
 
 	err := Parse()
 	if err == nil {
-		t.Error("预期检测到全局标志冲突, 但未返回错误")
-	} else if err.Error() != "不能同时使用 --gname 和 -gn" {
-		t.Errorf("全局标志冲突错误信息不正确, 预期 '不能同时使用 --gname 和 -gn', 实际 '%s'", err.Error())
+		t.Error("Expected error for global flag conflict")
+	} else if err.Error() != "Cannot use both --gname and -gn" {
+		t.Errorf("Global flag conflict message incorrect, expected 'Cannot use both --gname and -gn', got '%s'", err.Error())
 	}
 }
 
@@ -180,18 +180,18 @@ func TestGenerateHelpInfo(t *testing.T) {
 	// 场景1: 只有主命令，没有标志和子命令
 	t.Run("OnlyMainCommand", func(t *testing.T) {
 		cmd := NewCmd("test", "t", flag.ExitOnError)
-		fmt.Println("=== 场景: 只有主命令，没有标志和子命令 ===")
+		fmt.Println("=== Scenario: Main command only, no flags or subcommands ===")
 		helpInfo := generateHelpInfo(cmd, true)
 		fmt.Println(helpInfo)
 
 		// 验证命令名
-		expectedHeader := "命令: test(t)\n"
+		expectedHeader := "Command: test(t)\n"
 		if !strings.Contains(helpInfo, expectedHeader) {
 			t.Errorf("Expected help info to contain '%s', got '%s'", expectedHeader, helpInfo)
 		}
 
 		// 验证用法说明
-		expectedUsage := "用法: test [选项] [参数]"
+		expectedUsage := "Usage: test [options] [arguments]"
 		if !strings.Contains(helpInfo, expectedUsage) {
 			t.Errorf("Expected help info to contain '%s', got '%s'", expectedUsage, helpInfo)
 		}
@@ -203,12 +203,12 @@ func TestGenerateHelpInfo(t *testing.T) {
 		cmd.String("name", "n", "default", "name help")
 		cmd.Int("port", "p", 8080, "port help")
 
-		fmt.Println("=== 场景: 主命令带标志 ===")
+		fmt.Println("=== Scenario: Main command with flags ===")
 		helpInfo := generateHelpInfo(cmd, true)
 		fmt.Println(helpInfo)
 
 		// 验证选项标题
-		expectedOptionsHeader := "选项:\n"
+		expectedOptionsHeader := "Options:\n"
 		if !strings.Contains(helpInfo, expectedOptionsHeader) {
 			t.Errorf("Expected help info to contain '%s', got '%s'", expectedOptionsHeader, helpInfo)
 		}
@@ -228,17 +228,17 @@ func TestGenerateHelpInfo(t *testing.T) {
 	// 场景3: 主命令有子命令
 	t.Run("MainCommandWithSubcommands", func(t *testing.T) {
 		mainCmd := NewCmd("main", "m", flag.ExitOnError)
-		mainCmd.SetDescription("主命令描述")
+		mainCmd.SetDescription("Main command description")
 		subCmd := NewCmd("sub", "s", flag.ExitOnError)
-		subCmd.SetDescription("子命令描述")
+		subCmd.SetDescription("Subcommand description")
 		mainCmd.AddSubCmd(subCmd)
 
-		fmt.Println("=== 场景: 主命令带子命令 ===")
+		fmt.Println("=== Scenario: Main command with subcommands ===")
 		helpInfo := generateHelpInfo(mainCmd, true)
 		fmt.Println(helpInfo)
 
 		// 验证子命令标题
-		expectedSubHeader := "子命令:\n"
+		expectedSubHeader := "Subcommands:\n"
 		if !strings.Contains(helpInfo, expectedSubHeader) {
 			t.Errorf("Expected help info to contain '%s', got '%s'", expectedSubHeader, helpInfo)
 		}
@@ -257,12 +257,12 @@ func TestGenerateHelpInfo(t *testing.T) {
 		subCmd.String("config", "c", "config.json", "配置文件路径")
 		mainCmd.AddSubCmd(subCmd)
 
-		fmt.Println("=== 场景: 子命令帮助信息 ===")
+		fmt.Println("=== Scenario: Subcommand help information ===")
 		helpInfo := generateHelpInfo(subCmd, false)
 		fmt.Println(helpInfo)
 
 		// 验证子命令用法说明
-		expectedUsage := "用法: main sub [选项] [参数]"
+		expectedUsage := "Usage: main sub [options] [arguments]"
 		if !strings.Contains(helpInfo, expectedUsage) {
 			t.Errorf("Expected help info to contain '%s', got '%s'", expectedUsage, helpInfo)
 		}
@@ -275,7 +275,7 @@ func TestGenerateHelpInfo(t *testing.T) {
 		String("gname", "gn", "gdefault", "global name help")
 		Int("gport", "gp", 9090, "global port help")
 
-		fmt.Println("=== 场景: 全局命令帮助信息 ===")
+		fmt.Println("=== Scenario: Global command help information ===")
 		// 设置测试参数，避免依赖os.Args
 		testArgs := []string{"--gname", "test", "-gp", "8888"}
 		// 忽略未知标志以避免测试框架干扰
@@ -304,7 +304,7 @@ func TestGenerateHelpInfo(t *testing.T) {
 		helpInfo := generateHelpInfo(subCmd, false)
 		expectedConfigFlag := "-c, --config"
 		if !strings.Contains(helpInfo, expectedConfigFlag) {
-			t.Errorf("子命令帮助信息应包含 '%s', 实际 '%s'", expectedConfigFlag, helpInfo)
+			t.Errorf("Subcommand help info should contain '%s', got '%s'", expectedConfigFlag, helpInfo)
 		}
 	})
 }
@@ -313,33 +313,33 @@ func TestGenerateHelpInfo(t *testing.T) {
 func TestGenerateHelpInfoWithSubcommands(t *testing.T) {
 	// 创建主命令，使用ContinueOnError模式以忽略未知标志
 	mainCmd := NewCmd("main", "m", flag.ContinueOnError)
-	mainCmd.SetDescription("主命令描述")
-	mainCmd.String("config", "c", "config.json", "配置文件路径")
+	mainCmd.SetDescription("Main command description")
+	mainCmd.String("config", "c", "config.json", "Configuration file path")
 
 	// 添加子命令
 	subCmd1 := NewCmd("sub1", "s1", flag.ContinueOnError)
-	subCmd1.SetDescription("子命令1描述")
-	subCmd1.Int("port", "p", 8080, "监听端口")
+	subCmd1.SetDescription("Subcommand 1 description")
+	subCmd1.Int("port", "p", 8080, "Listening port")
 	mainCmd.AddSubCmd(subCmd1)
 
 	subCmd2 := NewCmd("sub2", "s2", flag.ContinueOnError)
-	subCmd2.SetDescription("子命令2描述")
-	subCmd2.Bool("verbose", "v", false, "详细输出")
+	subCmd2.SetDescription("Subcommand 2 description")
+	subCmd2.Bool("verbose", "v", false, "Verbose output")
 	mainCmd.AddSubCmd(subCmd2)
 
 	// 生成帮助信息
-	fmt.Println("=== 场景: 主命令带子命令 ===")
+	fmt.Println("=== Scenario: Main command with subcommands ===")
 	helpInfo := generateHelpInfo(mainCmd, true)
 	fmt.Println(helpInfo)
 
 	// 验证命令描述
-	expectedDesc := "主命令描述\n"
+	expectedDesc := "Description: Main command description\n\n"
 	if !strings.Contains(helpInfo, expectedDesc) {
 		t.Errorf("Expected help info to contain '%s', got '%s'", expectedDesc, helpInfo)
 	}
 
 	// 验证子命令标题
-	expectedSubHeader := "子命令:\n"
+	expectedSubHeader := "Subcommands:\n"
 	if !strings.Contains(helpInfo, expectedSubHeader) {
 		t.Errorf("Expected help info to contain '%s', got '%s'", expectedSubHeader, helpInfo)
 	}

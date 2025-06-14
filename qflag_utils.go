@@ -15,10 +15,10 @@ func (c *Cmd) bindHelpFlag() {
 	var showHelp bool
 
 	// 绑定长帮助标志
-	c.fs.BoolVar(&showHelp, c.helpFlagName, false, "显示帮助信息")
+	c.fs.BoolVar(&showHelp, c.helpFlagName, false, "Show help information")
 	// 绑定短帮助标志（若设置）
 	if c.helpShortName != "" {
-		c.fs.BoolVar(&showHelp, c.helpShortName, false, "显示帮助信息")
+		c.fs.BoolVar(&showHelp, c.helpShortName, false, "Show help information")
 		c.shortToLong.Store(c.helpShortName, c.helpFlagName) // 存储短到长的映射关系
 		c.longToShort.Store(c.helpFlagName, c.helpShortName) // 存储长到短的映射关系
 	}
@@ -189,13 +189,4 @@ func (c *Cmd) printHelp() {
 		fmt.Println(generateHelpInfo(c, c.parentCmd == nil))
 	}
 	fmt.Println()
-}
-
-// errorIf 辅助函数，将非空字符串转为error，空字符串返回nil
-func errorIf(cond bool, msg string) error {
-	if !cond {
-		return nil
-	}
-	// 使用 %s 格式化字符串，避免非常量格式字符串的问题
-	return fmt.Errorf("%s", msg)
 }

@@ -80,16 +80,16 @@ func (c *Cmd) SubCmds() []*Cmd { return c.subCmds }
 
 // 帮助信息模板常量
 const (
-	cmdNameTemplate            = "命令: %s\n\n"                  // 命令名称
-	cmdNameWithShortTemplate   = "命令: %s(%s)\n\n"              // 命令名称和短名称
-	cmdDescriptionTemplate     = "描述: %s\n\n"                  // 命令描述
-	cmdUsageTemplate           = "用法: %s [选项] [参数]\n\n"        // 命令用法
-	cmdUsageWithSubCmdTemplate = "用法: %s [子命令] [选项] [参数]\n\n"  // 命令用法(带子命令)
-	cmdUsageSubCmdTemplate     = "用法: %s %s [选项] [参数]\n\n"     // 命令用法(带子命令)
-	optionsHeaderTemplate      = "选项:\n"                       // 选项头部
-	optionTemplate             = "  -%s, --%s\t%s (默认值: %s)\n" // 选项模板
-	subCmdsHeaderTemplate      = "\n子命令:\n"                    // 子命令头部
-	subCmdTemplate             = "  %s\t%s\n"                  // 子命令模板
+	cmdNameTemplate            = "Command: %s\n\n"                                  // 命令名称
+	cmdNameWithShortTemplate   = "Command: %s(%s)\n\n"                              // 命令名称和短名称
+	cmdDescriptionTemplate     = "Description: %s\n\n"                              // 命令描述
+	cmdUsageTemplate           = "Usage: %s [options] [arguments]\n\n"              // 命令用法
+	cmdUsageWithSubCmdTemplate = "Usage: %s [subcommand] [options] [arguments]\n\n" // 命令用法(带子命令)
+	cmdUsageSubCmdTemplate     = "Usage: %s %s [options] [arguments]\n\n"           // 命令用法(带子命令)
+	optionsHeaderTemplate      = "Options:\n"                                       // 选项头部
+	optionTemplate             = "  -%s, --%s\t%s (default: %s)\n"                  // 选项模板
+	subCmdsHeaderTemplate      = "\nSubcommands:\n"                                 // 子命令头部
+	subCmdTemplate             = "  %s\t%s\n"                                       // 子命令模板
 )
 
 // Flag 所有标志类型的通用接口，定义了标志的元数据访问方法
