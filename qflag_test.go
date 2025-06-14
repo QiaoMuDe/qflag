@@ -27,8 +27,8 @@ func TestBindFlags(t *testing.T) {
 	if *strFlag.value != "default" {
 		t.Errorf("Expected default value 'default', got '%s'", *strFlag.value)
 	}
-	if strFlag.help != "name help" {
-		t.Errorf("Expected help 'name help', got '%s'", strFlag.help)
+	if strFlag.usage != "name help" {
+		t.Errorf("Expected help 'name help', got '%s'", strFlag.usage)
 	}
 
 	// 测试整数标志
@@ -36,8 +36,8 @@ func TestBindFlags(t *testing.T) {
 	if *intFlag.value != 8080 {
 		t.Errorf("Expected default value 8080, got %d", *intFlag.value)
 	}
-	if intFlag.help != "port help" {
-		t.Errorf("Expected help 'port help', got '%s'", intFlag.help)
+	if intFlag.usage != "port help" {
+		t.Errorf("Expected help 'port help', got '%s'", intFlag.usage)
 	}
 
 	// 测试布尔标志
@@ -45,8 +45,8 @@ func TestBindFlags(t *testing.T) {
 	if *boolFlag.value != false {
 		t.Errorf("Expected default value false, got %t", *boolFlag.value)
 	}
-	if boolFlag.help != "verbose help" {
-		t.Errorf("Expected help 'verbose help', got '%s'", boolFlag.help)
+	if boolFlag.usage != "verbose help" {
+		t.Errorf("Expected help 'verbose help', got '%s'", boolFlag.usage)
 	}
 }
 
@@ -101,10 +101,10 @@ func TestIsFlagSet(t *testing.T) {
 // TestHelpContent 测试自定义帮助内容
 func TestHelpContent(t *testing.T) {
 	cmd := NewCmd("test", "t", flag.ExitOnError)
-	cmd.Help = "Custom help content"
+	cmd.SetUsage("Custom help content")
 
-	if cmd.Help != "Custom help content" {
-		t.Errorf("Expected Help 'Custom help content', got '%s'", cmd.Help)
+	if cmd.Usage() != "Custom help content" {
+		t.Errorf("Expected Help 'Custom help content', got '%s'", cmd.Usage())
 	}
 }
 
@@ -161,9 +161,9 @@ func TestGenerateHelpInfo(t *testing.T) {
 	// 场景3: 主命令有子命令
 	t.Run("MainCommandWithSubcommands", func(t *testing.T) {
 		mainCmd := NewCmd("main", "m", flag.ExitOnError)
-		mainCmd.Description = "主命令描述"
+		mainCmd.SetDescription("主命令描述")
 		subCmd := NewCmd("sub", "s", flag.ExitOnError)
-		subCmd.Description = "子命令描述"
+		subCmd.SetDescription("子命令描述")
 		mainCmd.AddSubCmd(subCmd)
 
 		fmt.Println("=== 场景: 主命令带子命令 ===")
@@ -212,17 +212,17 @@ func TestGenerateHelpInfo(t *testing.T) {
 func TestGenerateHelpInfoWithSubcommands(t *testing.T) {
 	// 创建主命令
 	mainCmd := NewCmd("main", "m", flag.ExitOnError)
-	mainCmd.Description = "主命令描述"
+	mainCmd.SetDescription("主命令描述")
 	mainCmd.String("config", "c", "config.json", "配置文件路径")
 
 	// 添加子命令
 	subCmd1 := NewCmd("sub1", "s1", flag.ExitOnError)
-	subCmd1.Description = "子命令1描述"
+	subCmd1.SetDescription("子命令1描述")
 	subCmd1.Int("port", "p", 8080, "监听端口")
 	mainCmd.AddSubCmd(subCmd1)
 
 	subCmd2 := NewCmd("sub2", "s2", flag.ExitOnError)
-	subCmd2.Description = "子命令2描述"
+	subCmd2.SetDescription("子命令2描述")
 	subCmd2.Bool("verbose", "v", false, "详细输出")
 	mainCmd.AddSubCmd(subCmd2)
 

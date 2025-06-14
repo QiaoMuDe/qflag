@@ -30,6 +30,7 @@ package main
 import (
 	"flag"
 	"fmt"
+	"os"
 	"gitee.com/MM-Q/qflag"
 )
 

@@ -71,15 +71,15 @@ func generateHelpInfo(cmd *Cmd, isMainCommand bool) string {
 	var helpInfo string
 
 	// 命令名（支持短名称显示）
-	if cmd.ShortName != "" {
-		helpInfo += fmt.Sprintf(cmdNameWithShortTemplate, cmd.fs.Name(), cmd.ShortName)
+	if cmd.shortName != "" {
+		helpInfo += fmt.Sprintf(cmdNameWithShortTemplate, cmd.fs.Name(), cmd.shortName)
 	} else {
 		helpInfo += fmt.Sprintf(cmdNameTemplate, cmd.fs.Name())
 	}
 
 	// 命令描述
-	if cmd.Description != "" {
-		helpInfo += fmt.Sprintf(cmdDescriptionTemplate, cmd.Description)
+	if cmd.description != "" {
+		helpInfo += fmt.Sprintf(cmdDescriptionTemplate, cmd.description)
 	}
 
 	// 命令用法
@@ -96,10 +96,26 @@ func generateHelpInfo(cmd *Cmd, isMainCommand bool) string {
 
 	// 收集所有标志信息
 	var flags []struct {
-		shortFlag string
 		longFlag  string
+		shortFlag string
 		usage     string
-		defValue  string
+		defValue  interface{}
+	}
+
+	// 使用Flag接口统一访问标志属性
+	for _, f := range cmd.flagRegistry {
+		flag := f
+		flags = append(flags, struct {
+			longFlag  string
+			shortFlag string
+			usage     string
+			defValue  interface{}
+		}{
+			longFlag:  flag.Name(),
+			shortFlag: flag.ShortName(),
+			usage:     flag.Usage(),
+			defValue:  flag.DefaultValue(),
+		})
 	}
 
 	cmd.fs.VisitAll(func(f *flag.Flag) {
@@ -116,16 +132,32 @@ func generateHelpInfo(cmd *Cmd, isMainCommand bool) string {
 
 		// 收集标志信息
 		flags = append(flags, struct {
-			shortFlag string
 			longFlag  string
+			shortFlag string
 			usage     string
-			defValue  string
-		}{shortFlag, f.Name, f.Usage, f.DefValue})
+			defValue  interface{}
+		}{f.Name, shortFlag, f.Usage, f.DefValue})
 	})
 
-	// 按短标志字母顺序排序
+	// 按短标志字母顺序排序，有短标志的选项优先
 	sort.Slice(flags, func(i, j int) bool {
-		return flags[i].shortFlag < flags[j].shortFlag
+		a, b := flags[i], flags[j]
+		aHasShort := a.shortFlag != ""
+		bHasShort := b.shortFlag != ""
+
+		// 有短标志的选项排在前面
+		if aHasShort && !bHasShort {
+			return true
+		}
+		if !aHasShort && bHasShort {
+			return false
+		}
+
+		// 都有短标志则按短标志排序，都没有则按长标志排序
+		if aHasShort && bHasShort {
+			return a.shortFlag < b.shortFlag
+		}
+		return a.longFlag < b.longFlag
 	})
 
 	// 生成排序后的标志信息
@@ -141,7 +173,7 @@ func generateHelpInfo(cmd *Cmd, isMainCommand bool) string {
 	if isMainCommand && len(cmd.subCmds) > 0 {
 		helpInfo += subCmdsHeaderTemplate
 		for _, subCmd := range cmd.subCmds {
-			helpInfo += fmt.Sprintf(subCmdTemplate, subCmd.fs.Name(), subCmd.Description)
+			helpInfo += fmt.Sprintf(subCmdTemplate, subCmd.fs.Name(), subCmd.description)
 		}
 	}
 
@@ -150,8 +182,8 @@ func generateHelpInfo(cmd *Cmd, isMainCommand bool) string {
 
 // printHelp 打印帮助内容，优先显示用户自定义的HelpContent
 func (c *Cmd) printHelp() {
-	if c.Help != "" {
-		fmt.Println(c.Help)
+	if c.usage != "" {
+		fmt.Println(c.usage)
 	} else {
 		// 自动生成帮助信息
 		fmt.Println(generateHelpInfo(c, c.parentCmd == nil))
