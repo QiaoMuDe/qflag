@@ -55,6 +55,7 @@ func TestPrintUsage(t *testing.T) {
 	cmd2 := NewCmd("test2", "", flag.ExitOnError)
 	cmd2.SetDescription("Test description")
 	cmd2.Bool("verbose", "v", false, "verbose output")
+	cmd2.Int("count", "", 0, "number of times to repeat")
 	if testing.Verbose() {
 		cmd2.PrintUsage()
 	}

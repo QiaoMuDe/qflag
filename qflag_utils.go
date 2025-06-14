@@ -198,9 +198,9 @@ func generateHelpInfo(cmd *Cmd, isMainCommand bool) string {
 	// 生成排序后的标志信息
 	for _, flag := range flags {
 		if flag.shortFlag != "" {
-			helpInfo += fmt.Sprintf(optionTemplate, flag.shortFlag, flag.longFlag, flag.usage, flag.defValue)
+			helpInfo += fmt.Sprintf(optionTemplate1, flag.shortFlag, flag.longFlag, flag.usage, flag.defValue)
 		} else {
-			helpInfo += fmt.Sprintf("  --%s\t%s (默认值: %s)\n", flag.longFlag, flag.usage, flag.defValue)
+			helpInfo += fmt.Sprintf(optionTemplate2, flag.longFlag, flag.usage, flag.defValue)
 		}
 	}
 
@@ -223,7 +223,6 @@ func (c *Cmd) printUsage() {
 		// 自动生成帮助信息
 		fmt.Println(generateHelpInfo(c, c.parentCmd == nil))
 	}
-	fmt.Println()
 }
 
 // hasCycle 检测命令间是否存在循环引用

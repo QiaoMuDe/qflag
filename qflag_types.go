@@ -128,7 +128,8 @@ const (
 	cmdUsageWithSubCmdTemplate = "Usage: %s [subcommand] [options] [arguments]\n\n" // 命令用法(带子命令)
 	cmdUsageSubCmdTemplate     = "Usage: %s %s [options] [arguments]\n\n"           // 命令用法(带子命令)
 	optionsHeaderTemplate      = "Options:\n"                                       // 选项头部
-	optionTemplate             = "  -%s, --%s\t%s (default: %s)\n"                  // 选项模板
+	optionTemplate1            = "  -%s, --%s\t%s (default: %s)\n"                  // 选项模板1
+	optionTemplate2            = "  --%s\t%s (默认值: %s)\n"                           // 选项模板2
 	subCmdsHeaderTemplate      = "\nSubcommands:\n"                                 // 子命令头部
 	subCmdTemplate             = "  %s\t%s\n"                                       // 子命令模板
 )
