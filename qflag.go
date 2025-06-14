@@ -196,36 +196,36 @@ func (c *Cmd) Parse(args []string) error {
 		}
 
 		// 3. 检查长短标志互斥（跳过帮助标志和空长标志）
-		var conflictMsg string
-		c.longToShort.Range(func(longKey, shortVal interface{}) bool {
-			longFlag := longKey.(string)   // 获取长标志名称
-			shortFlag := shortVal.(string) // 获取短标志名称
+		// var conflictMsg string
+		// c.longToShort.Range(func(longKey, shortVal interface{}) bool {
+		// 	longFlag := longKey.(string)   // 获取长标志名称
+		// 	shortFlag := shortVal.(string) // 获取短标志名称
 
-			// 跳过帮助标志和空长短标志的互斥检查
-			if longFlag == c.helpFlagName || shortFlag == c.helpShortName || longFlag == "" || shortFlag == "" {
-				return true
-			}
+		// 	// 跳过帮助标志和空长短标志的互斥检查
+		// 	if longFlag == c.helpFlagName || shortFlag == c.helpShortName || longFlag == "" || shortFlag == "" {
+		// 		return true
+		// 	}
 
-			// 检查标志是否同时被设置
-			longChanged := c.isFlagSet(longFlag)   // 检查长标志是否被设置
-			shortChanged := c.isFlagSet(shortFlag) // 检查短标志是否被设置
+		// 	// 检查标志是否同时被设置
+		// 	longChanged := c.isFlagSet(longFlag)   // 检查长标志是否被设置
+		// 	shortChanged := c.isFlagSet(shortFlag) // 检查短标志是否被设置
 
-			// 如果两个标志都发生变化, 则表示冲突
-			if longChanged && shortChanged {
-				conflictMsg = fmt.Sprintf("Cannot use both --%s and -%s", longFlag, shortFlag)
-				return false // 终止遍历
-			}
+		// 	// 如果两个标志都发生变化, 则表示冲突
+		// 	if longChanged && shortChanged {
+		// 		conflictMsg = fmt.Sprintf("Cannot use both --%s and -%s", longFlag, shortFlag)
+		// 		return false // 终止遍历
+		// 	}
 
-			return true // 继续遍历
-		})
+		// 	return true // 继续遍历
+		// })
 
 		// 4. 设置命令行参数
 		c.args = append(c.args, c.fs.Args()...)
 
-		// 返回冲突错误（如果有）
-		if conflictMsg != "" {
-			err = fmt.Errorf("%s", conflictMsg)
-		}
+		// // 返回冲突错误（如果有）
+		// if conflictMsg != "" {
+		// 	err = fmt.Errorf("%s", conflictMsg)
+		// }
 	})
 
 	// 检查是否报错
