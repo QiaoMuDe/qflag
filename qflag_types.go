@@ -26,6 +26,16 @@ type Cmd struct {
 	parseOnce     sync.Once            // 用于确保命令只被解析一次
 }
 
+// 标志类型
+type FlagType int
+
+const (
+	FlagTypeBool   FlagType = iota // 布尔类型
+	FlagTypeInt                    // 整数类型
+	FlagTypeString                 // 字符串类型
+	FlagTypeFloat                  // 浮点数类型
+)
+
 // Command 命令接口定义，封装命令的核心功能
 // 提供属性访问和子命令管理的标准方法
 // 实现类应确保线程安全的标志操作
@@ -88,11 +98,16 @@ func (c *Cmd) Args() []string { return c.args }
 
 // Arg 获取命令行参数
 func (c *Cmd) Arg(i int) string {
-	if i < len(c.args) {
+	if i >= 0 && i < len(c.args) {
 		return c.args[i]
 	}
 
 	return ""
+}
+
+// PrintUsage 打印命令的帮助信息, 优先打印用户的帮助信息, 否则自动生成帮助信息
+func (c *Cmd) PrintUsage() {
+	c.printUsage()
 }
 
 // 帮助信息模板常量
@@ -111,10 +126,11 @@ const (
 
 // Flag 所有标志类型的通用接口，定义了标志的元数据访问方法
 type Flag interface {
-	Name() string
-	ShortName() string
-	Usage() string
-	DefaultValue() interface{}
+	Name() string              // 获取标志的名称
+	ShortName() string         // 获取标志的短名称
+	Usage() string             // 获取标志的用法
+	DefaultValue() interface{} // 获取标志的默认值
+	Type() FlagType            // 获取标志类型
 }
 
 // IntFlag 整数类型标志结构体，包含标志元数据和值访问接口
@@ -132,6 +148,7 @@ func (f *IntFlag) Name() string              { return f.name }
 func (f *IntFlag) ShortName() string         { return f.shortName }
 func (f *IntFlag) Usage() string             { return f.usage }
 func (f *IntFlag) DefaultValue() interface{} { return f.defValue }
+func (f *IntFlag) Type() FlagType            { return FlagTypeInt }
 
 // StringFlag 字符串类型标志结构体
 type StringFlag struct {
@@ -148,6 +165,7 @@ func (f *StringFlag) Name() string              { return f.name }
 func (f *StringFlag) ShortName() string         { return f.shortName }
 func (f *StringFlag) Usage() string             { return f.usage }
 func (f *StringFlag) DefaultValue() interface{} { return f.defValue }
+func (f *StringFlag) Type() FlagType            { return FlagTypeString }
 
 // BoolFlag 布尔类型标志结构体
 type BoolFlag struct {
@@ -164,6 +182,7 @@ func (f *BoolFlag) Name() string              { return f.name }
 func (f *BoolFlag) ShortName() string         { return f.shortName }
 func (f *BoolFlag) Usage() string             { return f.usage }
 func (f *BoolFlag) DefaultValue() interface{} { return f.defValue }
+func (f *BoolFlag) Type() FlagType            { return FlagTypeBool }
 
 // FloatFlag 浮点型标志结构体
 type FloatFlag struct {
@@ -180,3 +199,4 @@ func (f *FloatFlag) Name() string              { return f.name }
 func (f *FloatFlag) ShortName() string         { return f.shortName }
 func (f *FloatFlag) Usage() string             { return f.usage }
 func (f *FloatFlag) DefaultValue() interface{} { return f.defValue }
+func (f *FloatFlag) Type() FlagType            { return FlagTypeFloat }

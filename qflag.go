@@ -111,9 +111,9 @@ func NewCmd(name string, shortName string, errorHandling flag.ErrorHandling) *Cm
 		panic("cmd name cannot be empty")
 	}
 
-	// 设置默认的错误处理方式
+	// 设置默认的错误处理方式为ContinueOnError, 避免测试时意外退出
 	if errorHandling == 0 {
-		errorHandling = flag.ExitOnError
+		errorHandling = flag.ContinueOnError
 	}
 
 	cmd := &Cmd{
@@ -132,21 +132,6 @@ func NewCmd(name string, shortName string, errorHandling flag.ErrorHandling) *Cm
 
 	cmd.bindHelpFlag() // 自动绑定帮助标志
 	return cmd
-}
-
-// hasCycle 检测命令间是否存在循环引用
-// parent: 当前命令
-// child: 待添加的子命令
-// 返回值: 如果存在循环引用则返回true
-func hasCycle(parent, child *Cmd) bool {
-	current := parent
-	for current != nil {
-		if current == child {
-			return true
-		}
-		current = current.parentCmd
-	}
-	return false
 }
 
 // GetFlagByPtr 通过指针获取对应的Flag对象
@@ -199,12 +184,13 @@ func (c *Cmd) Parse(args []string) error {
 	c.parseOnce.Do(func() {
 		// 1. 调用flag库解析参数
 		if parseErr := c.fs.Parse(args); parseErr != nil {
-			err = parseErr
+			err = fmt.Errorf("Parameter parsing error: %v", parseErr)
+			return
 		}
 
 		// 2. 检查是否使用-h/--help标志
 		if c.isHelpRequested() {
-			c.printHelp()
+			c.printUsage()
 			os.Exit(0)
 		}
 
@@ -250,19 +236,20 @@ func (c *Cmd) Parse(args []string) error {
 
 // String 添加字符串类型标志, 参数含义与Int方法一致
 func (c *Cmd) String(name, shortName, defValue, usage string) *StringFlag {
-	value := c.fs.String(name, defValue, usage) // 获取标志对象(绑定长标志)
+	var value string
+	c.fs.StringVar(&value, name, defValue, usage) // 绑定长标志到变量
 	f := &StringFlag{
 		cmd:       c,         // 命令对象
 		name:      name,      // 长标志名
 		shortName: shortName, // 短标志名
 		defValue:  defValue,  // 默认值
 		usage:     usage,     // 帮助说明
-		value:     value,     // 标志对象
+		value:     &value,    // 标志对象
 	}
 	if shortName != "" && shortName != c.helpShortName {
-		c.shortToLong.Store(shortName, name)    // 存储短到长的映射关系
-		c.longToShort.Store(name, shortName)    // 存储长到短的映射关系
-		c.fs.String(shortName, defValue, usage) // 绑定短标志
+		c.shortToLong.Store(shortName, name)               // 存储短到长的映射关系
+		c.longToShort.Store(name, shortName)               // 存储长到短的映射关系
+		c.fs.StringVar(&value, shortName, defValue, usage) // 绑定短标志到同一个变量
 	}
 	return f
 }
@@ -332,59 +319,62 @@ func (c *Cmd) BoolVar(p *bool, name, shortName string, defValue bool, usage stri
 
 // Int 添加整数类型标志, 返回标志对象。参数依次为长标志名、短标志、默认值、帮助说明
 func (c *Cmd) Int(name, shortName string, defValue int, usage string) *IntFlag {
-	value := c.fs.Int(name, defValue, usage) // 获取标志对象(绑定长标志)
+	var value int
+	c.fs.IntVar(&value, name, defValue, usage) // 绑定长标志到变量
 	f := &IntFlag{
 		cmd:       c,         // 命令对象
 		name:      name,      // 长标志名
 		shortName: shortName, // 短标志名
 		defValue:  defValue,  // 默认值
 		usage:     usage,     // 帮助说明
-		value:     value,     // 标志对象
+		value:     &value,    // 标志对象
 	}
 	// 非帮助标志才记录映射（避免覆盖帮助标志）
 	if shortName != "" && shortName != c.helpShortName {
-		c.shortToLong.Store(shortName, name) // 存储短到长的映射关系
-		c.longToShort.Store(name, shortName) // 存储长到短的映射关系
-		c.fs.Int(shortName, defValue, usage) // 绑定短标志
+		c.shortToLong.Store(shortName, name)            // 存储短到长的映射关系
+		c.longToShort.Store(name, shortName)            // 存储长到短的映射关系
+		c.fs.IntVar(&value, shortName, defValue, usage) // 绑定短标志到同一个变量
 	}
 	return f
 }
 
 // Bool 添加布尔类型标志, 参数含义与Int方法一致
 func (c *Cmd) Bool(name, shortName string, defValue bool, usage string) *BoolFlag {
-	value := c.fs.Bool(name, defValue, usage) // 获取标志对象(绑定长标志)
+	var value bool
+	c.fs.BoolVar(&value, name, defValue, usage) // 绑定长标志到变量
 	f := &BoolFlag{
 		cmd:       c,         // 命令对象
 		name:      name,      // 长标志名
 		shortName: shortName, // 短标志名
 		defValue:  defValue,  // 默认值
 		usage:     usage,     // 帮助说明
-		value:     value,     // 标志对象
+		value:     &value,    // 标志对象
 	}
 	if shortName != "" && shortName != c.helpShortName {
-		c.shortToLong.Store(shortName, name)  // 存储短到长的映射关系
-		c.longToShort.Store(name, shortName)  // 存储长到短的映射关系
-		c.fs.Bool(shortName, defValue, usage) // 绑定短标志
+		c.shortToLong.Store(shortName, name)             // 存储短到长的映射关系
+		c.longToShort.Store(name, shortName)             // 存储长到短的映射关系
+		c.fs.BoolVar(&value, shortName, defValue, usage) // 绑定短标志到同一个变量
 	}
 	return f
 }
 
 // Float 添加浮点型标志, 返回标志对象。参数依次为长标志名、短标志、默认值、帮助说明
 func (c *Cmd) Float(name, shortName string, defValue float64, usage string) *FloatFlag {
-	value := c.fs.Float64(name, defValue, usage) // 获取标志对象(绑定长标志)
+	var value float64
+	c.fs.Float64Var(&value, name, defValue, usage) // 绑定长标志到变量
 	f := &FloatFlag{
 		cmd:       c,         // 命令对象
 		name:      name,      // 长标志名
 		shortName: shortName, // 短标志名
 		defValue:  defValue,  // 默认值
 		usage:     usage,     // 帮助说明
-		value:     value,     // 标志对象
+		value:     &value,    // 标志对象
 	}
 	// 非帮助标志才记录映射（避免覆盖帮助标志）
 	if shortName != "" && shortName != c.helpShortName {
-		c.shortToLong.Store(shortName, name)     // 存储短到长的映射关系
-		c.longToShort.Store(name, shortName)     // 存储长到短的映射关系
-		c.fs.Float64(shortName, defValue, usage) // 绑定短标志
+		c.shortToLong.Store(shortName, name)                // 存储短到长的映射关系
+		c.longToShort.Store(name, shortName)                // 存储长到短的映射关系
+		c.fs.Float64Var(&value, shortName, defValue, usage) // 绑定短标志到同一个变量
 	}
 	return f
 }

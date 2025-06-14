@@ -40,26 +40,56 @@ func (c *Cmd) isHelpRequested() bool {
 	return false
 }
 
-// isFlagSet 检查标志是否被用户显式设置
+// isFlagSet 检查指定名称的标志是否被用户显式设置
+// 参数:
+//
+//	name - 标志名称(长格式或短格式)
+//
+// 返回值:
+//
+//	bool - true表示标志被显式设置，false表示未设置或使用默认值
 func (c *Cmd) isFlagSet(name string) bool {
-	// 获取标志对象
+	// 首先尝试直接查找标志
 	flag := c.fs.Lookup(name)
 	if flag == nil {
-		return false
+		// 如果找不到，检查是否是短标志
+		if longName, ok := c.shortToLong.Load(name); ok {
+			flag = c.fs.Lookup(longName.(string))
+		} else {
+			// 检查是否是长标志的短形式
+			if shortName, ok := c.longToShort.Load(name); ok {
+				flag = c.fs.Lookup(shortName.(string))
+			}
+		}
+		if flag == nil {
+			return false
+		}
 	}
 
-	// 特殊处理布尔标志
-	if b, ok := flag.Value.(interface{ IsBoolFlag() bool }); ok && b.IsBoolFlag() {
-		// 布尔标志被设置的条件：
-		// 1. 值为true且默认值为false（用户显式启用）
-		// 2. 值为false且默认值为true（用户显式禁用）
-		currentVal := flag.Value.String()
-		return (currentVal == "true" && flag.DefValue == "false") ||
-			(currentVal == "false" && flag.DefValue == "true")
+	// 通过注册表获取标志元数据
+	if f, ok := c.flagRegistry[flag.Value]; ok {
+		switch f.Type() {
+		case FlagTypeBool:
+			// 布尔标志特殊处理
+			currentVal := flag.Value.String()
+			return (currentVal == "true" && flag.DefValue == "false") ||
+				(currentVal == "false" && flag.DefValue == "true")
+		case FlagTypeInt:
+			// 修改整数标志判断逻辑：只要当前值与默认值不同就认为已设置
+			return flag.Value.String() != flag.DefValue
+		case FlagTypeString:
+			// 字符串标志：当前值与默认值不同
+			return flag.Value.String() != flag.DefValue
+		case FlagTypeFloat:
+			// 浮点标志：当前值与默认值不同
+			return flag.Value.String() != flag.DefValue
+		default:
+			// 未知类型：使用默认比较
+			return flag.Value.String() != flag.DefValue
+		}
 	}
 
-	// 处理其他类型标志（int/string等）
-	// 只要当前值与默认值不同，即认为被设置
+	// 默认处理
 	return flag.Value.String() != flag.DefValue
 }
 
@@ -180,8 +210,8 @@ func generateHelpInfo(cmd *Cmd, isMainCommand bool) string {
 	return helpInfo
 }
 
-// printHelp 打印帮助内容，优先显示用户自定义的HelpContent
-func (c *Cmd) printHelp() {
+// printUsage 打印帮助内容, 优先显示用户自定义的Usage
+func (c *Cmd) printUsage() {
 	if c.usage != "" {
 		fmt.Println(c.usage)
 	} else {
@@ -189,4 +219,19 @@ func (c *Cmd) printHelp() {
 		fmt.Println(generateHelpInfo(c, c.parentCmd == nil))
 	}
 	fmt.Println()
+}
+
+// hasCycle 检测命令间是否存在循环引用
+// parent: 当前命令
+// child: 待添加的子命令
+// 返回值: 如果存在循环引用则返回true
+func hasCycle(parent, child *Cmd) bool {
+	current := parent
+	for current != nil {
+		if current == child {
+			return true
+		}
+		current = current.parentCmd
+	}
+	return false
 }
