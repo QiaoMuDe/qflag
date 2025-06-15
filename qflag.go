@@ -170,13 +170,13 @@ func (c *Cmd) Parse(args []string) error {
 
 	// 确保只解析一次
 	c.parseOnce.Do(func() {
-		// 1. 调用flag库解析参数
+		// 1调用flag库解析参数
 		if parseErr := c.fs.Parse(args); parseErr != nil {
 			err = fmt.Errorf("Parameter parsing error: %v", parseErr)
 			return
 		}
 
-		// 2. 检查是否使用-h/--help标志
+		// 检查是否使用-h/--help标志
 		if *c.helpFlag {
 			if c.fs.ErrorHandling() != flag.ContinueOnError {
 				c.printUsage() // 只有在ExitOnError或PanicOnError时才打印使用说明
@@ -185,7 +185,17 @@ func (c *Cmd) Parse(args []string) error {
 			return
 		}
 
-		// 3. 设置命令行参数
+		// 检查是否使用-sip/--show-install-path标志
+		if *c.showInstallPathFlag {
+			if c.fs.ErrorHandling() != flag.ContinueOnError {
+				// 只有在ExitOnError或PanicOnError时才打印安装路径
+				fmt.Println(GetExecutablePath())
+				os.Exit(0)
+			}
+			return
+		}
+
+		// 设置命令行参数
 		c.args = append(c.args, c.fs.Args()...)
 	})
 
@@ -448,4 +458,23 @@ func (c *Cmd) FloatVar(p *float64, name, shortName string, defValue float64, usa
 
 	// 注册Flag对象
 	c.flagRegistry[p] = f
+}
+
+// GetExecutablePath 获取程序的绝对安装路径
+// 如果无法通过 os.Executable 获取路径，则使用 os.Args[0] 作为替代
+// 返回：程序的绝对路径字符串
+func GetExecutablePath() string {
+	// 尝试使用 os.Executable 获取可执行文件的绝对路径
+	exePath, err := os.Executable()
+	if err != nil {
+		// 如果 os.Executable 报错，使用 os.Args[0] 作为替代
+		exePath = os.Args[0]
+	}
+	// 使用 filepath.Abs 确保路径是绝对路径
+	absPath, err := filepath.Abs(exePath)
+	if err != nil {
+		// 如果 filepath.Abs 报错，直接返回原始路径
+		return exePath
+	}
+	return absPath
 }
