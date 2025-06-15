@@ -20,11 +20,13 @@ var parseOnce sync.Once
 func init() {
 	// 处理可能的空os.Args情况
 	if len(os.Args) == 0 {
-		// 如果os.Args为空,则创建一个新的Cmd对象,命令行参数为空,错误处理方式为ExitOnError
-		QCommandLine = NewCmd("", "", flag.ExitOnError)
+		// 如果os.Args为空,则创建一个新的Cmd对象,命令行参数为"app",短名字为"a",错误处理方式为ExitOnError
+		QCommandLine = NewCmd("app", "a", flag.ExitOnError)
 	} else {
-		// 如果os.Args不为空,则创建一个新的Cmd对象,命令行参数为filepath.Base(os.Args[0]),错误处理方式为ExitOnError
-		QCommandLine = NewCmd(filepath.Base(os.Args[0]), "", flag.ExitOnError)
+		// 如果os.Args不为空,则创建一个新的Cmd对象,命令行参数为filepath.Base(os.Args[0]),短名字为第一个字符,错误处理方式为ExitOnError
+		name := filepath.Base(os.Args[0])
+		shortName := string(name[0])
+		QCommandLine = NewCmd(name, shortName, flag.ExitOnError)
 	}
 }
 
@@ -134,6 +136,11 @@ func NewCmd(name string, shortName string, errorHandling flag.ErrorHandling) *Cm
 	// 检查命令名称是否为空
 	if name == "" {
 		panic("cmd name cannot be empty")
+	}
+
+	// 检查命令短名称是否为空
+	if shortName == "" {
+		panic("cmd short name cannot be empty")
 	}
 
 	// 设置默认的错误处理方式为ContinueOnError, 避免测试时意外退出
@@ -255,8 +262,26 @@ func (c *Cmd) Parse(args []string) error {
 	return nil
 }
 
-// String 添加字符串类型标志, 参数含义与Int方法一致
+// String 添加字符串类型标志, 返回标志对象,参数依次为长标志名、短标志、默认值、帮助说明
 func (c *Cmd) String(name, shortName, defValue, usage string) *StringFlag {
+	// 检查长选项是否为空
+	if name == "" {
+		panic("Flag name cannot be empty")
+	}
+
+	// 检查短选项是否为空
+	if shortName == "" {
+		panic("Flag short name cannot be empty")
+	}
+
+	// 检查标志是否已存在
+	if name != "" && c.FlagExists(name) {
+		panic(fmt.Sprintf("Flag name %s already exists", name))
+	}
+	if shortName != "" && c.FlagExists(shortName) {
+		panic(fmt.Sprintf("Flag short name %s already exists", shortName))
+	}
+
 	// 指定的标志是否为保留标志
 	if _, ok := c.builtinFlagNameMap.Load(name); ok {
 		panic(fmt.Sprintf("Flag name %s is reserved", name))
@@ -292,6 +317,24 @@ func (c *Cmd) String(name, shortName, defValue, usage string) *StringFlag {
 // StringVar 绑定字符串类型标志到指针并内部注册Flag对象
 // 参数依次为: 指针、长标志名、短标志、默认值、帮助说明
 func (c *Cmd) StringVar(p *string, name, shortName, defValue, usage string) {
+	// 检查长选项是否为空
+	if name == "" {
+		panic("Flag name cannot be empty")
+	}
+
+	// 检查短选项是否为空
+	if shortName == "" {
+		panic("Flag short name cannot be empty")
+	}
+
+	// 检查标志是否已存在
+	if name != "" && c.FlagExists(name) {
+		panic(fmt.Sprintf("Flag name %s already exists", name))
+	}
+	if shortName != "" && c.FlagExists(shortName) {
+		panic(fmt.Sprintf("Flag short name %s already exists", shortName))
+	}
+
 	// 指定的标志是否为保留标志
 	if _, ok := c.builtinFlagNameMap.Load(name); ok {
 		panic(fmt.Sprintf("Flag name %s is reserved", name))
@@ -323,6 +366,24 @@ func (c *Cmd) StringVar(p *string, name, shortName, defValue, usage string) {
 // IntVar 绑定整数类型标志到指针并内部注册Flag对象
 // 参数依次为: 指针、长标志名、短标志、默认值、帮助说明
 func (c *Cmd) IntVar(p *int, name, shortName string, defValue int, usage string) {
+	// 检查长选项是否为空
+	if name == "" {
+		panic("Flag name cannot be empty")
+	}
+
+	// 检查短选项是否为空
+	if shortName == "" {
+		panic("Flag short name cannot be empty")
+	}
+
+	// 检查标志是否已存在
+	if name != "" && c.FlagExists(name) {
+		panic(fmt.Sprintf("Flag name %s already exists", name))
+	}
+	if shortName != "" && c.FlagExists(shortName) {
+		panic(fmt.Sprintf("Flag short name %s already exists", shortName))
+	}
+
 	// 指定的标志是否为保留标志
 	if _, ok := c.builtinFlagNameMap.Load(name); ok {
 		panic(fmt.Sprintf("Flag name %s is reserved", name))
@@ -351,39 +412,25 @@ func (c *Cmd) IntVar(p *int, name, shortName string, defValue int, usage string)
 	c.flagRegistry[p] = f
 }
 
-// BoolVar 绑定布尔类型标志到指针并内部注册Flag对象
-// 参数依次为: 指针、长标志名、短标志、默认值、帮助说明
-func (c *Cmd) BoolVar(p *bool, name, shortName string, defValue bool, usage string) {
-	// 指定的标志是否为保留标志
-	if _, ok := c.builtinFlagNameMap.Load(name); ok {
-		panic(fmt.Sprintf("Flag name %s is reserved", name))
-	}
-	if _, ok := c.builtinFlagNameMap.Load(shortName); ok {
-		panic(fmt.Sprintf("Flag short name %s is reserved", shortName))
-	}
-
-	c.fs.BoolVar(p, name, defValue, usage) // 绑定长标志
-	f := &BoolFlag{
-		cmd:       c,         // 命令对象
-		name:      name,      // 长标志名
-		shortName: shortName, // 短标志名
-		defValue:  defValue,  // 默认值
-		usage:     usage,     // 帮助说明
-		value:     p,         // 标志对象
-	}
-
-	if shortName != "" {
-		c.shortToLong.Store(shortName, name)        // 存储短到长的映射关系
-		c.longToShort.Store(name, shortName)        // 存储长到短的映射关系
-		c.fs.BoolVar(p, shortName, defValue, usage) // 绑定短标志
-	}
-
-	// 注册Flag对象
-	c.flagRegistry[p] = f
-}
-
 // Int 添加整数类型标志, 返回标志对象。参数依次为长标志名、短标志、默认值、帮助说明
 func (c *Cmd) Int(name, shortName string, defValue int, usage string) *IntFlag {
+	// 检查长选项是否为空
+	if name == "" {
+		panic("Flag name cannot be empty")
+	}
+
+	// 检查短选项是否为空
+	if shortName == "" {
+		panic("Flag short name cannot be empty")
+	}
+
+	// 检查标志是否已存在
+	if name != "" && c.FlagExists(name) {
+		panic(fmt.Sprintf("Flag name %s already exists", name))
+	}
+	if shortName != "" && c.FlagExists(shortName) {
+		panic(fmt.Sprintf("Flag short name %s already exists", shortName))
+	}
 	// 指定的标志是否为保留标志
 	if _, ok := c.builtinFlagNameMap.Load(name); ok {
 		panic(fmt.Sprintf("Flag name %s is reserved", name))
@@ -415,8 +462,75 @@ func (c *Cmd) Int(name, shortName string, defValue int, usage string) *IntFlag {
 	return f
 }
 
-// Bool 添加布尔类型标志, 参数含义与Int方法一致
+// BoolVar 绑定布尔类型标志到指针并内部注册Flag对象
+// 参数依次为: 指针、长标志名、短标志、默认值、帮助说明
+func (c *Cmd) BoolVar(p *bool, name, shortName string, defValue bool, usage string) {
+	// 检查长选项是否为空
+	if name == "" {
+		panic("Flag name cannot be empty")
+	}
+
+	// 检查短选项是否为空
+	if shortName == "" {
+		panic("Flag short name cannot be empty")
+	}
+
+	// 检查标志是否已存在
+	if name != "" && c.FlagExists(name) {
+		panic(fmt.Sprintf("Flag name %s already exists", name))
+	}
+	if shortName != "" && c.FlagExists(shortName) {
+		panic(fmt.Sprintf("Flag short name %s already exists", shortName))
+	}
+
+	// 指定的标志是否为保留标志
+	if _, ok := c.builtinFlagNameMap.Load(name); ok {
+		panic(fmt.Sprintf("Flag name %s is reserved", name))
+	}
+	if _, ok := c.builtinFlagNameMap.Load(shortName); ok {
+		panic(fmt.Sprintf("Flag short name %s is reserved", shortName))
+	}
+
+	c.fs.BoolVar(p, name, defValue, usage) // 绑定长标志
+	f := &BoolFlag{
+		cmd:       c,         // 命令对象
+		name:      name,      // 长标志名
+		shortName: shortName, // 短标志名
+		defValue:  defValue,  // 默认值
+		usage:     usage,     // 帮助说明
+		value:     p,         // 标志对象
+	}
+
+	if shortName != "" {
+		c.shortToLong.Store(shortName, name)        // 存储短到长的映射关系
+		c.longToShort.Store(name, shortName)        // 存储长到短的映射关系
+		c.fs.BoolVar(p, shortName, defValue, usage) // 绑定短标志
+	}
+
+	// 注册Flag对象
+	c.flagRegistry[p] = f
+}
+
+// Bool 添加布尔类型标志, 返回标志对象。参数依次为长标志名、短标志、默认值、帮助说明
 func (c *Cmd) Bool(name, shortName string, defValue bool, usage string) *BoolFlag {
+	// 检查长选项是否为空
+	if name == "" {
+		panic("Flag name cannot be empty")
+	}
+
+	// 检查短选项是否为空
+	if shortName == "" {
+		panic("Flag short name cannot be empty")
+	}
+
+	// 检查标志是否已存在
+	if name != "" && c.FlagExists(name) {
+		panic(fmt.Sprintf("Flag name %s already exists", name))
+	}
+	if shortName != "" && c.FlagExists(shortName) {
+		panic(fmt.Sprintf("Flag short name %s already exists", shortName))
+	}
+
 	// 指定的标志是否为保留标志
 	if _, ok := c.builtinFlagNameMap.Load(name); ok {
 		panic(fmt.Sprintf("Flag name %s is reserved", name))
@@ -448,6 +562,24 @@ func (c *Cmd) Bool(name, shortName string, defValue bool, usage string) *BoolFla
 
 // Float 添加浮点型标志, 返回标志对象。参数依次为长标志名、短标志、默认值、帮助说明
 func (c *Cmd) Float(name, shortName string, defValue float64, usage string) *FloatFlag {
+	// 检查长选项是否为空
+	if name == "" {
+		panic("Flag name cannot be empty")
+	}
+
+	// 检查短选项是否为空
+	if shortName == "" {
+		panic("Flag short name cannot be empty")
+	}
+
+	// 检查标志是否已存在
+	if name != "" && c.FlagExists(name) {
+		panic(fmt.Sprintf("Flag name %s already exists", name))
+	}
+	if shortName != "" && c.FlagExists(shortName) {
+		panic(fmt.Sprintf("Flag short name %s already exists", shortName))
+	}
+
 	// 指定的标志是否为保留标志
 	if _, ok := c.builtinFlagNameMap.Load(name); ok {
 		panic(fmt.Sprintf("Flag name %s is reserved", name))
@@ -481,6 +613,24 @@ func (c *Cmd) Float(name, shortName string, defValue float64, usage string) *Flo
 // FloatVar 绑定浮点型标志到指针并内部注册Flag对象
 // 参数依次为: 指针、长标志名、短标志、默认值、帮助说明
 func (c *Cmd) FloatVar(p *float64, name, shortName string, defValue float64, usage string) {
+	// 检查长选项是否为空
+	if name == "" {
+		panic("Flag name cannot be empty")
+	}
+
+	// 检查短选项是否为空
+	if shortName == "" {
+		panic("Flag short name cannot be empty")
+	}
+
+	// 检查标志是否已存在
+	if name != "" && c.FlagExists(name) {
+		panic(fmt.Sprintf("Flag name %s already exists", name))
+	}
+	if shortName != "" && c.FlagExists(shortName) {
+		panic(fmt.Sprintf("Flag short name %s already exists", shortName))
+	}
+
 	// 指定的标志是否为保留标志
 	if _, ok := c.builtinFlagNameMap.Load(name); ok {
 		panic(fmt.Sprintf("Flag name %s is reserved", name))
@@ -510,19 +660,19 @@ func (c *Cmd) FloatVar(p *float64, name, shortName string, defValue float64, usa
 }
 
 // GetExecutablePath 获取程序的绝对安装路径
-// 如果无法通过 os.Executable 获取路径，则使用 os.Args[0] 作为替代
+// 如果无法通过 os.Executable 获取路径,则使用 os.Args[0] 作为替代
 // 返回：程序的绝对路径字符串
 func GetExecutablePath() string {
 	// 尝试使用 os.Executable 获取可执行文件的绝对路径
 	exePath, err := os.Executable()
 	if err != nil {
-		// 如果 os.Executable 报错，使用 os.Args[0] 作为替代
+		// 如果 os.Executable 报错,使用 os.Args[0] 作为替代
 		exePath = os.Args[0]
 	}
 	// 使用 filepath.Abs 确保路径是绝对路径
 	absPath, err := filepath.Abs(exePath)
 	if err != nil {
-		// 如果 filepath.Abs 报错，直接返回原始路径
+		// 如果 filepath.Abs 报错,直接返回原始路径
 		return exePath
 	}
 	return absPath
