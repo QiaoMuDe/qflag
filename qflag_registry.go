@@ -12,7 +12,6 @@ type FlagMeta struct {
 	flagType  FlagType // 标志类型
 	usage     string   // 帮助说明
 	defValue  any      // 默认值
-	isBuiltin bool     // 是否为内置标志
 }
 
 // FlagMetaInterface 标志元数据接口, 定义了标志元数据的访问方法
@@ -22,7 +21,6 @@ type FlagMetaInterface interface {
 	GetUsage() string      // 获取帮助说明
 	GetFlagType() FlagType // 获取标志类型
 	GetDefault() any       // 获取默认值
-	IsBuiltin() bool       // 是否为内置标志
 }
 
 // 实现FlagMetaInterface
@@ -31,7 +29,6 @@ func (m *FlagMeta) GetShortName() string  { return m.shortName }
 func (m *FlagMeta) GetUsage() string      { return m.usage }
 func (m *FlagMeta) GetFlagType() FlagType { return m.flagType }
 func (m *FlagMeta) GetDefault() any       { return m.defValue }
-func (m *FlagMeta) IsBuiltin() bool       { return m.isBuiltin }
 
 // FlagRegistry 集中管理所有标志元数据及索引
 type FlagRegistry struct {
