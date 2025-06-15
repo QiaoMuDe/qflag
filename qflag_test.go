@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"flag"
 	"os"
+	"reflect"
 	"testing"
 )
 
@@ -344,6 +345,135 @@ func TestFloatFlagShort(t *testing.T) {
 	// 验证值
 	if *f.value != 6.28 {
 		t.Errorf("Float flag value = %v, want %v", *f.value, 6.28)
+	}
+}
+
+// TestSliceFlagLong 测试字符串切片类型长标志的注册和解析
+func TestSliceFlagLong(t *testing.T) {
+	// 捕获标准输出
+	old := os.Stdout
+	r, w, _ := os.Pipe()
+	os.Stdout = w
+	defer func() {
+		w.Close()
+		os.Stdout = old
+		// 只在测试失败时输出捕获的内容
+		if t.Failed() {
+			var buf bytes.Buffer
+			if _, err := buf.ReadFrom(r); err != nil {
+				t.Errorf("ReadFrom error: %v", err)
+			} else {
+				t.Logf("Captured output:\n%s", buf.String())
+			}
+		}
+	}()
+
+	cmd := NewCmd("test", "t", flag.ContinueOnError)
+	flagName := "slice-flag"
+	defValue := []string{"default1", "default2"}
+	usage := "test slice flag"
+
+	// 测试Slice方法(长标志)
+	f := cmd.Slice(flagName, "sf", defValue, usage)
+	if f == nil {
+		t.Error("Slice() returned nil")
+	}
+
+	// 测试长标志解析(多个值)
+	err := cmd.Parse([]string{"--" + flagName, "value1", "--" + flagName, "value2"})
+	if err != nil {
+		t.Errorf("Parse() error = %v", err)
+	}
+
+	// 验证值
+	expected := []string{"value1", "value2"}
+	if !reflect.DeepEqual(*f.value, expected) {
+		t.Errorf("Slice flag value = %q, want %q", *f.value, expected)
+	}
+}
+
+// TestSliceFlagShort 测试字符串切片类型短标志的注册和解析
+func TestSliceFlagShort(t *testing.T) {
+	// 捕获标准输出
+	old := os.Stdout
+	r, w, _ := os.Pipe()
+	os.Stdout = w
+	defer func() {
+		w.Close()
+		os.Stdout = old
+		// 只在测试失败时输出捕获的内容
+		if t.Failed() {
+			var buf bytes.Buffer
+			if _, err := buf.ReadFrom(r); err != nil {
+				t.Errorf("ReadFrom error: %v", err)
+			} else {
+				t.Logf("Captured output:\n%s", buf.String())
+			}
+		}
+	}()
+
+	cmd := NewCmd("test", "t", flag.ContinueOnError)
+	shortName := "s"
+	defValue := []string{"default"}
+	usage := "test slice flag"
+
+	// 测试Slice方法(短标志)
+	f := cmd.Slice("slice", shortName, defValue, usage)
+	if f == nil {
+		t.Error("Slice() returned nil")
+	}
+
+	// 测试短标志解析(多个值)
+	err := cmd.Parse([]string{"-" + shortName, "value1", "-" + shortName, "value2", "-" + shortName, "value3"})
+	if err != nil {
+		t.Errorf("Parse() error = %v", err)
+	}
+
+	// 验证值
+	expected := []string{"value1", "value2", "value3"}
+	if !reflect.DeepEqual(*f.value, expected) {
+		t.Errorf("Slice flag value = %q, want %q", *f.value, expected)
+	}
+}
+
+// TestSliceFlagDefault 测试字符串切片类型标志的默认值
+func TestSliceFlagDefault(t *testing.T) {
+	// 捕获标准输出
+	old := os.Stdout
+	r, w, _ := os.Pipe()
+	os.Stdout = w
+	defer func() {
+		w.Close()
+		os.Stdout = old
+		// 只在测试失败时输出捕获的内容
+		if t.Failed() {
+			var buf bytes.Buffer
+			if _, err := buf.ReadFrom(r); err != nil {
+				t.Errorf("ReadFrom error: %v", err)
+			} else {
+				t.Logf("Captured output:\n%s", buf.String())
+			}
+		}
+	}()
+
+	cmd := NewCmd("test", "t", flag.ContinueOnError)
+	defValue := []string{"default1", "default2"}
+
+	// 测试Slice方法
+	f := cmd.Slice("slice-def", "sd", defValue, "test slice default value")
+	if f == nil {
+		t.Error("Slice() returned nil")
+	}
+
+	// 不传递任何参数，使用默认值
+	err := cmd.Parse([]string{})
+	if err != nil {
+		t.Errorf("Parse() error = %v", err)
+	}
+
+	// 验证默认值
+	if !reflect.DeepEqual(*f.value, defValue) {
+		t.Errorf("Slice flag default value = %q, want %q", *f.value, defValue)
 	}
 }
 

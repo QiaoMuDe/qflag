@@ -2,7 +2,6 @@ package qflag
 
 import (
 	"flag"
-	"fmt"
 	"testing"
 )
 
@@ -91,7 +90,7 @@ func TestHasCycle(t *testing.T) {
 	}
 }
 
-// 测试嵌套子命令的帮助信息生成
+// TestNestedCmdHelp 测试嵌套子命令的帮助信息生成
 func TestNestedCmdHelp(t *testing.T) {
 	// 创建三级嵌套命令结构
 	cmd1 := NewCmd("cmd1", "c1", flag.ExitOnError)
@@ -111,24 +110,53 @@ func TestNestedCmdHelp(t *testing.T) {
 	cmd2.AddSubCmd(cmd3)
 
 	// 测试帮助信息生成
-	t.Run("一级命令帮助信息", func(t *testing.T) {
-		t.Log("=== 一级命令帮助信息 ===")
-		fmt.Println("=== 一级命令帮助信息 ===")
-		cmd1.PrintUsage()
-		fmt.Println("========================")
-	})
+	// 使用t.Log()替代fmt.Println()，并添加testing.Verbose()条件控制
+	printSection := func(section string) {
+		if testing.Verbose() {
+			t.Log(section)
+		}
+	}
 
-	t.Run("二级命令帮助信息", func(t *testing.T) {
-		t.Log("=== 二级命令帮助信息 ===")
-		fmt.Println("=== 二级命令帮助信息 ===")
-		cmd2.PrintUsage()
-		fmt.Println("========================")
-	})
+	printSeparator := func() {
+		if testing.Verbose() {
+			t.Log("========================")
+		}
+	}
 
-	t.Run("三级命令帮助信息", func(t *testing.T) {
-		t.Log("=== 三级命令帮助信息 ===")
-		fmt.Println("=== 三级命令帮助信息 ===")
-		cmd3.PrintUsage()
-		fmt.Println("========================")
-	})
+	printUsage := func(cmd *Cmd) {
+		if testing.Verbose() {
+			// 重定向cmd.PrintUsage()输出到t.Log
+			o := cmd.fs.Output()
+			cmd.fs.SetOutput(&testLogWriter{t: t})
+			cmd.PrintUsage()
+			cmd.fs.SetOutput(o)
+		}
+	}
+
+	// 一级命令帮助信息
+	printSection("=== 一级命令帮助信息 ===")
+	printUsage(cmd1)
+	printSeparator()
+
+	// 二级命令帮助信息
+	printSection("=== 二级命令帮助信息 ===")
+	printUsage(cmd2)
+	printSeparator()
+
+	// 三级命令帮助信息
+	printSection("=== 三级命令帮助信息 ===")
+	printUsage(cmd3)
+	printSeparator()
+}
+
+// testLogWriter 用于将flag.FlagSet的输出重定向到testing.T的Log方法
+type testLogWriter struct {
+	t *testing.T
+}
+
+func (w *testLogWriter) Write(p []byte) (n int, err error) {
+	if testing.Verbose() {
+		w.t.Log(string(p))
+	}
+	return len(p), nil
 }

@@ -356,13 +356,14 @@ func (f *FloatFlag) SetValue(value float64) {
 
 // SliceFlag 表示字符串切片类型的命令行标志
 type SliceFlag struct {
-	cmd       *Cmd       // 命令对象
-	name      string     // 长标志名
-	shortName string     // 短标志名
-	defValue  []string   // 默认值
-	usage     string     // 帮助说明
-	value     *[]string  // 标志值指针
-	mu        sync.Mutex // 并发访问锁
+	cmd        *Cmd       // 命令对象
+	name       string     // 长标志名
+	shortName  string     // 短标志名
+	defValue   []string   // 默认值
+	usage      string     // 帮助说明
+	value      *[]string  // 标志值指针
+	mu         sync.Mutex // 并发访问锁
+	hasBeenSet bool       // 标记是否已设置值
 }
 
 // 实现Flag接口
@@ -390,9 +391,10 @@ func (f *SliceFlag) SetValue(value ...string) {
 	f.mu.Lock()
 	defer f.mu.Unlock()
 
-	// 添加值前检查是否为nil, 避免panic
-	if *f.value == nil {
+	if !f.hasBeenSet {
+		// 首次设置，清空现有值（包括默认值）
 		*f.value = make([]string, 0)
+		f.hasBeenSet = true
 	}
 
 	// 添加多个值
