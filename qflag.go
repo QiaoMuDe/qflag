@@ -23,6 +23,7 @@ func init() {
 		// 如果os.Args为空,则创建一个新的Cmd对象,命令行参数为"app",短名字为"a",错误处理方式为ExitOnError
 		QCommandLine = NewCmd("app", "a", flag.ExitOnError)
 	} else {
+		
 		// 如果os.Args不为空,则创建一个新的Cmd对象,命令行参数为filepath.Base(os.Args[0]),短名字为第一个字符,错误处理方式为ExitOnError
 		name := filepath.Base(os.Args[0])
 		shortName := string(name[0])
