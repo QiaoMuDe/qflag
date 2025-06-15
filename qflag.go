@@ -82,7 +82,7 @@ func Parse() error {
 	var err error
 	parseOnce.Do(func() {
 		// 解析命令行参数
-		err = QCommandLine.Parse(os.Args[1:])
+		err = QCommandLine.Parse(QCommandLine.fs.Args())
 	})
 	return err
 }
@@ -220,7 +220,7 @@ func (c *Cmd) Parse(args []string) error {
 			return
 		}
 
-		// 设置命令行参数
+		// 设置非标志参数
 		c.args = append(c.args, c.fs.Args()...)
 	})
 
