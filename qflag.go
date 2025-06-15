@@ -234,10 +234,6 @@ func (c *Cmd) Parse(args []string) error {
 		// 设置非标志参数
 		c.args = append(c.args, c.fs.Args()...)
 
-		fmt.Printf("输入: %v\n", args)
-		fmt.Printf("解析后: %v\n", c.fs.Args())
-		fmt.Printf("设置的标志: %v\n", c.args)
-
 		// 检查是否有子命令
 		if len(c.args) > 0 {
 			for _, subCmd := range c.subCmds {
