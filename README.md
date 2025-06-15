@@ -27,24 +27,31 @@ go get gitee.com/MM-Q/qflag
 package main
 
 import (
-	"flag"
 	"fmt"
+	"os"
+
 	"gitee.com/MM-Q/qflag"
 )
 
 func main() {
-	// 使用全局实例创建字符串标志
-	port := qflag.Int("port", "p", 8080, "服务端口号")
-	debug := qflag.Bool("debug", "d", false, "调试模式")
+	// 定义一个启动app的Bool型标志
+	runF := qflag.Bool("run", "r", false, "run app")
+	nameF := qflag.String("name", "n", "", "app name")
+	pathF := qflag.String("path", "p", qflag.GetExecutablePath(), "app path")
 
-	// 解析命令行参数
+	// 解析参数
 	if err := qflag.Parse(); err != nil {
-		fmt.Println("参数解析错误:", err)
-		return
+		fmt.Printf("解析参数错误: %v\n", err)
+		os.Exit(1)
 	}
 
-	fmt.Printf("服务端口: %d, 调试模式: %v\n", *port, *debug)
+	// 获取参数值
+	if runF.GetValue() {
+		fmt.Printf("启动app: %s\n", nameF.GetValue())
+		fmt.Printf("app路径: %s\n", pathF.GetValue())
+	}
 }
+
 ```
 
 ### 子命令示例

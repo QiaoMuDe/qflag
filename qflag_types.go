@@ -60,7 +60,6 @@ const (
 // cmd.SetName("app")
 // cmd.SetDescription("示例应用")
 type Command interface {
-	// 属性访问方法
 	Name() string               // 返回命令名称
 	ShortName() string          // 返回命令短名称
 	Description() string        // 获取命令描述
@@ -68,11 +67,9 @@ type Command interface {
 	Usage() string              // 获取命令用法
 	SetUsage(usage string)      // 设置命令用法
 
-	// 子命令管理
 	AddSubCmd(subCmd *Cmd) // 添加子命令
 	SubCmds() []*Cmd       // 获取子命令列表
 
-	// 标志操作
 	Parse(args []string) error                                            // 解析命令行参数
 	String(name, shortName, usage string, defValue string) *StringFlag    // 添加字符串类型标志
 	Int(name, shortName, usage string, defValue int) *IntFlag             // 添加整数类型标志
@@ -84,8 +81,11 @@ type Command interface {
 	FloatVar(name, shortName, usage string, defValue float64) *FloatFlag  // 添加浮点数类型标志
 	Args() []string                                                       // 获取非标志参数切片
 	Arg(i int) string                                                     // 获取指定索引的非标志参数
-	NArgs() int                                                           // 获取非标志参数的数量
+	NArg() int                                                            // 获取非标志参数的数量
+	NFlag() int                                                           // 获取标志的数量
 	FlagExists(name string) bool                                          // 检查指定名称的标志是否存在
+
+	PrintUsage() // 打印命令的帮助信息
 }
 
 // Name 命令名称
@@ -154,8 +154,11 @@ func (c *Cmd) Arg(i int) string {
 	return ""
 }
 
-// NArgs 获取非标志参数的数量
-func (c *Cmd) NArgs() int { return len(c.args) }
+// NArg 获取非标志参数的数量
+func (c *Cmd) NArg() int { return len(c.args) }
+
+// NFlag 获取标志的数量
+func (c *Cmd) NFlag() int { return c.fs.NFlag() }
 
 // PrintUsage 打印命令的帮助信息, 优先打印用户的帮助信息, 否则自动生成帮助信息
 func (c *Cmd) PrintUsage() {

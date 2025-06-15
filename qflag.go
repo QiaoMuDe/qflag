@@ -93,6 +93,31 @@ func AddSubCmd(subCmds ...*Cmd) error {
 	return QCommandLine.AddSubCmd(subCmds...)
 }
 
+// Args 获取非标志参数切片（全局默认命令）
+func Args() []string {
+	return QCommandLine.Args()
+}
+
+// Arg 获取指定索引的非标志参数（全局默认命令）
+func Arg(i int) string {
+	return QCommandLine.Arg(i)
+}
+
+// NArg 获取非标志参数的数量（全局默认命令）
+func NArg() int {
+	return QCommandLine.NArg()
+}
+
+// NFlag 获取标志的数量（全局默认命令）
+func NFlag() int {
+	return QCommandLine.NFlag()
+}
+
+// PrintUsage 输出命令的用法
+func PrintUsage() {
+	QCommandLine.PrintUsage()
+}
+
 // NewCmd 创建新的命令实例
 // 参数:
 // name: 命令名称
