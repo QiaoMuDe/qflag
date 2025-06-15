@@ -2,6 +2,7 @@ package qflag
 
 import (
 	"flag"
+	"fmt"
 	"testing"
 )
 
@@ -88,4 +89,46 @@ func TestHasCycle(t *testing.T) {
 	if !hasCycle(cmd3, cmd1) { // 多级反向引用
 		t.Error("should detect multi-level reverse cycle")
 	}
+}
+
+// 测试嵌套子命令的帮助信息生成
+func TestNestedCmdHelp(t *testing.T) {
+	// 创建三级嵌套命令结构
+	cmd1 := NewCmd("cmd1", "", flag.ExitOnError)
+	cmd1.SetDescription("一级命令描述")
+	cmd1.String("config", "c", "config.json", "配置文件路径")
+
+	cmd2 := NewCmd("cmd2", "", flag.ExitOnError)
+	cmd2.SetDescription("二级命令描述")
+	cmd2.Int("port", "p", 8080, "服务端口号")
+
+	cmd3 := NewCmd("cmd3", "", flag.ExitOnError)
+	cmd3.SetDescription("三级命令描述")
+	cmd3.Bool("verbose", "v", false, "详细输出模式")
+
+	// 构建命令层级
+	cmd1.AddSubCmd(cmd2)
+	cmd2.AddSubCmd(cmd3)
+
+	// 测试帮助信息生成
+	t.Run("一级命令帮助信息", func(t *testing.T) {
+		t.Log("=== 一级命令帮助信息 ===")
+		fmt.Println("=== 一级命令帮助信息 ===")
+		cmd1.PrintUsage()
+		fmt.Println("========================")
+	})
+
+	t.Run("二级命令帮助信息", func(t *testing.T) {
+		t.Log("=== 二级命令帮助信息 ===")
+		fmt.Println("=== 二级命令帮助信息 ===")
+		cmd2.PrintUsage()
+		fmt.Println("========================")
+	})
+
+	t.Run("三级命令帮助信息", func(t *testing.T) {
+		t.Log("=== 三级命令帮助信息 ===")
+		fmt.Println("=== 三级命令帮助信息 ===")
+		cmd3.PrintUsage()
+		fmt.Println("========================")
+	})
 }

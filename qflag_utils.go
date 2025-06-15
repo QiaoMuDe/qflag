@@ -42,9 +42,8 @@ func (c *Cmd) bindHelpFlagAndShowInstallPathFlag() {
 
 // generateHelpInfo 生成命令帮助信息
 // cmd: 当前命令
-// isMainCommand: 是否是主命令
 // 返回值: 命令帮助信息
-func generateHelpInfo(cmd *Cmd, isMainCommand bool) string {
+func generateHelpInfo(cmd *Cmd) string {
 	var helpInfo string
 
 	// 命令名（支持短名称显示）
@@ -59,14 +58,18 @@ func generateHelpInfo(cmd *Cmd, isMainCommand bool) string {
 		helpInfo += fmt.Sprintf(cmdDescriptionTemplate, cmd.description)
 	}
 
-	// 命令用法
-	if isMainCommand && len(cmd.subCmds) > 0 {
-		helpInfo += fmt.Sprintf(cmdUsageWithSubCmdTemplate, cmd.fs.Name())
-	} else if cmd.parentCmd != nil {
-		helpInfo += fmt.Sprintf(cmdUsageSubCmdTemplate, cmd.parentCmd.fs.Name(), cmd.fs.Name())
-	} else {
-		helpInfo += fmt.Sprintf(cmdUsageTemplate, cmd.fs.Name())
+	// 动态生成命令用法
+	fullCmdPath := getFullCommandPath(cmd)
+	usageLine := "Usage: " + fullCmdPath
+
+	// 如果存在子命令，则需要添加子命令用法
+	if len(cmd.subCmds) > 0 {
+		usageLine += " [subcommand]"
 	}
+
+	// 添加选项用法
+	usageLine += " [options] [arguments]\n\n"
+	helpInfo += usageLine
 
 	// 选项标题
 	helpInfo += optionsHeaderTemplate
@@ -126,7 +129,7 @@ func generateHelpInfo(cmd *Cmd, isMainCommand bool) string {
 	}
 
 	// 如果有子命令，添加子命令信息
-	if isMainCommand && len(cmd.subCmds) > 0 {
+	if len(cmd.subCmds) > 0 {
 		helpInfo += subCmdsHeaderTemplate
 		for _, subCmd := range cmd.subCmds {
 			helpInfo += fmt.Sprintf(subCmdTemplate, subCmd.fs.Name(), subCmd.description)
@@ -146,7 +149,7 @@ func (c *Cmd) printUsage() {
 		fmt.Println(c.usage)
 	} else {
 		// 自动生成帮助信息
-		fmt.Println(generateHelpInfo(c, c.parentCmd == nil))
+		fmt.Println(generateHelpInfo(c))
 	}
 }
 
@@ -163,4 +166,12 @@ func hasCycle(parent, child *Cmd) bool {
 		current = current.parentCmd
 	}
 	return false
+}
+
+// getFullCommandPath 递归构建完整的命令路径，从根命令到当前命令
+func getFullCommandPath(cmd *Cmd) string {
+	if cmd.parentCmd == nil {
+		return cmd.fs.Name()
+	}
+	return getFullCommandPath(cmd.parentCmd) + " " + cmd.fs.Name()
 }

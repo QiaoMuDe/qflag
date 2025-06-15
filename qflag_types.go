@@ -167,19 +167,19 @@ func (c *Cmd) PrintUsage() {
 
 // 帮助信息模板常量
 const (
-	cmdNameTemplate            = "Command: %s\n\n"                                  // 命令名称
-	cmdNameWithShortTemplate   = "Command: %s(%s)\n\n"                              // 命令名称和短名称
-	cmdDescriptionTemplate     = "Description: %s\n\n"                              // 命令描述
-	cmdUsageTemplate           = "Usage: %s [options] [arguments]\n\n"              // 命令用法
-	cmdUsageWithSubCmdTemplate = "Usage: %s [subcommand] [options] [arguments]\n\n" // 命令用法(带子命令)
-	cmdUsageSubCmdTemplate     = "Usage: %s %s [options] [arguments]\n\n"           // 命令用法(带子命令)
-	optionsHeaderTemplate      = "Options:\n"                                       // 选项头部
-	optionTemplate1            = "  -%s, --%s\t%s (default: %s)\n"                  // 选项模板1
-	optionTemplate2            = "  --%s\t%s (默认值: %s)\n"                           // 选项模板2
-	subCmdsHeaderTemplate      = "\nSubcommands:\n"                                 // 子命令头部
-	subCmdTemplate             = "  %s\t%s\n"                                       // 子命令模板
-	notesHeaderTemplate        = "\nNotes:\n"                                       // 注意事项头部
-	noteItemTemplate           = "  %d、%s\n"                                        // 注意事项项
+	cmdNameTemplate          = "Command: %s\n\n"     // 命令名称
+	cmdNameWithShortTemplate = "Command: %s(%s)\n\n" // 命令名称和短名称
+	cmdDescriptionTemplate   = "Description: %s\n\n" // 命令描述
+	//cmdUsageTemplate           = "Usage: %s [options] [arguments]\n\n"              // 命令用法(主命令，不带子命令)
+	//cmdUsageWithSubCmdTemplate = "Usage: %s [subcommand] [options] [arguments]\n\n" // 命令用法(主命令，带子命令)
+	//cmdUsageSubCmdTemplate     = "Usage: %s %s [options] [arguments]\n\n"           // 命令用法(子命令的用法)
+	optionsHeaderTemplate = "Options:\n"                      // 选项头部
+	optionTemplate1       = "  -%s, --%s\t%s (default: %s)\n" // 选项模板1
+	optionTemplate2       = "  --%s\t%s (默认值: %s)\n"          // 选项模板2
+	subCmdsHeaderTemplate = "\nSubcommands:\n"                // 子命令头部
+	subCmdTemplate        = "  %s\t%s\n"                      // 子命令模板
+	notesHeaderTemplate   = "\nNotes:\n"                      // 注意事项头部
+	noteItemTemplate      = "  %d、%s\n"                       // 注意事项项
 )
 
 // Flag 所有标志类型的通用接口,定义了标志的元数据访问方法
