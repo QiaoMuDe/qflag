@@ -270,3 +270,32 @@ func PrintUsage() {
 func FlagExists(name string) bool {
 	return QCommandLine.FlagExists(name)
 }
+
+// Enum 为全局默认命令定义一个枚举类型的命令行标志。
+// 该函数会调用全局默认命令实例 `QCommandLine` 的 `Enum` 方法，为命令行添加支持长短标志的枚举类型参数，
+// 参数说明：
+// - name: 标志的长名称，在命令行中以 `--name` 的形式使用。
+// - shortName: 标志的短名称，在命令行中以 `-shortName` 的形式使用。
+// - defValue: 标志的默认值，当命令行未指定该标志时使用。
+// - usage: 标志的帮助说明信息，用于在显示帮助信息时展示。
+// - enumValues: 枚举值的集合，用于指定标志可接受的取值范围。
+//
+// 返回值：
+// - *EnumFlag: 指向新创建的枚举类型标志对象的指针。
+func Enum(name, shortName string, defValue string, usage string, enumValues []string) *EnumFlag {
+	return QCommandLine.Enum(name, shortName, defValue, usage, enumValues)
+}
+
+// EnumVar 为全局默认命令将一个枚举类型的命令行标志绑定到指定的 `EnumFlag` 指针。
+// 该函数会调用全局默认命令实例 `QCommandLine` 的 `EnumVar` 方法，为命令行添加支持长短标志的枚举类型参数，
+// 参数说明：
+//   - f: 指向 `EnumFlag` 类型的指针，此指针用于存储和管理枚举类型命令行标志的各类信息，
+//     如当前标志的值、默认值等。
+//   - name: 命令行标志的长名称，在命令行中使用时需遵循 `--name` 的格式。
+//   - shortName: 命令行标志的短名称，在命令行中使用时需遵循 `-shortName` 的格式。
+//   - defValue: 该命令行标志的默认值。当用户在命令行中未指定该标志时，会采用此默认值。该值会被复制一份，避免外部修改影响内部状态。
+//   - usage: 该命令行标志的帮助说明信息，在显示帮助信息时会呈现给用户，用以解释该标志的具体用途。
+//   - enumValues: 枚举值的集合，用于指定标志可接受的取值范围。
+func EnumVar(f *EnumFlag, name, shortName string, defValue string, usage string, enumValues []string) {
+	QCommandLine.EnumVar(f, name, shortName, defValue, usage, enumValues)
+}

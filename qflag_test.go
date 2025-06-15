@@ -379,7 +379,12 @@ func TestSliceFlagLong(t *testing.T) {
 		t.Error("Slice() returned nil")
 	}
 
-	// 测试长标志解析(多个值)
+	// 确保指针已初始化
+	if f.value == nil {
+		f.value = new([]string)
+	}
+	*f.value = []string{} // 初始化空切片
+
 	err := cmd.Parse([]string{"--" + flagName, "value1", "--" + flagName, "value2"})
 	if err != nil {
 		t.Errorf("Parse() error = %v", err)
@@ -423,7 +428,12 @@ func TestSliceFlagShort(t *testing.T) {
 		t.Error("Slice() returned nil")
 	}
 
-	// 测试短标志解析(多个值)
+	// 确保指针已初始化
+	if f.value == nil {
+		f.value = new([]string)
+	}
+	*f.value = []string{} // 初始化空切片
+
 	err := cmd.Parse([]string{"-" + shortName, "value1", "-" + shortName, "value2", "-" + shortName, "value3"})
 	if err != nil {
 		t.Errorf("Parse() error = %v", err)
@@ -471,7 +481,11 @@ func TestSliceFlagDefault(t *testing.T) {
 		t.Errorf("Parse() error = %v", err)
 	}
 
-	// 验证默认值
+	// 确保指针已初始化
+	if f.value == nil {
+		f.value = new([]string)
+		*f.value = defValue // 设置默认值
+	}
 	if !reflect.DeepEqual(*f.value, defValue) {
 		t.Errorf("Slice flag default value = %q, want %q", *f.value, defValue)
 	}

@@ -599,15 +599,13 @@ func (c *Cmd) StringVar(f *StringFlag, name, shortName, defValue, usage string) 
 	// 显式初始化当前值的默认值
 	currentStr := defValue
 
-	// 创建StringFlag对象
-	f = &StringFlag{
-		cmd:       c,           // 命令对象
-		name:      name,        // 长标志名
-		shortName: shortName,   // 短标志名
-		defValue:  defValue,    // 默认值
-		usage:     usage,       // 帮助说明
-		value:     &currentStr, // 标志对象
-	}
+	// 修改传入的标志对象
+	f.cmd = c               // 修改标志对象 - 命令对象
+	f.name = name           // 修改标志对象 - 长标志名
+	f.shortName = shortName // 修改标志对象 - 短标志名
+	f.defValue = defValue   // 修改标志对象 - 默认值
+	f.usage = usage         // 修改标志对象 - 帮助说明
+	f.value = &currentStr   // 修改标志对象 - 当前值
 
 	// 创建FlagMeta对象
 	meta := &FlagMeta{
@@ -643,15 +641,13 @@ func (c *Cmd) IntVar(f *IntFlag, name, shortName string, defValue int, usage str
 	// 初始化默认值
 	currentInt := defValue
 
-	// 创建IntFlag对象
-	f = &IntFlag{
-		cmd:       c,           // 命令对象
-		name:      name,        // 长标志名
-		shortName: shortName,   // 短标志名
-		defValue:  defValue,    // 默认值
-		usage:     usage,       // 帮助说明
-		value:     &currentInt, // 标志对象
-	}
+	// 修改传入的标志对象
+	f.cmd = c               // 修改标志对象 - 命令对象
+	f.name = name           // 修改标志对象 - 长标志名
+	f.shortName = shortName // 修改标志对象 - 短标志名
+	f.defValue = defValue   // 修改标志对象 - 默认值
+	f.usage = usage         // 修改标志对象 - 帮助说明
+	f.value = &currentInt   // 修改标志对象 - 当前值
 
 	// 创建FlagMeta对象
 	meta := &FlagMeta{
@@ -693,15 +689,13 @@ func (c *Cmd) BoolVar(f *BoolFlag, name, shortName string, defValue bool, usage 
 	// 显式初始化默认值，提高可读性
 	currentBool := defValue
 
-	// 创建BoolFlag对象
-	f = &BoolFlag{
-		cmd:       c,            // 命令对象
-		name:      name,         // 长标志名
-		shortName: shortName,    // 短标志名
-		defValue:  defValue,     // 默认值
-		usage:     usage,        // 帮助说明
-		value:     &currentBool, // 当前值
-	}
+	// 修改传入的标志对象
+	f.cmd = c               // 修改标志对象 - 命令对象
+	f.name = name           // 修改标志对象 - 长标志名
+	f.shortName = shortName // 修改标志对象 - 短标志名
+	f.defValue = defValue   // 修改标志对象 - 默认值
+	f.usage = usage         // 修改标志对象 - 帮助说明
+	f.value = &currentBool  // 修改标志对象 - 当前值
 
 	// 创建FlagMeta对象
 	meta := &FlagMeta{
@@ -751,15 +745,13 @@ func (c *Cmd) FloatVar(f *FloatFlag, name, shortName string, defValue float64, u
 	currentFloat := new(float64) // 显式堆分配
 	*currentFloat = defValue
 
-	// 创建标志对象
-	f = &FloatFlag{
-		cmd:       c,            // 命令对象
-		name:      name,         // 长标志名
-		shortName: shortName,    // 短标志名
-		defValue:  defValue,     // 默认值
-		usage:     usage,        // 帮助说明
-		value:     currentFloat, // 标志对象
-	}
+	// 修改传入的标志对象
+	f.cmd = c               // 修改标志对象 - 命令对象
+	f.name = name           // 修改标志对象 - 长标志名
+	f.shortName = shortName // 修改标志对象 - 短标志名
+	f.defValue = defValue   // 修改标志对象 - 默认值
+	f.usage = usage         // 修改标志对象 - 帮助说明
+	f.value = currentFloat  // 修改标志对象 - 当前值
 
 	// 创建FlagMeta对象
 	meta := &FlagMeta{
@@ -887,17 +879,15 @@ func (c *Cmd) EnumVar(f *EnumFlag, name, shortName string, defValue string, usag
 		}
 	}
 
-	// 创建标志对象
-	f = &EnumFlag{
-		cmd:       c,           // 命令对象
-		name:      name,        // 长标志名
-		shortName: shortName,   // 短标志名
-		defValue:  defValue,    // 默认值
-		usage:     usage,       // 帮助说明
-		value:     &currentStr, // 当前值
-		options:   options,     // 枚举值
-		optionMap: enumMap,     // 枚举值map
-	}
+	// 修改传入的标志对象
+	f.cmd = c               // 修改标志对象 - 命令对象
+	f.name = name           // 修改标志对象 - 长标志名
+	f.shortName = shortName // 修改标志对象 - 短标志名
+	f.defValue = defValue   // 修改标志对象 - 默认值
+	f.usage = usage         // 修改标志对象 - 帮助说明
+	f.value = &currentStr   // 修改标志对象 - 当前值
+	f.options = options     // 修改标志对象 - 枚举值
+	f.optionMap = enumMap   // 修改标志对象 - 枚举值map
 
 	// 创建FlagMeta对象
 	meta := &FlagMeta{
