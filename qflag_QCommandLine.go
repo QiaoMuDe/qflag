@@ -1,0 +1,272 @@
+package qflag
+
+import (
+	"flag"
+	"os"
+	"path/filepath"
+	"sync"
+)
+
+// QCommandLine 全局默认Cmd实例
+var QCommandLine *Cmd
+
+// parseOnce 保证Parse函数只会执行一次
+var parseOnce sync.Once
+
+// QCommandLineInterface 定义了全局默认命令行接口，提供统一的命令行参数管理功能
+// 该接口封装了命令行程序的常用操作，包括标志添加、参数解析和帮助信息展示
+type QCommandLineInterface interface {
+	String(name, shortName, defValue, usage string) *StringFlag               // 添加字符串类型标志
+	Int(name, shortName string, defValue int, usage string) *IntFlag          // 添加整数类型标志
+	Bool(name, shortName string, defValue bool, usage string) *BoolFlag       // 添加布尔类型标志
+	Float(name, shortName string, defValue float64, usage string) *FloatFlag  // 添加浮点数类型标志
+	Slice(name, shortName string, defValue []string, usage string) *SliceFlag // 添加字符串切片类型标志
+
+	StringVar(f *StringFlag, name, shortName, defValue, usage string)               // 绑定字符串标志到指定变量
+	IntVar(f *IntFlag, name, shortName string, defValue int, usage string)          // 绑定整数标志到指定变量
+	BoolVar(f *BoolFlag, name, shortName string, defValue bool, usage string)       // 绑定布尔标志到指定变量
+	FloatVar(f *FloatFlag, name, shortName string, defValue float64, usage string)  // 绑定浮点数标志到指定变量
+	SliceVar(f *SliceFlag, name, shortName string, defValue []string, usage string) // 绑定切片标志到指定变量
+
+	Parse() error // 解析命令行参数，自动处理标志和子命令
+
+	AddSubCmd(subCmd *Cmd) // 添加子命令，子命令会继承父命令的上下文
+
+	Args() []string   // 获取所有非标志参数(未绑定到任何标志的参数)
+	Arg(i int) string // 获取指定索引的非标志参数，索引越界返回空字符串
+	NArg() int        // 获取非标志参数的数量
+	NFlag() int       // 获取已解析的标志数量
+
+	PrintUsage()                 // 打印命令使用说明到标准输出
+	FlagExists(name string) bool // 检查指定名称的标志是否存在(支持长/短名称)
+}
+
+// 在包初始化时创建全局默认Cmd实例
+func init() {
+	// 处理可能的空os.Args情况
+	if len(os.Args) == 0 {
+		// 如果os.Args为空,则创建一个新的Cmd对象,命令行参数为"app",短名字为"a",错误处理方式为ExitOnError
+		QCommandLine = NewCmd("app", "a", flag.ExitOnError)
+	} else {
+		// 如果os.Args不为空,则创建一个新的Cmd对象,命令行参数为filepath.Base(os.Args[0]),短名字为第一个字符,错误处理方式为ExitOnError
+		name := filepath.Base(os.Args[0])
+		shortName := string(name[0])
+		QCommandLine = NewCmd(name, shortName, flag.ExitOnError)
+	}
+}
+
+// String 为全局默认命令创建一个字符串类型的命令行标志。
+// 该函数会调用全局默认命令实例的 String 方法，为命令行添加一个支持长短标志的字符串参数。
+// 参数说明：
+//   - name: 标志的长名称，在命令行中以 --name 的形式使用。
+//   - shortName: 标志的短名称，在命令行中以 -shortName 的形式使用。
+//   - defValue: 标志的默认值，当命令行未指定该标志时使用。
+//   - usage: 标志的帮助说明信息，用于在显示帮助信息时展示。
+//
+// 返回值：
+//   - *StringFlag: 指向新创建的字符串标志对象的指针。
+func String(name, shortName, defValue, usage string) *StringFlag {
+	return QCommandLine.String(name, shortName, defValue, usage)
+}
+
+// Int 为全局默认命令创建一个整数类型的命令行标志。
+// 该函数会调用全局默认命令实例的 Int 方法，为命令行添加一个支持长短标志的整数参数。
+// 参数说明：
+//   - name: 标志的长名称，在命令行中以 --name 的形式使用。
+//   - shortName: 标志的短名称，在命令行中以 -shortName 的形式使用。
+//   - defValue: 标志的默认值，当命令行未指定该标志时使用。
+//   - usage: 标志的帮助说明信息，用于在显示帮助信息时展示。
+//
+// 返回值：
+//   - *IntFlag: 指向新创建的整数标志对象的指针。
+func Int(name, shortName string, defValue int, usage string) *IntFlag {
+	return QCommandLine.Int(name, shortName, defValue, usage)
+}
+
+// Bool 为全局默认命令创建一个布尔类型的命令行标志。
+// 该函数会调用全局默认命令实例的 Bool 方法，为命令行添加一个支持长短标志的布尔参数。
+// 参数说明：
+//   - name: 标志的长名称，在命令行中以 --name 的形式使用。
+//   - shortName: 标志的短名称，在命令行中以 -shortName 的形式使用。
+//   - defValue: 标志的默认值，当命令行未指定该标志时使用。
+//   - usage: 标志的帮助说明信息，用于在显示帮助信息时展示。
+//
+// 返回值：
+//   - *BoolFlag: 指向新创建的布尔标志对象的指针。
+func Bool(name, shortName string, defValue bool, usage string) *BoolFlag {
+	return QCommandLine.Bool(name, shortName, defValue, usage)
+}
+
+// Float 为全局默认命令创建一个浮点数类型的命令行标志。
+// 该函数会调用全局默认命令实例的 Float 方法，为命令行添加一个支持长短标志的浮点数参数。
+// 参数说明：
+//   - name: 标志的长名称，在命令行中以 --name 的形式使用。
+//   - shortName: 标志的短名称，在命令行中以 -shortName 的形式使用。
+//   - defValue: 标志的默认值，当命令行未指定该标志时使用。
+//   - usage: 标志的帮助说明信息，用于在显示帮助信息时展示。
+//
+// 返回值：
+//   - *FloatFlag: 指向新创建的浮点数标志对象的指针。
+func Float(name, shortName string, defValue float64, usage string) *FloatFlag {
+	return QCommandLine.Float(name, shortName, defValue, usage)
+}
+
+// StringVar 函数的作用是将一个字符串类型的命令行标志绑定到全局默认命令的 `StringFlag` 指针上。
+// 借助全局默认命令实例 `QCommandLine` 的 `StringVar` 方法，为命令行添加支持长短标志的字符串参数，
+// 并将该参数与传入的 `StringFlag` 指针关联，以便后续获取和使用该标志的值。
+// 参数说明：
+// - f: 指向 `StringFlag` 的指针，用于存储和管理该字符串类型命令行标志的相关信息，包括当前值、默认值等。
+// - name: 命令行标志的长名称，在命令行中需以 `--name` 的格式使用。
+// - shortName: 命令行标志的短名称，在命令行中需以 `-shortName` 的格式使用。
+// - defValue: 该命令行标志的默认值，当用户在命令行中未指定该标志时，会使用此默认值。
+// - usage: 该命令行标志的帮助说明信息，会在显示帮助信息时展示给用户，用于解释该标志的用途。
+func StringVar(f *StringFlag, name, shortName, defValue, usage string) {
+	QCommandLine.StringVar(f, name, shortName, defValue, usage)
+}
+
+// IntVar 函数的作用是将整数类型的命令行标志绑定到全局默认命令的 `IntFlag` 指针上。
+// 它借助全局默认命令实例 `QCommandLine` 的 `IntVar` 方法，为命令行添加支持长短标志的整数参数，
+// 并将该参数与传入的 `IntFlag` 指针建立关联，方便后续对该标志的值进行获取和使用。
+//
+// 参数说明：
+//   - f: 指向 `IntFlag` 类型的指针，此指针用于存储和管理整数类型命令行标志的各类信息，
+//     如当前标志的值、默认值等。
+//   - name: 命令行标志的长名称，在命令行中使用时需遵循 `--name` 的格式。
+//   - shortName: 命令行标志的短名称，在命令行中使用时需遵循 `-shortName` 的格式。
+//   - defValue: 该命令行标志的默认值。当用户在命令行中未指定该标志时，会采用此默认值。
+//   - usage: 该命令行标志的帮助说明信息，在显示帮助信息时会呈现给用户，用以解释该标志的具体用途。
+func IntVar(f *IntFlag, name, shortName string, defValue int, usage string) {
+	QCommandLine.IntVar(f, name, shortName, defValue, usage)
+}
+
+// BoolVar 函数的作用是将布尔类型的命令行标志绑定到全局默认命令实例 `QCommandLine` 中。
+// 它会调用全局默认命令实例的 `BoolVar` 方法，为命令行添加一个支持长短和短标志的布尔参数，
+// 并将该参数与传入的 `BoolFlag` 指针建立关联，后续可以通过该指针获取和使用该标志的值。
+// 参数说明：
+// - f: 指向 `BoolFlag` 类型的指针，用于存储和管理布尔类型命令行标志的相关信息，如当前值、默认值等。
+// - name: 标志的长名称，在命令行中以 `--name` 的形式使用。
+// - shortName: 标志的短名称，在命令行中以 `-shortName` 的形式使用。
+// - defValue: 标志的默认值，当命令行未指定该标志时，会使用此默认值。
+// - usage: 标志的帮助说明信息，用于在显示帮助信息时展示给用户，解释该标志的用途。
+func BoolVar(f *BoolFlag, name, shortName string, defValue bool, usage string) {
+	QCommandLine.BoolVar(f, name, shortName, defValue, usage)
+}
+
+// FloatVar 为全局默认命令绑定一个浮点数类型的命令行标志到指定的 `FloatFlag` 指针。
+// 该函数会调用全局默认命令实例 `QCommandLine` 的 `FloatVar` 方法，为命令行添加支持长短标志的浮点数参数，
+// 并将该参数与传入的 `FloatFlag` 指针关联，以便后续获取和使用该标志的值。
+// 参数说明：
+// - f: 指向 `FloatFlag` 的指针，用于存储和管理该浮点数类型命令行标志的相关信息，包括当前值、默认值等。
+// - name: 命令行标志的长名称，在命令行中需以 `--name` 的格式使用。
+// - shortName: 命令行标志的短名称，在命令行中需以 `-shortName` 的格式使用。
+// - defValue: 该命令行标志的默认值，当用户在命令行中未指定该标志时，会使用此默认值。
+// - usage: 该命令行标志的帮助说明信息，会在显示帮助信息时展示给用户，用于解释该标志的用途。
+func FloatVar(f *FloatFlag, name, shortName string, defValue float64, usage string) {
+	QCommandLine.FloatVar(f, name, shortName, defValue, usage)
+}
+
+// Slice 为全局默认命令定义一个字符串切片类型的命令行标志。
+// 该函数会调用全局默认命令实例 `QCommandLine` 的 `Slice` 方法，为命令行添加支持长短标志的字符串切片参数，
+// 并返回一个指向新创建的 `SliceFlag` 对象的指针，可用于后续获取和管理该标志的值。
+// 参数说明：
+// - name: 标志的长名称，在命令行中以 `--name` 的形式使用。
+// - shortName: 标志的短名称，在命令行中以 `-shortName` 的形式使用。
+// - defValue: 标志的默认值，当命令行未指定该标志时使用。该值会被复制一份，避免外部修改影响内部状态。
+// - usage: 标志的帮助说明信息，用于在显示帮助信息时展示。
+// 返回值：
+// - *SliceFlag: 指向新创建的字符串切片标志对象的指针。
+func Slice(name, shortName string, defValue []string, usage string) *SliceFlag {
+	return QCommandLine.Slice(name, shortName, defValue, usage)
+}
+
+// SliceVar 为全局默认命令将一个字符串切片类型的命令行标志绑定到指定的 `SliceFlag` 指针。
+// 该函数会调用全局默认命令实例 `QCommandLine` 的 `SliceVar` 方法，为命令行添加支持长短标志的字符串切片参数，
+// 并将该参数与传入的 `SliceFlag` 指针建立关联，方便后续对该标志的值进行获取和使用。
+// 参数说明：
+//   - f: 指向 `SliceFlag` 类型的指针，此指针用于存储和管理字符串切片类型命令行标志的各类信息，
+//     如当前标志的值、默认值等。
+//   - name: 命令行标志的长名称，在命令行中使用时需遵循 `--name` 的格式。
+//   - shortName: 命令行标志的短名称，在命令行中使用时需遵循 `-shortName` 的格式。
+//   - defValue: 该命令行标志的默认值。当用户在命令行中未指定该标志时，会采用此默认值。该值会被复制一份，避免外部修改影响内部状态。
+//   - usage: 该命令行标志的帮助说明信息，在显示帮助信息时会呈现给用户，用以解释该标志的具体用途。
+func SliceVar(f *SliceFlag, name, shortName string, defValue []string, usage string) {
+	QCommandLine.SliceVar(f, name, shortName, defValue, usage)
+}
+
+// Parse 解析命令行参数, 自动检查长短标志互斥, 并处理帮助标志 (全局默认命令)
+// 该方法会自动处理以下情况:
+// 1. 长短标志互斥检查
+// 2. -h/--help 帮助标志处理
+// 3. -sip/--show-install-path 安装路径标志处理
+// 4. 子命令自动检测和参数传递(当第一个非标志参数匹配子命令名称时)
+// 注意: 该方法保证每个Cmd实例只会解析一次
+func Parse() error {
+	var err error
+	parseOnce.Do(func() {
+		// 解析命令行参数
+		err = QCommandLine.Parse(os.Args[1:])
+	})
+	return err
+}
+
+// AddSubCmd 向全局默认命令实例 `QCommandLine` 添加一个或多个子命令。
+// 该函数会调用全局默认命令实例的 `AddSubCmd` 方法，支持批量添加子命令。
+// 在添加过程中，会检查子命令是否为 `nil` 以及是否存在循环引用，若有异常则返回错误信息。
+// 参数:
+//   - subCmds: 可变参数，接收一个或多个 `*Cmd` 类型的子命令实例。
+//
+// 返回值:
+//   - error: 若添加子命令过程中出现错误（如子命令为 `nil` 或存在循环引用），则返回错误信息；否则返回 `nil`。
+func AddSubCmd(subCmds ...*Cmd) error {
+	return QCommandLine.AddSubCmd(subCmds...)
+}
+
+// Args 获取全局默认命令实例 `QCommandLine` 解析后的非标志参数切片。
+// 非标志参数是指命令行中未被识别为标志的参数。
+// 返回值:
+//   - []string: 包含所有非标志参数的字符串切片。
+func Args() []string {
+	return QCommandLine.Args()
+}
+
+// Arg 获取全局默认命令实例 `QCommandLine` 解析后的指定索引位置的非标志参数。
+// 索引从 0 开始，若索引超出非标志参数切片的范围，将返回空字符串。
+// 参数:
+//   - i: 非标志参数的索引位置，从 0 开始计数。
+//
+// 返回值:
+//   - string: 指定索引位置的非标志参数；若索引越界，则返回空字符串。
+func Arg(i int) string {
+	return QCommandLine.Arg(i)
+}
+
+// NArg 获取全局默认命令实例 `QCommandLine` 解析后的非标志参数的数量。
+// 返回值:
+//   - int: 非标志参数的数量。
+func NArg() int {
+	return QCommandLine.NArg()
+}
+
+// NFlag 获取全局默认命令实例 `QCommandLine` 解析后已定义和使用的标志的数量。
+// 返回值:
+//   - int: 标志的数量。
+func NFlag() int {
+	return QCommandLine.NFlag()
+}
+
+// PrintUsage 输出全局默认命令实例 `QCommandLine` 的使用说明信息。
+// 使用说明信息通常包含命令的名称、可用的标志及其描述等内容。
+func PrintUsage() {
+	QCommandLine.PrintUsage()
+}
+
+// FlagExists 检查全局默认命令实例 `QCommandLine` 中是否存在指定名称的标志。
+// 该函数会调用全局默认命令实例的 `FlagExists` 方法，用于检查命令行中是否存在指定名称的标志。
+// 参数:
+//   - name: 要检查的标志名称，可以是长名称或短名称。
+//
+// 返回值:
+//   - bool: 若存在指定名称的标志，则返回 `true`；否则返回 `false`。
+func FlagExists(name string) bool {
+	return QCommandLine.FlagExists(name)
+}
