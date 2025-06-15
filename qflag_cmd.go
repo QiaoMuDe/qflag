@@ -430,7 +430,7 @@ func NewCmd(name string, shortName string, errorHandling flag.ErrorHandling) *Cm
 
 	// 创建标志注册表
 	flags := &FlagRegistry{
-		mu:       sync.RWMutex{},             // 并发安全锁
+		mu:       sync.RWMutex{},             // 并发读写锁
 		byLong:   make(map[string]*FlagMeta), // 存储长标志的映射
 		byShort:  make(map[string]*FlagMeta), // 存储短标志的映射
 		allFlags: []*FlagMeta{},              // 存储所有标志的切片
@@ -517,14 +517,20 @@ func (c *Cmd) AddSubCmd(subCmds ...*Cmd) error {
 //     将剩余参数传递给子命令解析
 //
 // 注意: 该方法保证每个Cmd实例只会解析一次
-func (c *Cmd) Parse(args []string) error {
-	var err error
+func (c *Cmd) Parse(args []string) (err error) {
+	defer func() {
+		// 添加panic捕获
+		if r := recover(); r != nil {
+			// 使用预定义的恐慌错误常量
+			err = fmt.Errorf("%s: %v", ErrPanicRecovered, r)
+		}
+	}()
 
 	// 确保只解析一次
 	c.parseOnce.Do(func() {
 		// 1调用flag库解析参数
 		if parseErr := c.fs.Parse(args); parseErr != nil {
-			err = fmt.Errorf("Parameter parsing error: %w", parseErr)
+			err = fmt.Errorf("%s: %w", ErrFlagParseFailed, parseErr)
 			return
 		}
 
@@ -555,8 +561,8 @@ func (c *Cmd) Parse(args []string) error {
 			for _, subCmd := range c.subCmds {
 				if c.args[0] == subCmd.name || c.args[0] == subCmd.shortName {
 					// 将剩余参数传递给子命令解析
-					if err = subCmd.Parse(c.args[1:]); err != nil {
-						err = fmt.Errorf("Subcommand parsing error: %w", err)
+					if parseErr := subCmd.Parse(c.args[1:]); parseErr != nil {
+						err = fmt.Errorf("%s: %w", ErrSubCommandParseFailed, parseErr)
 					}
 					return
 				}
@@ -568,6 +574,7 @@ func (c *Cmd) Parse(args []string) error {
 	if err != nil {
 		return err
 	}
+
 	return nil
 }
 

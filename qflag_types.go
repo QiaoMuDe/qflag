@@ -21,7 +21,7 @@ const (
 	cmdDescriptionTemplate   = "Description: %s\n\n"             // 命令描述
 	optionsHeaderTemplate    = "Options:\n"                      // 选项头部
 	optionTemplate1          = "  -%s, --%s\t%s (default: %s)\n" // 选项模板1
-	optionTemplate2          = "  --%s\t%s (默认值: %s)\n"          // 选项模板2
+	optionTemplate2          = "  --%s\t%s (default: %s)\n"      // 选项模板2
 	subCmdsHeaderTemplate    = "\nSubcommands:\n"                // 子命令头部
 	subCmdTemplate           = "  %s\t%s\n"                      // 子命令模板
 	notesHeaderTemplate      = "\nNotes:\n"                      // 注意事项头部
