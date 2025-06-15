@@ -76,8 +76,13 @@ func FloatVar(p *float64, name, shortName string, defValue float64, usage string
 	QCommandLine.FloatVar(p, name, shortName, defValue, usage)
 }
 
-// Parse 解析命令行参数（全局默认命令）
-// 该函数保证只会执行一次解析操作
+// Parse 解析命令行参数, 自动检查长短标志互斥, 并处理帮助标志 (全局默认命令)
+// 该方法会自动处理以下情况:
+// 1. 长短标志互斥检查
+// 2. -h/--help 帮助标志处理
+// 3. -sip/--show-install-path 安装路径标志处理
+// 4. 子命令自动检测和参数传递(当第一个非标志参数匹配子命令名称时)
+// 注意: 该方法保证每个Cmd实例只会解析一次
 func Parse() error {
 	var err error
 	parseOnce.Do(func() {
@@ -190,6 +195,12 @@ func (c *Cmd) AddSubCmd(subCmds ...*Cmd) error {
 }
 
 // Parse 解析命令行参数, 自动检查长短标志互斥, 并处理帮助标志
+// 该方法会自动处理以下情况:
+// 1. 长短标志互斥检查
+// 2. -h/--help 帮助标志处理
+// 3. -sip/--show-install-path 安装路径标志处理
+// 4. 子命令自动检测和参数传递(当第一个非标志参数匹配子命令名称时)
+// 注意: 该方法保证每个Cmd实例只会解析一次
 func (c *Cmd) Parse(args []string) error {
 	var err error
 
@@ -226,6 +237,19 @@ func (c *Cmd) Parse(args []string) error {
 		fmt.Printf("输入: %v\n", args)
 		fmt.Printf("解析后: %v\n", c.fs.Args())
 		fmt.Printf("设置的标志: %v\n", c.args)
+
+		// 检查是否有子命令
+		if len(c.args) > 0 {
+			for _, subCmd := range c.subCmds {
+				if c.args[0] == subCmd.name || c.args[0] == subCmd.shortName {
+					// 将剩余参数传递给子命令解析
+					if err = subCmd.Parse(c.args[1:]); err != nil {
+						err = fmt.Errorf("Subcommand parsing error: %w", err)
+					}
+					return
+				}
+			}
+		}
 	})
 
 	// 检查是否报错
