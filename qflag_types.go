@@ -2,8 +2,12 @@ package qflag
 
 import (
 	"flag"
+	"strings"
 	"sync"
 )
+
+// 定义非法字符集常量, 防止非法的标志名称
+const invalidFlagChars = " !@#$%^&*(){}[]|\\;:'\"<>,.?/"
 
 // Cmd 命令行标志管理结构体,封装参数解析、长短标志互斥及帮助系统。
 type Cmd struct {
@@ -49,6 +53,7 @@ const (
 	FlagTypeInt                    // 整数类型
 	FlagTypeString                 // 字符串类型
 	FlagTypeFloat                  // 浮点数类型
+	FlagTypeSlice                  // 切片类型
 )
 
 // Command 命令接口定义,封装命令的核心功能
@@ -60,16 +65,14 @@ const (
 // cmd.SetName("app")
 // cmd.SetDescription("示例应用")
 type Command interface {
-	Name() string               // 返回命令名称
-	ShortName() string          // 返回命令短名称
-	Description() string        // 获取命令描述
-	SetDescription(desc string) // 设置命令描述
-	Usage() string              // 获取命令用法
-	SetUsage(usage string)      // 设置命令用法
-
-	AddSubCmd(subCmd *Cmd) // 添加子命令
-	SubCmds() []*Cmd       // 获取子命令列表
-
+	Name() string                                                         // 返回命令名称
+	ShortName() string                                                    // 返回命令短名称
+	Description() string                                                  // 获取命令描述
+	SetDescription(desc string)                                           // 设置命令描述
+	Usage() string                                                        // 获取命令用法
+	SetUsage(usage string)                                                // 设置命令用法
+	AddSubCmd(subCmd *Cmd)                                                // 添加子命令
+	SubCmds() []*Cmd                                                      // 获取子命令列表
 	Parse(args []string) error                                            // 解析命令行参数
 	String(name, shortName, usage string, defValue string) *StringFlag    // 添加字符串类型标志
 	Int(name, shortName, usage string, defValue int) *IntFlag             // 添加整数类型标志
@@ -84,8 +87,7 @@ type Command interface {
 	NArg() int                                                            // 获取非标志参数的数量
 	NFlag() int                                                           // 获取标志的数量
 	FlagExists(name string) bool                                          // 检查指定名称的标志是否存在
-
-	PrintUsage() // 打印命令的帮助信息
+	PrintUsage()                                                          // 打印命令的帮助信息
 }
 
 // Name 命令名称
@@ -198,14 +200,13 @@ type TypedFlag[T any] interface {
 
 // IntFlag 整数类型标志结构体,包含标志元数据和值访问接口
 type IntFlag struct {
-	cmd       *Cmd         // 所属的命令实例
-	name      string       // 长标志名称（如"port"）
-	shortName string       // 短标志字符（如"p",空表示无短标志）
-	defValue  int          // 默认值
-	usage     string       // 帮助说明
-	value     *int         // 标志值指针,通过flag库绑定
-	getRu     sync.RWMutex // 用于确保标志值访问的线程安全
-	setMu     sync.Mutex   // 用于确保标志值设置操作的线程安全
+	cmd       *Cmd       // 所属的命令实例
+	name      string     // 长标志名称（如"port"）
+	shortName string     // 短标志字符（如"p",空表示无短标志）
+	defValue  int        // 默认值
+	usage     string     // 帮助说明
+	value     *int       // 标志值指针,通过flag库绑定
+	mu        sync.Mutex // 并发访问锁
 }
 
 // 实现Flag接口
@@ -219,8 +220,8 @@ func (f *IntFlag) getDefaultAny() any { return f.defValue }
 // GetValue 获取标志的实际值（带线程安全保护）
 // 返回值优先级：解析值 > 默认值
 func (f *IntFlag) GetValue() int {
-	f.getRu.RLock()         // 加读锁
-	defer f.getRu.RUnlock() // 确保锁释放
+	f.mu.Lock()
+	defer f.mu.Unlock()
 
 	if f.value != nil { // 优先返回解析值
 		return *f.value
@@ -230,22 +231,21 @@ func (f *IntFlag) GetValue() int {
 
 // SetValue 设置标志的值（带线程安全保护）
 func (f *IntFlag) SetValue(value int) {
-	f.setMu.Lock()
-	defer f.setMu.Unlock()
+	f.mu.Lock()
+	defer f.mu.Unlock()
 
 	f.value = &value
 }
 
 // StringFlag 字符串类型标志结构体
 type StringFlag struct {
-	cmd       *Cmd         // 所属的命令实例
-	name      string       // 长标志名称
-	shortName string       // 短标志字符
-	defValue  string       // 默认值
-	usage     string       // 帮助说明
-	value     *string      // 标志值指针
-	getRu     sync.RWMutex // 用于确保标志值访问的线程安全
-	setMu     sync.Mutex   // 用于确保标志值设置操作的线程安全
+	cmd       *Cmd       // 所属的命令实例
+	name      string     // 长标志名称
+	shortName string     // 短标志字符
+	defValue  string     // 默认值
+	usage     string     // 帮助说明
+	value     *string    // 标志值指针
+	mu        sync.Mutex // 并发访问锁
 }
 
 // 实现Flag接口
@@ -259,8 +259,8 @@ func (f *StringFlag) getDefaultAny() any { return f.defValue }
 // GetValue 获取标志的实际值（带线程安全保护）
 // 返回值优先级：解析值 > 默认值
 func (f *StringFlag) GetValue() string {
-	f.getRu.RLock()         // 加读锁
-	defer f.getRu.RUnlock() // 确保锁释放
+	f.mu.Lock()
+	defer f.mu.Unlock()
 
 	if f.value != nil { // 优先返回解析值
 		return *f.value
@@ -270,22 +270,21 @@ func (f *StringFlag) GetValue() string {
 
 // SetValue 设置标志的值（带线程安全保护）
 func (f *StringFlag) SetValue(value string) {
-	f.setMu.Lock()
-	defer f.setMu.Unlock()
+	f.mu.Lock()
+	defer f.mu.Unlock()
 
 	f.value = &value
 }
 
 // BoolFlag 布尔类型标志结构体
 type BoolFlag struct {
-	cmd       *Cmd         // 所属的命令实例
-	name      string       // 长标志名称
-	shortName string       // 短标志字符
-	defValue  bool         // 默认值
-	usage     string       // 帮助说明
-	value     *bool        // 标志值指针
-	getRu     sync.RWMutex // 用于确保标志值访问的线程安全
-	setMu     sync.Mutex   // 用于确保标志值设置操作的线程安全
+	cmd       *Cmd       // 所属的命令实例
+	name      string     // 长标志名称
+	shortName string     // 短标志字符
+	defValue  bool       // 默认值
+	usage     string     // 帮助说明
+	value     *bool      // 标志值指针
+	mu        sync.Mutex // 并发访问锁
 }
 
 // 实现Flag接口
@@ -299,8 +298,8 @@ func (f *BoolFlag) getDefaultAny() any { return f.defValue }
 // GetValue 获取标志的实际值（带线程安全保护）
 // 返回值优先级：解析值 > 默认值
 func (f *BoolFlag) GetValue() bool {
-	f.getRu.RLock()         // 加读锁
-	defer f.getRu.RUnlock() // 确保锁释放
+	f.mu.Lock()
+	defer f.mu.Unlock()
 
 	if f.value != nil { // 优先返回解析值
 		return *f.value
@@ -310,22 +309,21 @@ func (f *BoolFlag) GetValue() bool {
 
 // SetValue 设置标志的值（带线程安全保护）
 func (f *BoolFlag) SetValue(value bool) {
-	f.setMu.Lock()
-	defer f.setMu.Unlock()
+	f.mu.Lock()
+	defer f.mu.Unlock()
 
 	f.value = &value
 }
 
 // FloatFlag 浮点型标志结构体
 type FloatFlag struct {
-	cmd       *Cmd         // 所属的命令实例
-	name      string       // 长标志名称
-	shortName string       // 短标志字符
-	defValue  float64      // 默认值
-	usage     string       // 帮助说明
-	value     *float64     // 标志值指针
-	getRu     sync.RWMutex // 用于确保标志值访问的线程安全
-	setMu     sync.Mutex   // 用于确保标志值设置操作的线程安全
+	cmd       *Cmd       // 所属的命令实例
+	name      string     // 长标志名称
+	shortName string     // 短标志字符
+	defValue  float64    // 默认值
+	usage     string     // 帮助说明
+	value     *float64   // 标志值指针
+	mu        sync.Mutex // 并发访问锁
 }
 
 // 实现Flag接口
@@ -339,8 +337,8 @@ func (f *FloatFlag) getDefaultAny() any  { return f.defValue }
 // GetValue 获取标志的实际值（带线程安全保护）
 // 返回值优先级：解析值 > 默认值
 func (f *FloatFlag) GetValue() float64 {
-	f.getRu.RLock()         // 加读锁
-	defer f.getRu.RUnlock() // 确保锁释放
+	f.mu.Lock()
+	defer f.mu.Unlock()
 
 	if f.value != nil { // 优先返回解析值
 		return *f.value
@@ -350,8 +348,66 @@ func (f *FloatFlag) GetValue() float64 {
 
 // SetValue 设置标志的值（带线程安全保护）
 func (f *FloatFlag) SetValue(value float64) {
-	f.setMu.Lock()
-	defer f.setMu.Unlock()
+	f.mu.Lock()
+	defer f.mu.Unlock()
 
 	f.value = &value
+}
+
+// SliceFlag 表示字符串切片类型的命令行标志
+type SliceFlag struct {
+	cmd       *Cmd       // 命令对象
+	name      string     // 长标志名
+	shortName string     // 短标志名
+	defValue  []string   // 默认值
+	usage     string     // 帮助说明
+	value     *[]string  // 标志值指针
+	mu        sync.Mutex // 并发访问锁
+}
+
+// 实现Flag接口
+func (f *SliceFlag) Name() string         { return f.name }
+func (f *SliceFlag) ShortName() string    { return f.shortName }
+func (f *SliceFlag) Usage() string        { return f.usage }
+func (f *SliceFlag) GetDefault() []string { return f.defValue }
+func (f *SliceFlag) Type() FlagType       { return FlagTypeSlice }
+func (f *SliceFlag) getDefaultAny() any   { return f.defValue }
+
+// GetValue 获取标志的实际值（带线程安全保护）
+// 返回值优先级：解析值 > 默认值
+func (f *SliceFlag) GetValue() []string {
+	f.mu.Lock()
+	defer f.mu.Unlock()
+
+	if f.value != nil { // 优先返回解析值
+		return *f.value
+	}
+	return f.defValue // 其次返回默认值
+}
+
+// SetValue 设置标志的值（带线程安全保护）
+func (f *SliceFlag) SetValue(value ...string) {
+	f.mu.Lock()
+	defer f.mu.Unlock()
+
+	// 添加值前检查是否为nil, 避免panic
+	if *f.value == nil {
+		*f.value = make([]string, 0)
+	}
+
+	// 添加多个值
+	*f.value = append(*f.value, value...)
+}
+
+// Set 实现flag.Value接口, 解析并添加值到切片
+func (f *SliceFlag) Set(value string) error {
+	f.SetValue(value)
+	return nil
+}
+
+// String 实现flag.Value接口, 返回当前值的字符串表示
+func (f *SliceFlag) String() string {
+	f.mu.Lock()
+	defer f.mu.Unlock()
+	return strings.Join(*f.value, ",")
 }

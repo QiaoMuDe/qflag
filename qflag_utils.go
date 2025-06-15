@@ -3,6 +3,7 @@ package qflag
 import (
 	"fmt"
 	"sort"
+	"strings"
 )
 
 // bindHelpFlagAndShowInstallPathFlag 绑定-h/--help标志到显示帮助信息的逻辑
@@ -154,18 +155,70 @@ func (c *Cmd) printUsage() {
 }
 
 // hasCycle 检测命令间是否存在循环引用
-// parent: 当前命令
-// child: 待添加的子命令
-// 返回值: 如果存在循环引用则返回true
+// 采用深度优先搜索(DFS)算法，通过访问标记避免重复检测
+// 参数:
+//
+//	parent: 当前命令
+//	child: 待添加的子命令
+//
+// 返回值:
+//
+//	如果存在循环引用则返回true
 func hasCycle(parent, child *Cmd) bool {
-	current := parent
-	for current != nil {
-		if current == child {
+	if parent == nil || child == nil {
+		return false
+	}
+
+	visited := make(map[*Cmd]bool)
+	return dfs(parent, child, visited)
+}
+
+// dfs 深度优先搜索检测循环引用
+func dfs(target, current *Cmd, visited map[*Cmd]bool) bool {
+	// 如果已访问过当前节点，直接返回避免无限循环
+	if visited[current] {
+		return false
+	}
+	visited[current] = true
+
+	// 找到目标节点，存在循环引用
+	if current == target {
+		return true
+	}
+
+	// 递归检查所有子命令
+	for _, subCmd := range current.subCmds {
+		if dfs(target, subCmd, visited) {
 			return true
 		}
-		current = current.parentCmd
 	}
+
+	// 检查父命令链
+	if current.parentCmd != nil {
+		return dfs(target, current.parentCmd, visited)
+	}
+
 	return false
+}
+
+// joinErrors 将错误切片合并为单个错误
+func joinErrors(errors []error) error {
+	if len(errors) == 0 {
+		return nil
+	}
+	if len(errors) == 1 {
+		return errors[0]
+	}
+
+	// 构建错误信息
+	var b strings.Builder
+	b.WriteString(fmt.Sprintf("A total of %d errors:\n", len(errors)))
+	for i, err := range errors {
+		b.WriteString(fmt.Sprintf("  %d. %v\n", i+1, err))
+	}
+
+	// 使用常量格式字符串，将错误信息作为参数传入
+	return fmt.Errorf("Merged error message:\n%s", b.String())
 }
 
 // getFullCommandPath 递归构建完整的命令路径，从根命令到当前命令
@@ -174,4 +227,36 @@ func getFullCommandPath(cmd *Cmd) string {
 		return cmd.fs.Name()
 	}
 	return getFullCommandPath(cmd.parentCmd) + " " + cmd.fs.Name()
+}
+
+// validateFlag 通用标志验证逻辑
+func (c *Cmd) validateFlag(name, shortName string) {
+	// 新增格式校验
+	if strings.ContainsAny(name, invalidFlagChars) {
+		panic(fmt.Sprintf("The flag name '%s' contains illegal characters", name))
+	}
+
+	// 检查标志名称和短名称是否为空
+	if name == "" {
+		panic("Flag name cannot be empty")
+	}
+	if shortName == "" {
+		panic("Flag short name cannot be empty")
+	}
+
+	// 检查标志是否已存在
+	if c.FlagExists(name) {
+		panic(fmt.Sprintf("Flag name %s already exists", name))
+	}
+	if c.FlagExists(shortName) {
+		panic(fmt.Sprintf("Flag short name %s already exists", shortName))
+	}
+
+	// 检查标志是否为内置标志
+	if _, ok := c.builtinFlagNameMap.Load(name); ok {
+		panic(fmt.Sprintf("Flag name %s is reserved", name))
+	}
+	if _, ok := c.builtinFlagNameMap.Load(shortName); ok {
+		panic(fmt.Sprintf("Flag short name %s is reserved", shortName))
+	}
 }

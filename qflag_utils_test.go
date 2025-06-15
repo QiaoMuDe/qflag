@@ -35,17 +35,17 @@ func TestPrintUsage(t *testing.T) {
 	}
 
 	// 测试自动生成的用法信息
-	cmd2 := NewCmd("test2", "", flag.ExitOnError)
+	cmd2 := NewCmd("test2", "t2", flag.ExitOnError)
 	cmd2.SetDescription("Test description")
 	cmd2.Bool("verbose", "v", false, "verbose output")
-	cmd2.Int("count", "", 0, "number of times to repeat")
+	cmd2.Int("count", "cc", 0, "number of times to repeat")
 	if testing.Verbose() {
 		cmd2.PrintUsage()
 	}
 
 	// 测试带子命令的用法信息
-	cmd3 := NewCmd("parent", "", flag.ExitOnError)
-	subCmd := NewCmd("child", "", flag.ExitOnError)
+	cmd3 := NewCmd("parent", "0t", flag.ExitOnError)
+	subCmd := NewCmd("child", "xd", flag.ExitOnError)
 	if err := cmd3.AddSubCmd(subCmd); err != nil {
 		t.Errorf("AddSubCmd error: %v", err)
 	}
@@ -56,10 +56,10 @@ func TestPrintUsage(t *testing.T) {
 
 // TestHasCycle 测试检测循环引用
 func TestHasCycle(t *testing.T) {
-	cmd1 := NewCmd("cmd1", "", flag.ExitOnError)
-	cmd2 := NewCmd("cmd2", "", flag.ExitOnError)
-	cmd3 := NewCmd("cmd3", "", flag.ExitOnError)
-	cmd4 := NewCmd("cmd4", "", flag.ExitOnError)
+	cmd1 := NewCmd("cmd1", "c1", flag.ExitOnError)
+	cmd2 := NewCmd("cmd2", "c2", flag.ExitOnError)
+	cmd3 := NewCmd("cmd3", "c3", flag.ExitOnError)
+	cmd4 := NewCmd("cmd4", "c4", flag.ExitOnError)
 
 	// 无循环情况
 	if hasCycle(cmd1, cmd2) {
@@ -94,15 +94,15 @@ func TestHasCycle(t *testing.T) {
 // 测试嵌套子命令的帮助信息生成
 func TestNestedCmdHelp(t *testing.T) {
 	// 创建三级嵌套命令结构
-	cmd1 := NewCmd("cmd1", "", flag.ExitOnError)
+	cmd1 := NewCmd("cmd1", "c1", flag.ExitOnError)
 	cmd1.SetDescription("一级命令描述")
 	cmd1.String("config", "c", "config.json", "配置文件路径")
 
-	cmd2 := NewCmd("cmd2", "", flag.ExitOnError)
+	cmd2 := NewCmd("cmd2", "c2", flag.ExitOnError)
 	cmd2.SetDescription("二级命令描述")
 	cmd2.Int("port", "p", 8080, "服务端口号")
 
-	cmd3 := NewCmd("cmd3", "", flag.ExitOnError)
+	cmd3 := NewCmd("cmd3", "c3", flag.ExitOnError)
 	cmd3.SetDescription("三级命令描述")
 	cmd3.Bool("verbose", "v", false, "详细输出模式")
 

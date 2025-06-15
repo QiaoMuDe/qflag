@@ -78,6 +78,16 @@ func FloatVar(p *float64, name, shortName string, defValue float64, usage string
 	QCommandLine.FloatVar(p, name, shortName, defValue, usage)
 }
 
+// Slice 定义一个字符串切片类型的全局标志
+func Slice(name, shortName string, defValue []string, usage string) *SliceFlag {
+	return QCommandLine.Slice(name, shortName, defValue, usage)
+}
+
+// SliceVar 将字符串切片类型标志绑定到变量
+func SliceVar(p *[]string, name, shortName string, defValue []string, usage string) {
+	QCommandLine.SliceVar(p, name, shortName, defValue, usage)
+}
+
 // Parse 解析命令行参数, 自动检查长短标志互斥, 并处理帮助标志 (全局默认命令)
 // 该方法会自动处理以下情况:
 // 1. 长短标志互斥检查
@@ -148,6 +158,7 @@ func NewCmd(name string, shortName string, errorHandling flag.ErrorHandling) *Cm
 		errorHandling = flag.ContinueOnError
 	}
 
+	// 创建新的Cmd实例
 	cmd := &Cmd{
 		fs:                           flag.NewFlagSet(name, errorHandling), // 创建新的flag集
 		shortToLong:                  sync.Map{},                           // 存储长短标志的映射关系
@@ -172,41 +183,63 @@ func NewCmd(name string, shortName string, errorHandling flag.ErrorHandling) *Cm
 }
 
 // AddSubCmd 关联一个或多个子命令到当前命令
+// 支持批量添加多个子命令，遇到错误时收集所有错误并返回
 // 参数:
-// subCmds: 子命令的切片
-// 返回值: 错误信息, 如果检测到循环引用或nil子命令
+//
+//	subCmds: 子命令的切片
+//
+// 返回值:
+//
+//	错误信息列表，如果所有子命令添加成功则返回nil
 func (c *Cmd) AddSubCmd(subCmds ...*Cmd) error {
 	c.addMu.Lock()
 	defer c.addMu.Unlock()
 
-	// 检查子命令是否为空或nil
+	// 检查子命令是否为空
 	if len(subCmds) == 0 {
-		return fmt.Errorf("没有可添加的子命令")
+		return fmt.Errorf("subcommand list cannot be empty")
 	}
 
-	// 合并处理：设置父命令指针并添加到子命令列表
+	var errors []error
+	addedCmds := make([]*Cmd, 0, len(subCmds))
+
+	// 第一阶段：验证所有子命令
 	for _, cmd := range subCmds {
 		if cmd == nil {
-			return fmt.Errorf("子命令不能为nil")
+			errors = append(errors, fmt.Errorf("Subcommand cannot be nil"))
+			continue
 		}
 
 		// 检测循环引用
 		if hasCycle(c, cmd) {
-			return fmt.Errorf("检测到循环引用: 命令 %s 已存在于父命令链中", cmd.name)
+			errors = append(errors, fmt.Errorf("Cyclic reference detected: Command %s already exists in the command chain", cmd.name))
+			continue
 		}
 
+		addedCmds = append(addedCmds, cmd)
+	}
+
+	// 如果有验证错误，返回所有错误信息
+	if len(errors) > 0 {
+		return fmt.Errorf("Failed to add subcommands: %w", joinErrors(errors))
+	}
+
+	// 第二阶段：批量添加子命令
+	for _, cmd := range addedCmds {
 		cmd.parentCmd = c                  // 设置父命令指针
 		c.subCmds = append(c.subCmds, cmd) // 添加到子命令列表
 	}
+
 	return nil
 }
 
-// Parse 解析命令行参数, 自动检查长短标志互斥, 并处理帮助标志
-// 该方法会自动处理以下情况:
-// 1. 长短标志互斥检查
-// 2. -h/--help 帮助标志处理
-// 3. -sip/--show-install-path 安装路径标志处理
-// 4. 子命令自动检测和参数传递(当第一个非标志参数匹配子命令名称时)
+// Parse 解析命令行参数, 自动检查长短标志, 并处理帮助标志
+// 工作流程:
+//  1. 调用flag库解析参数
+//  2. 处理内置标志(-h/--help和-sip/--show-install-path)
+//  3. 检测并处理子命令:当第一个非标志参数匹配子命令名称时,
+//     将剩余参数传递给子命令解析
+//
 // 注意: 该方法保证每个Cmd实例只会解析一次
 func (c *Cmd) Parse(args []string) error {
 	var err error
@@ -215,7 +248,7 @@ func (c *Cmd) Parse(args []string) error {
 	c.parseOnce.Do(func() {
 		// 1调用flag库解析参数
 		if parseErr := c.fs.Parse(args); parseErr != nil {
-			err = fmt.Errorf("Parameter parsing error: %v", parseErr)
+			err = fmt.Errorf("Parameter parsing error: %w", parseErr)
 			return
 		}
 
@@ -264,34 +297,12 @@ func (c *Cmd) Parse(args []string) error {
 
 // String 添加字符串类型标志, 返回标志对象,参数依次为长标志名、短标志、默认值、帮助说明
 func (c *Cmd) String(name, shortName, defValue, usage string) *StringFlag {
-	// 检查长选项是否为空
-	if name == "" {
-		panic("Flag name cannot be empty")
-	}
+	// 参数校验（复用公共函数）
+	c.validateFlag(name, shortName)
 
-	// 检查短选项是否为空
-	if shortName == "" {
-		panic("Flag short name cannot be empty")
-	}
+	// 显式初始化默认值，提高可读性
+	value := defValue
 
-	// 检查标志是否已存在
-	if name != "" && c.FlagExists(name) {
-		panic(fmt.Sprintf("Flag name %s already exists", name))
-	}
-	if shortName != "" && c.FlagExists(shortName) {
-		panic(fmt.Sprintf("Flag short name %s already exists", shortName))
-	}
-
-	// 指定的标志是否为保留标志
-	if _, ok := c.builtinFlagNameMap.Load(name); ok {
-		panic(fmt.Sprintf("Flag name %s is reserved", name))
-	}
-	if _, ok := c.builtinFlagNameMap.Load(shortName); ok {
-		panic(fmt.Sprintf("Flag short name %s is reserved", shortName))
-	}
-
-	var value string
-	c.fs.StringVar(&value, name, defValue, usage) // 绑定长标志到变量
 	f := &StringFlag{
 		cmd:       c,         // 命令对象
 		name:      name,      // 长标志名
@@ -301,12 +312,10 @@ func (c *Cmd) String(name, shortName, defValue, usage string) *StringFlag {
 		value:     &value,    // 标志对象
 	}
 
-	// 绑定短标志并跳过帮助标志
-	if shortName != "" {
-		c.shortToLong.Store(shortName, name)               // 存储短到长的映射关系
-		c.longToShort.Store(name, shortName)               // 存储长到短的映射关系
-		c.fs.StringVar(&value, shortName, defValue, usage) // 绑定短标志到同一个变量
-	}
+	c.shortToLong.Store(shortName, name)               // 存储短到长的映射关系
+	c.longToShort.Store(name, shortName)               // 存储长到短的映射关系
+	c.fs.StringVar(&value, shortName, defValue, usage) // 绑定短标志到同一个变量
+	c.fs.StringVar(&value, name, defValue, usage)      // 绑定长标志到变量
 
 	// 注册Flag对象
 	c.flagRegistry[&value] = f
@@ -317,33 +326,18 @@ func (c *Cmd) String(name, shortName, defValue, usage string) *StringFlag {
 // StringVar 绑定字符串类型标志到指针并内部注册Flag对象
 // 参数依次为: 指针、长标志名、短标志、默认值、帮助说明
 func (c *Cmd) StringVar(p *string, name, shortName, defValue, usage string) {
-	// 检查长选项是否为空
-	if name == "" {
-		panic("Flag name cannot be empty")
+	// 检查指针是否为nil
+	if p == nil {
+		panic("StringVar pointer cannot be nil")
 	}
 
-	// 检查短选项是否为空
-	if shortName == "" {
-		panic("Flag short name cannot be empty")
-	}
+	// 参数校验（复用公共函数）
+	c.validateFlag(name, shortName)
 
-	// 检查标志是否已存在
-	if name != "" && c.FlagExists(name) {
-		panic(fmt.Sprintf("Flag name %s already exists", name))
-	}
-	if shortName != "" && c.FlagExists(shortName) {
-		panic(fmt.Sprintf("Flag short name %s already exists", shortName))
-	}
+	// 显式初始化默认值到用户指针
+	*p = defValue
 
-	// 指定的标志是否为保留标志
-	if _, ok := c.builtinFlagNameMap.Load(name); ok {
-		panic(fmt.Sprintf("Flag name %s is reserved", name))
-	}
-	if _, ok := c.builtinFlagNameMap.Load(shortName); ok {
-		panic(fmt.Sprintf("Flag short name %s is reserved", shortName))
-	}
-
-	c.fs.StringVar(p, name, defValue, usage) // 绑定长标志
+	// 创建StringFlag对象
 	f := &StringFlag{
 		cmd:       c,         // 命令对象
 		name:      name,      // 长标志名
@@ -353,11 +347,10 @@ func (c *Cmd) StringVar(p *string, name, shortName, defValue, usage string) {
 		value:     p,         // 标志对象
 	}
 
-	if shortName != "" {
-		c.shortToLong.Store(shortName, name)          // 存储短到长的映射关系
-		c.longToShort.Store(name, shortName)          // 存储长到短的映射关系
-		c.fs.StringVar(p, shortName, defValue, usage) // 绑定短标志
-	}
+	c.shortToLong.Store(shortName, name)          // 存储短到长的映射关系
+	c.longToShort.Store(name, shortName)          // 存储长到短的映射关系
+	c.fs.StringVar(p, shortName, defValue, usage) // 绑定短标志
+	c.fs.StringVar(p, name, defValue, usage)      // 绑定长标志
 
 	// 注册Flag对象
 	c.flagRegistry[p] = f
@@ -366,33 +359,17 @@ func (c *Cmd) StringVar(p *string, name, shortName, defValue, usage string) {
 // IntVar 绑定整数类型标志到指针并内部注册Flag对象
 // 参数依次为: 指针、长标志名、短标志、默认值、帮助说明
 func (c *Cmd) IntVar(p *int, name, shortName string, defValue int, usage string) {
-	// 检查长选项是否为空
-	if name == "" {
-		panic("Flag name cannot be empty")
+	// 检查指针是否为nil
+	if p == nil {
+		panic("IntVar pointer cannot be nil")
 	}
 
-	// 检查短选项是否为空
-	if shortName == "" {
-		panic("Flag short name cannot be empty")
-	}
+	// 参数校验（复用公共函数）
+	c.validateFlag(name, shortName)
 
-	// 检查标志是否已存在
-	if name != "" && c.FlagExists(name) {
-		panic(fmt.Sprintf("Flag name %s already exists", name))
-	}
-	if shortName != "" && c.FlagExists(shortName) {
-		panic(fmt.Sprintf("Flag short name %s already exists", shortName))
-	}
+	// 显式初始化默认值到用户指针
+	*p = defValue
 
-	// 指定的标志是否为保留标志
-	if _, ok := c.builtinFlagNameMap.Load(name); ok {
-		panic(fmt.Sprintf("Flag name %s is reserved", name))
-	}
-	if _, ok := c.builtinFlagNameMap.Load(shortName); ok {
-		panic(fmt.Sprintf("Flag short name %s is reserved", shortName))
-	}
-
-	c.fs.IntVar(p, name, defValue, usage) // 绑定长标志
 	f := &IntFlag{
 		cmd:       c,         // 命令对象
 		name:      name,      // 长标志名
@@ -402,11 +379,10 @@ func (c *Cmd) IntVar(p *int, name, shortName string, defValue int, usage string)
 		value:     p,         // 标志对象
 	}
 
-	if shortName != "" {
-		c.shortToLong.Store(shortName, name)       // 存储短到长的映射关系
-		c.longToShort.Store(name, shortName)       // 存储长到短的映射关系
-		c.fs.IntVar(p, shortName, defValue, usage) // 绑定短标志
-	}
+	c.shortToLong.Store(shortName, name)       // 存储短到长的映射关系
+	c.longToShort.Store(name, shortName)       // 存储长到短的映射关系
+	c.fs.IntVar(p, shortName, defValue, usage) // 绑定短标志
+	c.fs.IntVar(p, name, defValue, usage)      // 绑定长标志
 
 	// 注册Flag对象
 	c.flagRegistry[p] = f
@@ -414,33 +390,13 @@ func (c *Cmd) IntVar(p *int, name, shortName string, defValue int, usage string)
 
 // Int 添加整数类型标志, 返回标志对象。参数依次为长标志名、短标志、默认值、帮助说明
 func (c *Cmd) Int(name, shortName string, defValue int, usage string) *IntFlag {
-	// 检查长选项是否为空
-	if name == "" {
-		panic("Flag name cannot be empty")
-	}
+	// 参数校验（复用公共函数）
+	c.validateFlag(name, shortName)
 
-	// 检查短选项是否为空
-	if shortName == "" {
-		panic("Flag short name cannot be empty")
-	}
+	// 显式初始化默认值，提高可读性
+	value := defValue
 
-	// 检查标志是否已存在
-	if name != "" && c.FlagExists(name) {
-		panic(fmt.Sprintf("Flag name %s already exists", name))
-	}
-	if shortName != "" && c.FlagExists(shortName) {
-		panic(fmt.Sprintf("Flag short name %s already exists", shortName))
-	}
-	// 指定的标志是否为保留标志
-	if _, ok := c.builtinFlagNameMap.Load(name); ok {
-		panic(fmt.Sprintf("Flag name %s is reserved", name))
-	}
-	if _, ok := c.builtinFlagNameMap.Load(shortName); ok {
-		panic(fmt.Sprintf("Flag short name %s is reserved", shortName))
-	}
-
-	var value int
-	c.fs.IntVar(&value, name, defValue, usage) // 绑定长标志到变量
+	// 创建IntFlag对象
 	f := &IntFlag{
 		cmd:       c,         // 命令对象
 		name:      name,      // 长标志名
@@ -449,12 +405,11 @@ func (c *Cmd) Int(name, shortName string, defValue int, usage string) *IntFlag {
 		usage:     usage,     // 帮助说明
 		value:     &value,    // 标志对象
 	}
-	// 非帮助标志才记录映射（避免覆盖帮助标志）
-	if shortName != "" {
-		c.shortToLong.Store(shortName, name)            // 存储短到长的映射关系
-		c.longToShort.Store(name, shortName)            // 存储长到短的映射关系
-		c.fs.IntVar(&value, shortName, defValue, usage) // 绑定短标志到同一个变量
-	}
+
+	c.shortToLong.Store(shortName, name)            // 存储短到长的映射关系
+	c.longToShort.Store(name, shortName)            // 存储长到短的映射关系
+	c.fs.IntVar(&value, shortName, defValue, usage) // 绑定短标志到同一个变量
+	c.fs.IntVar(&value, name, defValue, usage)      // 绑定长标志到变量
 
 	// 注册Flag对象
 	c.flagRegistry[&value] = f
@@ -465,33 +420,17 @@ func (c *Cmd) Int(name, shortName string, defValue int, usage string) *IntFlag {
 // BoolVar 绑定布尔类型标志到指针并内部注册Flag对象
 // 参数依次为: 指针、长标志名、短标志、默认值、帮助说明
 func (c *Cmd) BoolVar(p *bool, name, shortName string, defValue bool, usage string) {
-	// 检查长选项是否为空
-	if name == "" {
-		panic("Flag name cannot be empty")
+	// 检查指针是否为nil
+	if p == nil {
+		panic("BoolVar pointer cannot be nil")
 	}
 
-	// 检查短选项是否为空
-	if shortName == "" {
-		panic("Flag short name cannot be empty")
-	}
+	// 参数校验（复用公共函数）
+	c.validateFlag(name, shortName)
 
-	// 检查标志是否已存在
-	if name != "" && c.FlagExists(name) {
-		panic(fmt.Sprintf("Flag name %s already exists", name))
-	}
-	if shortName != "" && c.FlagExists(shortName) {
-		panic(fmt.Sprintf("Flag short name %s already exists", shortName))
-	}
+	// 显式初始化默认值到用户指针
+	*p = defValue
 
-	// 指定的标志是否为保留标志
-	if _, ok := c.builtinFlagNameMap.Load(name); ok {
-		panic(fmt.Sprintf("Flag name %s is reserved", name))
-	}
-	if _, ok := c.builtinFlagNameMap.Load(shortName); ok {
-		panic(fmt.Sprintf("Flag short name %s is reserved", shortName))
-	}
-
-	c.fs.BoolVar(p, name, defValue, usage) // 绑定长标志
 	f := &BoolFlag{
 		cmd:       c,         // 命令对象
 		name:      name,      // 长标志名
@@ -501,11 +440,10 @@ func (c *Cmd) BoolVar(p *bool, name, shortName string, defValue bool, usage stri
 		value:     p,         // 标志对象
 	}
 
-	if shortName != "" {
-		c.shortToLong.Store(shortName, name)        // 存储短到长的映射关系
-		c.longToShort.Store(name, shortName)        // 存储长到短的映射关系
-		c.fs.BoolVar(p, shortName, defValue, usage) // 绑定短标志
-	}
+	c.shortToLong.Store(shortName, name)        // 存储短到长的映射关系
+	c.longToShort.Store(name, shortName)        // 存储长到短的映射关系
+	c.fs.BoolVar(p, shortName, defValue, usage) // 绑定短标志
+	c.fs.BoolVar(p, name, defValue, usage)      // 绑定长标志
 
 	// 注册Flag对象
 	c.flagRegistry[p] = f
@@ -513,47 +451,26 @@ func (c *Cmd) BoolVar(p *bool, name, shortName string, defValue bool, usage stri
 
 // Bool 添加布尔类型标志, 返回标志对象。参数依次为长标志名、短标志、默认值、帮助说明
 func (c *Cmd) Bool(name, shortName string, defValue bool, usage string) *BoolFlag {
-	// 检查长选项是否为空
-	if name == "" {
-		panic("Flag name cannot be empty")
-	}
+	// 参数校验（复用公共函数）
+	c.validateFlag(name, shortName)
 
-	// 检查短选项是否为空
-	if shortName == "" {
-		panic("Flag short name cannot be empty")
-	}
+	// 显式初始化默认值，提高可读性
+	value := defValue
 
-	// 检查标志是否已存在
-	if name != "" && c.FlagExists(name) {
-		panic(fmt.Sprintf("Flag name %s already exists", name))
-	}
-	if shortName != "" && c.FlagExists(shortName) {
-		panic(fmt.Sprintf("Flag short name %s already exists", shortName))
-	}
-
-	// 指定的标志是否为保留标志
-	if _, ok := c.builtinFlagNameMap.Load(name); ok {
-		panic(fmt.Sprintf("Flag name %s is reserved", name))
-	}
-	if _, ok := c.builtinFlagNameMap.Load(shortName); ok {
-		panic(fmt.Sprintf("Flag short name %s is reserved", shortName))
-	}
-
-	var value bool
-	c.fs.BoolVar(&value, name, defValue, usage) // 绑定长标志到变量
+	// 创建标志对象
 	f := &BoolFlag{
 		cmd:       c,         // 命令对象
 		name:      name,      // 长标志名
 		shortName: shortName, // 短标志名
 		defValue:  defValue,  // 默认值
 		usage:     usage,     // 帮助说明
-		value:     &value,    // 标志对象
+		value:     &value,    // 标志对象, 指针通过flagRegistry长期持有
 	}
-	if shortName != "" {
-		c.shortToLong.Store(shortName, name)             // 存储短到长的映射关系
-		c.longToShort.Store(name, shortName)             // 存储长到短的映射关系
-		c.fs.BoolVar(&value, shortName, defValue, usage) // 绑定短标志到同一个变量
-	}
+
+	c.shortToLong.Store(shortName, name)             // 存储短到长的映射关系
+	c.longToShort.Store(name, shortName)             // 存储长到短的映射关系
+	c.fs.BoolVar(&value, name, defValue, usage)      // 绑定长标志到变量
+	c.fs.BoolVar(&value, shortName, defValue, usage) // 绑定短标志到同一个变量
 
 	// 注册Flag对象
 	c.flagRegistry[&value] = f
@@ -562,48 +479,27 @@ func (c *Cmd) Bool(name, shortName string, defValue bool, usage string) *BoolFla
 
 // Float 添加浮点型标志, 返回标志对象。参数依次为长标志名、短标志、默认值、帮助说明
 func (c *Cmd) Float(name, shortName string, defValue float64, usage string) *FloatFlag {
-	// 检查长选项是否为空
-	if name == "" {
-		panic("Flag name cannot be empty")
-	}
+	// 参数校验（复用公共函数）
+	c.validateFlag(name, shortName)
 
-	// 检查短选项是否为空
-	if shortName == "" {
-		panic("Flag short name cannot be empty")
-	}
+	// 显式初始化默认值
+	value := new(float64) // 显式堆分配
+	*value = defValue
 
-	// 检查标志是否已存在
-	if name != "" && c.FlagExists(name) {
-		panic(fmt.Sprintf("Flag name %s already exists", name))
-	}
-	if shortName != "" && c.FlagExists(shortName) {
-		panic(fmt.Sprintf("Flag short name %s already exists", shortName))
-	}
-
-	// 指定的标志是否为保留标志
-	if _, ok := c.builtinFlagNameMap.Load(name); ok {
-		panic(fmt.Sprintf("Flag name %s is reserved", name))
-	}
-	if _, ok := c.builtinFlagNameMap.Load(shortName); ok {
-		panic(fmt.Sprintf("Flag short name %s is reserved", shortName))
-	}
-
-	var value float64
-	c.fs.Float64Var(&value, name, defValue, usage) // 绑定长标志到变量
+	// 创建标志对象
 	f := &FloatFlag{
 		cmd:       c,         // 命令对象
 		name:      name,      // 长标志名
 		shortName: shortName, // 短标志名
 		defValue:  defValue,  // 默认值
 		usage:     usage,     // 帮助说明
-		value:     &value,    // 标志对象
+		value:     value,     // 标志对象
 	}
-	// 非帮助标志才记录映射（避免覆盖帮助标志）
-	if shortName != "" {
-		c.shortToLong.Store(shortName, name)                // 存储短到长的映射关系
-		c.longToShort.Store(name, shortName)                // 存储长到短的映射关系
-		c.fs.Float64Var(&value, shortName, defValue, usage) // 绑定短标志到同一个变量
-	}
+
+	c.shortToLong.Store(shortName, name)               // 存储短到长的映射关系
+	c.longToShort.Store(name, shortName)               // 存储长到短的映射关系
+	c.fs.Float64Var(value, shortName, defValue, usage) // 绑定短标志到同一个变量
+	c.fs.Float64Var(value, name, defValue, usage)      // 绑定长标志到变量
 
 	// 注册Flag对象
 	c.flagRegistry[&value] = f
@@ -613,33 +509,18 @@ func (c *Cmd) Float(name, shortName string, defValue float64, usage string) *Flo
 // FloatVar 绑定浮点型标志到指针并内部注册Flag对象
 // 参数依次为: 指针、长标志名、短标志、默认值、帮助说明
 func (c *Cmd) FloatVar(p *float64, name, shortName string, defValue float64, usage string) {
-	// 检查长选项是否为空
-	if name == "" {
-		panic("Flag name cannot be empty")
+	// 检查指针是否为空
+	if p == nil {
+		panic("pointer p must not be nil")
 	}
 
-	// 检查短选项是否为空
-	if shortName == "" {
-		panic("Flag short name cannot be empty")
-	}
+	// 参数校验（复用公共函数）
+	c.validateFlag(name, shortName)
 
-	// 检查标志是否已存在
-	if name != "" && c.FlagExists(name) {
-		panic(fmt.Sprintf("Flag name %s already exists", name))
-	}
-	if shortName != "" && c.FlagExists(shortName) {
-		panic(fmt.Sprintf("Flag short name %s already exists", shortName))
-	}
+	// 显式设置默认值
+	*p = defValue
 
-	// 指定的标志是否为保留标志
-	if _, ok := c.builtinFlagNameMap.Load(name); ok {
-		panic(fmt.Sprintf("Flag name %s is reserved", name))
-	}
-	if _, ok := c.builtinFlagNameMap.Load(shortName); ok {
-		panic(fmt.Sprintf("Flag short name %s is reserved", shortName))
-	}
-
-	c.fs.Float64Var(p, name, defValue, usage) // 绑定长标志
+	// 创建标志对象
 	f := &FloatFlag{
 		cmd:       c,         // 命令对象
 		name:      name,      // 长标志名
@@ -649,11 +530,10 @@ func (c *Cmd) FloatVar(p *float64, name, shortName string, defValue float64, usa
 		value:     p,         // 标志对象
 	}
 
-	if shortName != "" {
-		c.shortToLong.Store(shortName, name)           // 存储短到长的映射关系
-		c.longToShort.Store(name, shortName)           // 存储长到短的映射关系
-		c.fs.Float64Var(p, shortName, defValue, usage) // 绑定短标志
-	}
+	c.shortToLong.Store(shortName, name)           // 存储短到长的映射关系
+	c.longToShort.Store(name, shortName)           // 存储长到短的映射关系
+	c.fs.Float64Var(p, shortName, defValue, usage) // 绑定短标志
+	c.fs.Float64Var(p, name, defValue, usage)      // 绑定长标志
 
 	// 注册Flag对象
 	c.flagRegistry[p] = f
@@ -676,4 +556,74 @@ func GetExecutablePath() string {
 		return exePath
 	}
 	return absPath
+}
+
+// Slice 为命令添加字符串切片类型标志, 返回标志对象。参数依次为: 长标志名、短标志、默认值切片、帮助说明
+func (c *Cmd) Slice(name, shortName string, defValue []string, usage string) *SliceFlag {
+	// 参数校验（复用公共函数）
+	c.validateFlag(name, shortName)
+
+	// 初始化默认值
+	if defValue == nil {
+		defValue = make([]string, 0)
+	}
+
+	// 初始化默认值（修复当前实现的空切片问题）
+	p := make([]string, len(defValue))
+	copy(p, defValue) // 创建一个副本
+
+	// 创建标志对象
+	f := &SliceFlag{
+		cmd:       c,         // 命令对象
+		name:      name,      // 长标志名
+		shortName: shortName, // 短标志名
+		defValue:  defValue,  // 默认值
+		usage:     usage,     // 帮助说明
+		value:     &p,        // 标志对象
+	}
+
+	c.shortToLong.Store(shortName, name) // 存储短到长的映射关系
+	c.longToShort.Store(name, shortName) // 存储长到短的映射关系
+	c.fs.Var(f, name, usage)             // 绑定长标志
+	c.fs.Var(f, shortName, usage)        // 绑定短标志
+
+	// 注册Flag对象
+	c.flagRegistry[&p] = f
+
+	return f
+}
+
+// SliceVar 为命令添加字符串切片类型标志, 返回标志对象。参数依次为: 指针切片、长标志名、短标志、默认值切片、帮助说明
+func (c *Cmd) SliceVar(p *[]string, name, shortName string, defValue []string, usage string) {
+	// 参数校验（复用公共函数）
+	c.validateFlag(name, shortName)
+
+	// 初始化默认值（修复当前实现的空切片问题）
+	if defValue == nil {
+		defValue = make([]string, 0)
+	}
+
+	// 在创建SliceFlag前添加默认值初始化
+	if *p == nil {
+		*p = make([]string, 0, len(defValue))
+		copy(*p, defValue)
+	}
+
+	// 创建SliceFlag
+	f := &SliceFlag{
+		cmd:       c,         // 命令对象
+		name:      name,      // 长标志名
+		shortName: shortName, // 短标志名
+		defValue:  defValue,  // 默认值
+		usage:     usage,     // 帮助说明
+		value:     p,         // 标志对象
+	}
+
+	c.shortToLong.Store(shortName, name) // 存储短到长的映射关系
+	c.longToShort.Store(name, shortName) // 存储长到短的映射关系
+	c.fs.Var(f, name, usage)             // 绑定长标志
+	c.fs.Var(f, shortName, usage)        // 绑定短标志
+
+	// 注册Flag对象
+	c.flagRegistry[p] = f
 }

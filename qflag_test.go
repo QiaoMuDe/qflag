@@ -29,7 +29,7 @@ func TestStringFlagLong(t *testing.T) {
 	usage := "test string flag"
 
 	// 测试String方法(仅长标志)
-	f := cmd.String(flagName, "", defValue, usage)
+	f := cmd.String(flagName, "sf", defValue, usage)
 	if f == nil {
 		t.Error("String() returned nil")
 	}
@@ -72,7 +72,7 @@ func TestStringFlagShort(t *testing.T) {
 	usage := "test string flag"
 
 	// 测试String方法(仅短标志)
-	f := cmd.String("", shortName, defValue, usage)
+	f := cmd.String("sf", shortName, defValue, usage)
 	if f == nil {
 		t.Error("String() returned nil")
 	}
@@ -115,7 +115,7 @@ func TestIntFlagLong(t *testing.T) {
 	usage := "test int flag"
 
 	// 测试Int方法(仅长标志)
-	f := cmd.Int(flagName, "", defValue, usage)
+	f := cmd.Int(flagName, "if", defValue, usage)
 	if f == nil {
 		t.Error("Int() returned nil")
 	}
@@ -158,7 +158,7 @@ func TestIntFlagShort(t *testing.T) {
 	usage := "test int flag"
 
 	// 测试Int方法(仅短标志)
-	f := cmd.Int("", shortName, defValue, usage)
+	f := cmd.Int("ci", shortName, defValue, usage)
 	if f == nil {
 		t.Error("Int() returned nil")
 	}
@@ -201,7 +201,7 @@ func TestBoolFlagLong(t *testing.T) {
 	usage := "test bool flag"
 
 	// 测试Bool方法(仅长标志)
-	f := cmd.Bool(flagName, "", defValue, usage)
+	f := cmd.Bool(flagName, "bl", defValue, usage)
 	if f == nil {
 		t.Error("Bool() returned nil")
 	}
@@ -244,7 +244,7 @@ func TestBoolFlagShort(t *testing.T) {
 	usage := "test bool flag"
 
 	// 测试Bool方法(仅短标志)
-	f := cmd.Bool("", shortName, defValue, usage)
+	f := cmd.Bool("ct", shortName, defValue, usage)
 	if f == nil {
 		t.Error("Bool() returned nil")
 	}
@@ -287,7 +287,7 @@ func TestFloatFlagLong(t *testing.T) {
 	usage := "test float flag"
 
 	// 测试Float方法(仅长标志)
-	f := cmd.Float(flagName, "", defValue, usage)
+	f := cmd.Float(flagName, "ff", defValue, usage)
 	if f == nil {
 		t.Error("Float() returned nil")
 	}
@@ -330,7 +330,7 @@ func TestFloatFlagShort(t *testing.T) {
 	usage := "test float flag"
 
 	// 测试Float方法(仅短标志)
-	f := cmd.Float("", shortName, defValue, usage)
+	f := cmd.Float("cf", shortName, defValue, usage)
 	if f == nil {
 		t.Error("Float() returned nil")
 	}
