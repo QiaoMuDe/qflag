@@ -14,7 +14,8 @@ go get gitee.com/MM-Q/qflag
 
 ## 特性
 
-- 支持长短标志自动互斥
+- 支持长标志和短标志绑定
+- 自动生成主命令及其子命令的帮助信息
 - 默认绑定-h/--help标志，自动生成帮助信息
 - 支持字符串、整数、布尔等多种标志类型
 - 支持子命令功能
@@ -62,40 +63,46 @@ package main
 import (
 	"flag"
 	"fmt"
-	"gitee.com/MM-Q/qflag"
 	"os"
+
+	"gitee.com/MM-Q/qflag"
 )
 
 func main() {
-	// 使用全局实例创建主命令
-	qflag.QCommandLine.Description = "主命令"
+	// 定义一个启动app的Bool型标志
+	runF := qflag.Bool("run", "r", false, "运行app")
+	nameF := qflag.String("name", "n", "", "指定app名称")
+	pathF := qflag.String("path", "p", qflag.GetExecutablePath(), "指定app路径")
 
-	// 创建子命令
-	subCmd := qflag.NewCmd("sub", "s", flag.ExitOnError)
-	subCmd.Description = "子命令"
-	subCmd.String("config", "c", "config.json", "配置文件路径")
+	// 定义子命令
+	stopCmd := qflag.NewCmd("stop", "st", flag.ExitOnError)
+	stopF := stopCmd.Bool("stop", "s", false, "停止app")
+	stopCmdName := stopCmd.String("name", "n", "", "指定app名称")
 
-	// 添加子命令到全局实例
-	qflag.AddSubCmd(subCmd)
+	// 添加子命令描述
+	stopCmd.SetDescription("停止app")
 
-	// 解析命令行参数
+	// 添加子命令到全局QCommandLine
+	qflag.AddSubCmd(stopCmd)
+
+	// 解析命令
 	if err := qflag.Parse(); err != nil {
-		fmt.Println("参数解析错误:", err)
+		fmt.Printf("解析参数错误: %v\n", err)
 		os.Exit(1)
 	}
 
-	// 检查是否执行子命令
-	if len(qflag.QCommandLine.Args()) > 0 && qflag.QCommandLine.Args()[0] == "sub" {
-		// 获取子命令配置参数
-		configFile := subCmd.String("config", "c", "config.json", "配置文件路径")
-		fmt.Printf("执行子命令，配置文件路径: %s\n", *configFile)
+	// 获取参数值
+	if runF.GetValue() {
+		fmt.Printf("启动app: %s\n", nameF.GetValue())
+		fmt.Printf("app路径: %s\n", pathF.GetValue())
+	}
+
+	// 判断是否执行了stop子命令
+	if stopF.GetValue() {
+		fmt.Printf("停止app: %s\n", stopCmdName.GetValue())
 	}
 }
 ```
-
-
-
-
 
 ## API文档
 

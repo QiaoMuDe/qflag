@@ -1,6 +1,6 @@
 # qflag API文档
 
-## API文档
+## 接口与结构体
 
 ### Flag接口
 
@@ -29,16 +29,10 @@ type TypedFlag[T any] interface {
 }
 ```
 
-### 标志注册表
-
-Cmd结构体中的flagRegistry字段类型已更新为：
-
-```go
-map[any]Flag
-```
-
-可以存储任何实现了Flag接口的标志类型实例。
 ### Cmd结构体
+
+命令结构体，用于定义和解析命令行标志
+
 #### NewCmd
 
 创建新的命令实例
@@ -52,29 +46,30 @@ func NewCmd(name string, shortName string, errorHandling flag.ErrorHandling) *Cm
 - shortName: 命令短名称
 - errorHandling: 错误处理方式（flag.ContinueOnError、flag.ExitOnError、flag.PanicOnError）
 
-#### String
+#### GetExecutablePath
 
-添加字符串类型标志
-
-```go
-func (c *Cmd) String(name, shortName, defValue, help string) *StringFlag
-```
-
-#### Int
-
-添加整数类型标志
+获取程序的绝对安装路径
 
 ```go
-func (c *Cmd) Int(name, shortName string, defValue int, help string) *IntFlag
+func GetExecutablePath() string
 ```
 
-#### Bool
+返回值:
+- 程序的绝对路径字符串
 
-添加布尔类型标志
+#### FlagExists
+
+检查指定名称的标志是否存在
 
 ```go
-func (c *Cmd) Bool(name, shortName string, defValue bool, help string) *BoolFlag
+func (c *Cmd) FlagExists(name string) bool
 ```
+
+参数:
+- name: 标志名称
+
+返回值:
+- bool: 标志是否存在
 
 #### AddSubCmd
 
@@ -92,42 +87,122 @@ func (c *Cmd) AddSubCmd(subCmds ...*Cmd)
 func (c *Cmd) Parse(args []string) error
 ```
 
+## 标志添加方法
+
+#### String
+
+添加字符串类型标志
+
+```go
+func (c *Cmd) String(name, shortName, defValue, usage string) *StringFlag
+```
+
+参数:
+- name: 长标志名
+- shortName: 短标志名
+- defValue: 默认值
+- usage: 标志说明
+
+#### Int
+
+添加整数类型标志
+
+```go
+func (c *Cmd) Int(name, shortName string, defValue int, usage string) *IntFlag
+```
+
+参数:
+- name: 长标志名
+- shortName: 短标志名
+- defValue: 默认值
+- usage: 标志说明
+
+#### Bool
+
+添加布尔类型标志
+
+```go
+func (c *Cmd) Bool(name, shortName string, defValue bool, usage string) *BoolFlag
+```
+
+参数:
+- name: 长标志名
+- shortName: 短标志名
+- defValue: 默认值
+- usage: 标志说明
+
 #### Float
 
 添加浮点数类型标志
 
 ```go
-func (c *Cmd) Float(name, shortName string, defValue float64, help string) *FloatFlag
+func (c *Cmd) Float(name, shortName string, defValue float64, usage string) *FloatFlag
 ```
+
+参数:
+- name: 长标志名
+- shortName: 短标志名
+- defValue: 默认值
+- usage: 标志说明
+
+## 变量绑定方法
 
 #### StringVar
 
 添加字符串类型标志变量
 
 ```go
-func (c *Cmd) StringVar(p *string, name, shortName, defValue, help string)
+func (c *Cmd) StringVar(p *string, name, shortName, defValue, usage string)
 ```
+
+参数:
+- p: 存储标志值的指针
+- name: 长标志名
+- shortName: 短标志名
+- defValue: 默认值
+- usage: 标志说明
 
 #### IntVar
 
 添加整数类型标志变量
 
 ```go
-func (c *Cmd) IntVar(p *int, name, shortName string, defValue int, help string)
+func (c *Cmd) IntVar(p *int, name, shortName string, defValue int, usage string)
 ```
+
+参数:
+- p: 存储标志值的指针
+- name: 长标志名
+- shortName: 短标志名
+- defValue: 默认值
+- usage: 标志说明
 
 #### BoolVar
 
 添加布尔类型标志变量
 
 ```go
-func (c *Cmd) BoolVar(p *bool, name, shortName string, defValue bool, help string)
+func (c *Cmd) BoolVar(p *bool, name, shortName string, defValue bool, usage string)
 ```
+
+参数:
+- p: 存储标志值的指针
+- name: 长标志名
+- shortName: 短标志名
+- defValue: 默认值
+- usage: 标志说明
 
 #### FloatVar
 
 添加浮点数类型标志变量
 
 ```go
-func (c *Cmd) FloatVar(p *float64, name, shortName string, defValue float64, help string)
+func (c *Cmd) FloatVar(p *float64, name, shortName string, defValue float64, usage string)
 ```
+
+参数:
+- p: 存储标志值的指针
+- name: 长标志名
+- shortName: 短标志名
+- defValue: 默认值
+- usage: 标志说明
