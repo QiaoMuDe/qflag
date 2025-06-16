@@ -506,127 +506,181 @@ func TestIntFlag_Interface(t *testing.T) {
 	_ = f // 若编译通过，则说明实现了接口
 }
 
-// // TestIntFlag_Methods 测试IntFlag的各种方法
-// func TestIntFlag_Methods(t *testing.T) {
-// 	defValue := 100
-// 	f := &IntFlag{
-// 		name:      "intflag",
-// 		shortName: "i",
-// 		usage:     "integer flag test",
-// 		defValue:  defValue,
-// 	}
-// 	if f.Name() != "intflag" {
-// 		t.Errorf("IntFlag.Name() = %q, want %q", f.Name(), "intflag")
-// 	}
-// 	if f.ShortName() != "i" {
-// 		t.Errorf("IntFlag.ShortName() = %q, want %q", f.ShortName(), "i")
-// 	}
-// 	if f.Usage() != "integer flag test" {
-// 		t.Errorf("IntFlag.Usage() = %q, want %q", f.Usage(), "integer flag test")
-// 	}
-// 	if f.GetDefault() != defValue {
-// 		t.Errorf("IntFlag.GetDefault() = %v, want %v", f.GetDefault(), defValue)
-// 	}
-// 	if f.Type() != FlagTypeInt {
-// 		t.Errorf("IntFlag.Type() = %v, want %v", f.Type(), FlagTypeInt)
-// 	}
-// }
+// TestIntFlag_Methods 测试IntFlag的各种方法
+func TestIntFlag_Methods(t *testing.T) {
+	defValue := 100
 
-// // TestStringFlag_Interface 验证StringFlag实现了Flag接口
-// func TestStringFlag_Interface(t *testing.T) {
-// 	var f Flag = &StringFlag{}
-// 	_ = f
-// }
+	// 新建子命令
+	cmd := NewCmd("test", "t", flag.ContinueOnError)
 
-// // TestStringFlag_Methods 测试StringFlag的各种方法
-// func TestStringFlag_Methods(t *testing.T) {
-// 	defValue := "default string"
-// 	f := &StringFlag{
-// 		name:      "strflag",
-// 		shortName: "s",
-// 		usage:     "string flag test",
-// 		defValue:  defValue,
-// 	}
-// 	if f.Name() != "strflag" {
-// 		t.Errorf("StringFlag.Name() = %q, want %q", f.Name(), "strflag")
-// 	}
-// 	if f.ShortName() != "s" {
-// 		t.Errorf("StringFlag.ShortName() = %q, want %q", f.ShortName(), "s")
-// 	}
-// 	if f.Usage() != "string flag test" {
-// 		t.Errorf("StringFlag.Usage() = %q, want %q", f.Usage(), "string flag test")
-// 	}
-// 	if f.GetDefault() != defValue {
-// 		t.Errorf("StringFlag.GetDefault() = %v, want %v", f.GetDefault(), defValue)
-// 	}
-// 	if f.Type() != FlagTypeString {
-// 		t.Errorf("StringFlag.Type() = %v, want %v", f.Type(), FlagTypeString)
-// 	}
-// }
+	f := cmd.Int("intflag", "i", defValue, "integer flag test")
 
-// // TestBoolFlag_Interface 验证BoolFlag实现了Flag接口
-// func TestBoolFlag_Interface(t *testing.T) {
-// 	var f Flag = &BoolFlag{}
-// 	_ = f
-// }
+	if f.longName != "intflag" {
+		t.Errorf("IntFlag.Name() = %q, want %q", f.longName, "intflag")
+	}
+	if f.ShortName() != "i" {
+		t.Errorf("IntFlag.ShortName() = %q, want %q", f.ShortName(), "i")
+	}
+	if f.Usage() != "integer flag test" {
+		t.Errorf("IntFlag.Usage() = %q, want %q", f.Usage(), "integer flag test")
+	}
+	if f.GetDefault() != defValue {
+		t.Errorf("IntFlag.GetDefault() = %v, want %v", f.GetDefault(), defValue)
+	}
+	if f.Type() != FlagTypeInt {
+		t.Errorf("IntFlag.Type() = %v, want %v", f.Type(), FlagTypeInt)
+	}
 
-// // TestBoolFlag_Methods 测试BoolFlag的各种方法
-// func TestBoolFlag_Methods(t *testing.T) {
-// 	defValue := true
-// 	f := &BoolFlag{
-// 		name:      "boolflag",
-// 		shortName: "b",
-// 		usage:     "bool flag test",
-// 		defValue:  defValue,
-// 	}
-// 	if f.Name() != "boolflag" {
-// 		t.Errorf("BoolFlag.Name() = %q, want %q", f.Name(), "boolflag")
-// 	}
-// 	if f.ShortName() != "b" {
-// 		t.Errorf("BoolFlag.ShortName() = %q, want %q", f.ShortName(), "b")
-// 	}
-// 	if f.Usage() != "bool flag test" {
-// 		t.Errorf("BoolFlag.Usage() = %q, want %q", f.Usage(), "bool flag test")
-// 	}
-// 	if f.GetDefault() != defValue {
-// 		t.Errorf("BoolFlag.GetDefault() = %v, want %v", f.GetDefault(), defValue)
-// 	}
-// 	if f.Type() != FlagTypeBool {
-// 		t.Errorf("BoolFlag.Type() = %v, want %v", f.Type(), FlagTypeBool)
-// 	}
-// }
+	// 测试边界值
+	f.Set(0)
+	if f.Get() != 0 {
+		t.Errorf("IntFlag.Get() = %v, want %v", f.Get(), 0)
+	}
 
-// // TestFloatFlag_Interface 验证FloatFlag实现了Flag接口
-// func TestFloatFlag_Interface(t *testing.T) {
-// 	var f Flag = &FloatFlag{}
-// 	_ = f
-// }
+	f.Set(-1)
+	if f.Get() != -1 {
+		t.Errorf("IntFlag.Get() = %v, want %v", f.Get(), -1)
+	}
 
-// // TestFloatFlag_Methods 测试FloatFlag的各种方法
-// func TestFloatFlag_Methods(t *testing.T) {
-// 	defValue := 3.14
-// 	f := &FloatFlag{
-// 		name:      "floatflag",
-// 		shortName: "f",
-// 		usage:     "float flag test",
-// 		defValue:  defValue,
-// 	}
-// 	if f.Name() != "floatflag" {
-// 		t.Errorf("FloatFlag.Name() = %q, want %q", f.Name(), "floatflag")
-// 	}
-// 	if f.ShortName() != "f" {
-// 		t.Errorf("FloatFlag.ShortName() = %q, want %q", f.ShortName(), "f")
-// 	}
-// 	if f.Usage() != "float flag test" {
-// 		t.Errorf("FloatFlag.Usage() = %q, want %q", f.Usage(), "float flag test")
-// 	}
-// 	if f.GetDefault() != defValue {
-// 		t.Errorf("FloatFlag.GetDefault() = %v, want %v", f.GetDefault(), defValue)
-// 	}
-// 	if f.Type() != FlagTypeFloat {
-// 		t.Errorf("FloatFlag.Type() = %v, want %v", f.Type(), FlagTypeFloat)
-// 	}
-// }
+	f.Set(2147483647)
+	if f.Get() != 2147483647 {
+		t.Errorf("IntFlag.Get() = %v, want %v", f.Get(), 2147483647)
+	}
+}
+
+// TestStringFlag_Interface 验证StringFlag实现了Flag接口
+func TestStringFlag_Interface(t *testing.T) {
+	var f Flag = &StringFlag{}
+	_ = f
+}
+
+// TestStringFlag_Methods 测试StringFlag的各种方法
+func TestStringFlag_Methods(t *testing.T) {
+	defValue := "default string"
+
+	// 新建子命令
+	cmd := NewCmd("test", "t", flag.ContinueOnError)
+
+	f := cmd.String("strflag", "s", defValue, "string flag test")
+
+	if f.longName != "strflag" {
+		t.Errorf("StringFlag.Name() = %q, want %q", f.longName, "strflag")
+	}
+	if f.ShortName() != "s" {
+		t.Errorf("StringFlag.ShortName() = %q, want %q", f.ShortName(), "s")
+	}
+	if f.Usage() != "string flag test" {
+		t.Errorf("StringFlag.Usage() = %q, want %q", f.Usage(), "string flag test")
+	}
+	if f.GetDefault() != defValue {
+		t.Errorf("StringFlag.GetDefault() = %v, want %v", f.GetDefault(), defValue)
+	}
+	if f.Type() != FlagTypeString {
+		t.Errorf("StringFlag.Type() = %v, want %v", f.Type(), FlagTypeString)
+	}
+
+	// 测试边界值
+	f.Set("")
+	if f.Get() != "" {
+		t.Errorf("StringFlag.Get() = %q, want %q", f.Get(), "")
+	}
+
+	f.Set("long_string_with_special_chars_!@#$%^&*()")
+	if f.Get() != "long_string_with_special_chars_!@#$%^&*()" {
+		t.Errorf("StringFlag.Get() = %q, want %q", f.Get(), "long_string_with_special_chars_!@#$%^&*()")
+	}
+}
+
+// TestBoolFlag_Interface 验证BoolFlag实现了Flag接口
+func TestBoolFlag_Interface(t *testing.T) {
+	var f Flag = &BoolFlag{}
+	_ = f
+}
+
+// TestBoolFlag_Methods 测试BoolFlag的各种方法
+func TestBoolFlag_Methods(t *testing.T) {
+	defValue := true
+
+	// 新建子命令
+	cmd := NewCmd("test", "t", flag.ContinueOnError)
+
+	f := cmd.Bool("boolflag", "b", defValue, "bool flag test")
+
+	if f.longName != "boolflag" {
+		t.Errorf("BoolFlag.Name() = %q, want %q", f.longName, "boolflag")
+	}
+	if f.ShortName() != "b" {
+		t.Errorf("BoolFlag.ShortName() = %q, want %q", f.ShortName(), "b")
+	}
+	if f.Usage() != "bool flag test" {
+		t.Errorf("BoolFlag.Usage() = %q, want %q", f.Usage(), "bool flag test")
+	}
+	if f.GetDefault() != defValue {
+		t.Errorf("BoolFlag.GetDefault() = %v, want %v", f.GetDefault(), defValue)
+	}
+	if f.Type() != FlagTypeBool {
+		t.Errorf("BoolFlag.Type() = %v, want %v", f.Type(), FlagTypeBool)
+	}
+
+	// 测试切换布尔值
+	f.Set(false)
+	if f.Get() != false {
+		t.Errorf("BoolFlag.Get() = %v, want %v", f.Get(), false)
+	}
+
+	f.Set(true)
+	if f.Get() != true {
+		t.Errorf("BoolFlag.Get() = %v, want %v", f.Get(), true)
+	}
+}
+
+// TestFloatFlag_Interface 验证FloatFlag实现了Flag接口
+func TestFloatFlag_Interface(t *testing.T) {
+	var f Flag = &FloatFlag{}
+	_ = f
+}
+
+// TestFloatFlag_Methods 测试FloatFlag的各种方法
+func TestFloatFlag_Methods(t *testing.T) {
+	defValue := 3.14
+
+	// 新建子命令
+	cmd := NewCmd("test", "t", flag.ContinueOnError)
+
+	f := cmd.Float("floatflag", "f", defValue, "float flag test")
+
+	if f.longName != "floatflag" {
+		t.Errorf("FloatFlag.Name() = %q, want %q", f.longName, "floatflag")
+	}
+	if f.ShortName() != "f" {
+		t.Errorf("FloatFlag.ShortName() = %q, want %q", f.ShortName(), "f")
+	}
+	if f.Usage() != "float flag test" {
+		t.Errorf("FloatFlag.Usage() = %q, want %q", f.Usage(), "float flag test")
+	}
+	if f.GetDefault() != defValue {
+		t.Errorf("FloatFlag.GetDefault() = %v, want %v", f.GetDefault(), defValue)
+	}
+	if f.Type() != FlagTypeFloat {
+		t.Errorf("FloatFlag.Type() = %v, want %v", f.Type(), FlagTypeFloat)
+	}
+
+	// 测试边界值
+	f.Set(0.0)
+	if f.Get() != 0.0 {
+		t.Errorf("FloatFlag.Get() = %v, want %v", f.Get(), 0.0)
+	}
+
+	f.Set(-1.5)
+	if f.Get() != -1.5 {
+		t.Errorf("FloatFlag.Get() = %v, want %v", f.Get(), -1.5)
+	}
+
+	f.Set(1.7976931348623157e+308)
+	if f.Get() != 1.7976931348623157e+308 {
+		t.Errorf("FloatFlag.Get() = %v, want %v", f.Get(), 1.7976931348623157e+308)
+	}
+}
 
 // TestBindHelpFlag 测试绑定帮助标志
 func TestBindHelpFlag(t *testing.T) {

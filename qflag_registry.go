@@ -7,8 +7,7 @@ import (
 
 // FlagMeta 统一存储标志的完整元数据
 type FlagMeta struct {
-	flag      Flag            // 标志对象
-	optionMap map[string]bool // 选项映射, 用于枚举标志
+	flag Flag // 标志对象
 }
 
 // FlagMetaInterface 标志元数据接口, 定义了标志元数据的获取方法
@@ -50,7 +49,7 @@ type FlagRegistryInterface interface {
 	GetAllFlags() []*FlagMeta                      // 获取所有标志元数据列表
 	GetLongFlags() map[string]*FlagMeta            // 获取长标志映射
 	GetShortFlags() map[string]*FlagMeta           // 获取短标志映射
-	RegisterFlag(meta *FlagMeta)                   // 注册一个新的标志元数据到注册表中
+	RegisterFlag(meta *FlagMeta) error             // 注册一个新的标志元数据到注册表中
 	GetByLong(longName string) (*FlagMeta, bool)   // 通过长标志名称查找对应的标志元数据
 	GetByShort(shortName string) (*FlagMeta, bool) // 通过短标志名称查找对应的标志元数据
 	GetByName(name string) (*FlagMeta, bool)       // 通过标志名称查找标志元数据
@@ -63,18 +62,18 @@ type FlagRegistryInterface interface {
 // 3. 将标志添加到短名称索引
 // 4. 将标志添加到所有标志列表
 // 注意: 该方法线程安全, 但发现重复标志时会panic
-func (r *FlagRegistry) RegisterFlag(meta *FlagMeta) {
+func (r *FlagRegistry) RegisterFlag(meta *FlagMeta) error {
 	r.mu.Lock()
 	defer r.mu.Unlock()
 
 	// 检查长标志是否已存在
 	if _, exists := r.byLong[meta.GetLongName()]; exists {
-		panic(fmt.Errorf("flag %s already exists", meta.GetLongName()))
+		return fmt.Errorf("flag %s already exists", meta.GetLongName())
 	}
 
 	// 检查短标志是否已存在
 	if _, exists := r.byShort[meta.GetShortName()]; exists {
-		panic(fmt.Errorf("short flag %s already exists", meta.GetShortName()))
+		return fmt.Errorf("short flag %s already exists", meta.GetShortName())
 	}
 
 	// 添加长标志索引
@@ -85,6 +84,8 @@ func (r *FlagRegistry) RegisterFlag(meta *FlagMeta) {
 
 	// 添加到所有标志列表
 	r.allFlags = append(r.allFlags, meta)
+
+	return nil
 }
 
 // GetByLong 通过长标志名称查找对应的标志元数据

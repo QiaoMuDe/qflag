@@ -54,15 +54,14 @@ func (f *BaseFlag[T]) GetDefaultAny() any { return f.defValue }
 func (f *BaseFlag[T]) Get() T {
 	f.mu.Lock()
 	defer f.mu.Unlock()
+
+	// 如果标志值不为空,则返回标志值
 	if f.value != nil {
 		return *f.value
 	}
-	return f.defValue
-}
 
-// GetValueAny 获取标志的实际值(any类型)
-func (f *BaseFlag[T]) GetValueAny() any {
-	return f.Get()
+	// 否则返回默认值
+	return f.defValue
 }
 
 // Set 设置标志的值
@@ -72,6 +71,8 @@ func (f *BaseFlag[T]) Set(value T) error {
 
 	// 创建一个副本
 	v := value
+
+	// 设置标志值
 	f.value = &v
 	return nil
 }
@@ -116,7 +117,7 @@ func (f *FloatFlag) Type() FlagType { return FlagTypeFloat }
 // 继承BaseFlag[string]泛型结构体,增加枚举特有的选项验证
 type EnumFlag struct {
 	BaseFlag[string]
-	optionMap map[string]bool // 允许的枚举值映射
+	optionMap map[string]bool // 枚举值映射
 }
 
 // 实现Flag接口

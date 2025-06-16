@@ -377,36 +377,40 @@ func getFullCommandPath(cmd *Cmd) string {
 // 参数:
 // longName: 长名称
 // shortName: 短名称
-func (c *Cmd) validateFlag(longName, shortName string) {
+// 返回值:
+// error: 如果验证失败则返回错误信息,否则返回nil
+func (c *Cmd) validateFlag(longName, shortName string) error {
 	// 新增格式校验
 	if strings.ContainsAny(longName, invalidFlagChars) {
-		panic(fmt.Sprintf("The flag name '%s' contains illegal characters", longName))
+		return fmt.Errorf("The flag name '%s' contains illegal characters", longName)
 	}
 
 	// 检查标志名称和短名称是否为空
 	if longName == "" {
-		panic("Flag name cannot be empty")
+		return fmt.Errorf("Flag name cannot be empty")
 	}
 	if shortName == "" {
-		panic("Flag short name cannot be empty")
+		return fmt.Errorf("Flag short name cannot be empty")
 	}
 
 	// 检查标志是否已存在
 	if _, exists := c.flagRegistry.GetByName(longName); exists {
-		panic(fmt.Sprintf("Flag long name %s already exists", longName))
+		return fmt.Errorf("Flag long name %s already exists", longName)
 	}
 
 	if _, exists := c.flagRegistry.GetByName(shortName); exists {
-		panic(fmt.Sprintf("Flag short name %s already exists", shortName))
+		return fmt.Errorf("Flag short name %s already exists", shortName)
 	}
 
 	// 检查标志是否为内置标志
 	if _, ok := c.builtinFlagNameMap.Load(longName); ok {
-		panic(fmt.Sprintf("Flag long name %s is reserved", longName))
+		return fmt.Errorf("Flag long name %s is reserved", longName)
 	}
 	if _, ok := c.builtinFlagNameMap.Load(shortName); ok {
-		panic(fmt.Sprintf("Flag short name %s is reserved", shortName))
+		return fmt.Errorf("Flag short name %s is reserved", shortName)
 	}
+
+	return nil
 }
 
 // NewCmd 创建新的命令实例
@@ -483,7 +487,7 @@ func (c *Cmd) AddSubCmd(subCmds ...*Cmd) error {
 	// 创建错误切片
 	var errors []error
 
-	// 使用sync.Map来存储子命令名称，解决并发安全问题
+	// 使用sync.Map来存储子命令名称, 解决并发安全问题
 	var subCmdNames sync.Map
 	for _, cmd := range c.subCmds {
 		subCmdNames.Store(strings.ToLower(cmd.longName), true)
@@ -507,11 +511,11 @@ func (c *Cmd) AddSubCmd(subCmds ...*Cmd) error {
 		}
 
 		// 检测子命令名称是否已存在（大小写不敏感）
-		if _, exists := subCmdNames.Load(strings.ToLower(cmd.longName)); exists {
+		if _, loaded := subCmdNames.LoadOrStore(strings.ToLower(cmd.longName), true); loaded {
 			errors = append(errors, fmt.Errorf("Subcommand %s already exists", cmd.longName))
 			continue
 		}
-		if _, exists := subCmdNames.Load(strings.ToLower(cmd.shortName)); exists {
+		if _, loaded := subCmdNames.LoadOrStore(strings.ToLower(cmd.shortName), true); loaded {
 			errors = append(errors, fmt.Errorf("Subcommand %s already exists", cmd.shortName))
 			continue
 		}
@@ -631,7 +635,9 @@ func (c *Cmd) StringVar(f *StringFlag, longName, shortName, defValue, usage stri
 	}
 
 	// 参数校验（复用公共函数）
-	c.validateFlag(longName, shortName)
+	if validateErr := c.validateFlag(longName, shortName); validateErr != nil {
+		panic(validateErr)
+	}
 
 	// 显式初始化当前值的默认值
 	currentStr := defValue
@@ -656,7 +662,9 @@ func (c *Cmd) StringVar(f *StringFlag, longName, shortName, defValue, usage stri
 	c.fs.StringVar(&currentStr, longName, defValue, usage)
 
 	// 注册Flag对象
-	c.flagRegistry.RegisterFlag(meta)
+	if registerErr := c.flagRegistry.RegisterFlag(meta); registerErr != nil {
+		panic(registerErr)
+	}
 }
 
 // IntVar 绑定整数类型标志到指针并内部注册Flag对象
@@ -668,7 +676,9 @@ func (c *Cmd) IntVar(f *IntFlag, longName, shortName string, defValue int, usage
 	}
 
 	// 参数校验（复用公共函数）
-	c.validateFlag(longName, shortName)
+	if validateErr := c.validateFlag(longName, shortName); validateErr != nil {
+		panic(validateErr)
+	}
 
 	// 初始化默认值
 	currentInt := defValue
@@ -693,7 +703,9 @@ func (c *Cmd) IntVar(f *IntFlag, longName, shortName string, defValue int, usage
 	c.fs.IntVar(&currentInt, longName, defValue, usage)
 
 	// 注册Flag对象
-	c.flagRegistry.RegisterFlag(meta)
+	if registerErr := c.flagRegistry.RegisterFlag(meta); registerErr != nil {
+		panic(registerErr)
+	}
 }
 
 // Int 添加整数类型标志, 返回标志对象。参数依次为长标志名、短标志、默认值、帮助说明
@@ -712,7 +724,9 @@ func (c *Cmd) BoolVar(f *BoolFlag, longName, shortName string, defValue bool, us
 	}
 
 	// 参数校验（复用公共函数）
-	c.validateFlag(longName, shortName)
+	if validateErr := c.validateFlag(longName, shortName); validateErr != nil {
+		panic(validateErr)
+	}
 
 	// 修改传入的标志对象
 	f.cmd = c               // 修改标志对象 - 命令对象
@@ -735,7 +749,9 @@ func (c *Cmd) BoolVar(f *BoolFlag, longName, shortName string, defValue bool, us
 	c.fs.BoolVar(f.value, longName, defValue, usage)
 
 	// 注册Flag对象
-	c.flagRegistry.RegisterFlag(meta)
+	if registerErr := c.flagRegistry.RegisterFlag(meta); registerErr != nil {
+		panic(registerErr)
+	}
 }
 
 // Bool 添加布尔类型标志, 返回标志对象。参数依次为长标志名、短标志、默认值、帮助说明
@@ -761,7 +777,9 @@ func (c *Cmd) FloatVar(f *FloatFlag, longName, shortName string, defValue float6
 	}
 
 	// 参数校验（复用公共函数）
-	c.validateFlag(longName, shortName)
+	if validateErr := c.validateFlag(longName, shortName); validateErr != nil {
+		panic(validateErr)
+	}
 
 	// 显式初始化默认值
 	currentFloat := new(float64) // 显式堆分配
@@ -787,7 +805,9 @@ func (c *Cmd) FloatVar(f *FloatFlag, longName, shortName string, defValue float6
 	c.fs.Float64Var(currentFloat, longName, defValue, usage)
 
 	// 注册Flag对象
-	c.flagRegistry.RegisterFlag(meta)
+	if registerErr := c.flagRegistry.RegisterFlag(meta); registerErr != nil {
+		panic(registerErr)
+	}
 }
 
 // GetExecutablePath 获取程序的绝对安装路径
@@ -824,7 +844,9 @@ func (c *Cmd) EnumVar(f *EnumFlag, longName, shortName string, defValue string, 
 	}
 
 	// 参数校验（复用公共函数）
-	c.validateFlag(longName, shortName)
+	if validateErr := c.validateFlag(longName, shortName); validateErr != nil {
+		panic(validateErr)
+	}
 
 	// 初始化枚举值
 	if options == nil {
@@ -835,12 +857,12 @@ func (c *Cmd) EnumVar(f *EnumFlag, longName, shortName string, defValue string, 
 	currentStr := defValue
 
 	// 创建枚举map
-	enumMap := make(map[string]bool)
+	optionMap := make(map[string]bool)
 	if len(options) > 0 {
 		for _, v := range options {
 			// 转换为小写
 			v = strings.ToLower(v)
-			enumMap[v] = true
+			optionMap[v] = true
 		}
 	}
 
@@ -851,7 +873,7 @@ func (c *Cmd) EnumVar(f *EnumFlag, longName, shortName string, defValue string, 
 	f.defValue = defValue   // 修改标志对象 - 默认值
 	f.usage = usage         // 修改标志对象 - 帮助说明
 	f.value = &currentStr   // 修改标志对象 - 当前值
-	f.optionMap = enumMap   // 修改标志对象 - 枚举值map
+	f.optionMap = optionMap // 修改标志对象 - 枚举值map
 
 	// 创建FlagMeta对象
 	meta := &FlagMeta{
@@ -865,5 +887,7 @@ func (c *Cmd) EnumVar(f *EnumFlag, longName, shortName string, defValue string, 
 	c.fs.StringVar(&currentStr, longName, defValue, usage)
 
 	// 注册Flag对象
-	c.flagRegistry.RegisterFlag(meta)
+	if registerErr := c.flagRegistry.RegisterFlag(meta); registerErr != nil {
+		panic(registerErr)
+	}
 }
