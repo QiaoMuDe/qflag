@@ -685,19 +685,18 @@ func TestFloatFlag_Methods(t *testing.T) {
 // TestBindHelpFlag 测试绑定帮助标志
 func TestBindHelpFlag(t *testing.T) {
 	cmd := NewCmd("test", "t", flag.ExitOnError)
-	cmd.bindHelpFlagAndShowInstallPathFlag()
-
+	cmd.initBuiltinFlags()
 	// 验证帮助标志已绑定
-	if !cmd.helpFlagBound {
+	if !cmd.initFlagBound {
 		t.Error("help flag should be bound")
 	}
-	if _, ok := cmd.flagRegistry.GetByName(cmd.helpFlagName); !ok {
+	if _, ok := cmd.flagRegistry.GetByName(helpFlagName); !ok {
 		t.Error("help flag should be registered")
 	}
 
 	// 当短帮助标志名存在时，检查该标志是否已注册，若未注册则报错。
-	_, ok := cmd.flagRegistry.GetByName(cmd.helpFlagShortName)
-	if cmd.helpFlagShortName != "" && !ok {
+	_, ok := cmd.flagRegistry.GetByName(helpFlagShortName)
+	if helpFlagShortName != "" && !ok {
 		t.Error("short help flag should be registered")
 	}
 }

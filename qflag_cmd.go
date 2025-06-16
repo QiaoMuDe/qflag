@@ -13,29 +13,25 @@ import (
 // Cmd 命令行标志管理结构体,封装参数解析、长短标志互斥及帮助系统。
 type Cmd struct {
 	/* 内部使用属性*/
-	fs                           *flag.FlagSet // 底层flag集合, 处理参数解析
-	flagRegistry                 *FlagRegistry // 标志注册表, 统一管理标志的元数据
-	helpFlagName                 string        // 帮助标志的长名称,默认"help"
-	helpFlagShortName            string        // 帮助标志的短名称,默认"h"
-	helpFlag                     *BoolFlag     // 帮助标志指针,用于绑定和检查
-	helpFlagBound                bool          // 标记帮助标志是否已绑定
-	helpOnce                     sync.Once     // 用于确保帮助标志只被绑定一次
-	showInstallPathFlagName      string        // 安装路径标志的长名称,默认"show-install-path"
-	showInstallPathFlagShortName string        // 安装路径标志的短名称,默认"sip"
-	showInstallPathFlag          *BoolFlag     // 安装路径标志指针,用于绑定和检查
-	subCmds                      []*Cmd        // 子命令列表, 用于关联子命令
-	parentCmd                    *Cmd          // 父命令指针,用于递归调用, 根命令的父命令为nil
-	usage                        string        // 自定义帮助内容,可由用户直接赋值
-	description                  string        // 自定义描述,用于帮助信息中显示
-	longName                     string        // 命令长名称,用于帮助信息中显示
-	shortName                    string        // 命令短名称,用于帮助信息中显示
-	args                         []string      // 命令行参数切片
-	addMu                        sync.Mutex    // 互斥锁,确保并发安全操作
-	parseOnce                    sync.Once     // 用于确保命令只被解析一次
-	setMu                        sync.Mutex    // 互斥锁,确保并发安全操作
-	builtinFlagNameMap           sync.Map      // 用于存储内置标志名称的映射
-	mutexGroups                  [][]*FlagMeta // 互斥组列表，每组包含不能同时使用的标志
-	mutexGroupMu                 sync.Mutex    // 保护互斥组的并发访问锁
+	fs                  *flag.FlagSet // 底层flag集合, 处理参数解析
+	flagRegistry        *FlagRegistry // 标志注册表, 统一管理标志的元数据
+	helpFlag            *BoolFlag     // 帮助标志指针,用于绑定和检查
+	initFlagBound       bool          // 标记内置标志是否已绑定
+	initFlagOnce        sync.Once     // 用于确保内置标志只被绑定一次
+	showInstallPathFlag *BoolFlag     // 安装路径标志指针,用于绑定和检查
+	subCmds             []*Cmd        // 子命令列表, 用于关联子命令
+	parentCmd           *Cmd          // 父命令指针,用于递归调用, 根命令的父命令为nil
+	usage               string        // 自定义帮助内容,可由用户直接赋值
+	description         string        // 自定义描述,用于帮助信息中显示
+	longName            string        // 命令长名称,用于帮助信息中显示
+	shortName           string        // 命令短名称,用于帮助信息中显示
+	args                []string      // 命令行参数切片
+	addMu               sync.Mutex    // 互斥锁,确保并发安全操作
+	parseOnce           sync.Once     // 用于确保命令只被解析一次
+	setMu               sync.Mutex    // 互斥锁,确保并发安全操作
+	builtinFlagNameMap  sync.Map      // 用于存储内置标志名称的映射
+	mutexGroups         [][]*FlagMeta // 互斥组列表，每组包含不能同时使用的标志
+	mutexGroupMu        sync.Mutex    // 保护互斥组的并发访问锁
 }
 
 // 内置标志名称
@@ -143,22 +139,22 @@ func (c *Cmd) FlagExists(name string) bool {
 	return false
 }
 
-// bindHelpFlagAndShowInstallPathFlag 绑定帮助标志和显示安装路径标志
-func (c *Cmd) bindHelpFlagAndShowInstallPathFlag() {
+// initBuiltinFlags 初始化内置标志
+func (c *Cmd) initBuiltinFlags() {
 	// 检查是否已绑定
-	if c.helpFlagBound {
+	if c.initFlagBound {
 		return // 避免重复绑定
 	}
 
-	// 初始化帮助标志
-	c.helpOnce.Do(func() {
+	// 初始化内置标志
+	c.initFlagOnce.Do(func() {
 		if c.helpFlag == nil {
 			// 为空时自动初始化
 			c.helpFlag = &BoolFlag{}
 		}
 
 		// 绑定帮助标志
-		c.BoolVar(c.helpFlag, c.helpFlagName, c.helpFlagShortName, false, "Show help information")
+		c.BoolVar(c.helpFlag, helpFlagName, helpFlagShortName, false, "Show help information")
 
 		// 绑定显示安装路径标志
 		if c.showInstallPathFlag == nil {
@@ -166,7 +162,7 @@ func (c *Cmd) bindHelpFlagAndShowInstallPathFlag() {
 		}
 
 		// 绑定显示安装路径标志
-		c.BoolVar(c.showInstallPathFlag, c.showInstallPathFlagName, c.showInstallPathFlagShortName, false, "Show install path")
+		c.BoolVar(c.showInstallPathFlag, showInstallPathFlagName, showInstallPathFlagShortName, false, "Show install path")
 
 		// 添加内置标志到检测映射
 		c.builtinFlagNameMap.Store(helpFlagName, true)
@@ -174,8 +170,8 @@ func (c *Cmd) bindHelpFlagAndShowInstallPathFlag() {
 		c.builtinFlagNameMap.Store(showInstallPathFlagName, true)
 		c.builtinFlagNameMap.Store(showInstallPathFlagShortName, true)
 
-		// 设置帮助标志已绑定
-		c.helpFlagBound = true
+		// 设置内置标志已绑定
+		c.initFlagBound = true
 	})
 }
 
@@ -451,23 +447,17 @@ func NewCmd(longName string, shortName string, errorHandling flag.ErrorHandling)
 
 	// 创建新的Cmd实例
 	cmd := &Cmd{
-		fs:                           flag.NewFlagSet(longName, errorHandling), // 创建新的flag集
-		helpFlagName:                 helpFlagName,                             // 默认的帮助标志名称
-		helpFlagShortName:            helpFlagShortName,                        // 默认的帮助标志短名称
-		showInstallPathFlagName:      showInstallPathFlagName,                  // 默认的显示安装路径标志名称
-		showInstallPathFlagShortName: showInstallPathFlagShortName,             // 默认的显示安装路径标志短名称
-		usage:                        "",                                       // 允许用户直接设置帮助内容
-		description:                  "",                                       // 允许用户直接设置命令描述
-		longName:                     longName,                                 // 命令长名称, 用于帮助信息中显示
-		shortName:                    shortName,                                // 命令短名称, 用于帮助信息中显示
-		args:                         []string{},                               // 命令行参数
-		flagRegistry:                 flagRegistry,                             // 初始化标志注册表
-		helpFlag:                     &BoolFlag{},                              // 初始化帮助标志
-		showInstallPathFlag:          &BoolFlag{},                              // 初始化显示安装路径标志
+		fs:                  flag.NewFlagSet(longName, errorHandling), // 创建新的flag集
+		longName:            longName,                                 // 命令长名称, 用于帮助信息中显示
+		shortName:           shortName,                                // 命令短名称, 用于帮助信息中显示
+		args:                []string{},                               // 命令行参数
+		flagRegistry:        flagRegistry,                             // 初始化标志注册表
+		helpFlag:            &BoolFlag{},                              // 初始化帮助标志
+		showInstallPathFlag: &BoolFlag{},                              // 初始化显示安装路径标志
 	}
 
-	// 自动绑定帮助标志和显示安装路径标志
-	cmd.bindHelpFlagAndShowInstallPathFlag()
+	// 自动初始化内置标志
+	cmd.initBuiltinFlags()
 	return cmd
 }
 
