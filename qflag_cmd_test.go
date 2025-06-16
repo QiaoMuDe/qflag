@@ -102,6 +102,24 @@ func TestUsageAndDescription(t *testing.T) {
 	}
 }
 
+// TestCmd_AddMutexGroup 测试添加互斥组功能
+func TestCmd_AddMutexGroup(t *testing.T) {
+	cmd := NewCmd("test", "t", flag.ContinueOnError)
+	flag1 := cmd.String("flag1", "f1", "", "test flag 1")
+	flag2 := cmd.String("flag2", "f2", "", "test flag 2")
+
+	// 测试正常添加互斥组
+	if err := cmd.AddMutexGroup(flag1, flag2); err != nil {
+		t.Errorf("AddMutexGroup() unexpected error: %v", err)
+	}
+
+	// 测试添加未注册标志
+	unregisteredFlag := &StringFlag{BaseFlag: BaseFlag[string]{longName: "unregistered"}}
+	if err := cmd.AddMutexGroup(unregisteredFlag); err == nil {
+		t.Error("AddMutexGroup() expected error for unregistered flag, got nil")
+	}
+}
+
 // TestErrorHandling 测试错误处理
 func TestErrorHandling(t *testing.T) {
 	// 重定向标准输出和错误输出
