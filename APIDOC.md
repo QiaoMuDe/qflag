@@ -37,6 +37,7 @@ qflag提供以下具体标志类型，均实现了`TypedFlag`接口：
 - `IntFlag`: 整数类型标志
 - `BoolFlag`: 布尔类型标志
 - `FloatFlag`: 浮点数类型标志
+- `EnumFlag`: 枚举类型标志，限制输入值为预定义选项集合
 
 每个标志类型都有对应的`GetDefault()`、`GetValue()`和`SetValue()`方法。
 
@@ -129,6 +130,18 @@ func (c *Cmd) AddSubCmd(subCmds ...*Cmd) error
 
 返回值:
 - `error`: 如果检测到循环引用或nil子命令则返回错误
+
+##### AddMutexGroup
+```go
+func (c *Cmd) AddMutexGroup(flags ...Flag) error
+```
+为当前命令添加标志互斥组，互斥组内的标志不能同时被设置。
+
+参数:
+- `flags`: 构成互斥组的一个或多个标志实例
+
+返回值:
+- `error`: 如果标志为nil或不属于当前命令则返回错误
 
 ##### Parse
 ```go
