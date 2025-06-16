@@ -334,7 +334,7 @@ func dfs(target, current *Cmd, visited map[*Cmd]bool) bool {
 	return false
 }
 
-// joinErrors 将错误切片合并为单个错误
+// joinErrors 将错误切片合并为单个错误，并去除重复错误
 func joinErrors(errors []error) error {
 	if len(errors) == 0 {
 		return nil
@@ -343,11 +343,22 @@ func joinErrors(errors []error) error {
 		return errors[0]
 	}
 
+	// 使用map去重
+	uniqueErrors := make(map[string]error)
+	for _, err := range errors {
+		errStr := err.Error()
+		if _, exists := uniqueErrors[errStr]; !exists {
+			uniqueErrors[errStr] = err
+		}
+	}
+
 	// 构建错误信息
 	var b strings.Builder
-	b.WriteString(fmt.Sprintf("A total of %d errors:\n", len(errors)))
-	for i, err := range errors {
-		b.WriteString(fmt.Sprintf("  %d. %v\n", i+1, err))
+	b.WriteString(fmt.Sprintf("A total of %d unique errors:\n", len(uniqueErrors)))
+	i := 1
+	for _, err := range uniqueErrors {
+		b.WriteString(fmt.Sprintf("  %d. %v\n", i, err))
+		i++
 	}
 
 	// 使用常量格式字符串，将错误信息作为参数传入
@@ -486,6 +497,14 @@ func (c *Cmd) AddSubCmd(subCmds ...*Cmd) error {
 		if hasCycle(c, cmd) {
 			errors = append(errors, fmt.Errorf("Cyclic reference detected: Command %s already exists in the command chain", cmd.longName))
 			continue
+		}
+
+		// 检测是否已存在相同名称的子命令
+		for _, existingCmd := range c.subCmds {
+			if existingCmd.longName == cmd.longName || existingCmd.shortName == cmd.shortName {
+				errors = append(errors, fmt.Errorf("Subcommand %s already exists", cmd.longName))
+				continue
+			}
 		}
 
 		// 如果没有错误，则将子命令添加到切片中
