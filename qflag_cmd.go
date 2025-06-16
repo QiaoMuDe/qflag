@@ -65,17 +65,15 @@ type Command interface {
 
 	Parse(args []string) error // 解析命令行参数，自动处理标志和子命令
 
-	String(name, shortName, usage, defValue string) *StringFlag               // 添加字符串类型标志
-	Int(name, shortName, usage string, defValue int) *IntFlag                 // 添加整数类型标志
-	Bool(name, shortName, usage string, defValue bool) *BoolFlag              // 添加布尔类型标志
-	Float(name, shortName, usage string, defValue float64) *FloatFlag         // 添加浮点数类型标志
-	Slice(name, shortName string, defValue []string, usage string) *SliceFlag // 添加字符串切片类型标志
+	String(name, shortName, usage, defValue string) *StringFlag       // 添加字符串类型标志
+	Int(name, shortName, usage string, defValue int) *IntFlag         // 添加整数类型标志
+	Bool(name, shortName, usage string, defValue bool) *BoolFlag      // 添加布尔类型标志
+	Float(name, shortName, usage string, defValue float64) *FloatFlag // 添加浮点数类型标志
 
-	StringVar(f *StringFlag, name, shortName, defValue, usage string)               // 绑定字符串标志到指定变量
-	IntVar(f *IntFlag, name, shortName string, defValue int, usage string)          // 绑定整数标志到指定变量
-	BoolVar(f *BoolFlag, name, shortName string, defValue bool, usage string)       // 绑定布尔标志到指定变量
-	FloatVar(f *FloatFlag, name, shortName string, defValue float64, usage string)  // 绑定浮点数标志到指定变量
-	SliceVar(f *SliceFlag, name, shortName string, defValue []string, usage string) // 绑定切片标志到指定变量
+	StringVar(f *StringFlag, name, shortName, defValue, usage string)              // 绑定字符串标志到指定变量
+	IntVar(f *IntFlag, name, shortName string, defValue int, usage string)         // 绑定整数标志到指定变量
+	BoolVar(f *BoolFlag, name, shortName string, defValue bool, usage string)      // 绑定布尔标志到指定变量
+	FloatVar(f *FloatFlag, name, shortName string, defValue float64, usage string) // 绑定浮点数标志到指定变量
 
 	Args() []string   // 获取所有非标志参数(未绑定到任何标志的参数)
 	Arg(i int) string // 获取指定索引的非标志参数，索引越界返回空字符串
@@ -769,61 +767,6 @@ func (c *Cmd) FloatVar(f *FloatFlag, name, shortName string, defValue float64, u
 	c.fs.Float64Var(currentFloat, name, defValue, usage)
 
 	// 注册Flag对象
-	c.flagRegistry.RegisterFlag(meta)
-}
-
-// Slice 为命令添加字符串切片类型标志, 返回标志对象。参数依次为: 长标志名、短标志、默认值切片、帮助说明
-func (c *Cmd) Slice(name, shortName string, defValue []string, usage string) *SliceFlag {
-	f := &SliceFlag{}
-	c.SliceVar(f, name, shortName, defValue, usage)
-	return f
-}
-
-// SliceVar 为命令添加字符串切片类型标志, 返回标志对象。参数依次为: 指针切片、长标志名、短标志、默认值切片、帮助说明
-func (c *Cmd) SliceVar(f *SliceFlag, name, shortName string, defValue []string, usage string) {
-	// 检查指针是否为空
-	if f == nil {
-		panic("SliceFlag pointer cannot be nil")
-	}
-
-	// 参数校验（复用公共函数）
-	c.validateFlag(name, shortName)
-
-	// 初始化默认值（修复当前实现的空切片问题）
-	if defValue == nil {
-		defValue = make([]string, 0)
-	}
-
-	// 在创建SliceFlag前添加默认值初始化
-	currentSlice := make([]string, len(defValue))
-	copy(currentSlice, defValue) // 创建一个副本
-
-	// 创建SliceFlag
-	f = &SliceFlag{
-		cmd:       c,             // 命令对象
-		name:      name,          // 长标志名
-		shortName: shortName,     // 短标志名
-		defValue:  defValue,      // 默认值
-		usage:     usage,         // 帮助说明
-		value:     &currentSlice, // 标志对象
-	}
-
-	// 绑定长标志
-	c.fs.Var(f, name, usage)
-
-	// 绑定短标志
-	c.fs.Var(f, shortName, usage)
-
-	// 创建FlagMeta对象
-	meta := &FlagMeta{
-		longName:  name,          // 长标志名
-		shortName: shortName,     // 短标志名
-		flagType:  FlagTypeSlice, // 标志类型
-		usage:     usage,         // 帮助说明
-		defValue:  defValue,      // 默认值
-	}
-
-	// 注册Flag元数据
 	c.flagRegistry.RegisterFlag(meta)
 }
 

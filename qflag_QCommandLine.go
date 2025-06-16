@@ -16,17 +16,15 @@ var parseOnce sync.Once
 // QCommandLineInterface 定义了全局默认命令行接口，提供统一的命令行参数管理功能
 // 该接口封装了命令行程序的常用操作，包括标志添加、参数解析和帮助信息展示
 type QCommandLineInterface interface {
-	String(name, shortName, defValue, usage string) *StringFlag               // 添加字符串类型标志
-	Int(name, shortName string, defValue int, usage string) *IntFlag          // 添加整数类型标志
-	Bool(name, shortName string, defValue bool, usage string) *BoolFlag       // 添加布尔类型标志
-	Float(name, shortName string, defValue float64, usage string) *FloatFlag  // 添加浮点数类型标志
-	Slice(name, shortName string, defValue []string, usage string) *SliceFlag // 添加字符串切片类型标志
+	String(name, shortName, defValue, usage string) *StringFlag              // 添加字符串类型标志
+	Int(name, shortName string, defValue int, usage string) *IntFlag         // 添加整数类型标志
+	Bool(name, shortName string, defValue bool, usage string) *BoolFlag      // 添加布尔类型标志
+	Float(name, shortName string, defValue float64, usage string) *FloatFlag // 添加浮点数类型标志
 
-	StringVar(f *StringFlag, name, shortName, defValue, usage string)               // 绑定字符串标志到指定变量
-	IntVar(f *IntFlag, name, shortName string, defValue int, usage string)          // 绑定整数标志到指定变量
-	BoolVar(f *BoolFlag, name, shortName string, defValue bool, usage string)       // 绑定布尔标志到指定变量
-	FloatVar(f *FloatFlag, name, shortName string, defValue float64, usage string)  // 绑定浮点数标志到指定变量
-	SliceVar(f *SliceFlag, name, shortName string, defValue []string, usage string) // 绑定切片标志到指定变量
+	StringVar(f *StringFlag, name, shortName, defValue, usage string)              // 绑定字符串标志到指定变量
+	IntVar(f *IntFlag, name, shortName string, defValue int, usage string)         // 绑定整数标志到指定变量
+	BoolVar(f *BoolFlag, name, shortName string, defValue bool, usage string)      // 绑定布尔标志到指定变量
+	FloatVar(f *FloatFlag, name, shortName string, defValue float64, usage string) // 绑定浮点数标志到指定变量
 
 	Parse() error // 解析命令行参数，自动处理标志和子命令
 
@@ -163,34 +161,6 @@ func BoolVar(f *BoolFlag, name, shortName string, defValue bool, usage string) {
 // - usage: 该命令行标志的帮助说明信息，会在显示帮助信息时展示给用户，用于解释该标志的用途。
 func FloatVar(f *FloatFlag, name, shortName string, defValue float64, usage string) {
 	QCommandLine.FloatVar(f, name, shortName, defValue, usage)
-}
-
-// Slice 为全局默认命令定义一个字符串切片类型的命令行标志。
-// 该函数会调用全局默认命令实例 `QCommandLine` 的 `Slice` 方法，为命令行添加支持长短标志的字符串切片参数，
-// 并返回一个指向新创建的 `SliceFlag` 对象的指针，可用于后续获取和管理该标志的值。
-// 参数说明：
-// - name: 标志的长名称，在命令行中以 `--name` 的形式使用。
-// - shortName: 标志的短名称，在命令行中以 `-shortName` 的形式使用。
-// - defValue: 标志的默认值，当命令行未指定该标志时使用。该值会被复制一份，避免外部修改影响内部状态。
-// - usage: 标志的帮助说明信息，用于在显示帮助信息时展示。
-// 返回值：
-// - *SliceFlag: 指向新创建的字符串切片标志对象的指针。
-func Slice(name, shortName string, defValue []string, usage string) *SliceFlag {
-	return QCommandLine.Slice(name, shortName, defValue, usage)
-}
-
-// SliceVar 为全局默认命令将一个字符串切片类型的命令行标志绑定到指定的 `SliceFlag` 指针。
-// 该函数会调用全局默认命令实例 `QCommandLine` 的 `SliceVar` 方法，为命令行添加支持长短标志的字符串切片参数，
-// 并将该参数与传入的 `SliceFlag` 指针建立关联，方便后续对该标志的值进行获取和使用。
-// 参数说明：
-//   - f: 指向 `SliceFlag` 类型的指针，此指针用于存储和管理字符串切片类型命令行标志的各类信息，
-//     如当前标志的值、默认值等。
-//   - name: 命令行标志的长名称，在命令行中使用时需遵循 `--name` 的格式。
-//   - shortName: 命令行标志的短名称，在命令行中使用时需遵循 `-shortName` 的格式。
-//   - defValue: 该命令行标志的默认值。当用户在命令行中未指定该标志时，会采用此默认值。该值会被复制一份，避免外部修改影响内部状态。
-//   - usage: 该命令行标志的帮助说明信息，在显示帮助信息时会呈现给用户，用以解释该标志的具体用途。
-func SliceVar(f *SliceFlag, name, shortName string, defValue []string, usage string) {
-	QCommandLine.SliceVar(f, name, shortName, defValue, usage)
 }
 
 // Parse 解析命令行参数, 自动检查长短标志互斥, 并处理帮助标志 (全局默认命令)

@@ -2,7 +2,6 @@ package qflag
 
 import (
 	"fmt"
-	"strings"
 	"sync"
 )
 
@@ -172,65 +171,6 @@ func (f *FloatFlag) SetValue(value float64) {
 	defer f.mu.Unlock()
 
 	f.value = &value
-}
-
-// SliceFlag 表示字符串切片类型的命令行标志
-type SliceFlag struct {
-	cmd        *Cmd       // 命令对象
-	name       string     // 长标志名
-	shortName  string     // 短标志名
-	defValue   []string   // 默认值
-	usage      string     // 帮助说明
-	value      *[]string  // 标志值指针
-	mu         sync.Mutex // 并发访问锁
-	hasBeenSet bool       // 标记是否已设置值
-}
-
-// 实现Flag接口
-func (f *SliceFlag) Name() string         { return f.name }
-func (f *SliceFlag) ShortName() string    { return f.shortName }
-func (f *SliceFlag) Usage() string        { return f.usage }
-func (f *SliceFlag) GetDefault() []string { return f.defValue }
-func (f *SliceFlag) Type() FlagType       { return FlagTypeSlice }
-
-// GetValue 获取标志的实际值（带线程安全保护）
-// 返回值优先级：解析值 > 默认值
-func (f *SliceFlag) GetValue() []string {
-	f.mu.Lock()
-	defer f.mu.Unlock()
-
-	if f.value != nil { // 优先返回解析值
-		return *f.value
-	}
-	return f.defValue // 其次返回默认值
-}
-
-// SetValue 设置标志的值（带线程安全保护）
-func (f *SliceFlag) SetValue(value ...string) {
-	f.mu.Lock()
-	defer f.mu.Unlock()
-
-	if !f.hasBeenSet {
-		// 首次设置，清空现有值（包括默认值）
-		*f.value = make([]string, 0)
-		f.hasBeenSet = true
-	}
-
-	// 添加多个值
-	*f.value = append(*f.value, value...)
-}
-
-// Set 实现flag.Value接口, 解析并添加值到切片
-func (f *SliceFlag) Set(value string) error {
-	f.SetValue(value)
-	return nil
-}
-
-// String 实现flag.Value接口, 返回当前值的字符串表示
-func (f *SliceFlag) String() string {
-	f.mu.Lock()
-	defer f.mu.Unlock()
-	return strings.Join(*f.value, ",")
 }
 
 // EnumFlag 枚举类型标志结构体

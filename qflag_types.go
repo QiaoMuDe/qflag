@@ -8,11 +8,11 @@ type FlagType int
 
 const (
 	FlagTypeInt    FlagType = iota + 1 // 整数类型
-	FlagTypeString                 // 字符串类型
-	FlagTypeBool                   // 布尔类型
-	FlagTypeFloat                  // 浮点数类型
-	FlagTypeSlice                  // 切片类型
-	FlagTypeEnum                   // 枚举类型
+	FlagTypeString                     // 字符串类型
+	FlagTypeBool                       // 布尔类型
+	FlagTypeFloat                      // 浮点数类型
+	FlagTypeSlice                      // 切片类型
+	FlagTypeEnum                       // 枚举类型
 )
 
 // 帮助信息模板常量
