@@ -3,6 +3,7 @@ package qflag
 
 import (
 	"fmt"
+	"strings"
 	"sync"
 )
 
@@ -128,7 +129,10 @@ func (f *EnumFlag) Check(value string) error {
 		return nil
 	}
 
-	// 遍历枚举选项
+	// 转换为小写
+	value = strings.ToLower(value)
+
+	// 检查值是否在枚举map中
 	if _, valid := f.optionMap[value]; !valid {
 		var options []string
 		for k := range f.optionMap {

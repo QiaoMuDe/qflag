@@ -483,6 +483,13 @@ func (c *Cmd) AddSubCmd(subCmds ...*Cmd) error {
 	// 创建错误切片
 	var errors []error
 
+	// 使用sync.Map来存储子命令名称，解决并发安全问题
+	var subCmdNames sync.Map
+	for _, cmd := range c.subCmds {
+		subCmdNames.Store(strings.ToLower(cmd.longName), true)
+		subCmdNames.Store(strings.ToLower(cmd.shortName), true)
+	}
+
 	// 创建一个空的切片，用于存储已添加的子命令
 	addedCmds := make([]*Cmd, 0, len(subCmds))
 
@@ -499,12 +506,14 @@ func (c *Cmd) AddSubCmd(subCmds ...*Cmd) error {
 			continue
 		}
 
-		// 检测是否已存在相同名称的子命令
-		for _, existingCmd := range c.subCmds {
-			if existingCmd.longName == cmd.longName || existingCmd.shortName == cmd.shortName {
-				errors = append(errors, fmt.Errorf("Subcommand %s already exists", cmd.longName))
-				continue
-			}
+		// 检测子命令名称是否已存在（大小写不敏感）
+		if _, exists := subCmdNames.Load(strings.ToLower(cmd.longName)); exists {
+			errors = append(errors, fmt.Errorf("Subcommand %s already exists", cmd.longName))
+			continue
+		}
+		if _, exists := subCmdNames.Load(strings.ToLower(cmd.shortName)); exists {
+			errors = append(errors, fmt.Errorf("Subcommand %s already exists", cmd.shortName))
+			continue
 		}
 
 		// 如果没有错误，则将子命令添加到切片中
@@ -829,6 +838,8 @@ func (c *Cmd) EnumVar(f *EnumFlag, longName, shortName string, defValue string, 
 	enumMap := make(map[string]bool)
 	if len(options) > 0 {
 		for _, v := range options {
+			// 转换为小写
+			v = strings.ToLower(v)
 			enumMap[v] = true
 		}
 	}
