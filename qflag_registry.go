@@ -7,35 +7,42 @@ import (
 
 // FlagMeta 统一存储标志的完整元数据
 type FlagMeta struct {
-	longName  string   // 长标志名称
-	shortName string   // 短标志名称
-	flagType  FlagType // 标志类型
-	usage     string   // 帮助说明
-	defValue  any      // 默认值
+	flag      Flag            // 标志对象
+	optionMap map[string]bool // 选项映射, 用于枚举标志
 }
 
-// FlagMetaInterface 标志元数据接口, 定义了标志元数据的访问方法
+// FlagMetaInterface 标志元数据接口, 定义了标志元数据的获取方法
 type FlagMetaInterface interface {
-	GetLongName() string   // 获取长标志名称
-	GetShortName() string  // 获取短标志名称
-	GetUsage() string      // 获取帮助说明
 	GetFlagType() FlagType // 获取标志类型
-	GetDefault() any       // 获取默认值
+	GetFlag() Flag         // 获取标志对象
+	GetLongName() string   // 获取标志的长名称
+	GetShortName() string  // 获取标志的短名称
+	GetUsage() string      // 获取标志的用法描述
+	GetDefault() any       // 获取标志的默认值
+	GetValue() any         // 获取标志的当前值
 }
 
-// 实现FlagMetaInterface
-func (m *FlagMeta) GetLongName() string   { return m.longName }
-func (m *FlagMeta) GetShortName() string  { return m.shortName }
-func (m *FlagMeta) GetUsage() string      { return m.usage }
-func (m *FlagMeta) GetFlagType() FlagType { return m.flagType }
-func (m *FlagMeta) GetDefault() any       { return m.defValue }
+// GetLongName 获取标志的长名称
+func (m *FlagMeta) GetLongName() string { return m.flag.LongName() }
+
+// GetShortName 获取标志的短名称
+func (m *FlagMeta) GetShortName() string { return m.flag.ShortName() }
+
+// GetUsage 获取标志的用法描述
+func (m *FlagMeta) GetUsage() string { return m.flag.Usage() }
+
+// GetFlagType 获取标志的类型
+func (m *FlagMeta) GetFlagType() FlagType { return m.flag.Type() }
+
+// GetDefault 获取标志的默认值
+func (m *FlagMeta) GetDefault() any { return m.flag.GetDefaultAny() }
 
 // FlagRegistry 集中管理所有标志元数据及索引
 type FlagRegistry struct {
 	mu       sync.RWMutex         // 并发访问锁
 	byLong   map[string]*FlagMeta // 按长名称索引
 	byShort  map[string]*FlagMeta // 按短名称索引
-	allFlags []*FlagMeta          // 所有标志列表（用于遍历）
+	allFlags []*FlagMeta          // 所有标志元数据列表
 }
 
 // FlagRegistryInterface 标志注册表接口, 定义了标志元数据的增删改查操作
@@ -44,7 +51,7 @@ type FlagRegistryInterface interface {
 	GetLongFlags() map[string]*FlagMeta            // 获取长标志映射
 	GetShortFlags() map[string]*FlagMeta           // 获取短标志映射
 	RegisterFlag(meta *FlagMeta)                   // 注册一个新的标志元数据到注册表中
-	GetByLong(name string) (*FlagMeta, bool)       // 通过长标志名称查找对应的标志元数据
+	GetByLong(longName string) (*FlagMeta, bool)   // 通过长标志名称查找对应的标志元数据
 	GetByShort(shortName string) (*FlagMeta, bool) // 通过短标志名称查找对应的标志元数据
 	GetByName(name string) (*FlagMeta, bool)       // 通过标志名称查找标志元数据
 }
@@ -61,20 +68,20 @@ func (r *FlagRegistry) RegisterFlag(meta *FlagMeta) {
 	defer r.mu.Unlock()
 
 	// 检查长标志是否已存在
-	if _, exists := r.byLong[meta.longName]; exists {
-		panic(fmt.Errorf("flag %s already exists", meta.longName))
+	if _, exists := r.byLong[meta.GetLongName()]; exists {
+		panic(fmt.Errorf("flag %s already exists", meta.GetLongName()))
 	}
 
 	// 检查短标志是否已存在
-	if _, exists := r.byShort[meta.shortName]; exists {
-		panic(fmt.Errorf("short flag %s already exists", meta.shortName))
+	if _, exists := r.byShort[meta.GetShortName()]; exists {
+		panic(fmt.Errorf("short flag %s already exists", meta.GetShortName()))
 	}
 
 	// 添加长标志索引
-	r.byLong[meta.longName] = meta
+	r.byLong[meta.GetLongName()] = meta
 
 	// 添加短标志索引
-	r.byShort[meta.shortName] = meta
+	r.byShort[meta.GetShortName()] = meta
 
 	// 添加到所有标志列表
 	r.allFlags = append(r.allFlags, meta)
@@ -82,16 +89,16 @@ func (r *FlagRegistry) RegisterFlag(meta *FlagMeta) {
 
 // GetByLong 通过长标志名称查找对应的标志元数据
 // 参数:
-//   - name: 标志的长名称(如"help")
+//   - longName: 标志的长名称(如"help")
 //
 // 返回值:
 //   - *FlagMeta: 找到的标志元数据指针，未找到时为nil
 //   - bool: 是否找到标志，true表示找到
-func (r *FlagRegistry) GetByLong(name string) (*FlagMeta, bool) {
-	r.mu.RLock()                   // 获取读锁，保证并发安全
-	defer r.mu.RUnlock()           // 函数返回时释放读锁
-	meta, exists := r.byLong[name] // 从长名称索引中查找
-	return meta, exists            // 返回查找结果
+func (r *FlagRegistry) GetByLong(longName string) (*FlagMeta, bool) {
+	r.mu.RLock()                       // 获取读锁，保证并发安全
+	defer r.mu.RUnlock()               // 函数返回时释放读锁
+	meta, exists := r.byLong[longName] // 从长名称索引中查找
+	return meta, exists                // 返回查找结果
 }
 
 // GetByShort 通过短标志名称查找对应的标志元数据

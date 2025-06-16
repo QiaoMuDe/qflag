@@ -16,27 +16,24 @@ var parseOnce sync.Once
 // QCommandLineInterface 定义了全局默认命令行接口，提供统一的命令行参数管理功能
 // 该接口封装了命令行程序的常用操作，包括标志添加、参数解析和帮助信息展示
 type QCommandLineInterface interface {
-	String(name, shortName, defValue, usage string) *StringFlag              // 添加字符串类型标志
-	Int(name, shortName string, defValue int, usage string) *IntFlag         // 添加整数类型标志
-	Bool(name, shortName string, defValue bool, usage string) *BoolFlag      // 添加布尔类型标志
-	Float(name, shortName string, defValue float64, usage string) *FloatFlag // 添加浮点数类型标志
-
-	StringVar(f *StringFlag, name, shortName, defValue, usage string)              // 绑定字符串标志到指定变量
-	IntVar(f *IntFlag, name, shortName string, defValue int, usage string)         // 绑定整数标志到指定变量
-	BoolVar(f *BoolFlag, name, shortName string, defValue bool, usage string)      // 绑定布尔标志到指定变量
-	FloatVar(f *FloatFlag, name, shortName string, defValue float64, usage string) // 绑定浮点数标志到指定变量
-
-	Parse() error // 解析命令行参数，自动处理标志和子命令
-
-	AddSubCmd(subCmd *Cmd) // 添加子命令，子命令会继承父命令的上下文
-
-	Args() []string   // 获取所有非标志参数(未绑定到任何标志的参数)
-	Arg(i int) string // 获取指定索引的非标志参数，索引越界返回空字符串
-	NArg() int        // 获取非标志参数的数量
-	NFlag() int       // 获取已解析的标志数量
-
-	PrintUsage()                 // 打印命令使用说明到标准输出
-	FlagExists(name string) bool // 检查指定名称的标志是否存在(支持长/短名称)
+	String(longName, shortName, defValue, usage string) *StringFlag                                      // 添加字符串类型标志
+	Int(longName, shortName string, defValue int, usage string) *IntFlag                                 // 添加整数类型标志
+	Bool(longName, shortName string, defValue bool, usage string) *BoolFlag                              // 添加布尔类型标志
+	Float(longName, shortName string, defValue float64, usage string) *FloatFlag                         // 添加浮点数类型标志
+	Enum(longName, shortName string, defValue string, usage string, enumValues []string) *EnumFlag       // 添加枚举类型标志
+	StringVar(f *StringFlag, longName, shortName, defValue, usage string)                                // 绑定字符串标志到指定变量
+	IntVar(f *IntFlag, longName, shortName string, defValue int, usage string)                           // 绑定整数标志到指定变量
+	BoolVar(f *BoolFlag, longName, shortName string, defValue bool, usage string)                        // 绑定布尔标志到指定变量
+	FloatVar(f *FloatFlag, longName, shortName string, defValue float64, usage string)                   // 绑定浮点数标志到指定变量
+	EnumVar(f *EnumFlag, longName, shortName string, defValue string, usage string, enumValues []string) // 绑定枚举标志到指定变量
+	Parse() error                                                                                        // 解析命令行参数，自动处理标志和子命令
+	AddSubCmd(subCmd *Cmd)                                                                               // 添加子命令，子命令会继承父命令的上下文
+	Args() []string                                                                                      // 获取所有非标志参数(未绑定到任何标志的参数)
+	Arg(i int) string                                                                                    // 获取指定索引的非标志参数，索引越界返回空字符串
+	NArg() int                                                                                           // 获取非标志参数的数量
+	NFlag() int                                                                                          // 获取已解析的标志数量
+	PrintUsage()                                                                                         // 打印命令使用说明到标准输出
+	FlagExists(name string) bool                                                                         // 检查指定名称的标志是否存在(支持长/短名称)
 }
 
 // 在包初始化时创建全局默认Cmd实例
@@ -47,9 +44,9 @@ func init() {
 		QCommandLine = NewCmd("app", "a", flag.ExitOnError)
 	} else {
 		// 如果os.Args不为空,则创建一个新的Cmd对象,命令行参数为filepath.Base(os.Args[0]),短名字为第一个字符,错误处理方式为ExitOnError
-		name := filepath.Base(os.Args[0])
-		shortName := string(name[0])
-		QCommandLine = NewCmd(name, shortName, flag.ExitOnError)
+		longName := filepath.Base(os.Args[0])
+		shortName := string(longName[0]) // 获取第一个字符作为短名称
+		QCommandLine = NewCmd(longName, shortName, flag.ExitOnError)
 	}
 }
 
@@ -63,8 +60,8 @@ func init() {
 //
 // 返回值：
 //   - *StringFlag: 指向新创建的字符串标志对象的指针。
-func String(name, shortName, defValue, usage string) *StringFlag {
-	return QCommandLine.String(name, shortName, defValue, usage)
+func String(longName, shortName, defValue, usage string) *StringFlag {
+	return QCommandLine.String(longName, shortName, defValue, usage)
 }
 
 // Int 为全局默认命令创建一个整数类型的命令行标志。
@@ -77,8 +74,8 @@ func String(name, shortName, defValue, usage string) *StringFlag {
 //
 // 返回值：
 //   - *IntFlag: 指向新创建的整数标志对象的指针。
-func Int(name, shortName string, defValue int, usage string) *IntFlag {
-	return QCommandLine.Int(name, shortName, defValue, usage)
+func Int(longName, shortName string, defValue int, usage string) *IntFlag {
+	return QCommandLine.Int(longName, shortName, defValue, usage)
 }
 
 // Bool 为全局默认命令创建一个布尔类型的命令行标志。
@@ -91,8 +88,8 @@ func Int(name, shortName string, defValue int, usage string) *IntFlag {
 //
 // 返回值：
 //   - *BoolFlag: 指向新创建的布尔标志对象的指针。
-func Bool(name, shortName string, defValue bool, usage string) *BoolFlag {
-	return QCommandLine.Bool(name, shortName, defValue, usage)
+func Bool(longName, shortName string, defValue bool, usage string) *BoolFlag {
+	return QCommandLine.Bool(longName, shortName, defValue, usage)
 }
 
 // Float 为全局默认命令创建一个浮点数类型的命令行标志。
@@ -105,8 +102,8 @@ func Bool(name, shortName string, defValue bool, usage string) *BoolFlag {
 //
 // 返回值：
 //   - *FloatFlag: 指向新创建的浮点数标志对象的指针。
-func Float(name, shortName string, defValue float64, usage string) *FloatFlag {
-	return QCommandLine.Float(name, shortName, defValue, usage)
+func Float(longName, shortName string, defValue float64, usage string) *FloatFlag {
+	return QCommandLine.Float(longName, shortName, defValue, usage)
 }
 
 // StringVar 函数的作用是将一个字符串类型的命令行标志绑定到全局默认命令的 `StringFlag` 指针上。
@@ -118,8 +115,8 @@ func Float(name, shortName string, defValue float64, usage string) *FloatFlag {
 // - shortName: 命令行标志的短名称，在命令行中需以 `-shortName` 的格式使用。
 // - defValue: 该命令行标志的默认值，当用户在命令行中未指定该标志时，会使用此默认值。
 // - usage: 该命令行标志的帮助说明信息，会在显示帮助信息时展示给用户，用于解释该标志的用途。
-func StringVar(f *StringFlag, name, shortName, defValue, usage string) {
-	QCommandLine.StringVar(f, name, shortName, defValue, usage)
+func StringVar(f *StringFlag, longName, shortName, defValue, usage string) {
+	QCommandLine.StringVar(f, longName, shortName, defValue, usage)
 }
 
 // IntVar 函数的作用是将整数类型的命令行标志绑定到全局默认命令的 `IntFlag` 指针上。
@@ -133,8 +130,8 @@ func StringVar(f *StringFlag, name, shortName, defValue, usage string) {
 //   - shortName: 命令行标志的短名称，在命令行中使用时需遵循 `-shortName` 的格式。
 //   - defValue: 该命令行标志的默认值。当用户在命令行中未指定该标志时，会采用此默认值。
 //   - usage: 该命令行标志的帮助说明信息，在显示帮助信息时会呈现给用户，用以解释该标志的具体用途。
-func IntVar(f *IntFlag, name, shortName string, defValue int, usage string) {
-	QCommandLine.IntVar(f, name, shortName, defValue, usage)
+func IntVar(f *IntFlag, longName, shortName string, defValue int, usage string) {
+	QCommandLine.IntVar(f, longName, shortName, defValue, usage)
 }
 
 // BoolVar 函数的作用是将布尔类型的命令行标志绑定到全局默认命令实例 `QCommandLine` 中。
@@ -146,8 +143,8 @@ func IntVar(f *IntFlag, name, shortName string, defValue int, usage string) {
 // - shortName: 标志的短名称，在命令行中以 `-shortName` 的形式使用。
 // - defValue: 标志的默认值，当命令行未指定该标志时，会使用此默认值。
 // - usage: 标志的帮助说明信息，用于在显示帮助信息时展示给用户，解释该标志的用途。
-func BoolVar(f *BoolFlag, name, shortName string, defValue bool, usage string) {
-	QCommandLine.BoolVar(f, name, shortName, defValue, usage)
+func BoolVar(f *BoolFlag, longName, shortName string, defValue bool, usage string) {
+	QCommandLine.BoolVar(f, longName, shortName, defValue, usage)
 }
 
 // FloatVar 为全局默认命令绑定一个浮点数类型的命令行标志到指定的 `FloatFlag` 指针。
@@ -159,8 +156,8 @@ func BoolVar(f *BoolFlag, name, shortName string, defValue bool, usage string) {
 // - shortName: 命令行标志的短名称，在命令行中需以 `-shortName` 的格式使用。
 // - defValue: 该命令行标志的默认值，当用户在命令行中未指定该标志时，会使用此默认值。
 // - usage: 该命令行标志的帮助说明信息，会在显示帮助信息时展示给用户，用于解释该标志的用途。
-func FloatVar(f *FloatFlag, name, shortName string, defValue float64, usage string) {
-	QCommandLine.FloatVar(f, name, shortName, defValue, usage)
+func FloatVar(f *FloatFlag, longName, shortName string, defValue float64, usage string) {
+	QCommandLine.FloatVar(f, longName, shortName, defValue, usage)
 }
 
 // Parse 解析命令行参数, 自动检查长短标志互斥, 并处理帮助标志 (全局默认命令)
@@ -252,8 +249,8 @@ func FlagExists(name string) bool {
 //
 // 返回值：
 // - *EnumFlag: 指向新创建的枚举类型标志对象的指针。
-func Enum(name, shortName string, defValue string, usage string, enumValues []string) *EnumFlag {
-	return QCommandLine.Enum(name, shortName, defValue, usage, enumValues)
+func Enum(longName, shortName string, defValue string, usage string, enumValues []string) *EnumFlag {
+	return QCommandLine.Enum(longName, shortName, defValue, usage, enumValues)
 }
 
 // EnumVar 为全局默认命令将一个枚举类型的命令行标志绑定到指定的 `EnumFlag` 指针。
@@ -266,6 +263,6 @@ func Enum(name, shortName string, defValue string, usage string, enumValues []st
 //   - defValue: 该命令行标志的默认值。当用户在命令行中未指定该标志时，会采用此默认值。该值会被复制一份，避免外部修改影响内部状态。
 //   - usage: 该命令行标志的帮助说明信息，在显示帮助信息时会呈现给用户，用以解释该标志的具体用途。
 //   - enumValues: 枚举值的集合，用于指定标志可接受的取值范围。
-func EnumVar(f *EnumFlag, name, shortName string, defValue string, usage string, enumValues []string) {
-	QCommandLine.EnumVar(f, name, shortName, defValue, usage, enumValues)
+func EnumVar(f *EnumFlag, longName, shortName string, defValue string, usage string, enumValues []string) {
+	QCommandLine.EnumVar(f, longName, shortName, defValue, usage, enumValues)
 }
