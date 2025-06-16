@@ -6,4 +6,5 @@ const (
 	ErrFlagParseFailed       = "Parameter parsing error"  // 全局实例标志解析错误
 	ErrSubCommandParseFailed = "Subcommand parsing error" // 子命令标志解析错误
 	ErrPanicRecovered        = "panic recovered"          // 恐慌捕获错误
+	ErrMutexGroupConflict    = "Mutex group conflict"     // 互斥组冲突错误
 )

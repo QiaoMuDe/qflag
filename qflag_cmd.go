@@ -34,6 +34,8 @@ type Cmd struct {
 	parseOnce                    sync.Once     // 用于确保命令只被解析一次
 	setMu                        sync.Mutex    // 互斥锁,确保并发安全操作
 	builtinFlagNameMap           sync.Map      // 用于存储内置标志名称的映射
+	mutexGroups                  [][]*FlagMeta // 互斥组列表，每组包含不能同时使用的标志
+	mutexGroupMu                 sync.Mutex    // 保护互斥组的并发访问锁
 }
 
 // 内置标志名称
@@ -53,29 +55,32 @@ var (
 // cmd.SetDescription("示例应用程序")
 // cmd.String("config", "c", "配置文件路径", "/etc/app.conf")
 type CmdInterface interface {
-	LongName() string                                                                  // 获取命令名称(长名称)，如"app"
-	ShortName() string                                                                 // 获取命令短名称，如"a"
-	Description() string                                                               // 获取命令描述信息
-	SetDescription(desc string)                                                        // 设置命令描述信息，用于帮助输出
-	Usage() string                                                                     // 获取自定义用法说明，为空时自动生成
-	SetUsage(usage string)                                                             // 设置自定义用法说明，覆盖自动生成内容
-	AddSubCmd(subCmd *Cmd)                                                             // 添加子命令，子命令会继承父命令的上下文
-	SubCmds() []*Cmd                                                                   // 获取所有已注册的子命令列表
-	Parse(args []string) error                                                         // 解析命令行参数，自动处理标志和子命令
-	Args() []string                                                                    // 获取所有非标志参数(未绑定到任何标志的参数)
-	Arg(i int) string                                                                  // 获取指定索引的非标志参数，索引越界返回空字符串
-	NArg() int                                                                         // 获取非标志参数的数量
-	NFlag() int                                                                        // 获取已解析的标志数量
-	FlagExists(name string) bool                                                       // 检查指定名称的标志是否存在(支持长/短名称)
-	PrintUsage()                                                                       // 打印命令使用说明到标准输出
-	String(longName, shortName, usage, defValue string) *StringFlag                    // 添加字符串类型标志
-	Int(longName, shortName, usage string, defValue int) *IntFlag                      // 添加整数类型标志
-	Bool(longName, shortName, usage string, defValue bool) *BoolFlag                   // 添加布尔类型标志
-	Float(longName, shortName, usage string, defValue float64) *FloatFlag              // 添加浮点数类型标志
-	StringVar(f *StringFlag, longName, shortName, defValue, usage string)              // 绑定字符串标志到指定变量
-	IntVar(f *IntFlag, longName, shortName string, defValue int, usage string)         // 绑定整数标志到指定变量
-	BoolVar(f *BoolFlag, longName, shortName string, defValue bool, usage string)      // 绑定布尔标志到指定变量
-	FloatVar(f *FloatFlag, longName, shortName string, defValue float64, usage string) // 绑定浮点数标志到指定变量
+	LongName() string                                                                                 // 获取命令名称(长名称)，如"app"
+	ShortName() string                                                                                // 获取命令短名称，如"a"
+	Description() string                                                                              // 获取命令描述信息
+	SetDescription(desc string)                                                                       // 设置命令描述信息，用于帮助输出
+	Usage() string                                                                                    // 获取自定义用法说明，为空时自动生成
+	SetUsage(usage string)                                                                            // 设置自定义用法说明，覆盖自动生成内容
+	AddSubCmd(subCmd *Cmd)                                                                            // 添加子命令，子命令会继承父命令的上下文
+	SubCmds() []*Cmd                                                                                  // 获取所有已注册的子命令列表
+	AddMutexGroup(flags ...Flag) error                                                                // 添加互斥组，互斥组内的标志不能同时使用
+	Parse(args []string) error                                                                        // 解析命令行参数，自动处理标志和子命令
+	Args() []string                                                                                   // 获取所有非标志参数(未绑定到任何标志的参数)
+	Arg(i int) string                                                                                 // 获取指定索引的非标志参数，索引越界返回空字符串
+	NArg() int                                                                                        // 获取非标志参数的数量
+	NFlag() int                                                                                       // 获取已解析的标志数量
+	FlagExists(name string) bool                                                                      // 检查指定名称的标志是否存在(支持长/短名称)
+	PrintUsage()                                                                                      // 打印命令使用说明到标准输出
+	String(longName, shortName, usage, defValue string) *StringFlag                                   // 添加字符串类型标志
+	Int(longName, shortName, usage string, defValue int) *IntFlag                                     // 添加整数类型标志
+	Bool(longName, shortName, usage string, defValue bool) *BoolFlag                                  // 添加布尔类型标志
+	Float(longName, shortName, usage string, defValue float64) *FloatFlag                             // 添加浮点数类型标志
+	Enum(longName, shortName string, defValue string, usage string, options []string) *EnumFlag       // 添加枚举类型标志
+	StringVar(f *StringFlag, longName, shortName, defValue, usage string)                             // 绑定字符串标志到指定变量
+	IntVar(f *IntFlag, longName, shortName string, defValue int, usage string)                        // 绑定整数标志到指定变量
+	BoolVar(f *BoolFlag, longName, shortName string, defValue bool, usage string)                     // 绑定布尔标志到指定变量
+	FloatVar(f *FloatFlag, longName, shortName string, defValue float64, usage string)                // 绑定浮点数标志到指定变量
+	EnumVar(f *EnumFlag, longName, shortName string, defValue string, usage string, options []string) // 绑定枚举标志到指定变量
 }
 
 // LongName 命令长名称
@@ -538,6 +543,66 @@ func (c *Cmd) AddSubCmd(subCmds ...*Cmd) error {
 	return nil
 }
 
+// AddMutexGroup 添加标志互斥组，同一组中的标志不能同时被设置
+// 参数: flags - 要添加到互斥组的标志列表
+// 返回值: 错误信息，如果有标志不存在则返回错误
+func (c *Cmd) AddMutexGroup(flags ...Flag) error {
+	// 1. 获取互斥锁，确保线程安全
+	c.mutexGroupMu.Lock()
+	defer c.mutexGroupMu.Unlock()
+
+	// 2. 初始化互斥组容器
+	var group []*FlagMeta
+
+	// 3. 验证每个标志的有效性
+	for _, flag := range flags {
+		// 3.1 检查标志是否已注册
+		meta, exists := c.flagRegistry.GetByName(flag.LongName())
+		if !exists {
+			// 3.2 返回明确的错误信息
+			return fmt.Errorf("flag %s not found in registry", flag.LongName())
+		}
+		// 3.3 收集有效的标志元数据
+		group = append(group, meta)
+	}
+
+	// 4. 将验证通过的互斥组添加到全局列表
+	c.mutexGroups = append(c.mutexGroups, group)
+
+	// 5. 返回成功
+	return nil
+}
+
+// checkMutexGroups 检查所有互斥组，确保每组中最多只有一个标志被设置
+func (c *Cmd) checkMutexGroups() error {
+	// 1. 获取互斥锁，确保并发安全
+	c.mutexGroupMu.Lock()
+	defer c.mutexGroupMu.Unlock()
+
+	// 2. 遍历所有互斥组
+	for _, group := range c.mutexGroups {
+		var setCount int      // 记录当前组中被设置的标志数量
+		var setFlags []string // 记录当前组中所有被设置的标志名称
+
+		// 3. 检查组内每个标志的设置状态
+		for _, meta := range group {
+			if meta.flag.IsSet() { // 如果标志被设置
+				setCount++                                      // 增加计数器
+				setFlags = append(setFlags, meta.GetLongName()) // 记录标志名
+			}
+		}
+
+		// 4. 互斥规则验证
+		if setCount > 1 { // 如果组内有多个标志被设置
+			// 返回格式化错误信息，列出冲突的标志
+			return fmt.Errorf("mutually exclusive flags set: %s", strings.Join(setFlags, ", "))
+		}
+	}
+
+	// 5. 所有互斥组检查通过
+	return nil
+}
+
 // Parse 解析命令行参数, 自动检查长短标志, 并处理帮助标志
 // 工作流程:
 //  1. 调用flag库解析参数
@@ -560,6 +625,12 @@ func (c *Cmd) Parse(args []string) (err error) {
 		// 1调用flag库解析参数
 		if parseErr := c.fs.Parse(args); parseErr != nil {
 			err = fmt.Errorf("%s: %w", ErrFlagParseFailed, parseErr)
+			return
+		}
+
+		// 检查互斥组
+		if mutexErr := c.checkMutexGroups(); mutexErr != nil {
+			err = fmt.Errorf("%s: %w", ErrMutexGroupConflict, mutexErr)
 			return
 		}
 
@@ -598,6 +669,7 @@ func (c *Cmd) Parse(args []string) (err error) {
 			}
 		}
 
+		// 检查枚举标志
 		for _, meta := range c.flagRegistry.GetAllFlags() {
 			if meta.GetFlagType() == FlagTypeEnum {
 				if enumFlag, ok := meta.flag.(*EnumFlag); ok {
