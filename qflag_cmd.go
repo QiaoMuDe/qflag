@@ -80,13 +80,13 @@ type CmdInterface interface {
 	EnumVar(f *EnumFlag, longName, shortName string, defValue string, usage string, options []string) // 绑定枚举标志到指定变量
 }
 
-// LongName 命令长名称
+// LongName 返回命令长名称
 func (c *Cmd) LongName() string { return c.longName }
 
-// ShortName 命令短名称
+// ShortName 返回命令短名称
 func (c *Cmd) ShortName() string { return c.shortName }
 
-// Description 命令描述
+// Description 返回命令描述
 func (c *Cmd) Description() string { return c.description }
 
 // SetDescription 设置命令描述
@@ -96,7 +96,7 @@ func (c *Cmd) SetDescription(desc string) {
 	c.description = desc
 }
 
-// Usage 命令用法
+// Usage 返回命令用法
 func (c *Cmd) Usage() string { return c.usage }
 
 // SetUsage 设置命令用法
@@ -106,7 +106,7 @@ func (c *Cmd) SetUsage(usage string) {
 	c.usage = usage
 }
 
-// SubCmds 子命令列表
+// SubCmds 返回子命令列表
 func (c *Cmd) SubCmds() []*Cmd { return c.subCmds }
 
 // Args 获取非标志参数切片
@@ -425,7 +425,7 @@ func (c *Cmd) validateFlag(longName, shortName string) error {
 func NewCmd(longName string, shortName string, errorHandling flag.ErrorHandling) *Cmd {
 	// 检查命令名称是否为空
 	if longName == "" {
-		panic("cmd name cannot be empty")
+		panic("cmd long name cannot be empty")
 	}
 
 	// 检查命令短名称是否为空
@@ -466,7 +466,7 @@ func NewCmd(longName string, shortName string, errorHandling flag.ErrorHandling)
 // 支持批量添加多个子命令，遇到错误时收集所有错误并返回
 // 参数:
 //
-//	subCmds: 子命令的切片
+//	subCmds: 一个或多个子命令实例指针
 //
 // 返回值:
 //
@@ -535,11 +535,9 @@ func (c *Cmd) AddSubCmd(subCmds ...*Cmd) error {
 }
 
 // Parse 解析命令行参数, 自动检查长短标志, 并处理帮助标志
-// 工作流程:
-//  1. 调用flag库解析参数
-//  2. 处理内置标志(-h/--help和-sip/--show-install-path)
-//  3. 检测并处理子命令:当第一个非标志参数匹配子命令名称时,
-//     将剩余参数传递给子命令解析
+// 参数:
+//
+//	args: 命令行参数切片
 //
 // 注意: 该方法保证每个Cmd实例只会解析一次
 func (c *Cmd) Parse(args []string) (err error) {
@@ -616,7 +614,8 @@ func (c *Cmd) Parse(args []string) (err error) {
 	return nil
 }
 
-// String 添加字符串类型标志, 返回标志对象,参数依次为长标志名、短标志、默认值、帮助说明
+// String 添加字符串类型标志, 返回标志对象指针
+// 参数依次为: 长标志名、短标志、默认值、帮助说明
 func (c *Cmd) String(longName, shortName, defValue, usage string) *StringFlag {
 	f := &StringFlag{}
 	c.StringVar(f, longName, shortName, defValue, usage)
@@ -705,7 +704,8 @@ func (c *Cmd) IntVar(f *IntFlag, longName, shortName string, defValue int, usage
 	}
 }
 
-// Int 添加整数类型标志, 返回标志对象。参数依次为长标志名、短标志、默认值、帮助说明
+// Int 添加整数类型标志, 返回标志对象指针
+// 参数依次为: 长标志名、短标志、默认值、帮助说明
 func (c *Cmd) Int(longName, shortName string, defValue int, usage string) *IntFlag {
 	f := &IntFlag{}
 	c.IntVar(f, longName, shortName, defValue, usage)
@@ -751,60 +751,19 @@ func (c *Cmd) BoolVar(f *BoolFlag, longName, shortName string, defValue bool, us
 	}
 }
 
-// Bool 添加布尔类型标志, 返回标志对象。参数依次为长标志名、短标志、默认值、帮助说明
+// Bool 添加布尔类型标志, 返回标志对象指针
+// 参数依次为: 长标志名、短标志、默认值、帮助说明
 func (c *Cmd) Bool(longName, shortName string, defValue bool, usage string) *BoolFlag {
 	f := &BoolFlag{}
 	c.BoolVar(f, longName, shortName, defValue, usage)
 	return f
 }
 
-// Float 添加浮点型标志, 返回标志对象。参数依次为长标志名、短标志、默认值、帮助说明
+// Float 添加浮点型标志, 返回标志对象指针
+// 参数依次为: 长标志名、短标志、默认值、帮助说明
 func (c *Cmd) Float(longName, shortName string, defValue float64, usage string) *FloatFlag {
 	f := &FloatFlag{}
 	c.FloatVar(f, longName, shortName, defValue, usage)
-	return f
-}
-
-// DurationVar 绑定时间间隔类型标志到指定变量
-// 参数依次为: 时间间隔标志指针、长标志名、短标志、默认值、帮助说明
-func (c *Cmd) DurationVar(f *DurationFlag, longName, shortName string, defValue time.Duration, usage string) {
-	// 检查指针是否为空
-	if f == nil {
-		panic("DurationFlag pointer cannot be nil")
-	}
-
-	// 参数校验
-	if validateErr := c.validateFlag(longName, shortName); validateErr != nil {
-		panic(validateErr)
-	}
-
-	// 初始化默认值
-	currentDuration := new(time.Duration)
-	*currentDuration = defValue
-
-	// 设置标志属性
-	f.cmd = c
-	f.longName = longName
-	f.shortName = shortName
-	f.defValue = defValue
-	f.usage = usage
-	f.value = currentDuration
-
-	// 创建并注册标志元数据
-	meta := &FlagMeta{flag: f}
-	if registerErr := c.flagRegistry.RegisterFlag(meta); registerErr != nil {
-		panic(registerErr)
-	}
-
-	// 绑定长短标志
-	c.fs.DurationVar(currentDuration, shortName, defValue, usage)
-	c.fs.DurationVar(currentDuration, longName, defValue, usage)
-}
-
-// Duration 添加时间间隔类型标志, 返回标志对象。参数依次为: 长标志名、短标志、默认值、帮助说明
-func (c *Cmd) Duration(longName, shortName string, defValue time.Duration, usage string) *DurationFlag {
-	f := &DurationFlag{}
-	c.DurationVar(f, longName, shortName, defValue, usage)
 	return f
 }
 
@@ -850,6 +809,50 @@ func (c *Cmd) FloatVar(f *FloatFlag, longName, shortName string, defValue float6
 	}
 }
 
+// DurationVar 绑定时间间隔类型标志到指针并内部注册Flag对象
+// 参数依次为: 时间间隔标志指针、长标志名、短标志、默认值、帮助说明
+func (c *Cmd) DurationVar(f *DurationFlag, longName, shortName string, defValue time.Duration, usage string) {
+	// 检查指针是否为空
+	if f == nil {
+		panic("DurationFlag pointer cannot be nil")
+	}
+
+	// 参数校验
+	if validateErr := c.validateFlag(longName, shortName); validateErr != nil {
+		panic(validateErr)
+	}
+
+	// 初始化默认值
+	currentDuration := new(time.Duration)
+	*currentDuration = defValue
+
+	// 设置标志属性
+	f.cmd = c
+	f.longName = longName
+	f.shortName = shortName
+	f.defValue = defValue
+	f.usage = usage
+	f.value = currentDuration
+
+	// 创建并注册标志元数据
+	meta := &FlagMeta{flag: f}
+	if registerErr := c.flagRegistry.RegisterFlag(meta); registerErr != nil {
+		panic(registerErr)
+	}
+
+	// 绑定长短标志
+	c.fs.DurationVar(currentDuration, shortName, defValue, usage)
+	c.fs.DurationVar(currentDuration, longName, defValue, usage)
+}
+
+// Duration 添加时间间隔类型标志, 返回标志对象指针
+// 参数依次为: 长标志名、短标志、默认值、帮助说明
+func (c *Cmd) Duration(longName, shortName string, defValue time.Duration, usage string) *DurationFlag {
+	f := &DurationFlag{}
+	c.DurationVar(f, longName, shortName, defValue, usage)
+	return f
+}
+
 // GetExecutablePath 获取程序的绝对安装路径
 // 如果无法通过 os.Executable 获取路径,则使用 os.Args[0] 作为替代
 // 返回：程序的绝对路径字符串
@@ -869,14 +872,16 @@ func GetExecutablePath() string {
 	return absPath
 }
 
-// Enum 为命令添加枚举类型标志, 返回标志对象。参数依次为: 长标志名、短标志、默认值、帮助说明、枚举值切片
+// Enum 添加枚举类型标志, 返回标志对象指针
+// 参数依次为: 长标志名、短标志、默认值、帮助说明、限制该标志取值的枚举值切片
 func (c *Cmd) Enum(longName, shortName string, defValue string, usage string, options []string) *EnumFlag {
 	f := &EnumFlag{}
 	c.EnumVar(f, longName, shortName, defValue, usage, options)
 	return f
 }
 
-// EnumVar 为命令添加枚举类型标志, 返回标志对象。参数依次为: 枚举标志指针、长标志名、短标志、默认值、帮助说明、枚举值切片
+// EnumVar 绑定枚举类型标志到指针并内部注册Flag对象
+// 参数依次为: 枚举标志指针、长标志名、短标志、默认值、帮助说明、限制该标志取值的枚举值切片
 func (c *Cmd) EnumVar(f *EnumFlag, longName, shortName string, defValue string, usage string, options []string) {
 	// 检查指针是否为空
 	if f == nil {
