@@ -7,6 +7,7 @@ import (
 	"os"
 	"strings"
 	"testing"
+	"time"
 )
 
 // TestNewCmd 测试创建新命令
@@ -347,6 +348,86 @@ func TestEnumFlag(t *testing.T) {
 		}
 		if enumFlag.GetDefault() != "test" {
 			t.Errorf("无效输入后枚举标志应保持默认值，实际得到 = %v, 期望 %v", enumFlag.Get(), "test")
+		}
+	}
+}
+
+// TestDurationFlag 测试时间间隔类型标志
+func TestDurationFlag(t *testing.T) {
+	// 测试默认值
+	cmd := NewCmd("test", "t", flag.ContinueOnError)
+	durFlag := cmd.Duration("duration", "d", 5*time.Second, "test duration flag")
+	if durFlag.Get() != 5*time.Second {
+		t.Errorf("时间间隔标志默认值 = %v, 期望 %v", durFlag.Get(), 5*time.Second)
+	}
+
+	// 测试长标志
+	{
+		cmd := NewCmd("test", "t", flag.ContinueOnError)
+		durFlag := cmd.Duration("duration", "d", 5*time.Second, "test duration flag")
+		err := cmd.Parse([]string{"--duration", "1m30s"})
+		if err != nil {
+			t.Fatalf("解析() 错误 = %v", err)
+		}
+		expected := 90 * time.Second
+		if durFlag.Get() != expected {
+			t.Errorf("时间间隔标志 = %v, 期望 %v", durFlag.Get(), expected)
+		}
+	}
+
+	// 测试短标志
+	{
+		cmd := NewCmd("test", "t", flag.ContinueOnError)
+		durFlag := cmd.Duration("duration", "d", 5*time.Second, "test duration flag")
+		err := cmd.Parse([]string{"-d", "2h"})
+		if err != nil {
+			t.Fatalf("解析() 错误 = %v", err)
+		}
+		expected := 2 * time.Hour
+		if durFlag.Get() != expected {
+			t.Errorf("时间间隔标志 = %v, 期望 %v", durFlag.Get(), expected)
+		}
+	}
+
+	// 测试无效格式
+	{
+		// 捕获标准输出和错误输出
+		oldStdout := os.Stdout
+		oldStderr := os.Stderr
+		rOut, wOut, _ := os.Pipe()
+		rErr, wErr, _ := os.Pipe()
+		os.Stdout = wOut
+		os.Stderr = wErr
+		defer func() {
+			wOut.Close()
+			wErr.Close()
+			os.Stdout = oldStdout
+			os.Stderr = oldStderr
+
+			// 仅在-v模式下输出捕获的内容
+			if testing.Verbose() {
+				outBuf := new(bytes.Buffer)
+				errBuf := new(bytes.Buffer)
+				if _, err := outBuf.ReadFrom(rOut); err != nil {
+					t.Errorf("从标准输出管道读取数据时出错: %v", err)
+				}
+				if _, err := errBuf.ReadFrom(rErr); err != nil {
+					t.Errorf("从标准错误输出管道读取数据时出错: %v", err)
+				}
+				t.Logf("捕获的标准输出:\n%s", outBuf.String())
+				t.Logf("捕获的标准错误输出:\n%s", errBuf.String())
+			}
+		}()
+
+		cmd := NewCmd("test", "t", flag.ContinueOnError)
+		durFlag := cmd.Duration("duration", "d", 5*time.Second, "test duration flag")
+		err := cmd.Parse([]string{"--duration", "invalid"})
+		if err == nil {
+			t.Fatal("无效时间格式期望报错，实际得到 nil")
+		}
+		// 验证无效输入后默认值不变
+		if durFlag.GetDefault() != 5*time.Second {
+			t.Errorf("无效输入后时间间隔标志应保持默认值，实际得到 %v", durFlag.GetDefault())
 		}
 	}
 }

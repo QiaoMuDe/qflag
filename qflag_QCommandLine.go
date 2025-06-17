@@ -5,6 +5,7 @@ import (
 	"os"
 	"path/filepath"
 	"sync"
+	"time"
 )
 
 // QCommandLine 全局默认Cmd实例
@@ -265,4 +266,30 @@ func Enum(longName, shortName string, defValue string, usage string, enumValues 
 //   - enumValues: 枚举值的集合，用于指定标志可接受的取值范围。
 func EnumVar(f *EnumFlag, longName, shortName string, defValue string, usage string, enumValues []string) {
 	QCommandLine.EnumVar(f, longName, shortName, defValue, usage, enumValues)
+}
+
+// Duration 为全局默认命令定义一个时间间隔类型的命令行标志。
+// 该函数会调用全局默认命令实例 `QCommandLine` 的 `Duration` 方法，为命令行添加支持长短标志的时间间隔类型参数，
+// 参数说明：
+//   - longName: 命令行标志的长名称，在命令行中使用时需遵循 `--longName` 的格式。
+//   - shortName: 命令行标志的短名称，在命令行中使用时需遵循 `-shortName` 的格式。
+//   - defValue: 该命令行标志的默认值。当用户在命令行中未指定该标志时，会采用此默认值。该值会被复制一份，避免外部修改影响内部状态。
+//   - usage: 该命令行标志的帮助说明信息，在显示帮助信息时会呈现给用户，用以解释该标志的具体用途。
+//
+// 返回值：
+func Duration(longName, shortName string, defValue time.Duration, usage string) *DurationFlag {
+	return QCommandLine.Duration(longName, shortName, defValue, usage)
+}
+
+// DurationVar 为全局默认命令将一个时间间隔类型的命令行标志绑定到指定的 `DurationFlag` 指针。
+// 该函数会调用全局默认命令实例 `QCommandLine` 的 `DurationVar` 方法，为命令行添加支持长短标志的时间间隔类型参数，
+// 参数说明：
+//   - f: 指向 `DurationFlag` 类型的指针，此指针用于存储和管理时间间隔类型命令行标志的各类信息，
+//     如当前标志的值、默认值等。
+//   - longName: 命令行标志的长名称，在命令行中使用时需遵循 `--longName` 的格式。
+//   - shortName: 命令行标志的短名称，在命令行中使用时需遵循 `-shortName` 的格式。
+//   - defValue: 该命令行标志的默认值。当用户在命令行中未指定该标志时，会采用此默认值。该值会被复制一份，避免外部修改影响内部状态。
+//   - usage: 该命令行标志的帮助说明信息，在显示帮助信息时会呈现给用户，用以解释该标志的具体用途。
+func DurationVar(f *DurationFlag, longName, shortName string, defValue time.Duration, usage string) {
+	QCommandLine.DurationVar(f, longName, shortName, defValue, usage)
 }

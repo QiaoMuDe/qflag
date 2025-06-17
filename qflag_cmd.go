@@ -766,6 +766,7 @@ func (c *Cmd) Float(longName, shortName string, defValue float64, usage string) 
 }
 
 // DurationVar 绑定时间间隔类型标志到指定变量
+// 参数依次为: 时间间隔标志指针、长标志名、短标志、默认值、帮助说明
 func (c *Cmd) DurationVar(f *DurationFlag, longName, shortName string, defValue time.Duration, usage string) {
 	// 检查指针是否为空
 	if f == nil {
@@ -800,8 +801,8 @@ func (c *Cmd) DurationVar(f *DurationFlag, longName, shortName string, defValue 
 	c.fs.DurationVar(currentDuration, longName, defValue, usage)
 }
 
-// Duration 添加时间间隔类型标志
-func (c *Cmd) Duration(longName, shortName, usage string, defValue time.Duration) *DurationFlag {
+// Duration 添加时间间隔类型标志, 返回标志对象。参数依次为: 长标志名、短标志、默认值、帮助说明
+func (c *Cmd) Duration(longName, shortName string, defValue time.Duration, usage string) *DurationFlag {
 	f := &DurationFlag{}
 	c.DurationVar(f, longName, shortName, defValue, usage)
 	return f
