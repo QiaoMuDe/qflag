@@ -8,6 +8,7 @@ import (
 	"sort"
 	"strings"
 	"sync"
+	"time"
 )
 
 // Cmd 命令行标志管理结构体,封装参数解析、长短标志互斥及帮助系统。
@@ -69,11 +70,13 @@ type CmdInterface interface {
 	Int(longName, shortName, usage string, defValue int) *IntFlag                                     // 添加整数类型标志
 	Bool(longName, shortName, usage string, defValue bool) *BoolFlag                                  // 添加布尔类型标志
 	Float(longName, shortName, usage string, defValue float64) *FloatFlag                             // 添加浮点数类型标志
+	Duration(longName, shortName, usage string, defValue time.Duration) *DurationFlag                 // 添加时间间隔类型标志
 	Enum(longName, shortName string, defValue string, usage string, options []string) *EnumFlag       // 添加枚举类型标志
 	StringVar(f *StringFlag, longName, shortName, defValue, usage string)                             // 绑定字符串标志到指定变量
 	IntVar(f *IntFlag, longName, shortName string, defValue int, usage string)                        // 绑定整数标志到指定变量
 	BoolVar(f *BoolFlag, longName, shortName string, defValue bool, usage string)                     // 绑定布尔标志到指定变量
 	FloatVar(f *FloatFlag, longName, shortName string, defValue float64, usage string)                // 绑定浮点数标志到指定变量
+	DurationVar(f *DurationFlag, longName, shortName string, defValue time.Duration, usage string)    // 绑定时间间隔类型标志到指定变量
 	EnumVar(f *EnumFlag, longName, shortName string, defValue string, usage string, options []string) // 绑定枚举标志到指定变量
 }
 
@@ -759,6 +762,48 @@ func (c *Cmd) Bool(longName, shortName string, defValue bool, usage string) *Boo
 func (c *Cmd) Float(longName, shortName string, defValue float64, usage string) *FloatFlag {
 	f := &FloatFlag{}
 	c.FloatVar(f, longName, shortName, defValue, usage)
+	return f
+}
+
+// DurationVar 绑定时间间隔类型标志到指定变量
+func (c *Cmd) DurationVar(f *DurationFlag, longName, shortName string, defValue time.Duration, usage string) {
+	// 检查指针是否为空
+	if f == nil {
+		panic("DurationFlag pointer cannot be nil")
+	}
+
+	// 参数校验
+	if validateErr := c.validateFlag(longName, shortName); validateErr != nil {
+		panic(validateErr)
+	}
+
+	// 初始化默认值
+	currentDuration := new(time.Duration)
+	*currentDuration = defValue
+
+	// 设置标志属性
+	f.cmd = c
+	f.longName = longName
+	f.shortName = shortName
+	f.defValue = defValue
+	f.usage = usage
+	f.value = currentDuration
+
+	// 创建并注册标志元数据
+	meta := &FlagMeta{flag: f}
+	if registerErr := c.flagRegistry.RegisterFlag(meta); registerErr != nil {
+		panic(registerErr)
+	}
+
+	// 绑定长短标志
+	c.fs.DurationVar(currentDuration, shortName, defValue, usage)
+	c.fs.DurationVar(currentDuration, longName, defValue, usage)
+}
+
+// Duration 添加时间间隔类型标志
+func (c *Cmd) Duration(longName, shortName, usage string, defValue time.Duration) *DurationFlag {
+	f := &DurationFlag{}
+	c.DurationVar(f, longName, shortName, defValue, usage)
 	return f
 }
 
