@@ -25,8 +25,8 @@ type Flag interface {
 type TypedFlag[T any] interface {
     Flag
     GetDefault() T // 获取标志的默认值
-    GetValue() T   // 获取标志的实际值
-    SetValue(T)    // 设置标志的值
+    Get() T        // 获取标志的实际值
+    Set(T)         // 设置标志的值
 }
 ```
 
@@ -283,6 +283,38 @@ func FloatVar(p *float64, name, shortName string, defValue float64, usage string
 - `defValue`: 默认值
 - `usage`: 帮助说明
 
+### 枚举标志
+
+#### Enum
+```go
+func Enum(name, shortName string, defValue string, usage string, allowedValues ...string) *EnumFlag
+```
+创建枚举类型标志(全局默认命令)，限制输入值为预定义选项集合。
+
+参数:
+- `name`: 长标志名
+- `shortName`: 短标志名
+- `defValue`: 默认值
+- `usage`: 帮助说明
+- `allowedValues`: 允许的枚举值列表
+
+返回值:
+- `*EnumFlag`: 枚举标志实例
+
+#### EnumVar
+```go
+func EnumVar(p *string, name, shortName string, defValue string, usage string, allowedValues ...string)
+```
+绑定枚举类型标志到指针(全局默认命令)，限制输入值为预定义选项集合。
+
+参数:
+- `p`: 指向字符串变量的指针
+- `name`: 长标志名
+- `shortName`: 短标志名
+- `defValue`: 默认值
+- `usage`: 帮助说明
+- `allowedValues`: 允许的枚举值列表
+
 ## 内置标志
 
 qflag自动绑定了以下内置标志：
@@ -318,7 +350,7 @@ package main
 
 import (
   "fmt"
-  "qflag"
+  "gitee.com/MM-Q/qflag"
 )
 
 func main() {
@@ -336,11 +368,13 @@ func main() {
   }
 
   // 使用标志值
-  fmt.Printf("Hello, %s! You are %d years old.\n", nameFlag.GetValue(), ageFlag.GetValue())
+  fmt.Printf("Hello, %s! You are %d years old.\n", nameFlag.Get(), ageFlag.Get())
   if verboseFlag.GetValue() {
     fmt.Println("Verbose mode enabled")
     // 访问默认值示例
     fmt.Printf("Default verbose value: %v\n", verboseFlag.GetDefault())
+    // 获取当前值示例
+    fmt.Printf("Current verbose value: %v\n", verboseFlag.Get())
   }
 }
 ```
@@ -351,7 +385,7 @@ package main
 
 import (
   "fmt"
-  "qflag"
+  "gitee.com/MM-Q/qflag"
   "flag"
 )
 
@@ -408,7 +442,7 @@ package main
 
 import (
   "fmt"
-  "qflag"
+  "gitee.com/MM-Q/qflag"
   "os"
 )
 
@@ -491,7 +525,7 @@ func main() {
 | 类别 | 名称 | 描述 |
 |------|------|------|
 | 命令创建 | NewCmd | 创建新的命令实例 |
-| 标志操作 | String, Int, Bool, Float | 创建指定类型的标志 |
+| 标志操作 | String, Int, Bool, Float, Enum | 创建指定类型的标志 |
 | 标志绑定 | StringVar, IntVar, BoolVar, FloatVar | 绑定标志到变量指针 |
 | 参数解析 | Parse | 解析命令行参数 |
 | 帮助信息 | PrintUsage | 打印命令帮助信息 |

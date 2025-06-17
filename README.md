@@ -24,7 +24,6 @@ go get gitee.com/MM-Q/qflag
 - 内置安装路径显示功能(-sip/--show-install-path)
 - 支持标志默认值动态设置
 - 支持枚举类型标志（EnumFlag），可限制输入值为预定义选项
-- 标志互斥组功能，允许定义不能同时使用的标志组
 - 提供丰富的API文档和测试用例
 
 ## 使用示例
@@ -53,9 +52,9 @@ func main() {
 	}
 
 	// 获取参数值
-	if runF.GetValue() {
-		fmt.Printf("启动app: %s\n", nameF.GetValue())
-		fmt.Printf("app路径: %s\n", pathF.GetValue())
+	if runF.Get() {
+		fmt.Printf("启动app: %s\n", nameF.Get())
+		fmt.Printf("app路径: %s\n", pathF.Get())
 	}
 }
 
@@ -104,8 +103,8 @@ func main() {
 	}
 
 	// 判断是否执行了stop子命令
-	if stopF.GetValue() {
-		fmt.Printf("停止app: %s\n", stopCmdName.GetValue())
+	if stopF.Get() {
+		fmt.Printf("停止app: %s\n", stopCmdName.Get())
 	}
 }
 ```
