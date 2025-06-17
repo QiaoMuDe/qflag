@@ -25,10 +25,10 @@ func TestNewCmd(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			cmd := NewCmd(tt.name, tt.shortName, tt.errorMode)
 			if cmd.LongName() != tt.name {
-				t.Errorf("Name() = %v, want %v", cmd.LongName(), tt.name)
+				t.Errorf("长名称() = %v, 期望 %v", cmd.LongName(), tt.name)
 			}
 			if cmd.ShortName() != tt.shortName {
-				t.Errorf("ShortName() = %v, want %v", cmd.ShortName(), tt.shortName)
+				t.Errorf("短名称() = %v, 期望 %v", cmd.ShortName(), tt.shortName)
 			}
 		})
 	}
@@ -47,20 +47,20 @@ func TestFlagBinding(t *testing.T) {
 	// 测试标志解析
 	err := cmd.Parse([]string{"--string", "value", "--int", "456", "--bool", "--float", "2.718"})
 	if err != nil {
-		t.Fatalf("Parse() error = %v", err)
+		t.Fatalf("解析() 错误 = %v", err)
 	}
 
 	if strFlag.Get() != "value" {
-		t.Errorf("String flag = %v, want %v", strFlag.Get(), "value")
+		t.Errorf("字符串标志 = %v, 期望 %v", strFlag.Get(), "value")
 	}
 	if intFlag.Get() != 456 {
-		t.Errorf("Int flag = %v, want %v", intFlag.Get(), 456)
+		t.Errorf("整数标志 = %v, 期望 %v", intFlag.Get(), 456)
 	}
 	if boolFlag.Get() != true {
-		t.Errorf("Bool flag = %v, want %v", boolFlag.Get(), true)
+		t.Errorf("布尔标志 = %v, 期望 %v", boolFlag.Get(), true)
 	}
 	if floatFlag.Get() != 2.718 {
-		t.Errorf("Float flag = %v, want %v", floatFlag.Get(), 2.718)
+		t.Errorf("浮点数标志 = %v, 期望 %v", floatFlag.Get(), 2.718)
 	}
 }
 
@@ -71,17 +71,17 @@ func TestSubCommand(t *testing.T) {
 
 	// 添加子命令
 	if err := parent.AddSubCmd(child); err != nil {
-		t.Fatalf("AddSubCmd() error = %v", err)
+		t.Fatalf("添加子命令() 错误 = %v", err)
 	}
 
 	// 测试子命令解析
 	err := parent.Parse([]string{"child", "arg1", "arg2"})
 	if err != nil {
-		t.Fatalf("Parse() error = %v", err)
+		t.Fatalf("解析() 错误 = %v", err)
 	}
 
 	if len(child.Args()) != 2 {
-		t.Errorf("Args() length = %v, want %v", len(child.Args()), 2)
+		t.Errorf("参数() 长度 = %v, 期望 %v", len(child.Args()), 2)
 	}
 }
 
@@ -95,28 +95,10 @@ func TestUsageAndDescription(t *testing.T) {
 	cmd.SetDescription(desc)
 
 	if cmd.Usage() != usage {
-		t.Errorf("Usage() = %v, want %v", cmd.Usage(), usage)
+		t.Errorf("用法() = %v, 期望 %v", cmd.Usage(), usage)
 	}
 	if cmd.Description() != desc {
-		t.Errorf("Description() = %v, want %v", cmd.Description(), desc)
-	}
-}
-
-// TestCmd_AddMutexGroup 测试添加互斥组功能
-func TestCmd_AddMutexGroup(t *testing.T) {
-	cmd := NewCmd("test", "t", flag.ContinueOnError)
-	flag1 := cmd.String("flag1", "f1", "", "test flag 1")
-	flag2 := cmd.String("flag2", "f2", "", "test flag 2")
-
-	// 测试正常添加互斥组
-	if err := cmd.AddMutexGroup(flag1, flag2); err != nil {
-		t.Errorf("AddMutexGroup() unexpected error: %v", err)
-	}
-
-	// 测试添加未注册标志
-	unregisteredFlag := &StringFlag{BaseFlag: BaseFlag[string]{longName: "unregistered"}}
-	if err := cmd.AddMutexGroup(unregisteredFlag); err == nil {
-		t.Error("AddMutexGroup() expected error for unregistered flag, got nil")
+		t.Errorf("描述() = %v, 期望 %v", cmd.Description(), desc)
 	}
 }
 
@@ -145,7 +127,7 @@ func TestErrorHandling(t *testing.T) {
 			defer func() {
 				if tt.errorMode == flag.PanicOnError {
 					if r := recover(); r == nil {
-						t.Error("Expected panic but didn't get one")
+						t.Error("期望发生 panic，但未发生")
 					}
 				}
 			}()
@@ -154,11 +136,11 @@ func TestErrorHandling(t *testing.T) {
 			err := cmd.Parse(tt.args)
 
 			if (err != nil) != tt.expectErr {
-				t.Errorf("Parse() error = %v, expectErr %v", err, tt.expectErr)
+				t.Errorf("解析() 错误 = %v, 期望错误 %v", err, tt.expectErr)
 			}
 
 			if err != nil && !strings.Contains(err.Error(), "not defined") {
-				t.Errorf("Error message should contain 'not defined', got: %v", err)
+				t.Errorf("错误信息应包含 '未定义', 实际得到: %v", err)
 			}
 		})
 	}
@@ -171,7 +153,7 @@ func TestErrorHandling(t *testing.T) {
 	// 读取缓冲区内容并打印
 	var buf bytes.Buffer
 	io.Copy(&buf, r)
-	t.Logf("Test output:\n%s", buf.String())
+	t.Logf("测试输出:\n%s", buf.String())
 }
 
 // TestStringFlag 测试字符串类型标志
@@ -180,7 +162,7 @@ func TestStringFlag(t *testing.T) {
 	cmd := NewCmd("test", "t", flag.ContinueOnError)
 	strFlag := cmd.String("string", "s", "default", "test string flag")
 	if strFlag.GetDefault() != "default" {
-		t.Errorf("String flag default value = %v, want %v", strFlag.GetDefault(), "default")
+		t.Errorf("字符串标志默认值 = %v, 期望 %v", strFlag.GetDefault(), "default")
 	}
 
 	// 测试长标志
@@ -189,10 +171,10 @@ func TestStringFlag(t *testing.T) {
 		strFlag := cmd.String("string", "s", "default", "test string flag")
 		err := cmd.Parse([]string{"--string", "value"})
 		if err != nil {
-			t.Fatalf("Parse() error = %v", err)
+			t.Fatalf("解析() 错误 = %v", err)
 		}
 		if strFlag.Get() != "value" {
-			t.Errorf("String flag = %v, want %v", strFlag.Get(), "value")
+			t.Errorf("字符串标志 = %v, 期望 %v", strFlag.Get(), "value")
 		}
 	}
 
@@ -202,10 +184,10 @@ func TestStringFlag(t *testing.T) {
 		strFlag := cmd.String("string", "s", "default", "test string flag")
 		err := cmd.Parse([]string{"-s", "short"})
 		if err != nil {
-			t.Fatalf("Parse() error = %v", err)
+			t.Fatalf("解析() 错误 = %v", err)
 		}
 		if strFlag.Get() != "short" {
-			t.Errorf("String flag = %s, want %s", strFlag.Get(), "short")
+			t.Errorf("字符串标志 = %s, 期望 %s", strFlag.Get(), "short")
 		}
 	}
 }
@@ -216,7 +198,7 @@ func TestIntFlag(t *testing.T) {
 	cmd := NewCmd("test", "t", flag.ContinueOnError)
 	intFlag := cmd.Int("int", "i", 123, "test int flag")
 	if intFlag.Get() != 123 {
-		t.Errorf("Int flag default value = %v, want %v", intFlag.Get(), 123)
+		t.Errorf("整数标志默认值 = %v, 期望 %v", intFlag.Get(), 123)
 	}
 
 	// 测试长标志
@@ -225,10 +207,10 @@ func TestIntFlag(t *testing.T) {
 		intFlag := cmd.Int("int", "i", 123, "test int flag")
 		err := cmd.Parse([]string{"--int", "456"})
 		if err != nil {
-			t.Fatalf("Parse() error = %v", err)
+			t.Fatalf("解析() 错误 = %v", err)
 		}
 		if intFlag.Get() != 456 {
-			t.Errorf("Int flag = %v, want %v", intFlag.Get(), 456)
+			t.Errorf("整数标志 = %v, 期望 %v", intFlag.Get(), 456)
 		}
 	}
 
@@ -238,10 +220,10 @@ func TestIntFlag(t *testing.T) {
 		intFlag := cmd.Int("int", "i", 123, "test int flag")
 		err := cmd.Parse([]string{"-i", "789"})
 		if err != nil {
-			t.Fatalf("Parse() error = %v", err)
+			t.Fatalf("解析() 错误 = %v", err)
 		}
 		if intFlag.Get() != 789 {
-			t.Errorf("Int flag = %v, want %v", intFlag.Get(), 789)
+			t.Errorf("整数标志 = %v, 期望 %v", intFlag.Get(), 789)
 		}
 	}
 }
@@ -252,7 +234,7 @@ func TestBoolFlag(t *testing.T) {
 	cmd := NewCmd("test", "t", flag.ContinueOnError)
 	boolFlag := cmd.Bool("bool", "b", false, "test bool flag")
 	if boolFlag.Get() != false {
-		t.Errorf("Bool flag default value = %v, want %v", boolFlag.Get(), false)
+		t.Errorf("布尔标志默认值 = %v, 期望 %v", boolFlag.Get(), false)
 	}
 
 	// 测试长标志
@@ -261,10 +243,10 @@ func TestBoolFlag(t *testing.T) {
 		boolFlag := cmd.Bool("bool", "b", false, "test bool flag")
 		err := cmd.Parse([]string{"--bool"})
 		if err != nil {
-			t.Fatalf("Parse() error = %v", err)
+			t.Fatalf("解析() 错误 = %v", err)
 		}
 		if boolFlag.Get() != true {
-			t.Errorf("Bool flag = %v, want %v", boolFlag.Get(), true)
+			t.Errorf("布尔标志 = %v, 期望 %v", boolFlag.Get(), true)
 		}
 	}
 
@@ -274,10 +256,10 @@ func TestBoolFlag(t *testing.T) {
 		boolFlag := cmd.Bool("bool", "b", false, "test bool flag")
 		err := cmd.Parse([]string{"-b"})
 		if err != nil {
-			t.Fatalf("Parse() error = %v", err)
+			t.Fatalf("解析() 错误 = %v", err)
 		}
 		if boolFlag.Get() != true {
-			t.Errorf("Bool flag = %v, want %v", boolFlag.Get(), true)
+			t.Errorf("布尔标志 = %v, 期望 %v", boolFlag.Get(), true)
 		}
 	}
 }
@@ -288,7 +270,7 @@ func TestFloatFlag(t *testing.T) {
 	cmd := NewCmd("test", "t", flag.ContinueOnError)
 	floatFlag := cmd.Float("float", "f", 3.14, "test float flag")
 	if floatFlag.Get() != 3.14 {
-		t.Errorf("Float flag default value = %v, want %v", floatFlag.Get(), 3.14)
+		t.Errorf("浮点数标志默认值 = %v, 期望 %v", floatFlag.Get(), 3.14)
 	}
 
 	// 测试长标志
@@ -297,10 +279,10 @@ func TestFloatFlag(t *testing.T) {
 		floatFlag := cmd.Float("float", "f", 3.14, "test float flag")
 		err := cmd.Parse([]string{"--float", "2.718"})
 		if err != nil {
-			t.Fatalf("Parse() error = %v", err)
+			t.Fatalf("解析() 错误 = %v", err)
 		}
 		if floatFlag.Get() != 2.718 {
-			t.Errorf("Float flag = %v, want %v", floatFlag.Get(), 2.718)
+			t.Errorf("浮点数标志 = %v, 期望 %v", floatFlag.Get(), 2.718)
 		}
 	}
 
@@ -310,10 +292,10 @@ func TestFloatFlag(t *testing.T) {
 		floatFlag := cmd.Float("float", "f", 3.14, "test float flag")
 		err := cmd.Parse([]string{"-f", "1.618"})
 		if err != nil {
-			t.Fatalf("Parse() error = %v", err)
+			t.Fatalf("解析() 错误 = %v", err)
 		}
 		if floatFlag.Get() != 1.618 {
-			t.Errorf("Float flag = %v, want %v", floatFlag.Get(), 1.618)
+			t.Errorf("浮点数标志 = %v, 期望 %v", floatFlag.Get(), 1.618)
 		}
 	}
 }
@@ -325,7 +307,7 @@ func TestEnumFlag(t *testing.T) {
 		cmd := NewCmd("test", "t", flag.ContinueOnError)
 		enumFlag := cmd.Enum("mode", "m", "test", "test", []string{"debug", "test", "prod"})
 		if enumFlag.GetDefault() != "test" {
-			t.Errorf("Enum flag default value = %v, want %v", enumFlag.GetDefault(), "test")
+			t.Errorf("枚举标志默认值 = %v, 期望 %v", enumFlag.GetDefault(), "test")
 		}
 	}
 
@@ -335,10 +317,10 @@ func TestEnumFlag(t *testing.T) {
 		enumFlag := cmd.Enum("mode", "m", "test", "test", []string{"debug", "test", "prod"})
 		err := cmd.Parse([]string{"--mode", "prod"})
 		if err != nil {
-			t.Fatalf("Parse() error = %v", err)
+			t.Fatalf("解析() 错误 = %v", err)
 		}
 		if enumFlag.Get() != "prod" {
-			t.Errorf("Enum flag = %v, want %v", enumFlag.Get(), "prod")
+			t.Errorf("枚举标志 = %v, 期望 %v", enumFlag.Get(), "prod")
 		}
 	}
 
@@ -348,10 +330,10 @@ func TestEnumFlag(t *testing.T) {
 		enumFlag := cmd.Enum("mode", "m", "test", "test", []string{"debug", "test", "prod"})
 		err := cmd.Parse([]string{"-m", "debug"})
 		if err != nil {
-			t.Fatalf("Parse() error = %v", err)
+			t.Fatalf("解析() 错误 = %v", err)
 		}
 		if enumFlag.Get() != "debug" {
-			t.Errorf("Enum flag = %v, want %v", enumFlag.Get(), "debug")
+			t.Errorf("枚举标志 = %v, 期望 %v", enumFlag.Get(), "debug")
 		}
 	}
 
@@ -361,10 +343,10 @@ func TestEnumFlag(t *testing.T) {
 		enumFlag := cmd.Enum("mode", "m", "test", "test", []string{"debug", "test", "prod"})
 		err := cmd.Parse([]string{"--mode", "invalid"})
 		if err == nil {
-			t.Fatal("Expected error for invalid enum value, got nil")
+			t.Fatal("无效枚举值期望报错，实际得到 nil")
 		}
 		if enumFlag.GetDefault() != "test" {
-			t.Errorf("Enum flag should remain default after invalid input, got = %v, want %v", enumFlag.Get(), "test")
+			t.Errorf("无效输入后枚举标志应保持默认值，实际得到 = %v, 期望 %v", enumFlag.Get(), "test")
 		}
 	}
 }

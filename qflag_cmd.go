@@ -30,8 +30,6 @@ type Cmd struct {
 	parseOnce           sync.Once     // 用于确保命令只被解析一次
 	setMu               sync.Mutex    // 互斥锁,确保并发安全操作
 	builtinFlagNameMap  sync.Map      // 用于存储内置标志名称的映射
-	mutexGroups         [][]*FlagMeta // 互斥组列表，每组包含不能同时使用的标志
-	mutexGroupMu        sync.Mutex    // 保护互斥组的并发访问锁
 }
 
 // 内置标志名称
@@ -533,66 +531,6 @@ func (c *Cmd) AddSubCmd(subCmds ...*Cmd) error {
 	return nil
 }
 
-// AddMutexGroup 添加标志互斥组，同一组中的标志不能同时被设置
-// 参数: flags - 要添加到互斥组的标志列表
-// 返回值: 错误信息，如果有标志不存在则返回错误
-func (c *Cmd) AddMutexGroup(flags ...Flag) error {
-	// 1. 获取互斥锁，确保线程安全
-	c.mutexGroupMu.Lock()
-	defer c.mutexGroupMu.Unlock()
-
-	// 2. 初始化互斥组容器
-	var group []*FlagMeta
-
-	// 3. 验证每个标志的有效性
-	for _, flag := range flags {
-		// 3.1 检查标志是否已注册
-		meta, exists := c.flagRegistry.GetByName(flag.LongName())
-		if !exists {
-			// 3.2 返回明确的错误信息
-			return fmt.Errorf("flag %s not found in registry", flag.LongName())
-		}
-		// 3.3 收集有效的标志元数据
-		group = append(group, meta)
-	}
-
-	// 4. 将验证通过的互斥组添加到全局列表
-	c.mutexGroups = append(c.mutexGroups, group)
-
-	// 5. 返回成功
-	return nil
-}
-
-// checkMutexGroups 检查所有互斥组，确保每组中最多只有一个标志被设置
-func (c *Cmd) checkMutexGroups() error {
-	// 1. 获取互斥锁，确保并发安全
-	c.mutexGroupMu.Lock()
-	defer c.mutexGroupMu.Unlock()
-
-	// 2. 遍历所有互斥组
-	for _, group := range c.mutexGroups {
-		var setCount int      // 记录当前组中被设置的标志数量
-		var setFlags []string // 记录当前组中所有被设置的标志名称
-
-		// 3. 检查组内每个标志的设置状态
-		for _, meta := range group {
-			if meta.flag.IsSet() { // 如果标志被设置
-				setCount++                                      // 增加计数器
-				setFlags = append(setFlags, meta.GetLongName()) // 记录标志名
-			}
-		}
-
-		// 4. 互斥规则验证
-		if setCount > 1 { // 如果组内有多个标志被设置
-			// 返回格式化错误信息，列出冲突的标志
-			return fmt.Errorf("mutually exclusive flags set: %s", strings.Join(setFlags, ", "))
-		}
-	}
-
-	// 5. 所有互斥组检查通过
-	return nil
-}
-
 // Parse 解析命令行参数, 自动检查长短标志, 并处理帮助标志
 // 工作流程:
 //  1. 调用flag库解析参数
@@ -615,12 +553,6 @@ func (c *Cmd) Parse(args []string) (err error) {
 		// 1调用flag库解析参数
 		if parseErr := c.fs.Parse(args); parseErr != nil {
 			err = fmt.Errorf("%s: %w", ErrFlagParseFailed, parseErr)
-			return
-		}
-
-		// 检查互斥组
-		if mutexErr := c.checkMutexGroups(); mutexErr != nil {
-			err = fmt.Errorf("%s: %w", ErrMutexGroupConflict, mutexErr)
 			return
 		}
 

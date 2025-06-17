@@ -14,7 +14,6 @@ type Flag interface {
 	Usage() string      // 获取标志的用法
 	Type() FlagType     // 获取标志类型
 	GetDefaultAny() any // 获取标志的默认值
-	IsSet() bool        // 检查标志是否被设置
 }
 
 // TypedFlag 所有标志类型的通用接口,定义了标志的元数据访问方法和默认值访问方法
@@ -33,7 +32,6 @@ type BaseFlag[T any] struct {
 	defValue  T          // 默认值
 	usage     string     // 帮助说明
 	value     *T         // 标志值指针
-	isSet     bool       // 标志是否被设置
 	mu        sync.Mutex // 并发访问锁
 }
 
@@ -76,7 +74,7 @@ func (f *BaseFlag[T]) Set(value T) error {
 
 	// 设置标志值
 	f.value = &v
-	f.isSet = true
+
 	return nil
 }
 
@@ -159,10 +157,3 @@ func (f *EnumFlag) Set(value string) error {
 
 // String 实现flag.Value接口, 返回当前值的字符串表示
 func (f *EnumFlag) String() string { return f.Get() }
-
-// IsSet 检查标志是否被设置
-func (f *BaseFlag[T]) IsSet() bool {
-	f.mu.Lock()
-	defer f.mu.Unlock()
-	return f.isSet
-}
