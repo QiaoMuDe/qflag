@@ -18,8 +18,8 @@ const (
 
 // 帮助信息模板常量
 const (
-	cmdNameTemplate          = "Command: %s\n\n"                 // 命令名称
-	cmdNameWithShortTemplate = "Command: %s(%s)\n\n"             // 命令名称和短名称
+	cmdNameTemplate          = "Name: %s\n\n"                    // 命令名称
+	cmdNameWithShortTemplate = "Name: %s(%s)\n\n"                // 命令名称和短名称
 	cmdDescriptionTemplate   = "Description: %s\n\n"             // 命令描述
 	optionsHeaderTemplate    = "Options:\n"                      // 选项头部
 	optionTemplate1          = "  -%s, --%s\t%s (default: %s)\n" // 选项模板1

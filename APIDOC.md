@@ -315,6 +315,36 @@ func EnumVar(p *string, name, shortName string, defValue string, usage string, a
 - `usage`: 帮助说明
 - `allowedValues`: 允许的枚举值列表
 
+### 时间间隔标志
+
+#### Duration
+```go
+func Duration(name, shortName string, defValue time.Duration, usage string) *DurationFlag
+```
+创建时间间隔类型标志(全局默认命令)，支持解析时间单位如"s"(秒), "m"(分钟), "h"(小时)等。
+
+参数:
+- `name`: 长标志名
+- `shortName`: 短标志名
+- `defValue`: 默认值，类型为time.Duration
+- `usage`: 帮助说明
+
+返回值:
+- `*DurationFlag`: 时间间隔标志实例
+
+#### DurationVar
+```go
+func DurationVar(p *time.Duration, name, shortName string, defValue time.Duration, usage string)
+```
+绑定时间间隔类型标志到指针(全局默认命令)，支持解析时间单位如"s"(秒), "m"(分钟), "h"(小时)等。
+
+参数:
+- `p`: 指向time.Duration变量的指针
+- `name`: 长标志名
+- `shortName`: 短标志名
+- `defValue`: 默认值，类型为time.Duration
+- `usage`: 帮助说明
+
 ## 内置标志
 
 qflag自动绑定了以下内置标志：
