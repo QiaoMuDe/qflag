@@ -51,6 +51,8 @@ qflag提供以下具体标志类型，均实现了`TypedFlag`接口：
 - `description string`: 命令描述
 - `usage string`: 自定义帮助内容
 - `subCmds []*Cmd`: 子命令列表
+- `useChinese bool`: 控制是否使用中文帮助信息
+- `notes []string`: 存储备注内容
 
 #### 主要方法
 
@@ -79,6 +81,12 @@ func (c *Cmd) Arg(i int) string
 ```go
 func (c *Cmd) NArg() int
 ```
+
+##### AddNote
+```go
+func (c *Cmd) AddNote(note string)
+```
+为命令添加备注信息，备注将显示在帮助信息的注意事项部分。
 获取非标志参数的数量。
 
 返回值:

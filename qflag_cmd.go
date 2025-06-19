@@ -31,6 +31,8 @@ type Cmd struct {
 	parseOnce           sync.Once     // 用于确保命令只被解析一次
 	setMu               sync.Mutex    // 互斥锁,确保并发安全操作
 	builtinFlagNameMap  sync.Map      // 用于存储内置标志名称的映射
+	useChinese          bool          // 控制是否使用中文帮助信息
+	notes               []string      // 存储备注内容
 }
 
 // 内置标志名称
@@ -56,6 +58,8 @@ type CmdInterface interface {
 	SetDescription(desc string)                                                                       // 设置命令描述信息，用于帮助输出
 	Usage() string                                                                                    // 获取自定义用法说明，为空时自动生成
 	SetUsage(usage string)                                                                            // 设置自定义用法说明，覆盖自动生成内容
+	GetUseChinese() bool                                                                              // 获取是否使用中文帮助信息
+	SetUseChinese(useChinese bool)                                                                    // 设置是否使用中文帮助信息
 	AddSubCmd(subCmd *Cmd)                                                                            // 添加子命令，子命令会继承父命令的上下文
 	SubCmds() []*Cmd                                                                                  // 获取所有已注册的子命令列表
 	AddMutexGroup(flags ...Flag) error                                                                // 添加互斥组，互斥组内的标志不能同时使用
@@ -66,6 +70,8 @@ type CmdInterface interface {
 	NFlag() int                                                                                       // 获取已解析的标志数量
 	FlagExists(name string) bool                                                                      // 检查指定名称的标志是否存在(支持长/短名称)
 	PrintUsage()                                                                                      // 打印命令使用说明到标准输出
+	AddNote(note string)                                                                              // 添加备注信息
+	GetNotes() []string                                                                               // 获取所有备注信息
 	String(longName, shortName, usage, defValue string) *StringFlag                                   // 添加字符串类型标志
 	Int(longName, shortName, usage string, defValue int) *IntFlag                                     // 添加整数类型标志
 	Bool(longName, shortName, usage string, defValue bool) *BoolFlag                                  // 添加布尔类型标志
@@ -78,6 +84,27 @@ type CmdInterface interface {
 	FloatVar(f *FloatFlag, longName, shortName string, defValue float64, usage string)                // 绑定浮点数标志到指定变量
 	DurationVar(f *DurationFlag, longName, shortName string, defValue time.Duration, usage string)    // 绑定时间间隔类型标志到指定变量
 	EnumVar(f *EnumFlag, longName, shortName string, defValue string, usage string, options []string) // 绑定枚举标志到指定变量
+}
+
+// GetUseChinese 获取是否使用中文帮助信息
+func (c *Cmd) GetUseChinese() bool {
+	c.setMu.Lock()
+	defer c.setMu.Unlock()
+	return c.useChinese
+}
+
+// SetUseChinese 设置是否使用中文帮助信息
+func (c *Cmd) SetUseChinese(useChinese bool) {
+	c.setMu.Lock()
+	defer c.setMu.Unlock()
+	c.useChinese = useChinese
+}
+
+// GetNotes 获取所有备注信息
+func (c *Cmd) GetNotes() []string {
+	c.setMu.Lock()
+	defer c.setMu.Unlock()
+	return c.notes
 }
 
 // LongName 返回命令长名称
@@ -140,6 +167,13 @@ func (c *Cmd) FlagExists(name string) bool {
 	return false
 }
 
+// AddNote 添加备注信息到命令
+func (c *Cmd) AddNote(note string) {
+	c.setMu.Lock()
+	defer c.setMu.Unlock()
+	c.notes = append(c.notes, note)
+}
+
 // initBuiltinFlags 初始化内置标志
 func (c *Cmd) initBuiltinFlags() {
 	// 检查是否已绑定
@@ -155,7 +189,11 @@ func (c *Cmd) initBuiltinFlags() {
 		}
 
 		// 绑定帮助标志
-		c.BoolVar(c.helpFlag, helpFlagName, helpFlagShortName, false, "Show help information")
+		helpUsage := "Show help information"
+		if c.useChinese {
+			helpUsage = "显示帮助信息"
+		}
+		c.BoolVar(c.helpFlag, helpFlagName, helpFlagShortName, false, helpUsage)
 
 		// 绑定显示安装路径标志
 		if c.showInstallPathFlag == nil {
@@ -163,13 +201,24 @@ func (c *Cmd) initBuiltinFlags() {
 		}
 
 		// 绑定显示安装路径标志
-		c.BoolVar(c.showInstallPathFlag, showInstallPathFlagName, showInstallPathFlagShortName, false, "Show install path")
+		installPathUsage := "Show install path"
+		if c.useChinese {
+			installPathUsage = "显示安装路径"
+		}
+		c.BoolVar(c.showInstallPathFlag, showInstallPathFlagName, showInstallPathFlagShortName, false, installPathUsage)
 
 		// 添加内置标志到检测映射
 		c.builtinFlagNameMap.Store(helpFlagName, true)
 		c.builtinFlagNameMap.Store(helpFlagShortName, true)
 		c.builtinFlagNameMap.Store(showInstallPathFlagName, true)
 		c.builtinFlagNameMap.Store(showInstallPathFlagShortName, true)
+
+		// 添加默认的注意事项
+		if c.useChinese {
+			c.AddNote(defaultNoteCN)
+		} else {
+			c.AddNote(defaultNote)
+		}
 
 		// 设置内置标志已绑定
 		c.initFlagBound = true
@@ -182,21 +231,58 @@ func (c *Cmd) initBuiltinFlags() {
 func generateHelpInfo(cmd *Cmd) string {
 	var helpInfo string
 
-	// 命令名（支持短名称显示）
-	if cmd.shortName != "" {
-		helpInfo += fmt.Sprintf(cmdNameWithShortTemplate, cmd.fs.Name(), cmd.shortName)
+	// 根据语言选择模板
+	var (
+		nameTpl, descTpl, optionsHeader, option1Tpl, option2Tpl,
+		subCmdsHeader, subCmdTpl, notesHeader, noteItemTpl string
+	)
+
+	// 根据语言选择模板
+	if cmd.useChinese {
+		if cmd.shortName != "" {
+			nameTpl = cmdNameWithShortTemplateCN // 命令名（支持短名称显示）
+		} else {
+			nameTpl = cmdNameTemplateCN // 命令名
+		}
+		descTpl = cmdDescriptionTemplateCN      // 命令描述
+		optionsHeader = optionsHeaderTemplateCN // 选项标题
+		option1Tpl = optionTemplate1CN          // 选项模板1
+		option2Tpl = optionTemplate2CN          // 选项模板2
+		subCmdsHeader = subCmdsHeaderTemplateCN // 子命令标题
+		subCmdTpl = subCmdTemplateCN            // 子命令模板
+		notesHeader = notesHeaderTemplateCN     // 注意事项标题
+		noteItemTpl = noteItemTemplateCN        // 注意事项模板
 	} else {
-		helpInfo += fmt.Sprintf(cmdNameTemplate, cmd.fs.Name())
+		if cmd.shortName != "" {
+			nameTpl = cmdNameWithShortTemplate // 命令名（支持短名称显示）
+		} else {
+			nameTpl = cmdNameTemplate // 命令名
+		}
+		descTpl = cmdDescriptionTemplate      // 命令描述
+		optionsHeader = optionsHeaderTemplate // 选项标题
+		option1Tpl = optionTemplate1          // 选项模板1
+		option2Tpl = optionTemplate2          // 选项模板2
+		subCmdsHeader = subCmdsHeaderTemplate // 子命令标题
+		subCmdTpl = subCmdTemplate            // 子命令模板
+		notesHeader = notesHeaderTemplate     // 提示标题
+		noteItemTpl = noteItemTemplate        // 提示项模板
 	}
+
+	// 命令名（支持短名称显示）
+	helpInfo += fmt.Sprintf(nameTpl, cmd.fs.Name(), cmd.shortName)
 
 	// 命令描述
 	if cmd.description != "" {
-		helpInfo += fmt.Sprintf(cmdDescriptionTemplate, cmd.description)
+		helpInfo += fmt.Sprintf(descTpl, cmd.description)
 	}
 
 	// 动态生成命令用法
 	fullCmdPath := getFullCommandPath(cmd)
-	usageLine := "Usage: " + fullCmdPath
+	usageLinePrefix := "Usage: "
+	if cmd.useChinese {
+		usageLinePrefix = "用法: "
+	}
+	usageLine := usageLinePrefix + fullCmdPath
 
 	// 如果存在子命令，则需要添加子命令用法
 	if len(cmd.subCmds) > 0 {
@@ -208,7 +294,7 @@ func generateHelpInfo(cmd *Cmd) string {
 	helpInfo += usageLine
 
 	// 选项标题
-	helpInfo += optionsHeaderTemplate
+	helpInfo += optionsHeader
 
 	// 收集所有标志信息
 	var flags []struct {
@@ -258,29 +344,37 @@ func generateHelpInfo(cmd *Cmd) string {
 	// 生成排序后的标志信息
 	for _, flag := range flags {
 		if flag.shortFlag != "" {
-			helpInfo += fmt.Sprintf(optionTemplate1, flag.shortFlag, flag.longFlag, flag.usage, flag.defValue)
+			helpInfo += fmt.Sprintf(option1Tpl, flag.shortFlag, flag.longFlag, flag.usage, flag.defValue)
 		} else {
-			helpInfo += fmt.Sprintf(optionTemplate2, flag.longFlag, flag.usage, flag.defValue)
+			helpInfo += fmt.Sprintf(option2Tpl, flag.longFlag, flag.usage, flag.defValue)
 		}
 	}
 
 	// 如果有子命令，添加子命令信息
 	if len(cmd.subCmds) > 0 {
-		helpInfo += subCmdsHeaderTemplate
+		helpInfo += subCmdsHeader
 		for _, subCmd := range cmd.subCmds {
-			helpInfo += fmt.Sprintf(subCmdTemplate, subCmd.fs.Name(), subCmd.description)
+			helpInfo += fmt.Sprintf(subCmdTpl, subCmd.fs.Name(), subCmd.description)
 		}
 	}
 
-	// 添加注意事项
-	helpInfo += notesHeaderTemplate
-	helpInfo += fmt.Sprintf(noteItemTemplate, 1, "In the case where both long options and short options are used at the same time, the option specified last shall take precedence.")
+	// 添加备注
+	if len(cmd.GetNotes()) > 0 {
+		helpInfo += notesHeader
+		for i, note := range cmd.GetNotes() {
+			helpInfo += fmt.Sprintf(noteItemTpl, i+1, note)
+		}
+	}
 
 	return helpInfo
 }
 
 // printUsage 打印帮助内容, 优先显示用户自定义的Usage, 否则自动生成
 func (c *Cmd) printUsage() {
+	// 确保内置标志已初始化
+	c.initBuiltinFlags()
+
+	// 如果用户自定义了Usage，则直接打印
 	if c.usage != "" {
 		fmt.Println(c.usage)
 	} else {
@@ -457,8 +551,6 @@ func NewCmd(longName string, shortName string, errorHandling flag.ErrorHandling)
 		showInstallPathFlag: &BoolFlag{},                              // 初始化显示安装路径标志
 	}
 
-	// 自动初始化内置标志
-	cmd.initBuiltinFlags()
 	return cmd
 }
 
@@ -551,7 +643,10 @@ func (c *Cmd) Parse(args []string) (err error) {
 
 	// 确保只解析一次
 	c.parseOnce.Do(func() {
-		// 1调用flag库解析参数
+		// 初始化内置标志
+		c.initBuiltinFlags()
+
+		// 调用flag库解析参数
 		if parseErr := c.fs.Parse(args); parseErr != nil {
 			err = fmt.Errorf("%s: %w", ErrFlagParseFailed, parseErr)
 			return

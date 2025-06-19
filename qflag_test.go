@@ -781,10 +781,16 @@ func TestNestedCmdHelp(t *testing.T) {
 	cmd3 := NewCmd("cmd3", "c3", flag.ExitOnError)
 	cmd3.SetDescription("三级命令描述")
 	cmd3.Bool("verbose", "v", false, "详细输出模式")
+	cmd3.SetUseChinese(true)
 
 	// 构建命令层级
 	cmd1.AddSubCmd(cmd2)
 	cmd2.AddSubCmd(cmd3)
+
+	// 解析命令行参数
+	if err := cmd1.Parse([]string{}); err != nil {
+		t.Errorf("解析命令行参数时出错: %v", err)
+	}
 
 	// 测试帮助信息生成
 	// 使用t.Log()替代fmt.Println()，并添加testing.Verbose()条件控制
