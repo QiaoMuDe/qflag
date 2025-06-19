@@ -662,6 +662,11 @@ func (c *Cmd) Parse(args []string) (err error) {
 		// 初始化内置标志
 		c.initBuiltinFlags()
 
+		// 设置使用说明
+		c.fs.Usage = func() {
+			c.printUsage()
+		}
+
 		// 调用flag库解析参数
 		if parseErr := c.fs.Parse(args); parseErr != nil {
 			err = fmt.Errorf("%s: %w", ErrFlagParseFailed, parseErr)
