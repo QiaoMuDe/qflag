@@ -341,12 +341,28 @@ func generateHelpInfo(cmd *Cmd) string {
 		return a.longFlag < b.longFlag
 	})
 
+	// 计算最大标志名称宽度
+	maxWidth := 0
+	for _, flag := range flags {
+		var nameLength int
+		if flag.shortFlag != "" {
+			// 格式: "-s, --longname"
+			nameLength = len(flag.shortFlag) + len(flag.longFlag) + 5 // 1('-') + 2(', ') + 2('--')
+		} else {
+			// 格式: "--longname"
+			nameLength = len(flag.longFlag) + 2 // 2('--')
+		}
+		if nameLength > maxWidth {
+			maxWidth = nameLength
+		}
+	}
+
 	// 生成排序后的标志信息
 	for _, flag := range flags {
 		if flag.shortFlag != "" {
-			helpInfo += fmt.Sprintf(option1Tpl, flag.shortFlag, flag.longFlag, flag.usage, flag.defValue)
+			helpInfo += fmt.Sprintf(option1Tpl, flag.shortFlag, maxWidth, flag.longFlag, flag.usage, flag.defValue)
 		} else {
-			helpInfo += fmt.Sprintf(option2Tpl, flag.longFlag, flag.usage, flag.defValue)
+			helpInfo += fmt.Sprintf(option2Tpl, maxWidth, flag.longFlag, flag.usage, flag.defValue)
 		}
 	}
 

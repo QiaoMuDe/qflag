@@ -787,6 +787,12 @@ func TestNestedCmdHelp(t *testing.T) {
 	cmd1.AddSubCmd(cmd2)
 	cmd2.AddSubCmd(cmd3)
 
+	// 添加注意事项
+	cmd1.AddNote("注意事项1")
+	cmd1.AddNote("注意事项2")
+	cmd2.AddNote("注意事项3")
+	cmd3.AddNote("注意事项4")
+
 	// 解析命令行参数
 	if err := cmd1.Parse([]string{}); err != nil {
 		t.Errorf("解析命令行参数时出错: %v", err)

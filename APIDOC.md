@@ -1,16 +1,159 @@
 # qflag API文档
 
+项目地址: [https://gitee.com/MM-Q/qflag](https://gitee.com/MM-Q/qflag)
+
+qflag是一个Go语言命令行参数解析库，提供了比标准库flag更丰富的功能，包括长短标志绑定、子命令支持、自动帮助信息生成等特性。
+
 ## 概述
 qflag是一个Go语言命令行参数解析库，提供了比标准库flag更丰富的功能，包括长短标志绑定、子命令支持、自动帮助信息生成等特性。
 
 ## 核心类型
+### FlagType枚举
+定义标志的类型常量，用于标识不同种类的命令行标志。
+
+```go
+type FlagType int
+
+const (
+  FlagTypeInt      FlagType = iota + 1 // 整数类型
+  FlagTypeString                       // 字符串类型
+  FlagTypeBool                         // 布尔类型
+  FlagTypeFloat                        // 浮点数类型
+
+  FlagTypeEnum                         // 枚举类型
+  FlagTypeDuration                     // 时间间隔类型
+)
+```
+
+### Flag接口
+所有标志类型的通用接口，定义了标志的基本属性访问方法。
+
+```go
+type Flag interface {
+  LongName() string   // 获取标志的长名称
+  ShortName() string  // 获取标志的短名称
+  Usage() string      // 获取标志的用法
+  Type() FlagType     // 获取标志类型
+  GetDefaultAny() any // 获取标志的默认值
+}
+
+### TypedFlag接口
+带类型的标志接口，扩展了Flag接口以支持类型安全的值访问。
+
+type TypedFlag[T any] interface {
+  Flag
+  GetDefault() T // 获取类型化的默认值
+  Get() T        // 获取类型化的当前值
+  Set(T) error   // 设置类型化的值
+}
+
+### BaseFlag结构体
+泛型基础标志结构体，所有具体标志类型的基类，封装了通用字段和方法。
+
+#### 字段说明
+- `cmd *Cmd` 所属命令实例的引用
+- `longName string` 长标志名称
+- `shortName string` 短标志字符
+- `defValue T` 默认值
+- `usage string` 帮助说明
+- `value *T` 标志值指针
+- `mu sync.Mutex` 并发访问锁
+
+```go
+type BaseFlag[T any] struct {
+  cmd       *Cmd       // 所属的命令实例
+  longName  string     // 长标志名称
+  shortName string     // 短标志字符
+  defValue  T          // 默认值
+  usage     string     // 帮助说明
+  value     *T         // 标志值指针
+  mu        sync.Mutex // 并发访问锁
+}
+
+// 通用方法
+func (f *BaseFlag[T]) Get() T              // 获取标志值
+func (f *BaseFlag[T]) Set(value T) error   // 设置标志值
+func (f *BaseFlag[T]) GetDefault() T       // 获取默认值
+```
+
+### FlagMetaInterface接口
+定义标志元数据的标准访问方法。
+
+#### 方法说明
+- `GetDefault() any` 获取标志的默认值
+
+```go
+type FlagMetaInterface interface {
+  GetFlagType() FlagType // 获取标志类型
+  GetFlag() Flag         // 获取标志对象
+  GetLongName() string   // 获取长名称
+  GetShortName() string  // 获取短名称
+  GetUsage() string      // 获取用法描述
+  GetDefault() any       // 获取默认值
+  GetValue() any         // 获取当前值
+}
+
+### FlagMeta结构体
+实现FlagMetaInterface接口，统一存储标志的完整元数据。
+统一存储标志的完整元数据，包括标志对象及其类型信息。
+
+```go
+type FlagMeta struct {
+  flag Flag // 标志对象
+}
+
+// 元数据访问方法
+func (m *FlagMeta) GetLongName() string   // 获取长名称
+func (m *FlagMeta) GetShortName() string  // 获取短名称
+func (m *FlagMeta) GetUsage() string      // 获取用法描述
+func (m *FlagMeta) GetFlagType() FlagType // 获取标志类型
+func (m *FlagMeta) GetDefault() any       // 获取默认值
+```
+
+### FlagRegistryInterface接口
+定义标志注册表的标准操作方法。
+
+```go
+type FlagRegistryInterface interface {
+  GetAllFlags() []*FlagMeta                      // 获取所有标志元数据
+  GetLongFlags() map[string]*FlagMeta            // 获取长标志映射
+  GetShortFlags() map[string]*FlagMeta           // 获取短标志映射
+  RegisterFlag(meta *FlagMeta) error             // 注册标志元数据
+  GetByLong(longName string) (*FlagMeta, bool)   // 按长名称查找
+  GetByShort(shortName string) (*FlagMeta, bool) // 按短名称查找
+  GetByName(name string) (*FlagMeta, bool)       // 按名称查找
+}
+
+### FlagRegistry结构体
+实现FlagRegistryInterface接口，集中管理所有标志元数据及索引。
+集中管理所有标志元数据及索引，提供线程安全的标志注册和查询功能。
+
+#### 主要方法
+- `GetLongFlags() map[string]*FlagMeta` 获取所有长标志的元数据映射
+- `GetShortFlags() map[string]*FlagMeta` 获取所有短标志的元数据映射
+
+```go
+type FlagRegistry struct {
+  mu       sync.RWMutex         // 并发访问锁
+  byLong   map[string]*FlagMeta // 按长名称索引
+  byShort  map[string]*FlagMeta // 按短名称索引
+  allFlags []*FlagMeta          // 所有标志元数据列表
+}
+
+// 注册表方法
+func (r *FlagRegistry) RegisterFlag(meta *FlagMeta) error             // 注册标志
+func (r *FlagRegistry) GetByLong(longName string) (*FlagMeta, bool)   // 按长名称查找
+func (r *FlagRegistry) GetByShort(shortName string) (*FlagMeta, bool) // 按短名称查找
+func (r *FlagRegistry) GetByName(name string) (*FlagMeta, bool)       // 按名称查找
+func (r *FlagRegistry) GetAllFlags() []*FlagMeta                      // 获取所有标志
+
 
 ### Flag接口
 `Flag`是所有标志类型的通用接口，定义了标志的元数据访问方法。
 
 ```go
 type Flag interface {
-    Name() string       // 获取标志的名称
+    LongName() string   // 获取标志的长名称
     ShortName() string  // 获取标志的短名称
     Usage() string      // 获取标志的用法
     Type() FlagType     // 获取标志类型
@@ -55,6 +198,23 @@ qflag提供以下具体标志类型，均实现了`TypedFlag`接口：
 - `notes []string`: 存储备注内容
 
 #### 主要方法
+##### GetUseChinese
+```go
+func (c *Cmd) GetUseChinese() bool
+```
+获取是否使用中文帮助信息的状态。
+
+返回值:
+- `bool`: 当前是否启用中文帮助信息
+
+##### SetUseChinese
+```go
+func (c *Cmd) SetUseChinese(useChinese bool)
+```
+设置是否使用中文帮助信息。
+
+参数:
+- `useChinese`: 为true时启用中文帮助信息
 
 ##### Args
 ```go
@@ -141,7 +301,7 @@ func (c *Cmd) AddSubCmd(subCmds ...*Cmd) error
 
 ##### AddMutexGroup
 ```go
-func (c *Cmd) AddMutexGroup(flags ...Flag) error
+
 ```
 为当前命令添加标志互斥组，互斥组内的标志不能同时被设置。
 
@@ -293,6 +453,32 @@ func FloatVar(p *float64, name, shortName string, defValue float64, usage string
 
 ### 枚举标志
 
+#### EnumFlag特有方法
+```go
+func (f *EnumFlag) Check(value string) error
+```
+验证值是否在枚举选项范围内。
+
+参数:
+- `value`: 待验证的值
+
+返回值:
+- `error`: 验证失败时返回错误信息
+
+### 时间间隔标志
+
+#### DurationFlag特有方法
+```go
+func (f *DurationFlag) Set(value string) error
+```
+解析并设置时间间隔值，支持ns/us/ms/s/m/h等单位。
+
+参数:
+- `value`: 时间间隔字符串
+
+返回值:
+- `error`: 解析失败时返回错误信息
+
 #### Enum
 ```go
 func Enum(name, shortName string, defValue string, usage string, allowedValues ...string) *EnumFlag
@@ -378,6 +564,20 @@ qflag库使用`sync.Mutex`和`sync.Once`确保所有标志操作和解析过程�
 添加子命令时，qflag会自动检测命令间的循环引用，避免出现无限递归的命令结构。
 
 ### 动态帮助信息生成
+qflag会根据命令和标志的定义自动生成格式化的帮助信息，包括命令描述、标志说明、子命令列表等。支持中英文双语切换，通过SetUseChinese方法控制。### 标志注册表
+FlagRegistry提供集中式标志管理，支持通过名称快速查找标志元数据，包括标志类型、默认值、当前值等信息。
+
+### 标志命名规则
+qflag对标志名称有严格的字符限制，禁止使用以下字符：
+```go
+const invalidFlagChars = " !@#$%^&*(){}[]|\\;:'\"<>,.?/"
+```
+
+命名建议：
+- 使用小写字母和连字符(-)组合，如`--config-path`
+- 短标志建议使用单个字母，如`-c`对应`--config`
+- 避免使用保留标志名称：`help`、`h`、`show-install-path`、`sip`
+FlagRegistry提供集中式标志管理，支持通过名称快速查找标志元数据，包括标志类型、默认值、当前值等信息。
 qflag会根据命令和标志的定义自动生成格式化的帮助信息，包括命令描述、标志说明、子命令列表等。
 
 ## 使用示例
@@ -532,7 +732,7 @@ package main
 
 import (
   "fmt"
-  "qflag"
+  "gitee.com/MM-Q/qflag"
   "flag"
 )
 
@@ -557,6 +757,16 @@ func main() {
   // 程序逻辑...
 }
 ```
+
+## 错误处理
+### 错误常量
+qflag定义了以下错误常量，用于标识不同类型的解析错误：
+
+| 常量名称 | 描述 |
+|---------|------|
+| `ErrFlagParseFailed` | 全局实例标志解析错误 |
+| `ErrSubCommandParseFailed` | 子命令标志解析错误 |
+| `ErrPanicRecovered` | 恐慌捕获错误 |
 
 ## API摘要
 
@@ -644,7 +854,7 @@ package main
 
 import (
   "fmt"
-  "qflag"
+  "gitee.com/MM-Q/qflag"
   "flag"
 )
 

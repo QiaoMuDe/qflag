@@ -293,3 +293,27 @@ func Duration(longName, shortName string, defValue time.Duration, usage string) 
 func DurationVar(f *DurationFlag, longName, shortName string, defValue time.Duration, usage string) {
 	QCommandLine.DurationVar(f, longName, shortName, defValue, usage)
 }
+
+// GetUseChinese 获取是否使用中文
+// 该函数用于获取当前命令行标志是否使用中文。
+// 返回值:
+//   - bool: 如果使用中文，则返回true；否则返回false。
+func GetUseChinese() bool {
+	return QCommandLine.GetUseChinese()
+}
+
+// SetUseChinese 设置是否使用中文
+// 该函数用于设置当前命令行标志是否使用中文。
+// 参数:
+//   - useChinese: 如果使用中文，则传入true；否则传入false。
+func SetUseChinese(useChinese bool) {
+	QCommandLine.SetUseChinese(useChinese)
+}
+
+// AddNote 添加注意事项
+// 该函数用于添加命令行标志的注意事项，这些注意事项将在命令行帮助信息中显示。
+// 参数:
+//   - note: 注意事项内容，字符串类型。
+func AddNote(note string) {
+	QCommandLine.AddNote(note)
+}

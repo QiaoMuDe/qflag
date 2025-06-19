@@ -1,5 +1,7 @@
 # qflag
 
+[![Ask DeepWiki](https://deepwiki.com/badge.svg)](https://deepwiki.com/QiaoMuDe/qflag)
+
 qflag是一个功能强大的Go语言命令行参数解析库，基于标准库flag进行封装，提供更便捷、更灵活的命令行参数处理体验。主要特点包括长短标志绑定、内置帮助系统、子命令支持以及线程安全的标志操作。
 
 ## 项目地址
