@@ -2,34 +2,37 @@
 
 [![Ask DeepWiki](https://deepwiki.com/badge.svg)](https://deepwiki.com/QiaoMuDe/qflag)
 
-qflag是一个功能强大的Go语言命令行参数解析库，基于标准库flag进行封装，提供更便捷、更灵活的命令行参数处理体验。主要特点包括长短标志绑定、内置帮助系统、子命令支持以及线程安全的标志操作。
+qflag 是一个用于解析命令行参数的 Go 语言库。它提供了丰富的功能，包括多种类型的标志（flag）、子命令支持、帮助信息生成等。
 
 ## 项目地址
 
-[https://gitee.com/MM-Q/qflag.git](https://gitee.com/MM-Q/qflag.git)
+该项目托管在 Gitee 和 GitHub 上，您可以访问以下链接查看源代码和最新动态：
+- [Gitee](https://gitee.com/MM-Q/qflag.git)
+- [GitHub](https://github.com/QiaoMuDe/qflag.git)
 
 ## 安装
 
+要使用 qflag，您需要先安装 Go 环境。然后可以通过以下命令安装：
+
 ```bash
-go get gitee.com/MM-Q/qflag
+go get -u gitee.com/MM-Q/qflag
 ```
 
 ## 特性
 
-- 支持长标志和短标志绑定
-- 自动生成主命令及其子命令的帮助信息，支持多级嵌套子命令
-- 默认绑定-h/--help标志，自动生成格式化的帮助信息
-- 支持字符串、整数、布尔、浮点数等多种标志类型
-- 线程安全的标志操作，支持并发解析
-- 完善的子命令系统，支持循环引用检测
-- 允许自定义帮助内容和命令描述
-- 内置安装路径显示功能(-sip/--show-install-path)
-- 支持标志默认值动态设置
-- 支持枚举类型标志（EnumFlag），可限制输入值为预定义选项
-- 提供丰富的API文档和测试用例
+- 支持多种类型的标志：字符串、整数、布尔值、浮点数、枚举和时间间隔。
+- 支持子命令。
+- 提供内置的帮助信息和安装路径显示功能。
+- 支持自定义帮助信息。
+- 线程安全设计。
+- 循环引用检测。
+- 动态帮助信息生成。
+- 标志命名规则。
 
 ## 使用示例
 ### 基本使用示例
+
+以下是一个简单的使用示例，展示如何创建一个命令并添加一些标志：
 
 ```go
 package main
@@ -63,6 +66,8 @@ func main() {
 ```
 
 ### 子命令示例
+
+以下是一个使用子命令的示例：
 
 ```go
 package main
@@ -113,8 +118,8 @@ func main() {
 
 ## API文档
 
-详细API文档请参考[APIDOC.md](APIDOC.md)
+详细的 API 文档请参阅 [APIDOC.md](APIDOC.md)。
 
 ## 许可证
 
-[MIT](LICENSE)
+本项目采用 MIT 许可证。详情请参阅 [LICENSE](LICENSE) 文件。
