@@ -72,15 +72,20 @@ func (r *FlagRegistry) RegisterFlag(meta *FlagMeta) error {
 	}
 
 	// 检查短标志是否已存在
-	if _, exists := r.byShort[meta.GetShortName()]; exists {
-		return fmt.Errorf("short flag %s already exists", meta.GetShortName())
+	// 只在短标志不为空时检查重复
+	if meta.GetShortName() != "" {
+		if _, exists := r.byShort[meta.GetShortName()]; exists {
+			return fmt.Errorf("short flag %s already exists", meta.GetShortName())
+		}
 	}
 
 	// 添加长标志索引
 	r.byLong[meta.GetLongName()] = meta
 
-	// 添加短标志索引
-	r.byShort[meta.GetShortName()] = meta
+	// 只在短标志不为空时添加短标志索引
+	if meta.GetShortName() != "" {
+		r.byShort[meta.GetShortName()] = meta
+	}
 
 	// 添加到所有标志列表
 	r.allFlags = append(r.allFlags, meta)

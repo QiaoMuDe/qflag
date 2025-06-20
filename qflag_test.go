@@ -778,9 +778,9 @@ func TestNestedCmdHelp(t *testing.T) {
 	cmd2.SetDescription("二级命令描述")
 	cmd2.Int("port", "p", 8080, "服务端口号")
 
-	cmd3 := NewCmd("cmd3", "c3", flag.ExitOnError)
+	cmd3 := NewCmd("cmd3", "", flag.ExitOnError)
 	cmd3.SetDescription("三级命令描述")
-	cmd3.Bool("verbose", "v", false, "详细输出模式")
+	cmd3.Bool("verbose", "", false, "详细输出模式")
 	cmd3.SetUseChinese(true)
 
 	// 构建命令层级

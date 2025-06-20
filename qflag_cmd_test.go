@@ -431,3 +431,21 @@ func TestDurationFlag(t *testing.T) {
 		}
 	}
 }
+
+// TestStringFlagWithoutShort 测试无短标志的字符串标志
+func TestStringFlagWithoutShort(t *testing.T) {
+	cmd := NewCmd("test", "t", flag.ContinueOnError)
+	flagName := "string-flag"
+	defValue := "default"
+	usage := "测试无短标志的字符串标志"
+
+	f := cmd.String(flagName, "", defValue, usage)
+	err := cmd.Parse([]string{"--" + flagName, "test-value"})
+	if err != nil {
+		t.Errorf("解析参数时出错: %v", err)
+	}
+
+	if f.Get() != "test-value" {
+		t.Errorf("字符串标志的值为 %q，期望为 %q", f.Get(), "test-value")
+	}
+}
