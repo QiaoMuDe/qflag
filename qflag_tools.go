@@ -36,7 +36,7 @@ func generateHelpInfo(cmd *Cmd) string {
 	}
 
 	// 写入子命令信息
-	writeSubCommands(cmd, tpl, &buf)
+	writeSubCmds(cmd, tpl, &buf)
 
 	// 写入注意事项
 	writeNotes(cmd, tpl, &buf)
@@ -84,26 +84,34 @@ func writeUsageLine(cmd *Cmd, buf *bytes.Buffer) {
 
 // writeOptions 写入选项信息
 func writeOptions(cmd *Cmd, tpl HelpTemplate, buf *bytes.Buffer) error {
-	// 添加选项标题
+	// 写入选项头
 	buf.WriteString(tpl.OptionsHeader)
 
-	// 收集所有标志信息并排序
+	// 获取所有标志信息并排序
 	flags := collectFlags(cmd)
 	sortFlags(flags)
 
-	// 计算最大标志名称宽度用于对齐
-	maxWidth, err := calculateMaxWidth(flags)
-	if err != nil {
-		return err
-	}
+	// 计算描述信息对齐位置
+	const descStartPos = 30 // 描述信息开始位置
 
-	// 生成排序后的标志信息
 	for _, flag := range flags {
+		// 格式化选项部分
+		optPart := ""
 		if flag.shortFlag != "" {
-			fmt.Fprintf(buf, tpl.Option1, flag.shortFlag, maxWidth, flag.longFlag, flag.usage, flag.defValue)
+			optPart = fmt.Sprintf(tpl.Option1, flag.shortFlag, flag.longFlag)
 		} else {
-			fmt.Fprintf(buf, tpl.Option2, maxWidth, flag.longFlag, flag.usage, flag.defValue)
+			optPart = fmt.Sprintf(tpl.Option2, flag.longFlag)
 		}
+
+		// 计算选项部分需要的填充空格
+		padding := descStartPos - len(optPart)
+		if padding < 1 {
+			padding = 1
+		}
+
+		// 格式化整行输出
+		fmt.Fprintf(buf, tpl.OptionDefault,
+			optPart, padding, "", flag.usage, flag.defValue)
 	}
 
 	return nil
@@ -210,9 +218,28 @@ func calculateMaxWidth(flags []struct {
 	return maxWidth, nil
 }
 
-// writeSubCommands 写入子命令信息
-func writeSubCommands(cmd *Cmd, tpl HelpTemplate, buf *bytes.Buffer) {
-	// 如果没有子命令，则返回
+// // writeSubCmds 写入子命令信息
+// func writeSubCmds(cmd *Cmd, tpl HelpTemplate, buf *bytes.Buffer) {
+// 	// 如果没有子命令，则返回
+// 	if len(cmd.subCmds) == 0 {
+// 		return
+// 	}
+
+// 	// 添加子命令标题
+// 	buf.WriteString(tpl.SubCmdsHeader)
+
+// 	// 遍历所有子命令，生成子命令信息
+// 	for _, subCmd := range cmd.subCmds {
+// 		if subCmd.shortName != "" {
+// 			fmt.Fprintf(buf, tpl.SubCmdWithShort, subCmd.fs.Name(), subCmd.shortName, subCmd.description)
+// 		} else {
+// 			fmt.Fprintf(buf, tpl.SubCmd, subCmd.fs.Name(), subCmd.description)
+// 		}
+// 	}
+// }
+
+// writeSubCmds 写入子命令信息
+func writeSubCmds(cmd *Cmd, tpl HelpTemplate, buf *bytes.Buffer) {
 	if len(cmd.subCmds) == 0 {
 		return
 	}
@@ -220,13 +247,82 @@ func writeSubCommands(cmd *Cmd, tpl HelpTemplate, buf *bytes.Buffer) {
 	// 添加子命令标题
 	buf.WriteString(tpl.SubCmdsHeader)
 
-	// 遍历所有子命令，生成子命令信息
-	for _, subCmd := range cmd.subCmds {
-		if subCmd.shortName != "" {
-			fmt.Fprintf(buf, tpl.SubCmdWithShort, subCmd.fs.Name(), subCmd.shortName, subCmd.description)
-		} else {
-			fmt.Fprintf(buf, tpl.SubCmd, subCmd.fs.Name(), subCmd.description)
+	// 排序子命令：
+	// 1. 按长命令名首字母排序
+	// 2. 有短命令名的优先
+	// 3. 只有长命令名的排最后
+	sortedSubCmds := make([]*Cmd, len(cmd.subCmds))
+	copy(sortedSubCmds, cmd.subCmds)
+	// sort.Slice(sortedSubCmds, func(i, j int) bool {
+	// 	a, b := sortedSubCmds[i], sortedSubCmds[j]
+
+	// 	// 首先按长命令名排序
+	// 	if a.fs.Name() != b.fs.Name() {
+	// 		return a.fs.Name() < b.fs.Name()
+	// 	}
+
+	// 	// 然后有短命令名的优先
+	// 	aHasShort := a.shortName != ""
+	// 	bHasShort := b.shortName != ""
+
+	// 	if aHasShort && !bHasShort {
+	// 		return true
+	// 	}
+	// 	if !aHasShort && bHasShort {
+	// 		return false
+	// 	}
+
+	// 	// 最后按短命令名排序
+	// 	return a.shortName < b.shortName
+	// })
+	sort.Slice(sortedSubCmds, func(i, j int) bool {
+		a, b := sortedSubCmds[i], sortedSubCmds[j]
+
+		// 1. 有短命令名的优先
+		aHasShort := a.shortName != ""
+		bHasShort := b.shortName != ""
+
+		//  如果a有短命令名而b没有，则a排在前面
+		if aHasShort && !bHasShort {
+			return true
 		}
+
+		//   如果a没有短命令名而b有，则b排在前面
+		if !aHasShort && bHasShort {
+			return false
+		}
+
+		// 2. 按长命令名首字母排序
+		if a.fs.Name() != b.fs.Name() {
+			return a.fs.Name() < b.fs.Name()
+		}
+
+		// 3. 只有长命令名的排最后
+		// 如果到这里，说明 a 和 b 的长命令名相同，且要么都有短命令名，要么都没有短命令名
+		return a.shortName < b.shortName
+	})
+
+	// 计算最大命令名长度用于对齐
+	maxNameLen := 0
+	for _, subCmd := range sortedSubCmds {
+		nameLen := len(subCmd.fs.Name())
+		if subCmd.shortName != "" {
+			nameLen += len(subCmd.shortName) + 2 // 加逗号和空格
+		}
+		if nameLen > maxNameLen {
+			maxNameLen = nameLen
+		}
+	}
+
+	// 生成对齐的子命令信息
+	for _, subCmd := range sortedSubCmds {
+		namePart := subCmd.fs.Name()
+		if subCmd.shortName != "" {
+			namePart = fmt.Sprintf("%s, %s", subCmd.fs.Name(), subCmd.shortName)
+		}
+
+		// 格式化输出，确保描述信息对齐
+		fmt.Fprintf(buf, "  %-*s\t%s\n", maxNameLen, namePart, subCmd.description)
 	}
 }
 

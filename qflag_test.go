@@ -784,9 +784,30 @@ func TestNestedCmdHelp(t *testing.T) {
 	cmd3.SetUseChinese(true)
 	cmd2.SetUseChinese(true)
 
+	cmd4 := NewCmd("ssssssscmd4", "ccccc4", flag.ExitOnError)
+	cmd4.SetDescription("四级命令描述")
+
+	cmd5 := NewCmd("acmd5", "ccccc5", flag.ExitOnError)
+	cmd5.SetDescription("五级命令描述")
+
+	// 新增子命令用于测试帮助信息生成
+	cmd6 := NewCmd("randomizer", "rz", flag.ExitOnError)
+	cmd6.SetDescription("新增六级命令描述")
+	cmd6.Float("timeout", "t", 5.0, "超时时间")
+
+	cmd7 := NewCmd("generator", "gn", flag.ExitOnError)
+	cmd7.SetDescription("新增七级命令描述")
+	cmd7.String("format", "f", "json", "输出格式")
+
+	cmd8 := NewCmd("processor", "ps", flag.ExitOnError)
+	cmd8.SetDescription("新增八级命令描述")
+	cmd8.Int("retry", "r", 3, "重试次数")
+
 	// 构建命令层级
 	cmd1.AddSubCmd(cmd2)
 	cmd2.AddSubCmd(cmd3)
+	cmd2.AddSubCmd(cmd4, cmd5)
+	cmd3.AddSubCmd(cmd6, cmd7, cmd8)
 
 	// 添加注意事项
 	cmd1.AddNote("注意事项1")
