@@ -273,6 +273,24 @@ func (c *Cmd) FlagExists(name string) bool
 返回值:
 - `bool`: 标志是否存在
 
+##### AddExample
+```go
+func (c *Cmd) AddExample(e ExampleInfo)
+```
+为命令添加示例信息，示例将显示在帮助信息的示例部分。
+
+参数:
+- `e`: 示例信息对象
+
+##### GetExamples
+```go
+func (c *Cmd) GetExamples() []ExampleInfo
+```
+获取命令的示例信息列表，返回所有添加的示例信息。
+
+返回值:
+- `[]ExampleInfo`: 示例信息列表副本
+
 ##### NewCmd
 ```go
 func NewCmd(name string, shortName string, errorHandling flag.ErrorHandling) *Cmd
