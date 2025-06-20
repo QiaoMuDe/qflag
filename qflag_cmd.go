@@ -213,9 +213,9 @@ func (c *Cmd) initBuiltinFlags() {
 
 		// 添加默认的注意事项
 		if c.useChinese {
-			c.AddNote(defaultNoteCN)
+			c.AddNote(ChineseTemplate.DefaultNote)
 		} else {
-			c.AddNote(defaultNote)
+			c.AddNote(EnglishTemplate.DefaultNote)
 		}
 
 		// 设置内置标志已绑定

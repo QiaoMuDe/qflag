@@ -782,6 +782,7 @@ func TestNestedCmdHelp(t *testing.T) {
 	cmd3.SetDescription("三级命令描述")
 	cmd3.Bool("verbose", "", false, "详细输出模式")
 	cmd3.SetUseChinese(true)
+	cmd2.SetUseChinese(true)
 
 	// 构建命令层级
 	cmd1.AddSubCmd(cmd2)

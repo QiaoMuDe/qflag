@@ -1,6 +1,7 @@
 package qflag
 
 import (
+	"bytes"
 	"fmt"
 	"os"
 	"path/filepath"
@@ -12,63 +13,62 @@ import (
 // cmd: 当前命令
 // 返回值: 命令帮助信息
 func generateHelpInfo(cmd *Cmd) string {
-	var helpInfo string
-
-	// 根据语言选择模板
-	var (
-		nameTpl, descTpl, optionsHeader, option1Tpl, option2Tpl,
-		subCmdsHeader, subCmdTpl, notesHeader, noteItemTpl string
-	)
-
-	// 根据语言选择模板
+	// 根据语言选择模板实例
+	var tpl HelpTemplate
 	if cmd.useChinese {
-		if cmd.shortName != "" {
-			nameTpl = cmdNameWithShortTemplateCN // 命令名（支持短名称显示）
-		} else {
-			nameTpl = cmdNameTemplateCN // 命令名
-		}
-		descTpl = cmdDescriptionTemplateCN      // 命令描述
-		optionsHeader = optionsHeaderTemplateCN // 选项标题
-		option1Tpl = optionTemplate1CN          // 选项模板1
-		option2Tpl = optionTemplate2CN          // 选项模板2
-		subCmdsHeader = subCmdsHeaderTemplateCN // 子命令标题
-		subCmdTpl = subCmdTemplateCN            // 子命令模板
-		notesHeader = notesHeaderTemplateCN     // 注意事项标题
-		noteItemTpl = noteItemTemplateCN        // 注意事项模板
+		tpl = ChineseTemplate // 中文模板实例
 	} else {
-		if cmd.shortName != "" {
-			nameTpl = cmdNameWithShortTemplate // 命令名（支持短名称显示）
-		} else {
-			nameTpl = cmdNameTemplate // 命令名
-		}
-		descTpl = cmdDescriptionTemplate      // 命令描述
-		optionsHeader = optionsHeaderTemplate // 选项标题
-		option1Tpl = optionTemplate1          // 选项模板1
-		option2Tpl = optionTemplate2          // 选项模板2
-		subCmdsHeader = subCmdsHeaderTemplate // 子命令标题
-		subCmdTpl = subCmdTemplate            // 子命令模板
-		notesHeader = notesHeaderTemplate     // 提示标题
-		noteItemTpl = noteItemTemplate        // 提示项模板
+		tpl = EnglishTemplate // 英文模板实例
 	}
 
-	// 命令名（支持短名称显示）
+	// 使用buffer提高字符串拼接性能
+	var buf bytes.Buffer
+
+	// 写入命令名称和描述
+	writeCommandHeader(cmd, tpl, &buf)
+
+	// 写入用法说明
+	writeUsageLine(cmd, &buf)
+
+	// 写入选项信息
+	if err := writeOptions(cmd, tpl, &buf); err != nil {
+		return fmt.Sprintf("生成帮助信息失败: %v", err)
+	}
+
+	// 写入子命令信息
+	writeSubCommands(cmd, tpl, &buf)
+
+	// 写入注意事项
+	writeNotes(cmd, tpl, &buf)
+
+	return buf.String()
+}
+
+// writeCommandHeader 写入命令名称和描述
+func writeCommandHeader(cmd *Cmd, tpl HelpTemplate, buf *bytes.Buffer) {
+	// 如果子命令不为空, 则使用带有短名称的模板
 	if cmd.ShortName() != "" {
-		helpInfo += fmt.Sprintf(nameTpl, cmd.fs.Name(), cmd.shortName)
+		fmt.Fprintf(buf, tpl.CmdNameWithShort, cmd.fs.Name(), cmd.shortName)
 	} else {
-		helpInfo += fmt.Sprintf(nameTpl, cmd.fs.Name())
+		fmt.Fprintf(buf, tpl.CmdName, cmd.fs.Name())
 	}
 
-	// 命令描述
+	// 如果描述不为空, 则写入描述
 	if cmd.description != "" {
-		helpInfo += fmt.Sprintf(descTpl, cmd.description)
+		fmt.Fprintf(buf, tpl.CmdDescription, cmd.description)
 	}
+}
 
-	// 动态生成命令用法
-	fullCmdPath := getFullCommandPath(cmd)
+// writeUsageLine 写入用法说明
+func writeUsageLine(cmd *Cmd, buf *bytes.Buffer) {
+	// 根据语言选择用法说明前缀
 	usageLinePrefix := "Usage: "
 	if cmd.useChinese {
 		usageLinePrefix = "用法: "
 	}
+
+	// 获取命令的完整路径
+	fullCmdPath := getFullCommandPath(cmd)
 	usageLine := usageLinePrefix + fullCmdPath
 
 	// 如果存在子命令，则需要添加子命令用法
@@ -76,22 +76,54 @@ func generateHelpInfo(cmd *Cmd) string {
 		usageLine += " [subcommand]"
 	}
 
-	// 添加选项用法
+	// 添加用法说明
 	usageLine += " [options] [arguments]\n\n"
-	helpInfo += usageLine
 
-	// 选项标题
-	helpInfo += optionsHeader
+	buf.WriteString(usageLine)
+}
 
-	// 收集所有标志信息
-	var flags []struct {
-		longFlag  string
-		shortFlag string
-		usage     string
-		defValue  string
+// writeOptions 写入选项信息
+func writeOptions(cmd *Cmd, tpl HelpTemplate, buf *bytes.Buffer) error {
+	// 添加选项标题
+	buf.WriteString(tpl.OptionsHeader)
+
+	// 收集所有标志信息并排序
+	flags := collectFlags(cmd)
+	sortFlags(flags)
+
+	// 计算最大标志名称宽度用于对齐
+	maxWidth, err := calculateMaxWidth(flags)
+	if err != nil {
+		return err
 	}
 
-	// 使用Flag接口统一访问标志属性
+	// 生成排序后的标志信息
+	for _, flag := range flags {
+		if flag.shortFlag != "" {
+			fmt.Fprintf(buf, tpl.Option1, flag.shortFlag, maxWidth, flag.longFlag, flag.usage, flag.defValue)
+		} else {
+			fmt.Fprintf(buf, tpl.Option2, maxWidth, flag.longFlag, flag.usage, flag.defValue)
+		}
+	}
+
+	return nil
+}
+
+// collectFlags 收集所有标志信息
+func collectFlags(cmd *Cmd) []struct {
+	longFlag  string
+	shortFlag string
+	usage     string
+	defValue  string
+} {
+	var flags []struct {
+		longFlag  string // 长标志
+		shortFlag string // 短标志
+		usage     string // 用法说明
+		defValue  string // 默认值
+	}
+
+	// 遍历所有标志, 收集标志信息
 	for _, f := range cmd.flagRegistry.allFlags {
 		flag := f
 		flags = append(flags, struct {
@@ -107,28 +139,57 @@ func generateHelpInfo(cmd *Cmd) string {
 		})
 	}
 
-	// 按短标志字母顺序排序，有短标志的选项优先
+	return flags
+}
+
+// sortFlags 按短标志字母顺序排序，有短标志的选项优先
+func sortFlags(flags []struct {
+	longFlag  string
+	shortFlag string
+	usage     string
+	defValue  string
+}) {
 	sort.Slice(flags, func(i, j int) bool {
+		// 组合短标志和长标志，以便按字母顺序排序
 		a, b := flags[i], flags[j]
+
+		// 优先处理有短标志的选项
 		aHasShort := a.shortFlag != ""
+
+		// 处理没有短标志的选项
 		bHasShort := b.shortFlag != ""
 
-		// 有短标志的选项排在前面
+		// 如果a有短标志而b没有，则a排在前面
 		if aHasShort && !bHasShort {
 			return true
 		}
+
+		// 如果a没有短标志而b有，则b排在前面
 		if !aHasShort && bHasShort {
 			return false
 		}
 
-		// 都有短标志则按短标志排序，都没有则按长标志排序
+		// 如果a和b都有短标志，则按短标志字母顺序排序
 		if aHasShort && bHasShort {
 			return a.shortFlag < b.shortFlag
 		}
+
 		return a.longFlag < b.longFlag
 	})
+}
 
-	// 计算最大标志名称宽度, 用于对齐
+// calculateMaxWidth 计算最大标志名称宽度用于对齐
+func calculateMaxWidth(flags []struct {
+	longFlag  string
+	shortFlag string
+	usage     string
+	defValue  string
+}) (int, error) {
+	// 如果没有标志，则返回0
+	if len(flags) == 0 {
+		return 0, nil
+	}
+
 	maxWidth := 0
 	for _, flag := range flags {
 		var nameLength int
@@ -140,43 +201,50 @@ func generateHelpInfo(cmd *Cmd) string {
 			nameLength = len(flag.longFlag) + 2 // 2('--')
 		}
 
-		// 更新最大宽度
+		// 如果名称长度大于最大宽度，则更新最大宽度
 		if nameLength > maxWidth {
 			maxWidth = nameLength
 		}
 	}
 
-	// 生成排序后的标志信息
-	for _, flag := range flags {
-		if flag.shortFlag != "" {
-			helpInfo += fmt.Sprintf(option1Tpl, flag.shortFlag, maxWidth, flag.longFlag, flag.usage, flag.defValue)
+	return maxWidth, nil
+}
+
+// writeSubCommands 写入子命令信息
+func writeSubCommands(cmd *Cmd, tpl HelpTemplate, buf *bytes.Buffer) {
+	// 如果没有子命令，则返回
+	if len(cmd.subCmds) == 0 {
+		return
+	}
+
+	// 添加子命令标题
+	buf.WriteString(tpl.SubCmdsHeader)
+
+	// 遍历所有子命令，生成子命令信息
+	for _, subCmd := range cmd.subCmds {
+		if subCmd.shortName != "" {
+			fmt.Fprintf(buf, tpl.SubCmdWithShort, subCmd.fs.Name(), subCmd.shortName, subCmd.description)
 		} else {
-			helpInfo += fmt.Sprintf(option2Tpl, maxWidth, flag.longFlag, flag.usage, flag.defValue)
+			fmt.Fprintf(buf, tpl.SubCmd, subCmd.fs.Name(), subCmd.description)
 		}
 	}
+}
 
-	// 如果有子命令，添加子命令信息
-	if len(cmd.subCmds) > 0 {
-		helpInfo += subCmdsHeader
-		for _, subCmd := range cmd.subCmds {
-			// 如果子命令有短名称，则使用带短名称的模板
-			if subCmd.shortName != "" {
-				helpInfo += fmt.Sprintf(subCmdWithShortTemplate, subCmd.fs.Name(), subCmd.shortName, subCmd.description)
-			} else {
-				helpInfo += fmt.Sprintf(subCmdTpl, subCmd.fs.Name(), subCmd.description)
-			}
-		}
+// writeNotes 写入注意事项
+func writeNotes(cmd *Cmd, tpl HelpTemplate, buf *bytes.Buffer) {
+	// 如果没有注意事项，则返回
+	notes := cmd.GetNotes()
+	if len(notes) == 0 {
+		return
 	}
 
-	// 添加备注
-	if len(cmd.GetNotes()) > 0 {
-		helpInfo += notesHeader
-		for i, note := range cmd.GetNotes() {
-			helpInfo += fmt.Sprintf(noteItemTpl, i+1, note)
-		}
-	}
+	// 添加注意事项标题
+	buf.WriteString(tpl.NotesHeader)
 
-	return helpInfo
+	// 遍历添加注意事项
+	for i, note := range notes {
+		fmt.Fprintf(buf, tpl.NoteItem, i+1, note)
+	}
 }
 
 // hasCycle 检测命令间是否存在循环引用

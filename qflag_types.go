@@ -16,32 +16,50 @@ const (
 	FlagTypeDuration                     // 时间间隔类型
 )
 
-// 帮助信息模板常量
-const (
-	// 英文模板
-	cmdNameTemplate          = "Name: %s\n\n"                                                                                                                      // 命令名称
-	cmdNameWithShortTemplate = "Name: %s(%s)\n\n"                                                                                                                  // 命令名称和短名称
-	cmdDescriptionTemplate   = "Desc: %s\n\n"                                                                                                                      // 命令描述
-	optionsHeaderTemplate    = "Options:\n"                                                                                                                        // 选项头部
-	optionTemplate1          = "  -%s, --%-*s %s (default: %s)\n"                                                                                                  // 选项模板1
-	optionTemplate2          = "  --%-*s %s (default: %s)\n"                                                                                                       // 选项模板2
-	subCmdsHeaderTemplate    = "\nSubcommands:\n"                                                                                                                  // 子命令头部
-	subCmdTemplate           = "  %s\t%s\n"                                                                                                                        // 子命令模板
-	subCmdWithShortTemplate  = "  %s, %s\t%s\n"                                                                                                                    // 子命令带短名称模板
-	notesHeaderTemplate      = "\nNotes:\n"                                                                                                                        // 注意事项头部
-	noteItemTemplate         = "  %d. %s\n"                                                                                                                        // 注意事项项
-	defaultNote              = "In the case where both long options and short options are used at the same time, the option specified last shall take precedence." // 默认注意事项
+// HelpTemplate 帮助信息模板结构体
+type HelpTemplate struct {
+	CmdName          string // 命令名称模板
+	CmdNameWithShort string // 命令名称带短名称模板
+	CmdDescription   string // 命令描述模板
+	OptionsHeader    string // 选项头部模板
+	Option1          string // 选项模板(带短选项)
+	Option2          string // 选项模板(无短选项)
+	SubCmdsHeader    string // 子命令头部模板
+	SubCmd           string // 子命令模板
+	SubCmdWithShort  string // 子命令带短名称模板
+	NotesHeader      string // 注意事项头部模板
+	NoteItem         string // 注意事项项模板
+	DefaultNote      string // 默认注意事项
+}
 
-	// 中文模板
-	cmdNameTemplateCN          = "名称: %s\n\n"                   // 命令名称（中文）
-	cmdNameWithShortTemplateCN = "名称: %s(%s)\n\n"               // 命令名称和短名称（中文）
-	cmdDescriptionTemplateCN   = "描述: %s\n\n"                   // 命令描述（中文）
-	optionsHeaderTemplateCN    = "选项:\n"                        // 选项头部（中文）
-	optionTemplate1CN          = "  -%s, --%-*s %s (默认值: %s)\n" // 选项模板1(中文, 动态宽度)
-	optionTemplate2CN          = "  --%-*s %s (默认值: %s)\n"      // 选项模板2(中文, 动态宽度)
-	subCmdsHeaderTemplateCN    = "\n子命令:\n"                     // 子命令头部（中文）
-	subCmdTemplateCN           = "  %s\t%s\n"                   // 子命令模板（中文）
-	notesHeaderTemplateCN      = "\n注意事项:\n"                    // 注意事项头部（中文）
-	noteItemTemplateCN         = "  %d、%s\n"                    // 注意事项项（中文）
-	defaultNoteCN              = "当长选项和短选项同时使用时，最后指定的选项将优先生效。"  // 默认注意事项（中文）
-)
+// 英文模板实例
+var EnglishTemplate = HelpTemplate{
+	CmdName:          "Name: %s\n\n",                                                                                                                        // 命令名称模板
+	CmdNameWithShort: "Name: %s(%s)\n\n",                                                                                                                    // 命令名称带短名称模板
+	CmdDescription:   "Desc: %s\n\n",                                                                                                                        // 命令描述模板
+	OptionsHeader:    "Options:\n",                                                                                                                          // 选项头部模板
+	Option1:          "  -%s, --%-*s %s (default: %s)\n",                                                                                                    // 选项模板(带短选项)
+	Option2:          "  --%-*s %s (default: %s)\n",                                                                                                         // 选项模板(无短选项)
+	SubCmdsHeader:    "\nSubCmds:\n",                                                                                                                        // 子命令头部模板
+	SubCmd:           "  %s\t%s\n",                                                                                                                          // 子命令模板
+	SubCmdWithShort:  "  %s, %s\t%s\n",                                                                                                                      // 子命令模板(带短选项)
+	NotesHeader:      "\nNotes:\n",                                                                                                                          // 注意事项头部模板
+	NoteItem:         "  %d. %s\n",                                                                                                                          // 注意事项模板
+	DefaultNote:      "In the case where both long options and short options are used at the same time,\n the option specified last shall take precedence.", // 默认注意事项
+}
+
+// 中文模板实例
+var ChineseTemplate = HelpTemplate{
+	CmdName:          "名称: %s\n\n",                   // 命令名称模板
+	CmdNameWithShort: "名称: %s(%s)\n\n",               // 命令名称带短名称模板
+	CmdDescription:   "描述: %s\n\n",                   // 命令描述模板
+	OptionsHeader:    "选项:\n",                        // 选项头部模板
+	Option1:          "  -%s, --%-*s %s (默认值: %s)\n", // 选项模板(带短选项)
+	Option2:          "  --%-*s %s (默认值: %s)\n",      // 选项模板(无短选项)
+	SubCmdsHeader:    "\n子命令:\n",                     // 子命令头部模板
+	SubCmd:           "  %s\t%s\n",                   // 子命令模板
+	SubCmdWithShort:  "  %s, %s\t%s\n",               // 子命令模板(带短选项)
+	NotesHeader:      "\n注意事项:\n",                    //注意事项头部模板
+	NoteItem:         "  %d、%s\n",                    //注意事项模板
+	DefaultNote:      "当长选项和短选项同时使用时，最后指定的选项将优先生效。",  //默认注意事项
+}
