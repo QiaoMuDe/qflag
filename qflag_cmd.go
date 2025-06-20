@@ -31,15 +31,8 @@ type Cmd struct {
 	builtinFlagNameMap  sync.Map      // 用于存储内置标志名称的映射
 	useChinese          bool          // 控制是否使用中文帮助信息
 	notes               []string      // 存储备注内容
+	examples            []ExampleInfo // 存储示例信息
 }
-
-// 内置标志名称
-var (
-	helpFlagName                 = "help"
-	helpFlagShortName            = "h"
-	showInstallPathFlagName      = "show-install-path"
-	showInstallPathFlagShortName = "sip"
-)
 
 // CmdInterface 命令接口定义，封装命令行程序的核心功能
 // 提供统一的命令管理、参数解析和帮助系统
@@ -50,26 +43,29 @@ var (
 // cmd.SetDescription("示例应用程序")
 // cmd.String("config", "c", "配置文件路径", "/etc/app.conf")
 type CmdInterface interface {
-	LongName() string                                                                                 // 获取命令名称(长名称)，如"app"
-	ShortName() string                                                                                // 获取命令短名称，如"a"
-	Description() string                                                                              // 获取命令描述信息
-	SetDescription(desc string)                                                                       // 设置命令描述信息，用于帮助输出
-	Usage() string                                                                                    // 获取自定义用法说明，为空时自动生成
-	SetUsage(usage string)                                                                            // 设置自定义用法说明，覆盖自动生成内容
-	GetUseChinese() bool                                                                              // 获取是否使用中文帮助信息
-	SetUseChinese(useChinese bool)                                                                    // 设置是否使用中文帮助信息
-	AddSubCmd(subCmd *Cmd)                                                                            // 添加子命令，子命令会继承父命令的上下文
-	SubCmds() []*Cmd                                                                                  // 获取所有已注册的子命令列表
-	AddMutexGroup(flags ...Flag) error                                                                // 添加互斥组，互斥组内的标志不能同时使用
-	Parse(args []string) error                                                                        // 解析命令行参数，自动处理标志和子命令
-	Args() []string                                                                                   // 获取所有非标志参数(未绑定到任何标志的参数)
-	Arg(i int) string                                                                                 // 获取指定索引的非标志参数，索引越界返回空字符串
-	NArg() int                                                                                        // 获取非标志参数的数量
-	NFlag() int                                                                                       // 获取已解析的标志数量
-	FlagExists(name string) bool                                                                      // 检查指定名称的标志是否存在(支持长/短名称)
-	PrintUsage()                                                                                      // 打印命令使用说明到标准输出
-	AddNote(note string)                                                                              // 添加备注信息
-	GetNotes() []string                                                                               // 获取所有备注信息
+	LongName() string                  // 获取命令名称(长名称)，如"app"
+	ShortName() string                 // 获取命令短名称，如"a"
+	Description() string               // 获取命令描述信息
+	SetDescription(desc string)        // 设置命令描述信息，用于帮助输出
+	Usage() string                     // 获取自定义用法说明，为空时自动生成
+	SetUsage(usage string)             // 设置自定义用法说明，覆盖自动生成内容
+	GetUseChinese() bool               // 获取是否使用中文帮助信息
+	SetUseChinese(useChinese bool)     // 设置是否使用中文帮助信息
+	AddSubCmd(subCmd *Cmd)             // 添加子命令，子命令会继承父命令的上下文
+	SubCmds() []*Cmd                   // 获取所有已注册的子命令列表
+	AddMutexGroup(flags ...Flag) error // 添加互斥组，互斥组内的标志不能同时使用
+	Parse(args []string) error         // 解析命令行参数，自动处理标志和子命令
+	Args() []string                    // 获取所有非标志参数(未绑定到任何标志的参数)
+	Arg(i int) string                  // 获取指定索引的非标志参数，索引越界返回空字符串
+	NArg() int                         // 获取非标志参数的数量
+	NFlag() int                        // 获取已解析的标志数量
+	FlagExists(name string) bool       // 检查指定名称的标志是否存在(支持长/短名称)
+	PrintUsage()                       // 打印命令使用说明到标准输出
+	AddNote(note string)               // 添加备注信息
+	GetNotes() []string                // 获取所有备注信息
+	AddExample(e ExampleInfo)          // 添加示例信息
+	GetExamples() []ExampleInfo        // 获取所有示例信息
+
 	String(longName, shortName, usage, defValue string) *StringFlag                                   // 添加字符串类型标志
 	Int(longName, shortName, usage string, defValue int) *IntFlag                                     // 添加整数类型标志
 	Bool(longName, shortName, usage string, defValue bool) *BoolFlag                                  // 添加布尔类型标志
@@ -102,7 +98,10 @@ func (c *Cmd) SetUseChinese(useChinese bool) {
 func (c *Cmd) GetNotes() []string {
 	c.setMu.Lock()
 	defer c.setMu.Unlock()
-	return c.notes
+	// 返回切片副本而非原始引用
+	notes := make([]string, len(c.notes))
+	copy(notes, c.notes)
+	return notes
 }
 
 // LongName 返回命令长名称
@@ -132,10 +131,22 @@ func (c *Cmd) SetUsage(usage string) {
 }
 
 // SubCmds 返回子命令列表
-func (c *Cmd) SubCmds() []*Cmd { return c.subCmds }
+func (c *Cmd) SubCmds() []*Cmd {
+	c.addMu.Lock()
+	defer c.addMu.Unlock()
+	// 返回子命令切片副本
+	subCmds := make([]*Cmd, len(c.subCmds))
+	copy(subCmds, c.subCmds)
+	return subCmds
+}
 
 // Args 获取非标志参数切片
-func (c *Cmd) Args() []string { return c.args }
+func (c *Cmd) Args() []string {
+	// 返回参数切片副本
+	args := make([]string, len(c.args))
+	copy(args, c.args)
+	return args
+}
 
 // Arg 获取指定索引的非标志参数
 func (c *Cmd) Arg(i int) string {
@@ -170,6 +181,26 @@ func (c *Cmd) AddNote(note string) {
 	c.setMu.Lock()
 	defer c.setMu.Unlock()
 	c.notes = append(c.notes, note)
+}
+
+// AddExample 为命令添加使用示例
+// description: 示例描述
+// usage: 示例使用方式
+func (c *Cmd) AddExample(e ExampleInfo) {
+	c.setMu.Lock()
+	defer c.setMu.Unlock()
+	// 添加到使用示例列表中
+	c.examples = append(c.examples, e)
+}
+
+// GetExamples 获取所有使用示例
+// 返回示例切片的副本，防止外部修改
+func (c *Cmd) GetExamples() []ExampleInfo {
+	c.setMu.Lock()
+	defer c.setMu.Unlock()
+	examples := make([]ExampleInfo, len(c.examples))
+	copy(examples, c.examples)
+	return examples
 }
 
 // initBuiltinFlags 初始化内置标志

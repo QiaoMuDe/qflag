@@ -35,6 +35,13 @@ type QCommandLineInterface interface {
 	NFlag() int                                                                                          // 获取已解析的标志数量
 	PrintUsage()                                                                                         // 打印命令使用说明到标准输出
 	FlagExists(name string) bool                                                                         // 检查指定名称的标志是否存在(支持长/短名称)
+
+	AddNote(note string)           // 添加一个注意事项
+	GetUseChinese() bool           // 获取是否使用中文帮助信息
+	SetUseChinese(useChinese bool) // 设置是否使用中文帮助信息
+	AddExample(e ExampleInfo)      // 添加一个示例信息
+	GetExamples() []ExampleInfo    // 获取示例信息列表
+
 }
 
 // 在包初始化时创建全局默认Cmd实例
@@ -316,4 +323,20 @@ func SetUseChinese(useChinese bool) {
 //   - note: 注意事项内容，字符串类型。
 func AddNote(note string) {
 	QCommandLine.AddNote(note)
+}
+
+// AddExample 添加示例
+// 该函数用于添加命令行标志的示例，这些示例将在命令行帮助信息中显示。
+// 参数:
+//   - e: 示例信息，ExampleInfo 类型。
+func AddExample(e ExampleInfo) {
+	QCommandLine.AddExample(e)
+}
+
+// GetExamples 获取示例信息
+// 该函数用于获取命令行标志的示例信息列表。
+// 返回值:
+//   - []ExampleInfo: 示例信息列表，每个元素为 ExampleInfo 类型。
+func GetExamples() []ExampleInfo {
+	return QCommandLine.GetExamples()
 }

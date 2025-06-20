@@ -803,6 +803,10 @@ func TestNestedCmdHelp(t *testing.T) {
 	cmd8.SetDescription("新增八级命令描述")
 	cmd8.Int("retry", "r", 3, "重试次数")
 
+	// 添加示例
+	cmd3.AddExample(ExampleInfo{"示例1", "echo 111"})
+	cmd3.AddExample(ExampleInfo{"示例2", "echo 222"})
+
 	// 构建命令层级
 	cmd1.AddSubCmd(cmd2)
 	cmd2.AddSubCmd(cmd3)

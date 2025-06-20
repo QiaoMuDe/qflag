@@ -12,6 +12,13 @@ type FlagInfo struct {
 	defValue  string // 默认值
 }
 
+// ExampleInfo 示例信息结构体
+// 用于存储命令的使用示例，包括描述和示例内容
+type ExampleInfo struct {
+	Description string // 示例描述
+	Usage       string // 示例使用方式
+}
+
 // 标志类型
 type FlagType int
 
@@ -23,6 +30,14 @@ const (
 	FlagTypeSlice                        // 切片类型
 	FlagTypeEnum                         // 枚举类型
 	FlagTypeDuration                     // 时间间隔类型
+)
+
+// 内置标志名称
+var (
+	helpFlagName                 = "help"
+	helpFlagShortName            = "h"
+	showInstallPathFlagName      = "show-install-path"
+	showInstallPathFlagShortName = "sip"
 )
 
 // HelpTemplate 帮助信息模板结构体
@@ -43,6 +58,8 @@ type HelpTemplate struct {
 	NotesHeader      string // 注意事项头部模板
 	NoteItem         string // 注意事项项模板
 	DefaultNote      string // 默认注意事项
+	ExamplesHeader   string // 示例信息头部模板
+	ExampleItem      string // 示例信息项模板
 }
 
 // 英文模板实例
@@ -63,6 +80,8 @@ var EnglishTemplate = HelpTemplate{
 	NotesHeader:      "\nNotes:\n",                                                                                                                          // 注意事项头部模板
 	NoteItem:         "  %d. %s\n",                                                                                                                          // 注意事项模板
 	DefaultNote:      "In the case where both long options and short options are used at the same time,\n the option specified last shall take precedence.", // 默认注意事项
+	ExamplesHeader:   "\nExamples:\n",                                                                                                                       // 示例信息头部模板
+	ExampleItem:      "  %d. %s\n    %s\n",                                                                                                                  // 序号、描述、用法
 }
 
 // 中文模板实例
@@ -83,4 +102,6 @@ var ChineseTemplate = HelpTemplate{
 	NotesHeader:      "\n注意事项:\n",                   //注意事项头部模板
 	NoteItem:         "  %d、%s\n",                   //注意事项模板
 	DefaultNote:      "当长选项和短选项同时使用时，最后指定的选项将优先生效。", //默认注意事项
+	ExamplesHeader:   "\n示例:\n",                     // 示例信息头部模板
+	ExampleItem:      "  %d、%s\n    %s\n",           // 序号、描述、用法
 }

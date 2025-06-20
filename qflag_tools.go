@@ -36,6 +36,9 @@ func generateHelpInfo(cmd *Cmd) string {
 	// 写入子命令信息
 	writeSubCmds(cmd, tpl, &buf)
 
+	// 写入示例信息
+	writeExamples(cmd, tpl, &buf)
+
 	// 写入注意事项
 	writeNotes(cmd, tpl, &buf)
 
@@ -269,6 +272,32 @@ func calculateMaxWidth(flags []FlagInfo) (int, error) {
 	}
 
 	return maxWidth, nil
+}
+
+// writeExamples 写入示例信息
+// cmd: 当前命令
+// tpl: 模板实例
+// buf: 输出缓冲区
+func writeExamples(cmd *Cmd, tpl HelpTemplate, buf *bytes.Buffer) {
+	// 如果没有示例信息，则返回
+	examples := cmd.GetExamples()
+	if len(examples) == 0 {
+		return
+	}
+
+	// 添加示例信息标题
+	buf.WriteString(tpl.ExamplesHeader)
+
+	// 遍历添加示例信息
+	for i, example := range examples {
+		// 格式化示例信息
+		fmt.Fprintf(buf, tpl.ExampleItem, i+1, example.Description, example.Usage)
+
+		// 如果不是最后一个示例，添加空行
+		if i < len(examples)-1 {
+			fmt.Fprintln(buf)
+		}
+	}
 }
 
 // writeNotes 写入注意事项
