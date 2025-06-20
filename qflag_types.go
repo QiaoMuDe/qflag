@@ -27,6 +27,7 @@ const (
 	optionTemplate2          = "  --%-*s %s (default: %s)\n"                                                                                                       // 选项模板2
 	subCmdsHeaderTemplate    = "\nSubcommands:\n"                                                                                                                  // 子命令头部
 	subCmdTemplate           = "  %s\t%s\n"                                                                                                                        // 子命令模板
+	subCmdWithShortTemplate  = "  %s, %s\t%s\n"                                                                                                                    // 子命令带短名称模板
 	notesHeaderTemplate      = "\nNotes:\n"                                                                                                                        // 注意事项头部
 	noteItemTemplate         = "  %d. %s\n"                                                                                                                        // 注意事项项
 	defaultNote              = "In the case where both long options and short options are used at the same time, the option specified last shall take precedence." // 默认注意事项

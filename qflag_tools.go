@@ -159,7 +159,12 @@ func generateHelpInfo(cmd *Cmd) string {
 	if len(cmd.subCmds) > 0 {
 		helpInfo += subCmdsHeader
 		for _, subCmd := range cmd.subCmds {
-			helpInfo += fmt.Sprintf(subCmdTpl, subCmd.fs.Name(), subCmd.description)
+			// 如果子命令有短名称，则使用带短名称的模板
+			if subCmd.shortName != "" {
+				helpInfo += fmt.Sprintf(subCmdWithShortTemplate, subCmd.fs.Name(), subCmd.shortName, subCmd.description)
+			} else {
+				helpInfo += fmt.Sprintf(subCmdTpl, subCmd.fs.Name(), subCmd.description)
+			}
 		}
 	}
 
