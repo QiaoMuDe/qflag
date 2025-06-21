@@ -19,6 +19,14 @@ type ExampleInfo struct {
 	Usage       string // 示例使用方式
 }
 
+// Validator 验证器接口，所有自定义验证器需实现此接口
+type Validator interface {
+	// Validate 验证参数值是否合法
+	// value: 待验证的参数值
+	// 返回值: 验证通过返回nil, 否则返回错误信息
+	Validate(value any) error
+}
+
 // 标志类型
 type FlagType int
 

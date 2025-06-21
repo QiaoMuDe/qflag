@@ -486,12 +486,12 @@ func (c *Cmd) Parse(args []string) (err error) {
 			}
 		}
 
-		// 检查枚举标志
+		// 检查枚举类型标志是否有效
 		for _, meta := range c.flagRegistry.GetAllFlags() {
 			if meta.GetFlagType() == FlagTypeEnum {
 				if enumFlag, ok := meta.flag.(*EnumFlag); ok {
-					// 调用Check方法进行验证
-					if checkErr := enumFlag.Check(enumFlag.Get()); checkErr != nil {
+					// 调用IsCheck方法进行验证
+					if checkErr := enumFlag.IsCheck(enumFlag.Get()); checkErr != nil {
 						// 如果验证失败，则返回错误信息，错误信息： 无效的枚举值, 可选值: [a, b, c]
 						err = checkErr
 					}

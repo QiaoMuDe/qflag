@@ -34,6 +34,7 @@ type BaseFlag[T any] struct {
 	usage     string     // 帮助说明
 	value     *T         // 标志值指针
 	mu        sync.Mutex // 并发访问锁
+	Validator Validator  // 验证器接口
 }
 
 // LongName 获取标志的长名称
@@ -72,6 +73,13 @@ func (f *BaseFlag[T]) Set(value T) error {
 
 	// 创建一个副本
 	v := value
+
+	// 设置标志值前先进行验证
+	if f.Validator != nil {
+		if err := f.Validator.Validate(v); err != nil {
+			return fmt.Errorf("invalid value for %s: %w", f.longName, err)
+		}
+	}
 
 	// 设置标志值
 	f.value = &v
@@ -164,8 +172,9 @@ type EnumFlag struct {
 // 实现Flag接口
 func (f *EnumFlag) Type() FlagType { return FlagTypeEnum }
 
-// Check 检查标志值是否在允许的枚举范围内
-func (f *EnumFlag) Check(value string) error {
+// IsCheck 检查枚举值是否有效
+// 返回值: 为nil, 说明值有效,否则返回错误信息
+func (f *EnumFlag) IsCheck(value string) error {
 	// 如果枚举map为空,则不需要检查
 	if len(f.optionMap) == 0 {
 		return nil
@@ -178,6 +187,7 @@ func (f *EnumFlag) Check(value string) error {
 	if _, valid := f.optionMap[value]; !valid {
 		var options []string
 		for k := range f.optionMap {
+			// 添加枚举值
 			options = append(options, k)
 		}
 		return fmt.Errorf("invalid enum value '%s', options are %v", value, options)
@@ -188,7 +198,7 @@ func (f *EnumFlag) Check(value string) error {
 // Set 实现flag.Value接口, 解析并设置枚举值
 func (f *EnumFlag) Set(value string) error {
 	// 先验证值是否有效
-	if err := f.Check(value); err != nil {
+	if err := f.IsCheck(value); err != nil {
 		return err
 	}
 	// 调用基类方法设置值

@@ -5,10 +5,13 @@
 qflag是一个Go语言命令行参数解析库，提供了比标准库flag更丰富的功能，包括长短标志绑定、子命令支持、自动帮助信息生成等特性。
 
 ## 概述
+
 qflag是一个Go语言命令行参数解析库，提供了比标准库flag更丰富的功能，包括长短标志绑定、子命令支持、自动帮助信息生成等特性。
 
 ## 核心类型
+
 ### FlagType枚举
+
 定义标志的类型常量，用于标识不同种类的命令行标志。
 
 ```go
@@ -26,6 +29,7 @@ const (
 ```
 
 ### Flag接口
+
 所有标志类型的通用接口，定义了标志的基本属性访问方法。
 
 ```go
@@ -77,9 +81,11 @@ func (f *BaseFlag[T]) GetDefault() T       // 获取默认值
 ```
 
 ### FlagMetaInterface接口
+
 定义标志元数据的标准访问方法。
 
 #### 方法说明
+
 - `GetDefault() any` 获取标志的默认值
 
 ```go
@@ -111,6 +117,7 @@ func (m *FlagMeta) GetDefault() any       // 获取默认值
 ```
 
 ### FlagRegistryInterface接口
+
 定义标志注册表的标准操作方法。
 
 ```go
@@ -162,7 +169,8 @@ type Flag interface {
 ```
 
 ### TypedFlag接口
-`TypedFlag`是带类型的标志接口，继承自`Flag`并提供类型化的默认值和值访问方法。
+
+`TypedFlag`是带类型的标志接口，继承自 `Flag`并提供类型化的默认值和值访问方法。
 
 ```go
 type TypedFlag[T any] interface {
@@ -174,7 +182,8 @@ type TypedFlag[T any] interface {
 ```
 
 ### 具体标志类型
-qflag提供以下具体标志类型，均实现了`TypedFlag`接口：
+
+qflag提供以下具体标志类型，均实现了 `TypedFlag`接口：
 
 - `StringFlag`: 字符串类型标志
 - `IntFlag`: 整数类型标志
@@ -182,12 +191,14 @@ qflag提供以下具体标志类型，均实现了`TypedFlag`接口：
 - `FloatFlag`: 浮点数类型标志
 - `EnumFlag`: 枚举类型标志，限制输入值为预定义选项集合
 
-每个标志类型都有对应的`GetDefault()`、`GetValue()`和`SetValue()`方法。
+每个标志类型都有对应的 `GetDefault()`、`GetValue()`和 `SetValue()`方法。
 
 ### Cmd结构体
-`Cmd`是qflag库的核心结构体，实现了`Command`接口，用于管理命令行标志和子命令。
+
+`Cmd`是qflag库的核心结构体，实现了 `Command`接口，用于管理命令行标志和子命令。
 
 #### 主要字段
+
 - `fs *flag.FlagSet`: 底层flag集合，处理参数解析
 - `name string`: 命令名称
 - `shortName string`: 命令短名称
@@ -198,153 +209,202 @@ qflag提供以下具体标志类型，均实现了`TypedFlag`接口：
 - `notes []string`: 存储备注内容
 
 #### 主要方法
+
 ##### GetUseChinese
+
 ```go
 func (c *Cmd) GetUseChinese() bool
 ```
+
 获取是否使用中文帮助信息的状态。
 
 返回值:
+
 - `bool`: 当前是否启用中文帮助信息
 
 ##### SetUseChinese
+
 ```go
 func (c *Cmd) SetUseChinese(useChinese bool)
 ```
+
 设置是否使用中文帮助信息。
 
 参数:
+
 - `useChinese`: 为true时启用中文帮助信息
 
 ##### Args
+
 ```go
 func (c *Cmd) Args() []string
 ```
+
 获取非标志参数切片。
 
 返回值:
+
 - `[]string`: 非标志参数切片
 
 ##### Arg
+
 ```go
 func (c *Cmd) Arg(i int) string
 ```
+
 获取指定索引的非标志参数。
 
 参数:
+
 - `i`: 参数索引
 
 返回值:
+
 - `string`: 指定索引的参数值，若索引无效则返回空字符串
 
 ##### NArg
+
 ```go
 func (c *Cmd) NArg() int
 ```
 
 ##### AddNote
+
 ```go
 func (c *Cmd) AddNote(note string)
 ```
+
 为命令添加备注信息，备注将显示在帮助信息的注意事项部分。
 获取非标志参数的数量。
 
 返回值:
+
 - `int`: 非标志参数数量
 
 ##### NFlag
+
 ```go
 func (c *Cmd) NFlag() int
 ```
+
 获取已设置的标志数量。
 
 返回值:
+
 - `int`: 已设置的标志数量
 
 ##### FlagExists
+
 ```go
 func (c *Cmd) FlagExists(name string) bool
 ```
+
 检查指定名称的标志是否存在。
 
 参数:
+
 - `name`: 标志名称（长标志或短标志）
 
 返回值:
+
 - `bool`: 标志是否存在
 
 ##### AddExample
+
 ```go
 func (c *Cmd) AddExample(e ExampleInfo)
 ```
+
 为命令添加示例信息，示例将显示在帮助信息的示例部分。
 
 参数:
+
 - `e`: 示例信息对象
 
 ##### GetExamples
+
 ```go
 func (c *Cmd) GetExamples() []ExampleInfo
 ```
+
 获取命令的示例信息列表，返回所有添加的示例信息。
 
 返回值:
+
 - `[]ExampleInfo`: 示例信息列表副本
 
 ##### NewCmd
+
 ```go
 func NewCmd(name string, shortName string, errorHandling flag.ErrorHandling) *Cmd
 ```
+
 创建新的命令实例。
 
 参数:
+
 - `name`: 命令名称
 - `shortName`: 命令短名称
 - `errorHandling`: 错误处理方式(flag.ContinueOnError, flag.ExitOnError, flag.PanicOnError)
 
 返回值:
+
 - `*Cmd`: 新创建的命令实例
 
 ##### AddSubCmd
+
 ```go
 func (c *Cmd) AddSubCmd(subCmds ...*Cmd) error
 ```
+
 为当前命令添加子命令。
 
 参数:
+
 - `subCmds`: 一个或多个子命令
 
 返回值:
+
 - `error`: 如果检测到循环引用或nil子命令则返回错误
 
 ##### AddMutexGroup
+
 ```go
 
 ```
+
 为当前命令添加标志互斥组，互斥组内的标志不能同时被设置。
 
 参数:
+
 - `flags`: 构成互斥组的一个或多个标志实例
 
 返回值:
+
 - `error`: 如果标志为nil或不属于当前命令则返回错误
 
 ##### Parse
+
 ```go
 func (c *Cmd) Parse(args []string) error
 ```
+
 解析命令行参数。
 
 参数:
+
 - `args`: 命令行参数切片
 
 返回值:
+
 - `error`: 解析过程中遇到的错误
 
 ##### PrintUsage
+
 ```go
 func (c *Cmd) PrintUsage()
 ```
+
 打印命令的帮助信息，优先使用自定义帮助内容，否则自动生成。
 
 ## 标志操作函数
@@ -352,27 +412,34 @@ func (c *Cmd) PrintUsage()
 ### 字符串标志
 
 #### String
+
 ```go
 func String(name, shortName, defValue, usage string) *StringFlag
 ```
+
 创建字符串类型标志(全局默认命令)。
 
 参数:
+
 - `name`: 长标志名
 - `shortName`: 短标志名
 - `defValue`: 默认值
 - `usage`: 帮助说明
 
 返回值:
+
 - `*StringFlag`: 字符串标志实例
 
 #### StringVar
+
 ```go
 func StringVar(p *string, name, shortName, defValue, usage string)
 ```
+
 绑定字符串类型标志到指针(全局默认命令)。
 
 参数:
+
 - `p`: 指向字符串变量的指针
 - `name`: 长标志名
 - `shortName`: 短标志名
@@ -382,27 +449,34 @@ func StringVar(p *string, name, shortName, defValue, usage string)
 ### 整数标志
 
 #### Int
+
 ```go
 func Int(name, shortName string, defValue int, usage string) *IntFlag
 ```
+
 创建整数类型标志(全局默认命令)。
 
 参数:
+
 - `name`: 长标志名
 - `shortName`: 短标志名
 - `defValue`: 默认值
 - `usage`: 帮助说明
 
 返回值:
+
 - `*IntFlag`: 整数标志实例
 
 #### IntVar
+
 ```go
 func IntVar(p *int, name, shortName string, defValue int, usage string)
 ```
+
 绑定整数类型标志到指针(全局默认命令)。
 
 参数:
+
 - `p`: 指向整数变量的指针
 - `name`: 长标志名
 - `shortName`: 短标志名
@@ -412,27 +486,34 @@ func IntVar(p *int, name, shortName string, defValue int, usage string)
 ### 布尔标志
 
 #### Bool
+
 ```go
 func Bool(name, shortName string, defValue bool, usage string) *BoolFlag
 ```
+
 创建布尔类型标志(全局默认命令)。
 
 参数:
+
 - `name`: 长标志名
 - `shortName`: 短标志名
 - `defValue`: 默认值
 - `usage`: 帮助说明
 
 返回值:
+
 - `*BoolFlag`: 布尔标志实例
 
 #### BoolVar
+
 ```go
 func BoolVar(p *bool, name, shortName string, defValue bool, usage string)
 ```
+
 绑定布尔类型标志到指针(全局默认命令)。
 
 参数:
+
 - `p`: 指向布尔变量的指针
 - `name`: 长标志名
 - `shortName`: 短标志名
@@ -442,27 +523,34 @@ func BoolVar(p *bool, name, shortName string, defValue bool, usage string)
 ### 浮点数标志
 
 #### Float
+
 ```go
 func Float(name, shortName string, defValue float64, usage string) *FloatFlag
 ```
+
 创建浮点数类型标志(全局默认命令)。
 
 参数:
+
 - `name`: 长标志名
 - `shortName`: 短标志名
 - `defValue`: 默认值
 - `usage`: 帮助说明
 
 返回值:
+
 - `*FloatFlag`: 浮点数标志实例
 
 #### FloatVar
+
 ```go
 func FloatVar(p *float64, name, shortName string, defValue float64, usage string)
 ```
+
 绑定浮点数类型标志到指针(全局默认命令)。
 
 参数:
+
 - `p`: 指向浮点数变量的指针
 - `name`: 长标志名
 - `shortName`: 短标志名
@@ -472,38 +560,49 @@ func FloatVar(p *float64, name, shortName string, defValue float64, usage string
 ### 枚举标志
 
 #### EnumFlag特有方法
+
 ```go
-func (f *EnumFlag) Check(value string) error
+func (f *EnumFlag) IsCheck(value string) error
 ```
+
 验证值是否在枚举选项范围内。
 
 参数:
+
 - `value`: 待验证的值
 
 返回值:
+
 - `error`: 验证失败时返回错误信息
 
 ### 时间间隔标志
 
 #### DurationFlag特有方法
+
 ```go
 func (f *DurationFlag) Set(value string) error
 ```
+
 解析并设置时间间隔值，支持ns/us/ms/s/m/h等单位。
 
 参数:
+
 - `value`: 时间间隔字符串
 
 返回值:
+
 - `error`: 解析失败时返回错误信息
 
 #### Enum
+
 ```go
 func Enum(name, shortName string, defValue string, usage string, allowedValues ...string) *EnumFlag
 ```
+
 创建枚举类型标志(全局默认命令)，限制输入值为预定义选项集合。
 
 参数:
+
 - `name`: 长标志名
 - `shortName`: 短标志名
 - `defValue`: 默认值
@@ -511,15 +610,19 @@ func Enum(name, shortName string, defValue string, usage string, allowedValues .
 - `allowedValues`: 允许的枚举值列表
 
 返回值:
+
 - `*EnumFlag`: 枚举标志实例
 
 #### EnumVar
+
 ```go
 func EnumVar(p *string, name, shortName string, defValue string, usage string, allowedValues ...string)
 ```
+
 绑定枚举类型标志到指针(全局默认命令)，限制输入值为预定义选项集合。
 
 参数:
+
 - `p`: 指向字符串变量的指针
 - `name`: 长标志名
 - `shortName`: 短标志名
@@ -530,27 +633,34 @@ func EnumVar(p *string, name, shortName string, defValue string, usage string, a
 ### 时间间隔标志
 
 #### Duration
+
 ```go
 func Duration(name, shortName string, defValue time.Duration, usage string) *DurationFlag
 ```
+
 创建时间间隔类型标志(全局默认命令)，支持解析时间单位如"s"(秒), "m"(分钟), "h"(小时)等。
 
 参数:
+
 - `name`: 长标志名
 - `shortName`: 短标志名
 - `defValue`: 默认值，类型为time.Duration
 - `usage`: 帮助说明
 
 返回值:
+
 - `*DurationFlag`: 时间间隔标志实例
 
 #### DurationVar
+
 ```go
 func DurationVar(p *time.Duration, name, shortName string, defValue time.Duration, usage string)
 ```
+
 绑定时间间隔类型标志到指针(全局默认命令)，支持解析时间单位如"s"(秒), "m"(分钟), "h"(小时)等。
 
 参数:
+
 - `p`: 指向time.Duration变量的指针
 - `name`: 长标志名
 - `shortName`: 短标志名
@@ -562,12 +672,14 @@ func DurationVar(p *time.Duration, name, shortName string, defValue time.Duratio
 qflag自动绑定了以下内置标志：
 
 ### 帮助标志
+
 - 长标志: `--help`
 - 短标志: `-h`
 - 功能: 显示命令的帮助信息
 - 使用示例: `myapp --help` 或 `myapp -h`
 
 ### 显示安装路径标志
+
 - 长标志: `--show-install-path`
 - 短标志: `-sip`
 - 功能: 显示应用程序的安装路径
@@ -576,31 +688,38 @@ qflag自动绑定了以下内置标志：
 ## 高级特性
 
 ### 线程安全
-qflag库使用`sync.Mutex`和`sync.Once`确保所有标志操作和解析过程是线程安全的，可以在并发环境中安全使用。
+
+qflag库使用 `sync.Mutex`和 `sync.Once`确保所有标志操作和解析过程是线程安全的，可以在并发环境中安全使用。
 
 ### 循环引用检测
+
 添加子命令时，qflag会自动检测命令间的循环引用，避免出现无限递归的命令结构。
 
 ### 动态帮助信息生成
+
 qflag会根据命令和标志的定义自动生成格式化的帮助信息，包括命令描述、标志说明、子命令列表等。支持中英文双语切换，通过SetUseChinese方法控制。### 标志注册表
 FlagRegistry提供集中式标志管理，支持通过名称快速查找标志元数据，包括标志类型、默认值、当前值等信息。
 
 ### 标志命名规则
+
 qflag对标志名称有严格的字符限制，禁止使用以下字符：
+
 ```go
 const invalidFlagChars = " !@#$%^&*(){}[]|\\;:'\"<>,.?/"
 ```
 
 命名建议：
-- 使用小写字母和连字符(-)组合，如`--config-path`
-- 短标志建议使用单个字母，如`-c`对应`--config`
+
+- 使用小写字母和连字符(-)组合，如 `--config-path`
+- 短标志建议使用单个字母，如 `-c`对应 `--config`
 - 避免使用保留标志名称：`help`、`h`、`show-install-path`、`sip`
-FlagRegistry提供集中式标志管理，支持通过名称快速查找标志元数据，包括标志类型、默认值、当前值等信息。
-qflag会根据命令和标志的定义自动生成格式化的帮助信息，包括命令描述、标志说明、子命令列表等。
+  FlagRegistry提供集中式标志管理，支持通过名称快速查找标志元数据，包括标志类型、默认值、当前值等信息。
+  qflag会根据命令和标志的定义自动生成格式化的帮助信息，包括命令描述、标志说明、子命令列表等。
 
 ## 使用示例
 
 ### 基本用法
+
 ```go
 package main
 
@@ -636,6 +755,7 @@ func main() {
 ```
 
 ### 自定义帮助信息
+
 ```go
 package main
 
@@ -693,6 +813,7 @@ Options:
 ```
 
 ### 内置标志说明
+
 ```go
 package main
 
@@ -731,6 +852,7 @@ func main() {
 ```
 
 使用示例:
+
 ```bash
 # 显示帮助信息
 myapp -h
@@ -745,6 +867,7 @@ myapp -n Alice -a 30
 ```
 
 ### 错误处理示例
+
 ```go
 package main
 
@@ -777,35 +900,39 @@ func main() {
 ```
 
 ## 错误处理
+
 ### 错误常量
+
 qflag定义了以下错误常量，用于标识不同类型的解析错误：
 
-| 常量名称 | 描述 |
-|---------|------|
-| `ErrFlagParseFailed` | 全局实例标志解析错误 |
-| `ErrSubCommandParseFailed` | 子命令标志解析错误 |
-| `ErrPanicRecovered` | 恐慌捕获错误 |
+| 常量名称                     | 描述                 |
+| ---------------------------- | -------------------- |
+| `ErrFlagParseFailed`       | 全局实例标志解析错误 |
+| `ErrSubCommandParseFailed` | 子命令标志解析错误   |
+| `ErrPanicRecovered`        | 恐慌捕获错误         |
 
 ## API摘要
 
-| 类别 | 名称 | 描述 |
-|------|------|------|
-| 命令创建 | NewCmd | 创建新的命令实例 |
-| 标志操作 | String, Int, Bool, Float, Enum | 创建指定类型的标志 |
-| 标志绑定 | StringVar, IntVar, BoolVar, FloatVar | 绑定标志到变量指针 |
-| 参数解析 | Parse | 解析命令行参数 |
-| 帮助信息 | PrintUsage | 打印命令帮助信息 |
-| 子命令管理 | AddSubCmd | 为命令添加子命令 |
-| 参数访问 | Args, Arg, NArg | 获取非标志参数 |
-| 标志查询 | NFlag, FlagExists | 查询标志状态 |
+| 类别       | 名称                                 | 描述               |
+| ---------- | ------------------------------------ | ------------------ |
+| 命令创建   | NewCmd                               | 创建新的命令实例   |
+| 标志操作   | String, Int, Bool, Float, Enum       | 创建指定类型的标志 |
+| 标志绑定   | StringVar, IntVar, BoolVar, FloatVar | 绑定标志到变量指针 |
+| 参数解析   | Parse                                | 解析命令行参数     |
+| 帮助信息   | PrintUsage                           | 打印命令帮助信息   |
+| 子命令管理 | AddSubCmd                            | 为命令添加子命令   |
+| 参数访问   | Args, Arg, NArg                      | 获取非标志参数     |
+| 标志查询   | NFlag, FlagExists                    | 查询标志状态       |
 
 ## 参数优先级规则
 
 当长标志和短标志同时使用时，后指定的标志将覆盖先指定的标志。例如：
+
 ```bash
 myapp --name Alice -n Bob
 ```
-上述命令中，最终的name值为"Bob"，因为短标志`-n`在长标志`--name`之后指定。
+
+上述命令中，最终的name值为"Bob"，因为短标志 `-n`在长标志 `--name`之后指定。
 
 ## 使用注意事项
 
@@ -816,6 +943,7 @@ myapp --name Alice -n Bob
 5. 使用自定义错误处理方式时，需手动处理帮助标志和错误信息
 
 ### 子命令用法
+
 ```go
 package main
 
@@ -867,6 +995,7 @@ func main() {
 ```
 
 ### 内置标志说明
+
 ```go
 package main
 
