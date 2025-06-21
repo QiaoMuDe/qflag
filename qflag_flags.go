@@ -19,10 +19,11 @@ type Flag interface {
 
 // TypedFlag 所有标志类型的通用接口,定义了标志的元数据访问方法和默认值访问方法
 type TypedFlag[T any] interface {
-	Flag           // 继承标志接口
-	GetDefault() T // 获取标志的具体类型默认值
-	Get() T        // 获取标志的具体类型值
-	Set(T) error   // 设置标志的具体类型值
+	Flag                    // 继承标志接口
+	GetDefault() T          // 获取标志的具体类型默认值
+	Get() T                 // 获取标志的具体类型值
+	Set(T) error            // 设置标志的具体类型值
+	SetValidator(Validator) // 设置标志的验证器
 }
 
 // BaseFlag 泛型基础标志结构体,封装所有标志的通用字段和方法
@@ -34,7 +35,7 @@ type BaseFlag[T any] struct {
 	usage     string     // 帮助说明
 	value     *T         // 标志值指针
 	mu        sync.Mutex // 并发访问锁
-	Validator Validator  // 验证器接口
+	validator Validator  // 验证器接口
 }
 
 // LongName 获取标志的长名称
@@ -75,8 +76,8 @@ func (f *BaseFlag[T]) Set(value T) error {
 	v := value
 
 	// 设置标志值前先进行验证
-	if f.Validator != nil {
-		if err := f.Validator.Validate(v); err != nil {
+	if f.validator != nil {
+		if err := f.validator.Validate(v); err != nil {
 			return fmt.Errorf("invalid value for %s: %w", f.longName, err)
 		}
 	}
@@ -85,6 +86,12 @@ func (f *BaseFlag[T]) Set(value T) error {
 	f.value = &v
 
 	return nil
+}
+
+// SetValidator 设置标志的验证器
+// 参数: validator 验证器接口
+func (f *BaseFlag[T]) SetValidator(validator Validator) {
+	f.validator = validator
 }
 
 // IntFlag 整数类型标志结构体
@@ -96,6 +103,12 @@ type IntFlag struct {
 // Type 返回标志类型
 func (f *IntFlag) Type() FlagType { return FlagTypeInt }
 
+// SetValidator 设置标志的验证器
+// 参数: validator 验证器接口
+func (f *IntFlag) SetValidator(validator Validator) {
+	f.validator = validator
+}
+
 // StringFlag 字符串类型标志结构体
 // 继承BaseFlag[string]泛型结构体,实现Flag接口
 type StringFlag struct {
@@ -104,6 +117,12 @@ type StringFlag struct {
 
 // Type 返回标志类型
 func (f *StringFlag) Type() FlagType { return FlagTypeString }
+
+// SetValidator 设置标志的验证器
+// 参数: validator 验证器接口
+func (f *StringFlag) SetValidator(validator Validator) {
+	f.validator = validator
+}
 
 // BoolFlag 布尔类型标志结构体
 // 继承BaseFlag[bool]泛型结构体,实现Flag接口
@@ -114,6 +133,12 @@ type BoolFlag struct {
 // Type 返回标志类型
 func (f *BoolFlag) Type() FlagType { return FlagTypeBool }
 
+// SetValidator 设置标志的验证器
+// 参数: validator 验证器接口
+func (f *BoolFlag) SetValidator(validator Validator) {
+	f.validator = validator
+}
+
 // FloatFlag 浮点型标志结构体
 // 继承BaseFlag[float64]泛型结构体,实现Flag接口
 type FloatFlag struct {
@@ -123,6 +148,12 @@ type FloatFlag struct {
 // Type 返回标志类型
 func (f *FloatFlag) Type() FlagType { return FlagTypeFloat }
 
+// SetValidator 设置标志的验证器
+// 参数: validator 验证器接口
+func (f *FloatFlag) SetValidator(validator Validator) {
+	f.validator = validator
+}
+
 // DurationFlag 时间间隔类型标志结构体
 // 继承BaseFlag[time.Duration]泛型结构体,实现Flag接口
 type DurationFlag struct {
@@ -131,6 +162,12 @@ type DurationFlag struct {
 
 // Type 返回标志类型
 func (f *DurationFlag) Type() FlagType { return FlagTypeDuration }
+
+// SetValidator 设置标志的验证器
+// 参数: validator 验证器接口
+func (f *DurationFlag) SetValidator(validator Validator) {
+	f.validator = validator
+}
 
 // Set 实现flag.Value接口, 解析并设置时间间隔值
 func (f *DurationFlag) Set(value string) error {
@@ -207,3 +244,9 @@ func (f *EnumFlag) Set(value string) error {
 
 // String 实现flag.Value接口, 返回当前值的字符串表示
 func (f *EnumFlag) String() string { return f.Get() }
+
+// SetValidator 设置标志的验证器
+// 参数: validator 验证器接口
+func (f *EnumFlag) SetValidator(validator Validator) {
+	f.validator = validator
+}
