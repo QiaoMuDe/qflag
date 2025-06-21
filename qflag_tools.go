@@ -80,8 +80,14 @@ func writeUsageLine(cmd *Cmd, tpl HelpTemplate, buf *bytes.Buffer) {
 		usageLine += tpl.UsageSubCmd
 	}
 
-	// 添加用法说明
-	usageLine += tpl.UseageInfo
+	// 收集标志并判断是否有选项
+	flags := collectFlags(cmd)
+	// 根据是否有标志选择不同的用法模板
+	if len(flags) > 0 {
+		usageLine += tpl.UseageInfoWithOptions
+	} else {
+		usageLine += tpl.UseageInfoWithoutOptions
+	}
 
 	buf.WriteString(usageLine)
 }
@@ -91,11 +97,14 @@ func writeUsageLine(cmd *Cmd, tpl HelpTemplate, buf *bytes.Buffer) {
 // tpl: 模板实例
 // buf: 输出缓冲区
 func writeOptions(cmd *Cmd, tpl HelpTemplate, buf *bytes.Buffer) {
-	// 写入选项头
-	buf.WriteString(tpl.OptionsHeader)
-
 	// 获取所有标志信息并排序
 	flags := collectFlags(cmd)
+	// 如果没有标志，不显示选项部分
+	if len(flags) == 0 {
+		return
+	}
+	// 写入选项头
+	buf.WriteString(tpl.OptionsHeader)
 	sortFlags(flags)
 
 	// 计算描述信息对齐位置
