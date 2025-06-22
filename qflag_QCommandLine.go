@@ -21,25 +21,33 @@ type QCommandLineInterface interface {
 	Int(longName, shortName string, defValue int, usage string) *IntFlag                                 // 添加整数类型标志
 	Bool(longName, shortName string, defValue bool, usage string) *BoolFlag                              // 添加布尔类型标志
 	Float(longName, shortName string, defValue float64, usage string) *FloatFlag                         // 添加浮点数类型标志
+	Duration(longName, shortName string, defValue time.Duration, usage string) *DurationFlag             // 添加时间间隔类型标志
 	Enum(longName, shortName string, defValue string, usage string, enumValues []string) *EnumFlag       // 添加枚举类型标志
 	StringVar(f *StringFlag, longName, shortName, defValue, usage string)                                // 绑定字符串标志到指定变量
 	IntVar(f *IntFlag, longName, shortName string, defValue int, usage string)                           // 绑定整数标志到指定变量
 	BoolVar(f *BoolFlag, longName, shortName string, defValue bool, usage string)                        // 绑定布尔标志到指定变量
 	FloatVar(f *FloatFlag, longName, shortName string, defValue float64, usage string)                   // 绑定浮点数标志到指定变量
+	DurationVar(f *DurationFlag, longName, shortName string, defValue time.Duration, usage string)       // 绑定时间间隔类型标志到指定变量
 	EnumVar(f *EnumFlag, longName, shortName string, defValue string, usage string, enumValues []string) // 绑定枚举标志到指定变量
-	Parse() error                                                                                        // 解析命令行参数，自动处理标志和子命令
-	AddSubCmd(subCmd *Cmd)                                                                               // 添加子命令，子命令会继承父命令的上下文
-	Args() []string                                                                                      // 获取所有非标志参数(未绑定到任何标志的参数)
-	Arg(i int) string                                                                                    // 获取指定索引的非标志参数，索引越界返回空字符串
-	NArg() int                                                                                           // 获取非标志参数的数量
-	NFlag() int                                                                                          // 获取已解析的标志数量
-	PrintHelp()                                                                                          // 打印命令帮助信息
-	FlagExists(name string) bool                                                                         // 检查指定名称的标志是否存在(支持长/短名称)
-	Help() string                                                                                        // 获取命令帮助信息
-	SetHelp(help string)                                                                                 // 设置命令帮助信息
-	SetUsage(usage string)                                                                               // 设置命令用法格式
+
+	Parse() error                // 解析命令行参数，自动处理标志和子命令
+	AddSubCmd(subCmd *Cmd)       // 添加子命令，子命令会继承父命令的上下文
+	SubCmds() []*Cmd             // 获取所有已注册的子命令列表
+	Args() []string              // 获取所有非标志参数(未绑定到任何标志的参数)
+	Arg(i int) string            // 获取指定索引的非标志参数，索引越界返回空字符串
+	NArg() int                   // 获取非标志参数的数量
+	NFlag() int                  // 获取已解析的标志数量
+	PrintHelp()                  // 打印命令帮助信息
+	FlagExists(name string) bool // 检查指定名称的标志是否存在(支持长/短名称)
+	Help() string                // 获取命令帮助信息
+	SetHelp(help string)         // 设置命令帮助信息
+	SetUsage(usage string)       // 设置命令用法格式
+	LongName() string            // 获取命令长名称
+	ShortName() string           // 获取命令短名称
+	Description() string         // 获取命令描述信息
 
 	AddNote(note string)           // 添加一个注意事项
+	GetNotes() []string            // 获取所有备注信息
 	GetUseChinese() bool           // 获取是否使用中文帮助信息
 	SetUseChinese(useChinese bool) // 设置是否使用中文帮助信息
 	AddExample(e ExampleInfo)      // 添加一个示例信息
@@ -247,6 +255,31 @@ func PrintHelp() {
 //   - bool: 若存在指定名称的标志，则返回 `true`；否则返回 `false`。
 func FlagExists(name string) bool {
 	return QCommandLine.FlagExists(name)
+}
+
+// LongName 获取命令长名称
+func LongName() string {
+	return QCommandLine.LongName()
+}
+
+// ShortName 获取命令短名称
+func ShortName() string {
+	return QCommandLine.ShortName()
+}
+
+// Description 获取命令描述信息
+func Description() string {
+	return QCommandLine.Description()
+}
+
+// GetNotes 获取所有备注信息
+func GetNotes() []string {
+	return QCommandLine.GetNotes()
+}
+
+// SubCmds 获取所有已注册的子命令列表
+func SubCmds() []*Cmd {
+	return QCommandLine.SubCmds()
 }
 
 // Enum 为全局默认命令定义一个枚举类型的命令行标志。
