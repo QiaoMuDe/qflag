@@ -33,8 +33,11 @@ type QCommandLineInterface interface {
 	Arg(i int) string                                                                                    // 获取指定索引的非标志参数，索引越界返回空字符串
 	NArg() int                                                                                           // 获取非标志参数的数量
 	NFlag() int                                                                                          // 获取已解析的标志数量
-	PrintUsage()                                                                                         // 打印命令使用说明到标准输出
+	PrintHelp()                                                                                          // 打印命令帮助信息
 	FlagExists(name string) bool                                                                         // 检查指定名称的标志是否存在(支持长/短名称)
+	Help() string                                                                                        // 获取命令帮助信息
+	SetHelp(help string)                                                                                 // 设置命令帮助信息
+	SetUsage(usage string)                                                                               // 设置命令用法格式
 
 	AddNote(note string)           // 添加一个注意事项
 	GetUseChinese() bool           // 获取是否使用中文帮助信息
@@ -229,10 +232,10 @@ func NFlag() int {
 	return QCommandLine.NFlag()
 }
 
-// PrintUsage 输出全局默认命令实例 `QCommandLine` 的使用说明信息。
-// 使用说明信息通常包含命令的名称、可用的标志及其描述等内容。
-func PrintUsage() {
-	QCommandLine.PrintUsage()
+// PrintHelp 输出全局默认命令实例 `QCommandLine` 的帮助信息。
+// 帮助信息通常包含命令的名称、可用的标志及其描述等内容。
+func PrintHelp() {
+	QCommandLine.PrintHelp()
 }
 
 // FlagExists 检查全局默认命令实例 `QCommandLine` 中是否存在指定名称的标志。
@@ -339,4 +342,29 @@ func AddExample(e ExampleInfo) {
 //   - []ExampleInfo: 示例信息列表，每个元素为 ExampleInfo 类型。
 func GetExamples() []ExampleInfo {
 	return QCommandLine.GetExamples()
+}
+
+// Help 返回全局默认命令实例 `QCommandLine` 的帮助信息。
+// 返回值:
+//   - string: 命令行帮助信息。
+func Help() string {
+	return QCommandLine.Help()
+}
+
+// SetHelp 配置全局默认命令实例 `QCommandLine` 的帮助信息。
+// 参数:
+//   - help: 新的帮助信息，字符串类型。
+func SetHelp(help string) {
+	QCommandLine.SetHelp(help)
+}
+
+// SetUsage 配置全局默认命令实例 `QCommandLine` 的用法信息。
+// 参数:
+//   - usage: 新的用法信息，字符串类型。
+//
+// 示例:
+//
+//	qflag.SetUsage("Usage: qflag [options]")
+func SetUsage(usage string) {
+	QCommandLine.SetUsage(usage)
 }

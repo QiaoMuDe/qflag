@@ -92,11 +92,11 @@ func TestUsageAndDescription(t *testing.T) {
 	usage := "Custom usage message"
 	desc := "Test description"
 
-	cmd.SetUsage(usage)
+	cmd.SetHelp(usage)
 	cmd.SetDescription(desc)
 
-	if cmd.Usage() != usage {
-		t.Errorf("用法() = %v, 期望 %v", cmd.Usage(), usage)
+	if cmd.Help() != usage {
+		t.Errorf("Help() = %v, 期望 %v", cmd.Help(), usage)
 	}
 	if cmd.Description() != desc {
 		t.Errorf("描述() = %v, 期望 %v", cmd.Description(), desc)
@@ -447,5 +447,53 @@ func TestStringFlagWithoutShort(t *testing.T) {
 
 	if f.Get() != "test-value" {
 		t.Errorf("字符串标志的值为 %q，期望为 %q", f.Get(), "test-value")
+	}
+}
+
+// TestCmd_CustomUsage 测试自定义用法信息功能
+// 验证当设置了自定义用法时，Help()方法是否返回自定义内容，且输出仅在-v模式可见
+func TestCmd_CustomUsage(t *testing.T) {
+	// 创建测试命令
+	cmd := NewCmd("testcmd", "tc", flag.ContinueOnError)
+	customUsage := "testcmd [全局选项] <操作> [参数]\n\n"
+
+	// 设置自定义用法
+	cmd.SetUsage(customUsage)
+
+	// 获取帮助信息
+	helpInfo := cmd.Help()
+
+	// 验证帮助信息是否包含自定义用法
+	if !strings.Contains(helpInfo, customUsage) {
+		t.Errorf("自定义用法测试失败\n期望包含: %q\n实际内容: %q", customUsage, helpInfo)
+	}
+
+	// 使用t.Log输出详细信息，仅在go test -v时可见
+	if testing.Verbose() {
+		t.Logf("自定义用法测试通过\n帮助信息内容:\n%s", helpInfo)
+	}
+}
+
+// TestCmd_DefaultUsage 测试默认用法信息生成
+// 验证未设置自定义用法时，是否能正确生成默认用法
+func TestCmd_DefaultUsage(t *testing.T) {
+	// 创建测试命令
+	cmd := NewCmd("defaultcmd", "dc", flag.ContinueOnError)
+	cmd.SetUseChinese(true)
+
+	// 添加测试标志
+	cmd.String("config", "c", "配置文件路径", "/etc/config.json")
+
+	// 获取默认帮助信息
+	helpInfo := cmd.Help()
+
+	// 验证默认用法格式
+	if !strings.Contains(helpInfo, "defaultcmd [选项]") {
+		t.Errorf("默认用法格式错误\n实际内容: %q", helpInfo)
+	}
+
+	// 验证标志信息是否正确生成
+	if !strings.Contains(helpInfo, "--config") || !strings.Contains(helpInfo, "-c") {
+		t.Errorf("标志信息未正确生成\n实际内容: %q", helpInfo)
 	}
 }

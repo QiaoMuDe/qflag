@@ -442,11 +442,11 @@ func TestCmd_Description(t *testing.T) {
 
 // TestCmd_Usage 测试Cmd的Usage和SetUsage方法
 func TestCmd_Usage(t *testing.T) {
-	cmd := &Cmd{}
+	cmd := NewCmd("test", "t", flag.ContinueOnError)
 	usage := "测试用法"
-	cmd.SetUsage(usage)
-	if cmd.Usage() != usage {
-		t.Errorf("Usage() 返回 %q，期望为 %q", cmd.Usage(), usage)
+	cmd.SetHelp(usage)
+	if cmd.Help() != usage {
+		t.Errorf("Help() 返回 %q，期望为 %q", cmd.Help(), usage)
 	}
 }
 
@@ -707,7 +707,7 @@ func TestPrintUsage(t *testing.T) {
 	cmd1 := NewCmd("test", "t", flag.ExitOnError)
 	cmd1.SetUsage("自定义用法信息")
 	if testing.Verbose() {
-		cmd1.PrintUsage()
+		cmd1.PrintHelp()
 	}
 
 	// 测试自动生成的用法信息
@@ -716,7 +716,7 @@ func TestPrintUsage(t *testing.T) {
 	cmd2.Bool("verbose", "v", false, "详细输出")
 	cmd2.Int("count", "cc", 0, "重复次数")
 	if testing.Verbose() {
-		cmd2.PrintUsage()
+		cmd2.PrintHelp()
 	}
 
 	// 测试带子命令的用法信息
@@ -726,7 +726,7 @@ func TestPrintUsage(t *testing.T) {
 		t.Errorf("添加子命令时出错: %v", err)
 	}
 	if testing.Verbose() {
-		cmd3.PrintUsage()
+		cmd3.PrintHelp()
 	}
 }
 
@@ -843,7 +843,7 @@ func TestNestedCmdHelp(t *testing.T) {
 			// 重定向cmd.PrintUsage()输出到t.Log
 			o := cmd.fs.Output()
 			cmd.fs.SetOutput(&testLogWriter{t: t})
-			cmd.PrintUsage()
+			cmd.PrintHelp()
 			cmd.fs.SetOutput(o)
 		}
 	}
