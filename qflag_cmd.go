@@ -9,32 +9,60 @@ import (
 	"time"
 )
 
+// UserInfo 存储用户自定义信息的嵌套结构体
+type UserInfo struct {
+	// 命令长名称
+	longName string
+	// 命令短名称
+	shortName string
+	// 自定义描述
+	description string
+	// 自定义帮助内容
+	help string
+	// 自定义用法信息
+	usage string
+	// 模块帮助信息
+	moduleHelps string
+	// logo文本
+	logoText string
+	// 备注内容切片
+	notes []string
+	// 示例信息切片
+	examples []ExampleInfo
+	// 是否使用中文帮助信息
+	useChinese bool
+}
+
 // Cmd 命令行标志管理结构体,封装参数解析、长短标志互斥及帮助系统。
 type Cmd struct {
-	/* 内部使用属性*/
-	fs                  *flag.FlagSet // 底层flag集合, 处理参数解析
-	flagRegistry        *FlagRegistry // 标志注册表, 统一管理标志的元数据
-	helpFlag            *BoolFlag     // 帮助标志指针,用于绑定和检查
-	initFlagBound       bool          // 标记内置标志是否已绑定
-	initFlagOnce        sync.Once     // 用于确保内置标志只被绑定一次
-	showInstallPathFlag *BoolFlag     // 安装路径标志指针,用于绑定和检查
-	subCmds             []*Cmd        // 子命令列表, 用于关联子命令
-	parentCmd           *Cmd          // 父命令指针,用于递归调用, 根命令的父命令为nil
-	help                string        // 自定义帮助内容
-	usage               string        // 用户自定义命令用法信息
-	description         string        // 自定义描述,用于帮助信息中显示
-	longName            string        // 命令长名称,用于帮助信息中显示
-	shortName           string        // 命令短名称,用于帮助信息中显示
-	args                []string      // 命令行参数切片
-	addMu               sync.Mutex    // 互斥锁,确保并发安全操作
-	parseOnce           sync.Once     // 用于确保命令只被解析一次
-	setMu               sync.Mutex    // 互斥锁,确保并发安全操作
-	builtinFlagNameMap  sync.Map      // 用于存储内置标志名称的映射
-	useChinese          bool          // 控制是否使用中文帮助信息
-	notes               []string      // 存储备注内容
-	examples            []ExampleInfo // 存储示例信息
-	logoText            string        // 存储logo文本
-	moduleHelps         string        // 存储自定义的模块帮助信息
+	// 底层flag集合, 处理参数解析
+	fs *flag.FlagSet
+	// 标志注册表, 统一管理标志的元数据
+	flagRegistry *FlagRegistry
+	// 帮助标志指针,用于绑定和检查
+	helpFlag *BoolFlag
+	// 标记内置标志是否已绑定
+	initFlagBound bool
+	// 用于确保内置标志只被绑定一次
+	initFlagOnce sync.Once
+	// 用于确保命令只被解析一次
+	parseOnce sync.Once
+	// 安装路径标志指针,用于绑定和检查
+	showInstallPathFlag *BoolFlag
+	// 子命令列表, 用于关联子命令
+	subCmds []*Cmd
+	// 父命令指针,用于递归调用, 根命令的父命令为nil
+	parentCmd *Cmd
+	// 命令行参数切片
+	args []string
+	// 互斥锁,确保并发安全操作
+	addMu sync.Mutex
+	// 互斥锁,确保并发安全操作
+	setMu sync.Mutex
+	// 用于存储内置标志名称的映射
+	builtinFlagNameMap sync.Map
+	// 用户自定义信息
+	userInfo UserInfo
 }
 
 // CmdInterface 命令接口定义，封装命令行程序的核心功能
@@ -90,42 +118,42 @@ type CmdInterface interface {
 func (c *Cmd) SetModuleHelps(moduleHelps string) {
 	c.setMu.Lock()
 	defer c.setMu.Unlock()
-	c.moduleHelps = moduleHelps
+	c.userInfo.moduleHelps = moduleHelps
 }
 
 // GetModuleHelps 获取自定义模块帮助信息
 func (c *Cmd) GetModuleHelps() string {
 	c.setMu.Lock()
 	defer c.setMu.Unlock()
-	return c.moduleHelps
+	return c.userInfo.moduleHelps
 }
 
 // SetLogoText 设置logo文本
 func (c *Cmd) SetLogoText(logoText string) {
 	c.setMu.Lock()
 	defer c.setMu.Unlock()
-	c.logoText = logoText
+	c.userInfo.logoText = logoText
 }
 
 // GetLogoText 获取logo文本
 func (c *Cmd) GetLogoText() string {
 	c.setMu.Lock()
 	defer c.setMu.Unlock()
-	return c.logoText
+	return c.userInfo.logoText
 }
 
 // GetUseChinese 获取是否使用中文帮助信息
 func (c *Cmd) GetUseChinese() bool {
 	c.setMu.Lock()
 	defer c.setMu.Unlock()
-	return c.useChinese
+	return c.userInfo.useChinese
 }
 
 // SetUseChinese 设置是否使用中文帮助信息
 func (c *Cmd) SetUseChinese(useChinese bool) {
 	c.setMu.Lock()
 	defer c.setMu.Unlock()
-	c.useChinese = useChinese
+	c.userInfo.useChinese = useChinese
 }
 
 // GetNotes 获取所有备注信息
@@ -133,31 +161,31 @@ func (c *Cmd) GetNotes() []string {
 	c.setMu.Lock()
 	defer c.setMu.Unlock()
 	// 返回切片副本而非原始引用
-	notes := make([]string, len(c.notes))
-	copy(notes, c.notes)
+	notes := make([]string, len(c.userInfo.notes))
+	copy(notes, c.userInfo.notes)
 	return notes
 }
 
 // LongName 返回命令长名称
-func (c *Cmd) LongName() string { return c.longName }
+func (c *Cmd) LongName() string { return c.userInfo.longName }
 
 // ShortName 返回命令短名称
-func (c *Cmd) ShortName() string { return c.shortName }
+func (c *Cmd) ShortName() string { return c.userInfo.shortName }
 
 // Description 返回命令描述
-func (c *Cmd) Description() string { return c.description }
+func (c *Cmd) Description() string { return c.userInfo.description }
 
 // SetDescription 设置命令描述
 func (c *Cmd) SetDescription(desc string) {
 	c.setMu.Lock()
 	defer c.setMu.Unlock()
-	c.description = desc
+	c.userInfo.description = desc
 }
 
 // Help 返回命令用法
 func (c *Cmd) Help() string {
-	if c.help != "" {
-		return c.help
+	if c.userInfo.help != "" {
+		return c.userInfo.help
 	}
 
 	// 自动生成帮助信息
@@ -168,14 +196,14 @@ func (c *Cmd) Help() string {
 func (c *Cmd) SetUsage(usage string) {
 	c.setMu.Lock()
 	defer c.setMu.Unlock()
-	c.usage = usage
+	c.userInfo.usage = usage
 }
 
 // SetHelp 设置用户自定义命令帮助信息
 func (c *Cmd) SetHelp(help string) {
 	c.setMu.Lock()
 	defer c.setMu.Unlock()
-	c.help = help
+	c.userInfo.help = help
 }
 
 // SubCmds 返回子命令列表
@@ -228,7 +256,7 @@ func (c *Cmd) FlagExists(name string) bool {
 func (c *Cmd) AddNote(note string) {
 	c.setMu.Lock()
 	defer c.setMu.Unlock()
-	c.notes = append(c.notes, note)
+	c.userInfo.notes = append(c.userInfo.notes, note)
 }
 
 // AddExample 为命令添加使用示例
@@ -238,7 +266,7 @@ func (c *Cmd) AddExample(e ExampleInfo) {
 	c.setMu.Lock()
 	defer c.setMu.Unlock()
 	// 添加到使用示例列表中
-	c.examples = append(c.examples, e)
+	c.userInfo.examples = append(c.userInfo.examples, e)
 }
 
 // GetExamples 获取所有使用示例
@@ -246,8 +274,8 @@ func (c *Cmd) AddExample(e ExampleInfo) {
 func (c *Cmd) GetExamples() []ExampleInfo {
 	c.setMu.Lock()
 	defer c.setMu.Unlock()
-	examples := make([]ExampleInfo, len(c.examples))
-	copy(examples, c.examples)
+	examples := make([]ExampleInfo, len(c.userInfo.examples))
+	copy(examples, c.userInfo.examples)
 	return examples
 }
 
@@ -278,7 +306,7 @@ func (c *Cmd) initBuiltinFlags() {
 
 		// 绑定帮助标志
 		helpUsage := "Show help information"
-		if c.useChinese {
+		if c.GetUseChinese() {
 			helpUsage = "显示帮助信息"
 		}
 		c.BoolVar(c.helpFlag, helpFlagName, helpFlagShortName, false, helpUsage)
@@ -290,7 +318,7 @@ func (c *Cmd) initBuiltinFlags() {
 
 		// 绑定显示安装路径标志
 		installPathUsage := "Show install path"
-		if c.useChinese {
+		if c.GetUseChinese() {
 			installPathUsage = "显示安装路径"
 		}
 		c.BoolVar(c.showInstallPathFlag, showInstallPathFlagName, showInstallPathFlagShortName, false, installPathUsage)
@@ -302,7 +330,7 @@ func (c *Cmd) initBuiltinFlags() {
 		c.builtinFlagNameMap.Store(showInstallPathFlagShortName, true)
 
 		// 添加默认的注意事项
-		if c.useChinese {
+		if c.GetUseChinese() {
 			c.AddNote(ChineseTemplate.DefaultNote)
 		} else {
 			c.AddNote(EnglishTemplate.DefaultNote)
@@ -312,20 +340,6 @@ func (c *Cmd) initBuiltinFlags() {
 		c.initFlagBound = true
 	})
 }
-
-// // printHelp 打印帮助内容, 优先显示用户自定义的Usage, 否则自动生成
-// func (c *Cmd) printHelp() {
-// 	// 确保内置标志已初始化
-// 	c.initBuiltinFlags()
-
-// 	// 如果用户自定义了Usage，则直接打印
-// 	if c.help != "" {
-// 		fmt.Println(c.help)
-// 	} else {
-// 		// 自动生成帮助信息
-// 		fmt.Println(generateHelpInfo(c))
-// 	}
-// }
 
 // validateFlag 通用标志验证逻辑
 // 参数:
@@ -396,12 +410,14 @@ func NewCmd(longName string, shortName string, errorHandling flag.ErrorHandling)
 	// 创建新的Cmd实例
 	cmd := &Cmd{
 		fs:                  flag.NewFlagSet(longName, errorHandling), // 创建新的flag集
-		longName:            longName,                                 // 命令长名称, 用于帮助信息中显示
-		shortName:           shortName,                                // 命令短名称, 用于帮助信息中显示
 		args:                []string{},                               // 命令行参数
 		flagRegistry:        flagRegistry,                             // 初始化标志注册表
 		helpFlag:            &BoolFlag{},                              // 初始化帮助标志
 		showInstallPathFlag: &BoolFlag{},                              // 初始化显示安装路径标志
+		userInfo: UserInfo{
+			longName:  longName,  // 命令长名称
+			shortName: shortName, // 命令短名称
+		},
 	}
 
 	return cmd
@@ -431,8 +447,8 @@ func (c *Cmd) AddSubCmd(subCmds ...*Cmd) error {
 	// 使用sync.Map来存储子命令名称, 解决并发安全问题
 	var subCmdNames sync.Map
 	for _, cmd := range c.subCmds {
-		subCmdNames.Store(strings.ToLower(cmd.longName), true)
-		subCmdNames.Store(strings.ToLower(cmd.shortName), true)
+		subCmdNames.Store(strings.ToLower(cmd.LongName()), true)
+		subCmdNames.Store(strings.ToLower(cmd.ShortName()), true)
 	}
 
 	// 创建一个空的切片，用于存储已添加的子命令
@@ -447,17 +463,17 @@ func (c *Cmd) AddSubCmd(subCmds ...*Cmd) error {
 
 		// 检测循环引用
 		if hasCycle(c, cmd) {
-			errors = append(errors, fmt.Errorf("Cyclic reference detected: Command %s already exists in the command chain", cmd.longName))
+			errors = append(errors, fmt.Errorf("Cyclic reference detected: Command %s already exists in the command chain", cmd.LongName()))
 			continue
 		}
 
 		// 检测子命令名称是否已存在（大小写不敏感）
-		if _, loaded := subCmdNames.LoadOrStore(strings.ToLower(cmd.longName), true); loaded {
-			errors = append(errors, fmt.Errorf("Subcommand %s already exists", cmd.longName))
+		if _, loaded := subCmdNames.LoadOrStore(strings.ToLower(cmd.LongName()), true); loaded {
+			errors = append(errors, fmt.Errorf("Subcommand %s already exists", cmd.LongName()))
 			continue
 		}
-		if _, loaded := subCmdNames.LoadOrStore(strings.ToLower(cmd.shortName), true); loaded {
-			errors = append(errors, fmt.Errorf("Subcommand %s already exists", cmd.shortName))
+		if _, loaded := subCmdNames.LoadOrStore(strings.ToLower(cmd.ShortName()), true); loaded {
+			errors = append(errors, fmt.Errorf("Subcommand %s already exists", cmd.ShortName()))
 			continue
 		}
 
@@ -536,7 +552,7 @@ func (c *Cmd) Parse(args []string) (err error) {
 		// 检查是否有子命令
 		if len(c.args) > 0 {
 			for _, subCmd := range c.subCmds {
-				if c.args[0] == subCmd.longName || c.args[0] == subCmd.shortName {
+				if c.args[0] == subCmd.LongName() || c.args[0] == subCmd.ShortName() {
 					// 将剩余参数传递给子命令解析
 					if parseErr := subCmd.Parse(c.args[1:]); parseErr != nil {
 						err = fmt.Errorf("%s: %w", ErrSubCommandParseFailed, parseErr)

@@ -22,13 +22,13 @@ func generateHelpInfo(cmd *Cmd) string {
 	cmd.initBuiltinFlags()
 
 	// 如果用户指定了自定义帮助信息则优先返回
-	if cmd.help != "" {
-		return cmd.help
+	if cmd.userInfo.help != "" {
+		return cmd.userInfo.help
 	}
 
 	// 根据语言选择模板实例
 	var tpl HelpTemplate
-	if cmd.useChinese {
+	if cmd.GetUseChinese() {
 		tpl = ChineseTemplate // 中文模板实例
 	} else {
 		tpl = EnglishTemplate // 英文模板实例
@@ -79,7 +79,7 @@ func writeModuleHelps(cmd *Cmd, buf *bytes.Buffer) {
 // buf: 输出缓冲区
 func writeLogoText(cmd *Cmd, buf *bytes.Buffer) {
 	// 如果配置了Logo文本, 则写入
-	if cmd.logoText != "" {
+	if cmd.userInfo.logoText != "" {
 		buf.WriteString(cmd.GetLogoText() + "\n")
 	}
 }
@@ -91,14 +91,14 @@ func writeLogoText(cmd *Cmd, buf *bytes.Buffer) {
 func writeCommandHeader(cmd *Cmd, tpl HelpTemplate, buf *bytes.Buffer) {
 	// 如果子命令不为空, 则使用带有短名称的模板
 	if cmd.ShortName() != "" {
-		fmt.Fprintf(buf, tpl.CmdNameWithShort, cmd.fs.Name(), cmd.shortName)
+		fmt.Fprintf(buf, tpl.CmdNameWithShort, cmd.LongName(), cmd.ShortName())
 	} else {
-		fmt.Fprintf(buf, tpl.CmdName, cmd.fs.Name())
+		fmt.Fprintf(buf, tpl.CmdName, cmd.LongName())
 	}
 
 	// 如果描述不为空, 则写入描述
-	if cmd.description != "" {
-		fmt.Fprintf(buf, tpl.CmdDescription, cmd.description)
+	if cmd.userInfo.description != "" {
+		fmt.Fprintf(buf, tpl.CmdDescription, cmd.userInfo.description)
 	}
 }
 
@@ -112,8 +112,8 @@ func writeUsageLine(cmd *Cmd, tpl HelpTemplate, buf *bytes.Buffer) {
 	var usageLine string
 
 	// 优先使用用户自定义用法
-	if cmd.usage != "" {
-		usageLine = usageLinePrefix + cmd.usage
+	if cmd.userInfo.usage != "" {
+		usageLine = usageLinePrefix + cmd.userInfo.usage
 	} else {
 		// 获取命令的完整路径
 		fullCmdPath := getFullCommandPath(cmd)
@@ -274,12 +274,12 @@ func writeSubCmds(cmd *Cmd, tpl HelpTemplate, buf *bytes.Buffer) {
 	sort.Slice(sortedSubCmds, func(i, j int) bool {
 		a, b := sortedSubCmds[i], sortedSubCmds[j]
 		return sortWithShortNamePriority(
-			a.shortName != "",
-			b.shortName != "",
-			a.longName,
-			b.longName,
-			a.shortName,
-			b.shortName,
+			a.ShortName() != "",
+			b.ShortName() != "",
+			a.LongName(),
+			b.LongName(),
+			a.ShortName(),
+			b.ShortName(),
 		)
 	})
 
@@ -288,8 +288,8 @@ func writeSubCmds(cmd *Cmd, tpl HelpTemplate, buf *bytes.Buffer) {
 	for _, subCmd := range sortedSubCmds {
 		nameLen := len(subCmd.fs.Name())
 		// 如果子命令有短名称，则计算短名称长度
-		if subCmd.shortName != "" {
-			nameLen += len(subCmd.shortName) + 5 // 添加5个空格, 保持命令对齐
+		if subCmd.ShortName() != "" {
+			nameLen += len(subCmd.ShortName()) + 5 // 添加5个空格, 保持命令对齐
 		}
 		// 更新最大命令名长度
 		if nameLen > maxNameLen {
@@ -300,12 +300,12 @@ func writeSubCmds(cmd *Cmd, tpl HelpTemplate, buf *bytes.Buffer) {
 	// 生成对齐的子命令信息
 	for _, subCmd := range sortedSubCmds {
 		namePart := subCmd.fs.Name()
-		if subCmd.shortName != "" {
-			namePart = fmt.Sprintf("%s, %s", subCmd.fs.Name(), subCmd.shortName)
+		if subCmd.ShortName() != "" {
+			namePart = fmt.Sprintf("%s, %s", subCmd.fs.Name(), subCmd.ShortName())
 		}
 
 		// 格式化输出，确保描述信息对齐
-		fmt.Fprintf(buf, "  %-*s\t%s\n", maxNameLen, namePart, subCmd.description)
+		fmt.Fprintf(buf, "  %-*s\t%s\n", maxNameLen, namePart, subCmd.userInfo.description)
 	}
 }
 

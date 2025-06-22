@@ -416,7 +416,7 @@ func TestHelpFlag(t *testing.T) {
 
 // TestCmd_Name 测试Cmd的Name方法
 func TestCmd_Name(t *testing.T) {
-	cmd := &Cmd{longName: "testcmd"}
+	cmd := NewCmd("testcmd", "t", flag.ContinueOnError)
 	if cmd.LongName() != "testcmd" {
 		t.Errorf("Name() 返回 %q，期望为 %q", cmd.LongName(), "testcmd")
 	}
@@ -424,7 +424,7 @@ func TestCmd_Name(t *testing.T) {
 
 // TestCmd_ShortName 测试Cmd的ShortName方法
 func TestCmd_ShortName(t *testing.T) {
-	cmd := &Cmd{shortName: "tc"}
+	cmd := NewCmd("testcmd", "tc", flag.ContinueOnError)
 	if cmd.ShortName() != "tc" {
 		t.Errorf("ShortName() 返回 %q，期望为 %q", cmd.ShortName(), "tc")
 	}

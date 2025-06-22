@@ -137,24 +137,24 @@ func TestSortWithShortNamePriority(t *testing.T) {
 	sort.Slice(sortedSubCmds, func(i, j int) bool {
 		a, b := sortedSubCmds[i], sortedSubCmds[j]
 		return sortWithShortNamePriority(
-			a.shortName != "",
-			b.shortName != "",
-			a.longName,
-			b.longName,
-			a.shortName,
-			b.shortName,
+			a.ShortName() != "",
+			b.ShortName() != "",
+			a.LongName(),
+			b.LongName(),
+			a.ShortName(),
+			b.ShortName(),
 		)
 	})
 
 	// 验证排序结果: apple(a) -> banana(b) -> cherry
-	if sortedSubCmds[0].longName != "apple" {
-		t.Errorf("排序错误, 第一个子命令应为apple, 实际为%s", sortedSubCmds[0].longName)
+	if sortedSubCmds[0].LongName() != "apple" {
+		t.Errorf("排序错误, 第一个子命令应为apple, 实际为%s", sortedSubCmds[0].LongName())
 	}
-	if sortedSubCmds[1].longName != "banana" {
-		t.Errorf("排序错误, 第二个子命令应为banana, 实际为%s", sortedSubCmds[1].longName)
+	if sortedSubCmds[1].LongName() != "banana" {
+		t.Errorf("排序错误, 第二个子命令应为banana, 实际为%s", sortedSubCmds[1].LongName())
 	}
-	if sortedSubCmds[2].longName != "cherry" {
-		t.Errorf("排序错误, 第三个子命令应为cherry, 实际为%s", sortedSubCmds[2].longName)
+	if sortedSubCmds[2].LongName() != "cherry" {
+		t.Errorf("排序错误, 第三个子命令应为cherry, 实际为%s", sortedSubCmds[2].LongName())
 	}
 }
 
