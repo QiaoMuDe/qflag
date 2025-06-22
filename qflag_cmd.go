@@ -33,6 +33,8 @@ type Cmd struct {
 	useChinese          bool          // 控制是否使用中文帮助信息
 	notes               []string      // 存储备注内容
 	examples            []ExampleInfo // 存储示例信息
+	logoText            string        // 存储logo文本
+	moduleHelps         string        // 存储自定义的模块帮助信息
 }
 
 // CmdInterface 命令接口定义，封装命令行程序的核心功能
@@ -44,30 +46,28 @@ type Cmd struct {
 // cmd.SetDescription("示例应用程序")
 // cmd.String("config", "c", "配置文件路径", "/etc/app.conf")
 type CmdInterface interface {
-	LongName() string                  // 获取命令名称(长名称)，如"app"
-	ShortName() string                 // 获取命令短名称，如"a"
-	Description() string               // 获取命令描述信息
-	SetDescription(desc string)        // 设置命令描述信息，用于帮助输出
-	Help() string                      // 获取自定义帮助信息
-	SetHelp(help string)               // 设置自定义帮助信息，覆盖自动生成内容
-	SetUsage(usage string)             // 设置自定义用法说明，覆盖自动生成内容
-	GetUseChinese() bool               // 获取是否使用中文帮助信息
-	SetUseChinese(useChinese bool)     // 设置是否使用中文帮助信息
-	AddSubCmd(subCmd *Cmd)             // 添加子命令，子命令会继承父命令的上下文
-	SubCmds() []*Cmd                   // 获取所有已注册的子命令列表
-	AddMutexGroup(flags ...Flag) error // 添加互斥组，互斥组内的标志不能同时使用
-	Parse(args []string) error         // 解析命令行参数，自动处理标志和子命令
-	Args() []string                    // 获取所有非标志参数(未绑定到任何标志的参数)
-	Arg(i int) string                  // 获取指定索引的非标志参数，索引越界返回空字符串
-	NArg() int                         // 获取非标志参数的数量
-	NFlag() int                        // 获取已解析的标志数量
-	FlagExists(name string) bool       // 检查指定名称的标志是否存在(支持长/短名称)
-	PrintHelp()                        // 打印命令帮助信息
-	AddNote(note string)               // 添加备注信息
-	GetNotes() []string                // 获取所有备注信息
-	AddExample(e ExampleInfo)          // 添加示例信息
-	GetExamples() []ExampleInfo        // 获取所有示例信息
-
+	LongName() string                                                                                 // 获取命令名称(长名称)，如"app"
+	ShortName() string                                                                                // 获取命令短名称，如"a"
+	Description() string                                                                              // 获取命令描述信息
+	SetDescription(desc string)                                                                       // 设置命令描述信息，用于帮助输出
+	Help() string                                                                                     // 获取自定义帮助信息
+	SetHelp(help string)                                                                              // 设置自定义帮助信息，覆盖自动生成内容
+	SetUsage(usage string)                                                                            // 设置自定义用法说明，覆盖自动生成内容
+	GetUseChinese() bool                                                                              // 获取是否使用中文帮助信息
+	SetUseChinese(useChinese bool)                                                                    // 设置是否使用中文帮助信息
+	AddSubCmd(subCmd *Cmd)                                                                            // 添加子命令，子命令会继承父命令的上下文
+	SubCmds() []*Cmd                                                                                  // 获取所有已注册的子命令列表
+	Parse(args []string) error                                                                        // 解析命令行参数，自动处理标志和子命令
+	Args() []string                                                                                   // 获取所有非标志参数(未绑定到任何标志的参数)
+	Arg(i int) string                                                                                 // 获取指定索引的非标志参数，索引越界返回空字符串
+	NArg() int                                                                                        // 获取非标志参数的数量
+	NFlag() int                                                                                       // 获取已解析的标志数量
+	FlagExists(name string) bool                                                                      // 检查指定名称的标志是否存在(支持长/短名称)
+	PrintHelp()                                                                                       // 打印命令帮助信息
+	AddNote(note string)                                                                              // 添加备注信息
+	GetNotes() []string                                                                               // 获取所有备注信息
+	AddExample(e ExampleInfo)                                                                         // 添加示例信息
+	GetExamples() []ExampleInfo                                                                       // 获取所有示例信息
 	String(longName, shortName, usage, defValue string) *StringFlag                                   // 添加字符串类型标志
 	Int(longName, shortName, usage string, defValue int) *IntFlag                                     // 添加整数类型标志
 	Bool(longName, shortName, usage string, defValue bool) *BoolFlag                                  // 添加布尔类型标志
@@ -80,6 +80,38 @@ type CmdInterface interface {
 	FloatVar(f *FloatFlag, longName, shortName string, defValue float64, usage string)                // 绑定浮点数标志到指定变量
 	DurationVar(f *DurationFlag, longName, shortName string, defValue time.Duration, usage string)    // 绑定时间间隔类型标志到指定变量
 	EnumVar(f *EnumFlag, longName, shortName string, defValue string, usage string, options []string) // 绑定枚举标志到指定变量
+	SetLogoText(logoText string)                                                                      // 设置logo文本
+	GetLogoText() string                                                                              // 获取logo文本
+	SetModuleHelps(moduleHelps string)                                                                // 设置自定义模块帮助信息
+	GetModuleHelps() string                                                                           // 获取自定义模块帮助信息
+}
+
+// SetModuleHelps 设置自定义模块帮助信息
+func (c *Cmd) SetModuleHelps(moduleHelps string) {
+	c.setMu.Lock()
+	defer c.setMu.Unlock()
+	c.moduleHelps = moduleHelps
+}
+
+// GetModuleHelps 获取自定义模块帮助信息
+func (c *Cmd) GetModuleHelps() string {
+	c.setMu.Lock()
+	defer c.setMu.Unlock()
+	return c.moduleHelps
+}
+
+// SetLogoText 设置logo文本
+func (c *Cmd) SetLogoText(logoText string) {
+	c.setMu.Lock()
+	defer c.setMu.Unlock()
+	c.logoText = logoText
+}
+
+// GetLogoText 获取logo文本
+func (c *Cmd) GetLogoText() string {
+	c.setMu.Lock()
+	defer c.setMu.Unlock()
+	return c.logoText
 }
 
 // GetUseChinese 获取是否使用中文帮助信息
@@ -447,7 +479,8 @@ func (c *Cmd) AddSubCmd(subCmds ...*Cmd) error {
 	return nil
 }
 
-// Parse 解析命令行参数, 自动检查长短标志, 并处理帮助标志
+// Parse 解析命令行参数, 自动检查长短标志, 并处理内置标志
+// 如果有子命令则会自动解析子命令的参数
 // 参数:
 //
 //	args: 命令行参数切片

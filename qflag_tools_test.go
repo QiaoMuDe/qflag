@@ -157,3 +157,34 @@ func TestSortWithShortNamePriority(t *testing.T) {
 		t.Errorf("排序错误, 第三个子命令应为cherry, 实际为%s", sortedSubCmds[2].longName)
 	}
 }
+
+// TestSetLogoTextAndModuleHelps 测试设置Logo文本和自定义模块帮助信息
+func TestSetLogoTextAndModuleHelps(t *testing.T) {
+	cmd := NewCmd("test", "t", flag.ContinueOnError)
+	cmd.SetUseChinese(true)
+
+	loggo := `________      ________          ___  __       
+|\  _____\    |\   ____\        |\  \|\  \     
+\ \  \__/     \ \  \___|        \ \  \/  /|_   
+ \ \   __\     \ \  \            \ \   ___  \  
+  \ \  \_|      \ \  \____        \ \  \\ \  \ 
+   \ \__\        \ \_______\       \ \__\\ \__\
+    \|__|         \|_______|        \|__| \|__|
+                FCK CLI Test Logo Text               
+`
+
+	cmd.SetLogoText(loggo)
+
+	cmd.SetModuleHelps("testMode:\n\tThis is a test module helps\t测试")
+
+	helpInfo := generateHelpInfo(cmd)
+	// 如果是-v运行测试，则打印帮助信息
+	if testing.Verbose() {
+		fmt.Println(helpInfo)
+	}
+
+	// 验证Logo文本
+	if !strings.Contains(helpInfo, "Test Logo Text") {
+		t.Errorf("帮助信息未包含Logo文本, 实际输出: %s", helpInfo)
+	}
+}

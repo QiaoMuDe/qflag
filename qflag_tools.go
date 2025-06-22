@@ -40,6 +40,9 @@ func generateHelpInfo(cmd *Cmd) string {
 	// 写入命令名称和描述
 	writeCommandHeader(cmd, tpl, &buf)
 
+	// 写入Logo信息
+	writeLogoText(cmd, &buf)
+
 	// 写入用法说明
 	writeUsageLine(cmd, tpl, &buf)
 
@@ -49,6 +52,9 @@ func generateHelpInfo(cmd *Cmd) string {
 	// 写入子命令信息
 	writeSubCmds(cmd, tpl, &buf)
 
+	// 写入自定义模块帮助信息
+	writeModuleHelps(cmd, &buf)
+
 	// 写入示例信息
 	writeExamples(cmd, tpl, &buf)
 
@@ -56,6 +62,26 @@ func generateHelpInfo(cmd *Cmd) string {
 	writeNotes(cmd, tpl, &buf)
 
 	return buf.String()
+}
+
+// writeModuleHelps 写入自定义模块帮助信息
+// cmd: 当前命令
+// buf: 输出缓冲区
+func writeModuleHelps(cmd *Cmd, buf *bytes.Buffer) {
+	// 如果存在自定义模块帮助信息，则写入
+	if cmd.GetModuleHelps() != "" {
+		buf.WriteString("\n" + cmd.GetModuleHelps() + "\n")
+	}
+}
+
+// writeLogoText 写入Logo信息
+// cmd: 当前命令
+// buf: 输出缓冲区
+func writeLogoText(cmd *Cmd, buf *bytes.Buffer) {
+	// 如果配置了Logo文本, 则写入
+	if cmd.logoText != "" {
+		buf.WriteString(cmd.GetLogoText() + "\n")
+	}
 }
 
 // writeCommandHeader 写入命令名称和描述
