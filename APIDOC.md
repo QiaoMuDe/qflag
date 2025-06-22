@@ -27,8 +27,11 @@ const (
 
 命令行解析相关错误常量，用于标识不同类型的解析和验证错误。
 
-VARIABLES
+## 变量
 
+### ChineseTemplate
+
+```go
 var ChineseTemplate = HelpTemplate{
 	CmdName:               "名称: %s\n\n",
 	UsagePrefix:           "用法: ",
