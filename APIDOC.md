@@ -514,7 +514,7 @@ func StringVar(f *StringFlag, longName, shortName, defValue, usage string)
 - `defValue`: 标志的默认值，当命令行未指定该标志时使用。
 - `usage`: 标志的帮助说明信息，用于在显示帮助信息时展示给用户。
 
-## TYPES
+## 类型
 
 ### BaseFlag 结构体
 
