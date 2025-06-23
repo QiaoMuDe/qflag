@@ -5,6 +5,7 @@ import (
 	"flag"
 	"os"
 	"testing"
+	"time"
 )
 
 // TestStringFlagLong 测试字符串类型长标志的注册和解析
@@ -783,6 +784,10 @@ func TestNestedCmdHelp(t *testing.T) {
 	cmd3.Bool("verbose", "", false, "详细输出模式")
 	cmd3.SetUseChinese(true)
 	cmd2.SetUseChinese(true)
+	cmd3.String("output", "o", "", "输出文件路径")
+	cmd3.Float("timeout", "t", 5.0, "超时时间")
+	cmd3.Duration("duration", "d", 10*time.Second, "持续时间")
+	cmd3.Enum("format", "f", "json", "输出格式", []string{"json", "xml", "yaml"})
 
 	cmd4 := NewCmd("ssssssscmd4", "ccccc4", flag.ExitOnError)
 	cmd4.SetDescription("四级命令描述")

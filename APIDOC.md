@@ -488,9 +488,11 @@ func SetUsage(usage string)
 ```go
 func SetUseChinese(useChinese bool)
 ```
+
 设置全局默认命令实例 `QCommandLine` 是否使用中文显示。
 
 **参数:**
+
 - `useChinese`: 布尔值，`true` 启用中文显示，`false` 使用英文显示。
 
 ### ShortName
@@ -498,9 +500,11 @@ func SetUseChinese(useChinese bool)
 ```go
 func ShortName() string
 ```
+
 获取全局默认命令实例 `QCommandLine` 的短名称。
 
 **返回值:**
+
 - `string`: 命令的短名称字符串。
 
 ### StringVar
@@ -508,9 +512,11 @@ func ShortName() string
 ```go
 func StringVar(f *StringFlag, longName, shortName, defValue, usage string)
 ```
+
 将字符串类型的命令行标志绑定到全局默认命令实例 `QCommandLine` 中。
 
 **参数:**
+
 - `f`: 指向 `StringFlag` 类型的指针，用于存储和管理字符串类型命令行标志的相关信息。
 - `longName`: 标志的长名称，在命令行中以 `--longName` 的形式使用。
 - `shortName`: 标志的短名称，在命令行中以 `-shortName` 的形式使用。
@@ -609,14 +615,14 @@ Bool 为全局默认命令创建一个布尔类型的命令行标志。该函数
 
 参数说明：
 
-  * `name` ：标志的长名称，在命令行中以 `--name` 的形式使用。
-  * `shortName` ：标志的短名称，在命令行中以 `-shortName` 的形式使用。
-  * `defValue` ：标志的默认值，当命令行未指定该标志时使用。
-  * `usage` ：标志的帮助说明信息，用于在显示帮助信息时展示。
+* `name` ：标志的长名称，在命令行中以 `--name` 的形式使用。
+* `shortName` ：标志的短名称，在命令行中以 `-shortName` 的形式使用。
+* `defValue` ：标志的默认值，当命令行未指定该标志时使用。
+* `usage` ：标志的帮助说明信息，用于在显示帮助信息时展示。
 
 返回值：
 
-  * `*BoolFlag` ：指向新创建的布尔标志对象的指针。
+* `*BoolFlag` ：指向新创建的布尔标志对象的指针。
 
 ```go
 func (f *BoolFlag) SetValidator(validator Validator)
@@ -1201,7 +1207,6 @@ const (
     FlagTypeString                       // 字符串类型
     FlagTypeBool                         // 布尔类型
     FlagTypeFloat                        // 浮点数类型
-    FlagTypeSlice                        // 切片类型
     FlagTypeEnum                         // 枚举类型
     FlagTypeDuration                     // 时间间隔类型
 )
@@ -1402,5 +1407,7 @@ type Validator interface {
 ```
 
 Validator 验证器接口，所有自定义验证器需实现此接口。
+
 ```
 
+```
