@@ -436,8 +436,8 @@ func TestCmd_Description(t *testing.T) {
 	cmd := &Cmd{}
 	desc := "测试描述"
 	cmd.SetDescription(desc)
-	if cmd.Description() != desc {
-		t.Errorf("Description() 返回 %q，期望为 %q", cmd.Description(), desc)
+	if cmd.GetDescription() != desc {
+		t.Errorf("Description() 返回 %q，期望为 %q", cmd.GetDescription(), desc)
 	}
 }
 
@@ -446,8 +446,8 @@ func TestCmd_Usage(t *testing.T) {
 	cmd := NewCmd("test", "t", flag.ContinueOnError)
 	usage := "测试用法"
 	cmd.SetHelp(usage)
-	if cmd.Help() != usage {
-		t.Errorf("Help() 返回 %q，期望为 %q", cmd.Help(), usage)
+	if cmd.GetHelp() != usage {
+		t.Errorf("GetHelp() 返回 %q，期望为 %q", cmd.GetHelp(), usage)
 	}
 }
 
@@ -706,7 +706,7 @@ func TestBindHelpFlag(t *testing.T) {
 func TestPrintUsage(t *testing.T) {
 	// 测试自定义用法信息
 	cmd1 := NewCmd("test", "t", flag.ExitOnError)
-	cmd1.SetUsage("自定义用法信息")
+	cmd1.SetUsageSyntax("自定义用法信息")
 	if testing.Verbose() {
 		cmd1.PrintHelp()
 	}

@@ -19,10 +19,10 @@ type UserInfo struct {
 	version string
 	// 自定义描述
 	description string
-	// 自定义帮助内容
+	// 自定义的完整命令行帮助信息
 	help string
-	// 自定义用法信息
-	usage string
+	// 自定义用法格式说明
+	usageSyntax string
 	// 模块帮助信息
 	moduleHelps string
 	// logo文本
@@ -80,11 +80,12 @@ type Cmd struct {
 type CmdInterface interface {
 	LongName() string                                                                                 // 获取命令名称(长名称)，如"app"
 	ShortName() string                                                                                // 获取命令短名称，如"a"
-	Description() string                                                                              // 获取命令描述信息
+	GetDescription() string                                                                           // 获取命令描述信息
 	SetDescription(desc string)                                                                       // 设置命令描述信息，用于帮助输出
-	Help() string                                                                                     // 获取自定义帮助信息
+	GetHelp() string                                                                                  // 获取自定义帮助信息
 	SetHelp(help string)                                                                              // 设置自定义帮助信息，覆盖自动生成内容
-	SetUsage(usage string)                                                                            // 设置自定义用法说明，覆盖自动生成内容
+	SetUsageSyntax(usageSyntax string)                                                                // 设置自定义用法说明，覆盖自动生成内容
+	GetUsageSyntax() string                                                                           // 获取自定义用法说明
 	GetUseChinese() bool                                                                              // 获取是否使用中文帮助信息
 	SetUseChinese(useChinese bool)                                                                    // 设置是否使用中文帮助信息
 	AddSubCmd(subCmd *Cmd)                                                                            // 添加子命令，子命令会继承父命令的上下文
@@ -193,8 +194,8 @@ func (c *Cmd) LongName() string { return c.userInfo.longName }
 // ShortName 返回命令短名称
 func (c *Cmd) ShortName() string { return c.userInfo.shortName }
 
-// Description 返回命令描述
-func (c *Cmd) Description() string { return c.userInfo.description }
+// GetDescription 返回命令描述
+func (c *Cmd) GetDescription() string { return c.userInfo.description }
 
 // SetDescription 设置命令描述
 func (c *Cmd) SetDescription(desc string) {
@@ -203,8 +204,8 @@ func (c *Cmd) SetDescription(desc string) {
 	c.userInfo.description = desc
 }
 
-// Help 返回命令用法
-func (c *Cmd) Help() string {
+// GetHelp 返回命令用法帮助信息
+func (c *Cmd) GetHelp() string {
 	if c.userInfo.help != "" {
 		return c.userInfo.help
 	}
@@ -213,11 +214,18 @@ func (c *Cmd) Help() string {
 	return generateHelpInfo(c)
 }
 
-// SetUsage 设置自定义命令用法
-func (c *Cmd) SetUsage(usage string) {
+// SetUsageSyntax 设置自定义命令用法
+func (c *Cmd) SetUsageSyntax(usageSyntax string) {
 	c.setMu.Lock()
 	defer c.setMu.Unlock()
-	c.userInfo.usage = usage
+	c.userInfo.usageSyntax = usageSyntax
+}
+
+// GetUsageSyntax 获取自定义命令用法
+func (c *Cmd) GetUsageSyntax() string {
+	c.setMu.Lock()
+	defer c.setMu.Unlock()
+	return c.userInfo.usageSyntax
 }
 
 // SetHelp 设置用户自定义命令帮助信息

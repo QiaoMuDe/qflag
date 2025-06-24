@@ -176,7 +176,7 @@ func TestCommandAndFlagRegistration(t *testing.T) {
 		cmd.String("aconfig", "", "Config file path", "/etc/app.conf")
 
 		// 验证帮助信息生成
-		help := cmd.Help()
+		help := cmd.GetHelp()
 		if !strings.Contains(help, "longcmd") {
 			t.Error("Command long name not found in help")
 		}
@@ -197,7 +197,7 @@ func TestCommandAndFlagRegistration(t *testing.T) {
 		cmd.String("", "c", "Config file path", "/etc/app.conf")
 
 		// 验证帮助信息生成
-		help := cmd.Help()
+		help := cmd.GetHelp()
 		if !strings.Contains(help, "-c") {
 			t.Error("Command short name not found in help")
 		}
@@ -217,7 +217,7 @@ func TestCommandAndFlagRegistration(t *testing.T) {
 		cmd.String("", "v", "Verbose mode", "false")
 
 		// 验证帮助信息生成
-		help := cmd.Help()
+		help := cmd.GetHelp()
 
 		// 检查命令名称显示
 		if !strings.Contains(help, "mixed, m") {

@@ -7,6 +7,7 @@ import (
 	"path/filepath"
 	"sort"
 	"strings"
+	"time"
 )
 
 // generateHelpInfo 生成命令帮助信息
@@ -117,8 +118,8 @@ func writeUsageLine(cmd *Cmd, tpl HelpTemplate, buf *bytes.Buffer) {
 	var usageLine string
 
 	// 优先使用用户自定义用法
-	if cmd.userInfo.usage != "" {
-		usageLine = usageLinePrefix + cmd.userInfo.usage
+	if cmd.userInfo.usageSyntax != "" {
+		usageLine = usageLinePrefix + cmd.userInfo.usageSyntax
 	} else {
 		// 获取命令的完整路径
 		fullCmdPath := getFullCommandPath(cmd)
@@ -207,13 +208,25 @@ func collectFlags(cmd *Cmd) []FlagInfo {
 
 	// 遍历所有标志, 收集标志信息
 	for _, f := range cmd.flagRegistry.allFlags {
-		flag := f
+		flag := f // 获取标志类型
+
+		// 收集默认值
+		defValue := fmt.Sprintf("%v", flag.GetDefault())
+
+		// 对Duration类型进行特殊格式化
+		if flag.GetFlagType() == FlagTypeDuration {
+			if duration, ok := flag.GetDefault().(time.Duration); ok {
+				defValue = duration.String() // 获取时间间隔标志的默认值的字符串表示
+			}
+		}
+
+		// 创建标志元数据
 		flags = append(flags, FlagInfo{
-			longFlag:  flag.GetLongName(),
-			shortFlag: flag.GetShortName(),
-			usage:     flag.GetUsage(),
-			defValue:  fmt.Sprintf("%v", flag.GetDefault()),
-			typeStr:   flagTypeToString(flag.GetFlagType()),
+			longFlag:  flag.GetLongName(),                   // 长标志名
+			shortFlag: flag.GetShortName(),                  // 短标志
+			usage:     flag.GetUsage(),                      // 使用说明
+			defValue:  defValue,                             // 默认值
+			typeStr:   flagTypeToString(flag.GetFlagType()), // 标志类型字符串
 		})
 	}
 
@@ -342,12 +355,15 @@ func calculateMaxWidth(flags []FlagInfo) (int, error) {
 	maxWidth := 0
 	for _, flag := range flags {
 		var nameLength int
-		if flag.shortFlag != "" {
-			// 格式: "--longFlag, -shortFlag <type>"
+		if flag.longFlag != "" && flag.shortFlag != "" {
+			// 同时有长短选项: --longFlag, -shortFlag <type>
 			nameLength = len(flag.longFlag) + len(flag.shortFlag) + len(flag.typeStr) + 8 // 2('--') + 1(' ') + 2('<type>') + 2(', ') + 1('-')
-		} else {
-			// 格式: "--longFlag <type>"
+		} else if flag.longFlag != "" {
+			// 只有长选项: --longFlag <type>
 			nameLength = len(flag.longFlag) + len(flag.typeStr) + 5 // 2('--') + 1(' ') + 2('<type>')
+		} else {
+			// 只有短选项: -shortFlag <type>
+			nameLength = len(flag.shortFlag) + len(flag.typeStr) + 4 // 1('-') + 1(' ') + 2('<type>')
 		}
 
 		// 如果名称长度大于最大宽度，则更新最大宽度

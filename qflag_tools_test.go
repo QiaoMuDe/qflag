@@ -6,6 +6,7 @@ import (
 	"sort"
 	"strings"
 	"testing"
+	"time"
 )
 
 // TestGenerateHelpInfo_BasicCommand 测试基本命令的帮助信息生成
@@ -163,6 +164,7 @@ func TestSetLogoTextAndModuleHelps(t *testing.T) {
 	cmd := NewCmd("test", "t", flag.ContinueOnError)
 	cmd.SetUseChinese(true)
 	cmd.SetVersion("1.0.0")
+	cmd.Duration("timeout", "t", time.Second*5, "超时时间")
 
 	loggo := `________      ________          ___  __       
 |\  _____\    |\   ____\        |\  \|\  \     

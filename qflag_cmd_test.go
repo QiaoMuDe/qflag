@@ -95,11 +95,11 @@ func TestUsageAndDescription(t *testing.T) {
 	cmd.SetHelp(usage)
 	cmd.SetDescription(desc)
 
-	if cmd.Help() != usage {
-		t.Errorf("Help() = %v, 期望 %v", cmd.Help(), usage)
+	if cmd.GetHelp() != usage {
+		t.Errorf("GetHelp() = %v, 期望 %v", cmd.GetHelp(), usage)
 	}
-	if cmd.Description() != desc {
-		t.Errorf("描述() = %v, 期望 %v", cmd.Description(), desc)
+	if cmd.GetDescription() != desc {
+		t.Errorf("描述() = %v, 期望 %v", cmd.GetDescription(), desc)
 	}
 }
 
@@ -458,10 +458,10 @@ func TestCmd_CustomUsage(t *testing.T) {
 	customUsage := "testcmd [全局选项] <操作> [参数]\n\n"
 
 	// 设置自定义用法
-	cmd.SetUsage(customUsage)
+	cmd.SetUsageSyntax(customUsage)
 
 	// 获取帮助信息
-	helpInfo := cmd.Help()
+	helpInfo := cmd.GetHelp()
 
 	// 验证帮助信息是否包含自定义用法
 	if !strings.Contains(helpInfo, customUsage) {
@@ -485,7 +485,7 @@ func TestCmd_DefaultUsage(t *testing.T) {
 	cmd.String("config", "c", "配置文件路径", "/etc/config.json")
 
 	// 获取默认帮助信息
-	helpInfo := cmd.Help()
+	helpInfo := cmd.GetHelp()
 
 	// 验证默认用法格式
 	if !strings.Contains(helpInfo, "defaultcmd [选项]") {

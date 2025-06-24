@@ -15,11 +15,12 @@ var QCommandLine *Cmd
 type QCommandLineInterface interface {
 	LongName() string                                                                                    // 获取命令长名称
 	ShortName() string                                                                                   // 获取命令短名称
-	Description() string                                                                                 // 获取命令描述信息
+	GetDescription() string                                                                              // 获取命令描述信息
 	SetDescription(desc string)                                                                          // 设置命令描述信息
-	Help() string                                                                                        // 获取命令帮助信息
+	GetHelp() string                                                                                     // 获取命令帮助信息
 	SetHelp(help string)                                                                                 // 设置命令帮助信息
-	SetUsage(usage string)                                                                               // 设置命令用法格式
+	SetUsageSyntax(usageSyntax string)                                                                   // 设置命令用法格式
+	GetUsageSyntax() string                                                                              // 获取命令用法格式
 	GetUseChinese() bool                                                                                 // 获取是否使用中文帮助信息
 	SetUseChinese(useChinese bool)                                                                       // 设置是否使用中文帮助信息
 	AddSubCmd(subCmd *Cmd)                                                                               // 添加子命令，子命令会继承父命令的上下文
@@ -310,9 +311,9 @@ func ShortName() string {
 	return QCommandLine.ShortName()
 }
 
-// Description 获取命令描述信息
-func Description() string {
-	return QCommandLine.Description()
+// GetDescription 获取命令描述信息
+func GetDescription() string {
+	return QCommandLine.GetDescription()
 }
 
 // SetDescription 设置命令描述信息
@@ -426,11 +427,11 @@ func GetExamples() []ExampleInfo {
 	return QCommandLine.GetExamples()
 }
 
-// Help 返回全局默认命令实例 `QCommandLine` 的帮助信息。
+// GetHelp 返回全局默认命令实例 `QCommandLine` 的帮助信息。
 // 返回值:
 //   - string: 命令行帮助信息。
-func Help() string {
-	return QCommandLine.Help()
+func GetHelp() string {
+	return QCommandLine.GetHelp()
 }
 
 // SetHelp 配置全局默认命令实例 `QCommandLine` 的帮助信息。
@@ -440,15 +441,22 @@ func SetHelp(help string) {
 	QCommandLine.SetHelp(help)
 }
 
-// SetUsage 配置全局默认命令实例 `QCommandLine` 的用法信息。
+// SetUsageSyntax 配置全局默认命令实例 `QCommandLine` 的用法信息。
 // 参数:
 //   - usage: 新的用法信息，字符串类型。
 //
 // 示例:
 //
-//	qflag.SetUsage("Usage: qflag [options]")
-func SetUsage(usage string) {
-	QCommandLine.SetUsage(usage)
+//	qflag.SetUsageSyntax("Usage: qflag [options]")
+func SetUsageSyntax(usageSyntax string) {
+	QCommandLine.SetUsageSyntax(usageSyntax)
+}
+
+// GetUsageSyntax 获取全局默认命令实例 `QCommandLine` 的用法信息。
+// 返回值:
+//   - string: 命令行用法信息。
+func GetUsageSyntax() string {
+	return QCommandLine.GetUsageSyntax()
 }
 
 // SetLogoText 配置全局默认命令实例 `QCommandLine` 的 logo 文本。
