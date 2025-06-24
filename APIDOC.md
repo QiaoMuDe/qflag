@@ -1375,11 +1375,12 @@ Type 返回标志类型。
 
 ```go
 type TypedFlag[T any] interface {
-    Flag // 继承标志接口
-    GetDefault() T // 获取标志的具体类型默认值
-    Get() T // 获取标志的具体类型值
-    Set(T) error // 设置标志的具体类型值
-    SetValidator(Validator) // 设置标志的验证器
+    Flag                     // 继承标志接口
+    GetDefault() T           // 获取标志的具体类型默认值
+    Get() T                  // 获取标志的具体类型值
+    GetPointer() *T          // 获取标志的具体类型值指针
+    Set(T) error             // 设置标志的具体类型值
+    SetValidator(Validator)  // 设置标志的验证器
 }
 ```
 

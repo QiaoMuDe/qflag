@@ -6,10 +6,10 @@ import (
 	"testing"
 )
 
-// positiveIntValidator 验证整数是否为正数（首字母小写，非导出）
+// positiveIntValidator 验证整数是否为正数（首字母小写, 非导出）
 type positiveIntValidator struct{}
 
-// Validate 实现Validator接口，检查值是否为正数
+// Validate 实现Validator接口, 检查值是否为正数
 func (v *positiveIntValidator) Validate(value any) error {
 	val, ok := value.(int)
 	if !ok {
@@ -21,12 +21,12 @@ func (v *positiveIntValidator) Validate(value any) error {
 	return nil
 }
 
-// stringLengthValidator 验证字符串长度是否在指定范围内（首字母小写，非导出）
+// stringLengthValidator 验证字符串长度是否在指定范围内（首字母小写, 非导出）
 type stringLengthValidator struct {
 	min, max int
 }
 
-// Validate 实现Validator接口，检查字符串长度
+// Validate 实现Validator接口, 检查字符串长度
 func (v *stringLengthValidator) Validate(value any) error {
 	val, ok := value.(string)
 	if !ok {
@@ -93,5 +93,73 @@ func TestStringFlag_Validator(t *testing.T) {
 	longStr := "thisisaverylongstring"
 	if err := flag.Set(longStr); err == nil {
 		t.Error("expected error for too long string, got nil")
+	}
+}
+
+// TestBaseFlag_GetPointer 验证GetPointer()方法的基本功能和指针访问有效性
+func TestBaseFlag_GetPointer(t *testing.T) {
+	// 1. 测试整数类型标志的指针行为
+	intFlag := &IntFlag{
+		BaseFlag: BaseFlag[int]{
+			defValue: 10,
+			value:    nil,
+		},
+	}
+
+	// 未设置值时指针应为nil
+	if ptr := intFlag.GetPointer(); ptr != nil {
+		t.Error("IntFlag未设置值时, GetPointer()应返回nil")
+	}
+
+	// 设置值后验证指针有效性
+	if err := intFlag.Set(20); err != nil {
+		t.Fatalf("设置IntFlag值失败: %v", err)
+	}
+
+	ptr := intFlag.GetPointer()
+	if ptr == nil {
+		t.Fatal("IntFlag设置值后, GetPointer()不应返回nil")
+	}
+
+	if *ptr != 20 {
+		t.Errorf("IntFlag指针值错误, 期望20, 实际%d", *ptr)
+	}
+
+	// 通过指针修改值并验证
+	*ptr = 30
+	if intFlag.Get() != 30 {
+		t.Errorf("通过指针修改值失败, 期望30, 实际%d", intFlag.Get())
+	}
+
+	// 2. 测试字符串类型标志的指针行为
+	strFlag := &StringFlag{
+		BaseFlag: BaseFlag[string]{
+			defValue: "default",
+		},
+	}
+
+	if err := strFlag.Set("test"); err != nil {
+		t.Fatalf("设置StringFlag值失败: %v", err)
+	}
+
+	*strFlag.GetPointer() = "modified"
+	if strFlag.Get() != "modified" {
+		t.Errorf("StringFlag指针修改失败, 期望'modified', 实际'%s'", strFlag.Get())
+	}
+
+	// 3. 测试默认值场景（值未显式设置时）
+	defaultFlag := &BoolFlag{
+		BaseFlag: BaseFlag[bool]{
+			defValue: true,
+			value:    nil,
+		},
+	}
+
+	// 未设置值时指针应为nil, Get()应返回默认值
+	if ptr := defaultFlag.GetPointer(); ptr != nil {
+		t.Error("BoolFlag未设置值时, GetPointer()应返回nil")
+	}
+	if defaultFlag.Get() != true {
+		t.Error("BoolFlag未设置值时, Get()应返回默认值true")
 	}
 }
