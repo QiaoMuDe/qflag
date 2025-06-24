@@ -15,6 +15,8 @@ type UserInfo struct {
 	longName string
 	// 命令短名称
 	shortName string
+	// 版本信息
+	version string
 	// 自定义描述
 	description string
 	// 自定义帮助内容
@@ -39,16 +41,12 @@ type Cmd struct {
 	fs *flag.FlagSet
 	// 标志注册表, 统一管理标志的元数据
 	flagRegistry *FlagRegistry
-	// 帮助标志指针,用于绑定和检查
-	helpFlag *BoolFlag
 	// 标记内置标志是否已绑定
 	initFlagBound bool
 	// 用于确保内置标志只被绑定一次
 	initFlagOnce sync.Once
 	// 用于确保命令只被解析一次
 	parseOnce sync.Once
-	// 安装路径标志指针,用于绑定和检查
-	showInstallPathFlag *BoolFlag
 	// 子命令列表, 用于关联子命令
 	subCmds []*Cmd
 	// 父命令指针,用于递归调用, 根命令的父命令为nil
@@ -63,6 +61,12 @@ type Cmd struct {
 	builtinFlagNameMap sync.Map
 	// 用户自定义信息
 	userInfo UserInfo
+	// 帮助标志指针,用于绑定和检查
+	helpFlag *BoolFlag
+	// 安装路径标志指针,用于绑定和检查
+	showInstallPathFlag *BoolFlag
+	// 版本标志指针,用于绑定和检查
+	versionFlag *BoolFlag
 }
 
 // CmdInterface 命令接口定义，封装命令行程序的核心功能
@@ -86,6 +90,7 @@ type CmdInterface interface {
 	AddSubCmd(subCmd *Cmd)                                                                            // 添加子命令，子命令会继承父命令的上下文
 	SubCmds() []*Cmd                                                                                  // 获取所有已注册的子命令列表
 	Parse(args []string) error                                                                        // 解析命令行参数，自动处理标志和子命令
+	ParseFlagsOnly(args []string) (err error)                                                         // 仅解析标志参数，不处理子命令
 	Args() []string                                                                                   // 获取所有非标志参数(未绑定到任何标志的参数)
 	Arg(i int) string                                                                                 // 获取指定索引的非标志参数，索引越界返回空字符串
 	NArg() int                                                                                        // 获取非标志参数的数量
@@ -96,6 +101,8 @@ type CmdInterface interface {
 	GetNotes() []string                                                                               // 获取所有备注信息
 	AddExample(e ExampleInfo)                                                                         // 添加示例信息
 	GetExamples() []ExampleInfo                                                                       // 获取所有示例信息
+	SetVersion(version string)                                                                        // 设置版本信息
+	GetVersion() string                                                                               // 获取版本信息
 	String(longName, shortName, usage, defValue string) *StringFlag                                   // 添加字符串类型标志
 	Int(longName, shortName, usage string, defValue int) *IntFlag                                     // 添加整数类型标志
 	Bool(longName, shortName, usage string, defValue bool) *BoolFlag                                  // 添加布尔类型标志
@@ -112,6 +119,20 @@ type CmdInterface interface {
 	GetLogoText() string                                                                              // 获取logo文本
 	SetModuleHelps(moduleHelps string)                                                                // 设置自定义模块帮助信息
 	GetModuleHelps() string                                                                           // 获取自定义模块帮助信息
+}
+
+// SetVersion 设置版本信息
+func (c *Cmd) SetVersion(version string) {
+	c.setMu.Lock()
+	defer c.setMu.Unlock()
+	c.userInfo.version = version
+}
+
+// GetVersion 获取版本信息
+func (c *Cmd) GetVersion() string {
+	c.setMu.Lock()
+	defer c.setMu.Unlock()
+	return c.userInfo.version
 }
 
 // SetModuleHelps 设置自定义模块帮助信息
@@ -311,22 +332,50 @@ func (c *Cmd) initBuiltinFlags() {
 		}
 		c.BoolVar(c.helpFlag, helpFlagName, helpFlagShortName, false, helpUsage)
 
-		// 绑定显示安装路径标志
-		if c.showInstallPathFlag == nil {
-			c.showInstallPathFlag = &BoolFlag{}
-		}
-
-		// 绑定显示安装路径标志
-		installPathUsage := "Show the installation path of the program"
-		if c.GetUseChinese() {
-			installPathUsage = "显示程序的安装路径"
-		}
-		c.BoolVar(c.showInstallPathFlag, showInstallPathFlagName, "", false, installPathUsage)
-
 		// 添加内置标志到检测映射
 		c.builtinFlagNameMap.Store(helpFlagName, true)
 		c.builtinFlagNameMap.Store(helpFlagShortName, true)
-		c.builtinFlagNameMap.Store(showInstallPathFlagName, true)
+
+		// 只有在根命令上绑定显示程序安装路径标志
+		if c.parentCmd == nil {
+			// 初始化显示安装路径标志
+			if c.showInstallPathFlag == nil {
+				c.showInstallPathFlag = &BoolFlag{}
+			}
+
+			// 定义显示安装路径标志提示
+			installPathUsage := "Show the installation path of the program"
+			if c.GetUseChinese() {
+				installPathUsage = "显示程序的安装路径"
+			}
+
+			// 绑定显示安装路径标志
+			c.BoolVar(c.showInstallPathFlag, showInstallPathFlagName, "", false, installPathUsage)
+
+			// 添加内置标志到检测映射
+			c.builtinFlagNameMap.Store(showInstallPathFlagName, true)
+
+			// 绑定版本信息标志
+			if c.versionFlag == nil {
+				c.versionFlag = &BoolFlag{}
+			}
+
+			// 只有在设置了版本信息时才绑定版本信息标志
+			if c.GetVersion() != "" {
+				// 定义版本标志提示
+				versionUsage := "Show the version of the program"
+				if c.GetUseChinese() {
+					versionUsage = "显示程序的版本信息"
+				}
+
+				// 绑定版本信息标志
+				c.BoolVar(c.versionFlag, versionFlagLongName, versionFlagShortName, false, versionUsage)
+
+				// 添加内置标志到检测映射
+				c.builtinFlagNameMap.Store(versionFlagLongName, true)
+				c.builtinFlagNameMap.Store(versionFlagShortName, true)
+			}
+		}
 
 		// 添加默认的注意事项
 		if c.GetUseChinese() {
@@ -421,6 +470,7 @@ func NewCmd(longName string, shortName string, errorHandling flag.ErrorHandling)
 		flagRegistry:        flagRegistry,                             // 初始化标志注册表
 		helpFlag:            &BoolFlag{},                              // 初始化帮助标志
 		showInstallPathFlag: &BoolFlag{},                              // 初始化显示安装路径标志
+		versionFlag:         &BoolFlag{},                              // 初始化版本信息标志
 		userInfo: UserInfo{
 			longName:  longName,  // 命令长名称
 			shortName: shortName, // 命令短名称
@@ -502,14 +552,144 @@ func (c *Cmd) AddSubCmd(subCmds ...*Cmd) error {
 	return nil
 }
 
-// Parse 解析命令行参数, 自动检查长短标志, 并处理内置标志
-// 如果有子命令则会自动解析子命令的参数
-// 参数:
+// Parse 完整解析命令行参数（含子命令处理）
+// 主要功能：
+//  1. 解析当前命令的长短标志及内置标志
+//  2. 自动检测并解析子命令及其参数（若存在）
+//  3. 验证枚举类型标志的有效性
 //
-//	args: 命令行参数切片
+// 参数：
 //
-// 注意: 该方法保证每个Cmd实例只会解析一次
+//	args: 原始命令行参数切片（包含可能的子命令及参数）
+//
+// 返回值：
+//
+//	解析过程中遇到的错误（如标志格式错误、子命令解析失败等）
+//
+// 注意事项：
+//   - 每个Cmd实例仅会被解析一次（线程安全）
+//   - 若检测到子命令，会将剩余参数传递给子命令的Parse方法
+//   - 处理内置标志执行逻辑
 func (c *Cmd) Parse(args []string) (err error) {
+	defer func() {
+		// 添加panic捕获
+		if r := recover(); r != nil {
+			// 使用预定义的恐慌错误常量
+			err = fmt.Errorf("%s: %v", ErrPanicRecovered, r)
+		}
+	}()
+
+	// 如果命令为空，则返回错误
+	if c == nil {
+		return fmt.Errorf("cmd cannot be nil")
+	}
+
+	// 确保只解析一次
+	c.parseOnce.Do(func() {
+		// 初始化内置标志
+		c.initBuiltinFlags()
+
+		// 设置使用说明
+		c.fs.Usage = func() {
+			c.PrintHelp()
+		}
+
+		// 调用flag库解析参数
+		if parseErr := c.fs.Parse(args); parseErr != nil {
+			err = fmt.Errorf("%s: %w", ErrFlagParseFailed, parseErr)
+			return
+		}
+
+		// 检查是否使用-h/--help标志
+		if c.helpFlag.Get() {
+			c.PrintHelp()
+			if c.fs.ErrorHandling() != flag.ContinueOnError {
+				// 只有在ExitOnError或PanicOnError时才退出
+				os.Exit(0)
+			}
+			return
+		}
+
+		// 只有在顶级命令中处理-sip/--show-install-path和-v/--version标志
+		if c.parentCmd == nil {
+			// 检查是否使用-sip/--show-install-path标志
+			if c.showInstallPathFlag.Get() {
+				fmt.Println(GetExecutablePath())
+				if c.fs.ErrorHandling() != flag.ContinueOnError {
+					// 只有在ExitOnError或PanicOnError时才退出
+					os.Exit(0)
+				}
+				return
+			}
+
+			// 检查是否使用-v/--version标志
+			if c.versionFlag.Get() {
+				fmt.Println(c.GetVersion())
+				if c.fs.ErrorHandling() != flag.ContinueOnError {
+					// 只有在ExitOnError或PanicOnError时才退出
+					os.Exit(0)
+				}
+				return
+			}
+		}
+
+		// 设置非标志参数
+		c.args = append(c.args, c.fs.Args()...)
+
+		// 检查是否有子命令
+		if len(c.args) > 0 {
+			for _, subCmd := range c.subCmds {
+				if c.args[0] == subCmd.LongName() || c.args[0] == subCmd.ShortName() {
+					// 将剩余参数传递给子命令解析
+					if parseErr := subCmd.Parse(c.args[1:]); parseErr != nil {
+						err = fmt.Errorf("%s: %w", ErrSubCommandParseFailed, parseErr)
+					}
+					return
+				}
+			}
+		}
+
+		// 检查枚举类型标志是否有效
+		for _, meta := range c.flagRegistry.GetAllFlags() {
+			if meta.GetFlagType() == FlagTypeEnum {
+				if enumFlag, ok := meta.flag.(*EnumFlag); ok {
+					// 调用IsCheck方法进行验证
+					if checkErr := enumFlag.IsCheck(enumFlag.Get()); checkErr != nil {
+						// 如果验证失败，则返回错误信息，错误信息： 无效的枚举值, 可选值: [a, b, c]
+						err = checkErr
+					}
+				}
+			}
+		}
+	})
+
+	// 检查是否报错
+	if err != nil {
+		return err
+	}
+
+	return nil
+}
+
+// ParseFlagsOnly 仅解析当前命令的标志参数（忽略子命令）
+// 主要功能：
+//  1. 解析当前命令的长短标志及内置标志
+//  2. 验证枚举类型标志的有效性
+//  3. 明确忽略所有子命令及后续参数
+//
+// 参数：
+//
+//	args: 原始命令行参数切片（子命令及后续参数会被忽略）
+//
+// 返回值：
+//
+//	解析过程中遇到的错误（如标志格式错误等）
+//
+// 注意事项：
+//   - 每个Cmd实例仅会被解析一次（线程安全）
+//   - 不会处理任何子命令，所有参数均视为当前命令的标志或位置参数
+//   - 处理内置标志逻辑
+func (c *Cmd) ParseFlagsOnly(args []string) (err error) {
 	defer func() {
 		// 添加panic捕获
 		if r := recover(); r != nil {
@@ -536,38 +716,39 @@ func (c *Cmd) Parse(args []string) (err error) {
 
 		// 检查是否使用-h/--help标志
 		if c.helpFlag.Get() {
+			c.PrintHelp()
 			if c.fs.ErrorHandling() != flag.ContinueOnError {
-				c.PrintHelp() // 只有在ExitOnError或PanicOnError时才打印使用说明
+				// 只有在ExitOnError或PanicOnError时才退出
 				os.Exit(0)
 			}
 			return
 		}
 
-		// 检查是否使用-sip/--show-install-path标志
-		if c.showInstallPathFlag.Get() {
-			if c.fs.ErrorHandling() != flag.ContinueOnError {
-				// 只有在ExitOnError或PanicOnError时才打印安装路径
+		// 只有在顶级命令中处理-sip/--show-install-path和-v/--version标志
+		if c.parentCmd == nil {
+			// 检查是否使用-sip/--show-install-path标志
+			if c.showInstallPathFlag.Get() {
 				fmt.Println(GetExecutablePath())
-				os.Exit(0)
+				if c.fs.ErrorHandling() != flag.ContinueOnError {
+					// 只有在ExitOnError或PanicOnError时才退出
+					os.Exit(0)
+				}
+				return
 			}
-			return
+
+			// 检查是否使用-v/--version标志
+			if c.versionFlag.Get() {
+				fmt.Println(c.GetVersion())
+				if c.fs.ErrorHandling() != flag.ContinueOnError {
+					// 只有在ExitOnError或PanicOnError时才退出
+					os.Exit(0)
+				}
+				return
+			}
 		}
 
 		// 设置非标志参数
 		c.args = append(c.args, c.fs.Args()...)
-
-		// 检查是否有子命令
-		if len(c.args) > 0 {
-			for _, subCmd := range c.subCmds {
-				if c.args[0] == subCmd.LongName() || c.args[0] == subCmd.ShortName() {
-					// 将剩余参数传递给子命令解析
-					if parseErr := subCmd.Parse(c.args[1:]); parseErr != nil {
-						err = fmt.Errorf("%s: %w", ErrSubCommandParseFailed, parseErr)
-					}
-					return
-				}
-			}
-		}
 
 		// 检查枚举类型标志是否有效
 		for _, meta := range c.flagRegistry.GetAllFlags() {

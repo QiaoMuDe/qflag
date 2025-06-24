@@ -162,6 +162,7 @@ func TestSortWithShortNamePriority(t *testing.T) {
 func TestSetLogoTextAndModuleHelps(t *testing.T) {
 	cmd := NewCmd("test", "t", flag.ContinueOnError)
 	cmd.SetUseChinese(true)
+	cmd.SetVersion("1.0.0")
 
 	loggo := `________      ________          ___  __       
 |\  _____\    |\   ____\        |\  \|\  \     

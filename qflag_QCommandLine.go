@@ -4,15 +4,11 @@ import (
 	"flag"
 	"os"
 	"path/filepath"
-	"sync"
 	"time"
 )
 
 // QCommandLine 全局默认Cmd实例
 var QCommandLine *Cmd
-
-// parseOnce 保证Parse函数只会执行一次
-var parseOnce sync.Once
 
 // QCommandLineInterface 定义了全局默认命令行接口，提供统一的命令行参数管理功能
 // 该接口封装了命令行程序的常用操作，包括标志添加、参数解析和帮助信息展示
@@ -29,6 +25,7 @@ type QCommandLineInterface interface {
 	AddSubCmd(subCmd *Cmd)                                                                               // 添加子命令，子命令会继承父命令的上下文
 	SubCmds() []*Cmd                                                                                     // 获取所有已注册的子命令列表
 	Parse() error                                                                                        // 解析命令行参数，自动处理标志和子命令
+	ParseFlagsOnly(args []string) (err error)                                                            // 解析命令行参数，仅处理标志，不处理子命令
 	Args() []string                                                                                      // 获取所有非标志参数(未绑定到任何标志的参数)
 	Arg(i int) string                                                                                    // 获取指定索引的非标志参数，索引越界返回空字符串
 	NArg() int                                                                                           // 获取非标志参数的数量
@@ -39,6 +36,8 @@ type QCommandLineInterface interface {
 	GetNotes() []string                                                                                  // 获取所有备注信息
 	AddExample(e ExampleInfo)                                                                            // 添加一个示例信息
 	GetExamples() []ExampleInfo                                                                          // 获取示例信息列表
+	SetVersion(version string)                                                                           // 设置版本信息
+	GetVersion() string                                                                                  // 获取版本信息
 	String(longName, shortName, defValue, usage string) *StringFlag                                      // 添加字符串类型标志
 	Int(longName, shortName string, defValue int, usage string) *IntFlag                                 // 添加整数类型标志
 	Bool(longName, shortName string, defValue bool, usage string) *BoolFlag                              // 添加布尔类型标志
@@ -69,6 +68,20 @@ func init() {
 		shortName := string(longName[0]) // 获取第一个字符作为短名称
 		QCommandLine = NewCmd(longName, shortName, flag.ExitOnError)
 	}
+}
+
+// SetVersion 为全局默认命令设置版本信息
+// 参数说明：
+//   - version: 版本信息字符串，用于标识命令的版本。
+func SetVersion(version string) {
+	QCommandLine.SetVersion(version)
+}
+
+// GetVersion 获取全局默认命令的版本信息
+// 返回值：
+//   - string: 版本信息字符串。
+func GetVersion() string {
+	return QCommandLine.GetVersion()
 }
 
 // String 为全局默认命令创建一个字符串类型的命令行标志。
@@ -181,20 +194,48 @@ func FloatVar(f *FloatFlag, longName, shortName string, defValue float64, usage 
 	QCommandLine.FloatVar(f, longName, shortName, defValue, usage)
 }
 
-// Parse 解析命令行参数, 自动检查长短标志, 并处理内置标志(全局实例)
-// 如果有子命令则会自动解析子命令的参数
-// 参数:
+// Parse 完整解析命令行参数（含子命令处理）
+// 主要功能：
+//  1. 解析当前命令的长短标志及内置标志
+//  2. 自动检测并解析子命令及其参数（若存在）
+//  3. 验证枚举类型标志的有效性
 //
-//	args: 命令行参数切片
+// 参数：
 //
-// 注意: 该方法保证每个Cmd实例只会解析一次
+//	args: 原始命令行参数切片（包含可能的子命令及参数）
+//
+// 返回值：
+//
+//	解析过程中遇到的错误（如标志格式错误、子命令解析失败等）
+//
+// 注意事项：
+//   - 每个Cmd实例仅会被解析一次（线程安全）
+//   - 若检测到子命令，会将剩余参数传递给子命令的Parse方法
+//   - 处理内置标志执行逻辑
 func Parse() error {
-	var err error
-	parseOnce.Do(func() {
-		// 解析命令行参数
-		err = QCommandLine.Parse(os.Args[1:])
-	})
-	return err
+	return QCommandLine.Parse(os.Args[1:])
+}
+
+// ParseFlagsOnly 仅解析当前命令的标志参数（忽略子命令）
+// 主要功能：
+//  1. 解析当前命令的长短标志及内置标志
+//  2. 验证枚举类型标志的有效性
+//  3. 明确忽略所有子命令及后续参数
+//
+// 参数：
+//
+//	args: 原始命令行参数切片（子命令及后续参数会被忽略）
+//
+// 返回值：
+//
+//	解析过程中遇到的错误（如标志格式错误等）
+//
+// 注意事项：
+//   - 每个Cmd实例仅会被解析一次（线程安全）
+//   - 不会处理任何子命令，所有参数均视为当前命令的标志或位置参数
+//   - 处理内置标志逻辑
+func ParseFlagsOnly() (err error) {
+	return QCommandLine.ParseFlagsOnly(os.Args[1:])
 }
 
 // AddSubCmd 向全局默认命令实例 `QCommandLine` 添加一个或多个子命令。

@@ -497,3 +497,237 @@ func TestCmd_DefaultUsage(t *testing.T) {
 		t.Errorf("标志信息未正确生成\n实际内容: %q", helpInfo)
 	}
 }
+
+// TestParseVsParseFlagsOnly 测试解析函数是否正确处理子命令
+func TestParseVsParseFlagsOnly(t *testing.T) {
+	// 测试场景1: Parse函数应正确处理子命令
+	t.Run("Parse处理子命令", func(t *testing.T) {
+		// 创建独立的命令结构
+		parent := NewCmd("parent", "p", flag.ContinueOnError)
+		child := NewCmd("child", "c", flag.ContinueOnError)
+		ct := child.String("child-flag", "cf", "", "子命令标志")
+
+		if err := parent.AddSubCmd(child); err != nil {
+			t.Fatalf("添加子命令失败: %v", err)
+		}
+
+		// 执行解析
+		args := []string{"child", "--child-flag", "value"}
+		if err := parent.Parse(args); err != nil {
+			t.Fatalf("Parse解析失败: %v", err)
+		}
+
+		// 验证子命令参数
+		if len(child.Args()) > 0 {
+			t.Error("子命令参数未被正确解析")
+		}
+
+		// 验证子命令标志是否被正确解析
+		flagValue := ct.Get()
+		if flagValue != "value" {
+			t.Errorf("子命令标志值错误, 期望 'value', 实际 %q", flagValue)
+		}
+	})
+
+	// 测试场景2: ParseFlagsOnly函数应忽略子命令
+	t.Run("ParseFlagsOnly忽略子命令", func(t *testing.T) {
+		// 创建独立的命令结构
+		parent := NewCmd("parent", "p", flag.ContinueOnError)
+		child := NewCmd("child", "c", flag.ContinueOnError)
+		ct := child.String("child-flag", "cf", "", "子命令标志")
+
+		if err := parent.AddSubCmd(child); err != nil {
+			t.Fatalf("添加子命令失败: %v", err)
+		}
+
+		// 执行解析
+		args := []string{"child", "--child-flag", "value"}
+		if err := parent.ParseFlagsOnly(args); err != nil {
+			t.Fatalf("ParseFlagsOnly解析失败: %v", err)
+		}
+
+		// 验证子命令未被处理
+		if len(child.Args()) > 0 {
+			t.Errorf("ParseFlagsOnly不应处理子命令, 但接收到参数: %v", child.Args())
+		}
+
+		// 验证子命令标志未被设置
+		flagValue := ct.Get()
+		if flagValue != "" {
+			t.Errorf("ParseFlagsOnly不应解析子命令标志, 实际值: %q", flagValue)
+		}
+	})
+}
+
+// // TestBuiltinFlags 测试内置标志-v/--version和-sip/--show-install-path的功能
+// func TestBuiltinFlags(t *testing.T) {
+// 	// 测试根命令的--version和-v标志
+// 	t.Run("root command version flags", func(t *testing.T) {
+// 		// 创建带有版本信息的根命令
+// 		rootCmd := NewCmd("test", "t", flag.ContinueOnError)
+// 		rootCmd.SetVersion("1.0.0")
+
+// 		// 测试--version标志
+// 		args := []string{"--version"}
+// 		if err := rootCmd.Parse(args); err != nil {
+// 			t.Fatalf("解析--version标志失败: %v", err)
+// 		}
+// 		if !rootCmd.versionFlag.Get() {
+// 			t.Error("--version标志未被正确设置")
+// 		}
+
+// 		// 重置命令并测试-v短标志
+// 		rootCmd = NewCmd("test", "t", flag.ContinueOnError)
+// 		rootCmd.SetVersion("1.0.0")
+// 		args = []string{"-v"}
+// 		if err := rootCmd.Parse(args); err != nil {
+// 			t.Fatalf("解析-v标志失败: %v", err)
+// 		}
+// 		if !rootCmd.versionFlag.Get() {
+// 			t.Error("-v标志未被正确设置")
+// 		}
+// 	})
+
+// 	// 测试根命令的--show-install-path和-sip标志
+// 	t.Run("root command install path flags", func(t *testing.T) {
+// 		// 创建根命令
+// 		rootCmd := NewCmd("test", "t", flag.ContinueOnError)
+
+// 		// 重置命令并测试-sip短标志
+// 		rootCmd = NewCmd("test", "t", flag.ContinueOnError)
+// 		args := []string{"-sip"}
+// 		if err := rootCmd.Parse(args); err != nil {
+// 			t.Fatalf("解析-sip标志失败: %v", err)
+// 		}
+// 		if !rootCmd.showInstallPathFlag.Get() {
+// 			t.Error("-sip标志未被正确设置")
+// 		}
+// 	})
+
+// 	// 测试ParseFlagsOnly也能正确处理这些标志
+// 	t.Run("ParseFlagsOnly handles builtin flags", func(t *testing.T) {
+// 		rootCmd := NewCmd("test", "t", flag.ContinueOnError)
+// 		rootCmd.SetVersion("1.0.0")
+
+// 		args := []string{"-v", "-sip"}
+// 		if err := rootCmd.ParseFlagsOnly(args); err != nil {
+// 			t.Fatalf("ParseFlagsOnly解析标志失败: %v", err)
+// 		}
+// 		if !rootCmd.versionFlag.Get() {
+// 			t.Error("ParseFlagsOnly未正确设置versionFlag")
+// 		}
+// 		if !rootCmd.showInstallPathFlag.Get() {
+// 			t.Error("ParseFlagsOnly未正确设置showInstallPathFlag")
+// 		}
+// 	})
+// }
+
+func TestBuiltinFlags(t *testing.T) {
+	// 捕获标准输出和标准错误输出
+	var stdout, stderr bytes.Buffer
+	oldStdout := os.Stdout
+	oldStderr := os.Stderr
+	// 由于 os.Stdout 类型为 *os.File，不能直接赋值 *bytes.Buffer，使用 os.NewFile 无法实现，这里通过自定义输出流重定向的方式
+	// 创建一个管道
+	r, w, err := os.Pipe()
+	if err != nil {
+		t.Fatalf("创建管道失败: %v", err)
+	}
+	os.Stdout = w
+
+	// 启动一个 goroutine 将管道中的数据写入 stdout
+	go func() {
+		_, copyErr := io.Copy(&stdout, r)
+		if copyErr != nil {
+			t.Logf("从管道复制数据到 stdout 缓冲区失败: %v", copyErr)
+		}
+		r.Close()
+	}()
+	// 由于 os.Stderr 类型为 *os.File，不能直接赋值 *bytes.Buffer，使用与处理 stdout 相同的管道方式重定向
+	rErr, wErr, err := os.Pipe()
+	if err != nil {
+		t.Fatalf("创建标准错误输出管道失败: %v", err)
+	}
+	os.Stderr = wErr
+
+	// 启动一个 goroutine 将管道中的数据写入 stderr
+	go func() {
+		_, err := io.Copy(&stderr, rErr)
+		if err != nil {
+			t.Logf("从标准错误输出管道复制数据到 stderr 缓冲区失败: %v", err)
+		}
+		rErr.Close()
+	}()
+
+	defer func() {
+		// 恢复标准输出和标准错误输出
+		os.Stdout = oldStdout
+		os.Stderr = oldStderr
+
+		// 如果testing.Verbose()为true，则打印捕获的内容
+		if testing.Verbose() {
+			t.Logf("stdout: \n%s", stdout.String())
+			t.Logf("stderr: \n%s", stderr.String())
+		}
+	}()
+
+	// 测试根命令的--version和-v标志
+	t.Run("root command version flags", func(t *testing.T) {
+		// 创建带有版本信息的根命令
+		rootCmd := NewCmd("test", "t", flag.ContinueOnError)
+		rootCmd.SetVersion("1.0.0")
+
+		// 测试--version标志
+		args := []string{"--version"}
+		if err := rootCmd.Parse(args); err != nil {
+			t.Fatalf("解析--version标志失败: %v", err)
+		}
+		if !rootCmd.versionFlag.Get() {
+			t.Error("--version标志未被正确设置")
+		}
+
+		// 重置命令并测试-v短标志
+		rootCmd = NewCmd("test", "t", flag.ContinueOnError)
+		rootCmd.SetVersion("1.0.0")
+		args = []string{"-v"}
+		if err := rootCmd.Parse(args); err != nil {
+			t.Fatalf("解析-v标志失败: %v", err)
+		}
+		if !rootCmd.versionFlag.Get() {
+			t.Error("-v标志未被正确设置")
+		}
+	})
+
+	// 测试根命令的--show-install-path和-sip标志
+	t.Run("root command install path flags", func(t *testing.T) {
+		// 创建根命令
+		rootCmd := NewCmd("test", "t", flag.ContinueOnError)
+
+		// 重置命令并测试-sip短标志
+		rootCmd = NewCmd("test", "t", flag.ContinueOnError)
+		args := []string{"-sip"}
+		if err := rootCmd.Parse(args); err != nil {
+			t.Fatalf("解析-sip标志失败: %v", err)
+		}
+		if !rootCmd.showInstallPathFlag.Get() {
+			t.Error("-sip标志未被正确设置")
+		}
+	})
+
+	// 测试ParseFlagsOnly也能正确处理这些标志
+	t.Run("ParseFlagsOnly handles builtin flags", func(t *testing.T) {
+		rootCmd := NewCmd("test", "t", flag.ContinueOnError)
+		rootCmd.SetVersion("1.0.0")
+
+		args := []string{"-v", "-sip"}
+		if err := rootCmd.ParseFlagsOnly(args); err != nil {
+			t.Fatalf("ParseFlagsOnly解析标志失败: %v", err)
+		}
+		if !rootCmd.versionFlag.Get() {
+			t.Error("ParseFlagsOnly未正确设置versionFlag")
+		}
+		if !rootCmd.showInstallPathFlag.Get() {
+			t.Error("ParseFlagsOnly未正确设置showInstallPathFlag")
+		}
+	})
+}
