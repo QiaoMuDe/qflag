@@ -90,7 +90,7 @@ var EnglishTemplate = HelpTemplate{
 	NoteItem:              "  %d. %s\n",                                                                                                                          // 注意事项模板
 	DefaultNote:           "In the case where both long options and short options are used at the same time,\n the option specified last shall take precedence.", // 默认注意事项
 	ExamplesHeader:        "\nExamples:\n",                                                                                                                       // 示例信息头部模板
-	ExampleItem:           "  %d. %s\n    %s\n",                                                                                                                  // 序号、描述、用法
+	ExampleItem:           "  %d. %s\n     %s\n",                                                                                                                 // 序号、描述、用法
 }
 
 // 中文模板实例
@@ -113,5 +113,5 @@ var ChineseTemplate = HelpTemplate{
 	NoteItem:              "  %d、%s\n",                   //注意事项模板
 	DefaultNote:           "当长选项和短选项同时使用时，最后指定的选项将优先生效。", //默认注意事项
 	ExamplesHeader:        "\n示例:\n",                     // 示例信息头部模板
-	ExampleItem:           "  %d、%s\n    %s\n",           // 序号、描述、用法
+	ExampleItem:           "  %d、%s\n     %s\n",          // 序号、描述、用法
 }
