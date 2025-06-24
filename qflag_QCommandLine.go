@@ -94,6 +94,8 @@ func GetVersion() string {
 //
 // 返回值：
 //   - *StringFlag: 指向新创建的字符串标志对象的指针。
+//
+// 注意: 短标志可以为空
 func String(longName, shortName, defValue, usage string) *StringFlag {
 	return QCommandLine.String(longName, shortName, defValue, usage)
 }
@@ -108,6 +110,8 @@ func String(longName, shortName, defValue, usage string) *StringFlag {
 //
 // 返回值：
 //   - *IntFlag: 指向新创建的整数标志对象的指针。
+//
+// 注意: 短标志可以为空
 func Int(longName, shortName string, defValue int, usage string) *IntFlag {
 	return QCommandLine.Int(longName, shortName, defValue, usage)
 }
@@ -122,6 +126,8 @@ func Int(longName, shortName string, defValue int, usage string) *IntFlag {
 //
 // 返回值：
 //   - *BoolFlag: 指向新创建的布尔标志对象的指针。
+//
+// 注意: 短标志可以为空
 func Bool(longName, shortName string, defValue bool, usage string) *BoolFlag {
 	return QCommandLine.Bool(longName, shortName, defValue, usage)
 }
@@ -136,6 +142,8 @@ func Bool(longName, shortName string, defValue bool, usage string) *BoolFlag {
 //
 // 返回值：
 //   - *FloatFlag: 指向新创建的浮点数标志对象的指针。
+//
+// 注意: 短标志可以为空
 func Float(longName, shortName string, defValue float64, usage string) *FloatFlag {
 	return QCommandLine.Float(longName, shortName, defValue, usage)
 }
@@ -149,6 +157,8 @@ func Float(longName, shortName string, defValue float64, usage string) *FloatFla
 // - shortName: 命令行标志的短名称，在命令行中需以 `-shortName` 的格式使用。
 // - defValue: 该命令行标志的默认值，当用户在命令行中未指定该标志时，会使用此默认值。
 // - usage: 该命令行标志的帮助说明信息，会在显示帮助信息时展示给用户，用于解释该标志的用途。
+//
+// 注意: 短标志可以为空
 func StringVar(f *StringFlag, longName, shortName, defValue, usage string) {
 	QCommandLine.StringVar(f, longName, shortName, defValue, usage)
 }
@@ -164,6 +174,8 @@ func StringVar(f *StringFlag, longName, shortName, defValue, usage string) {
 //   - shortName: 命令行标志的短名称，在命令行中使用时需遵循 `-shortName` 的格式。
 //   - defValue: 该命令行标志的默认值。当用户在命令行中未指定该标志时，会采用此默认值。
 //   - usage: 该命令行标志的帮助说明信息，在显示帮助信息时会呈现给用户，用以解释该标志的具体用途。
+//
+// 注意: 短标志可以为空
 func IntVar(f *IntFlag, longName, shortName string, defValue int, usage string) {
 	QCommandLine.IntVar(f, longName, shortName, defValue, usage)
 }
@@ -177,6 +189,8 @@ func IntVar(f *IntFlag, longName, shortName string, defValue int, usage string) 
 // - shortName: 标志的短名称，在命令行中以 `-shortName` 的形式使用。
 // - defValue: 标志的默认值，当命令行未指定该标志时，会使用此默认值。
 // - usage: 标志的帮助说明信息，用于在显示帮助信息时展示给用户，解释该标志的用途。
+//
+// 注意: 短标志可以为空
 func BoolVar(f *BoolFlag, longName, shortName string, defValue bool, usage string) {
 	QCommandLine.BoolVar(f, longName, shortName, defValue, usage)
 }
@@ -190,6 +204,8 @@ func BoolVar(f *BoolFlag, longName, shortName string, defValue bool, usage strin
 // - shortName: 命令行标志的短名称，在命令行中需以 `-shortName` 的格式使用。
 // - defValue: 该命令行标志的默认值，当用户在命令行中未指定该标志时，会使用此默认值。
 // - usage: 该命令行标志的帮助说明信息，会在显示帮助信息时展示给用户，用于解释该标志的用途。
+//
+// 注意: 短标志可以为空
 func FloatVar(f *FloatFlag, longName, shortName string, defValue float64, usage string) {
 	QCommandLine.FloatVar(f, longName, shortName, defValue, usage)
 }
@@ -341,6 +357,8 @@ func SubCmds() []*Cmd {
 //
 // 返回值：
 // - *EnumFlag: 指向新创建的枚举类型标志对象的指针。
+//
+// 注意: 短标志可以为空
 func Enum(longName, shortName string, defValue string, usage string, enumValues []string) *EnumFlag {
 	return QCommandLine.Enum(longName, shortName, defValue, usage, enumValues)
 }
@@ -355,6 +373,8 @@ func Enum(longName, shortName string, defValue string, usage string, enumValues 
 //   - defValue: 该命令行标志的默认值。当用户在命令行中未指定该标志时，会采用此默认值。该值会被复制一份，避免外部修改影响内部状态。
 //   - usage: 该命令行标志的帮助说明信息，在显示帮助信息时会呈现给用户，用以解释该标志的具体用途。
 //   - enumValues: 枚举值的集合，用于指定标志可接受的取值范围。
+//
+// 注意: 短标志可以为空
 func EnumVar(f *EnumFlag, longName, shortName string, defValue string, usage string, enumValues []string) {
 	QCommandLine.EnumVar(f, longName, shortName, defValue, usage, enumValues)
 }
@@ -368,6 +388,9 @@ func EnumVar(f *EnumFlag, longName, shortName string, defValue string, usage str
 //   - usage: 该命令行标志的帮助说明信息，在显示帮助信息时会呈现给用户，用以解释该标志的具体用途。
 //
 // 返回值：
+//   - *DurationFlag: 指向新创建的时间间隔类型标志对象的指针。
+//
+// 注意: 短标志可以为空
 func Duration(longName, shortName string, defValue time.Duration, usage string) *DurationFlag {
 	return QCommandLine.Duration(longName, shortName, defValue, usage)
 }
@@ -381,6 +404,8 @@ func Duration(longName, shortName string, defValue time.Duration, usage string) 
 //   - shortName: 命令行标志的短名称，在命令行中使用时需遵循 `-shortName` 的格式。
 //   - defValue: 该命令行标志的默认值。当用户在命令行中未指定该标志时，会采用此默认值。该值会被复制一份，避免外部修改影响内部状态。
 //   - usage: 该命令行标志的帮助说明信息，在显示帮助信息时会呈现给用户，用以解释该标志的具体用途。
+//
+// 注意: 短标志可以为空
 func DurationVar(f *DurationFlag, longName, shortName string, defValue time.Duration, usage string) {
 	QCommandLine.DurationVar(f, longName, shortName, defValue, usage)
 }
