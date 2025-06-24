@@ -25,7 +25,7 @@ type QCommandLineInterface interface {
 	AddSubCmd(subCmd *Cmd)                                                                               // 添加子命令，子命令会继承父命令的上下文
 	SubCmds() []*Cmd                                                                                     // 获取所有已注册的子命令列表
 	Parse() error                                                                                        // 解析命令行参数，自动处理标志和子命令
-	ParseFlagsOnly(args []string) (err error)                                                            // 解析命令行参数，仅处理标志，不处理子命令
+	ParseFlagsOnly() error                                                                               // 解析命令行参数，仅处理标志，不处理子命令
 	Args() []string                                                                                      // 获取所有非标志参数(未绑定到任何标志的参数)
 	Arg(i int) string                                                                                    // 获取指定索引的非标志参数，索引越界返回空字符串
 	NArg() int                                                                                           // 获取非标志参数的数量
@@ -234,7 +234,7 @@ func Parse() error {
 //   - 每个Cmd实例仅会被解析一次（线程安全）
 //   - 不会处理任何子命令，所有参数均视为当前命令的标志或位置参数
 //   - 处理内置标志逻辑
-func ParseFlagsOnly() (err error) {
+func ParseFlagsOnly() error {
 	return QCommandLine.ParseFlagsOnly(os.Args[1:])
 }
 
