@@ -733,10 +733,10 @@ func TestPrintUsage(t *testing.T) {
 
 // TestHasCycle 测试检测循环引用
 func TestHasCycle(t *testing.T) {
-	cmd1 := NewCmd("cmd1", "c1", flag.ExitOnError)
-	cmd2 := NewCmd("cmd2", "c2", flag.ExitOnError)
+	cmd1 := NewCmd("cmd1", "", flag.ExitOnError)
+	cmd2 := NewCmd("", "c2", flag.ExitOnError)
 	cmd3 := NewCmd("cmd3", "c3", flag.ExitOnError)
-	cmd4 := NewCmd("cmd4", "c4", flag.ExitOnError)
+	cmd4 := NewCmd("", "c4", flag.ExitOnError)
 
 	// 无循环情况
 	if hasCycle(cmd1, cmd2) {
@@ -771,11 +771,11 @@ func TestHasCycle(t *testing.T) {
 // TestNestedCmdHelp 测试嵌套子命令的帮助信息生成
 func TestNestedCmdHelp(t *testing.T) {
 	// 创建三级嵌套命令结构
-	cmd1 := NewCmd("cmd1", "c1", flag.ExitOnError)
+	cmd1 := NewCmd("cmd1", "", flag.ExitOnError)
 	cmd1.SetDescription("一级命令描述")
 	cmd1.String("config", "c", "config.json", "配置文件路径")
 
-	cmd2 := NewCmd("cmd2", "c2", flag.ExitOnError)
+	cmd2 := NewCmd("", "c2", flag.ExitOnError)
 	cmd2.SetDescription("二级命令描述")
 	cmd2.Int("port", "p", 8080, "服务端口号")
 

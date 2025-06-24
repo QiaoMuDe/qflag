@@ -2,7 +2,9 @@ package qflag
 
 import (
 	"errors"
+	"flag"
 	"fmt"
+	"strings"
 	"testing"
 )
 
@@ -162,4 +164,75 @@ func TestBaseFlag_GetPointer(t *testing.T) {
 	if defaultFlag.Get() != true {
 		t.Error("BoolFlag未设置值时, Get()应返回默认值true")
 	}
+}
+
+func TestCommandAndFlagRegistration(t *testing.T) {
+	// 测试用例1: 只有长名称的命令
+	t.Run("Command with long name only", func(t *testing.T) {
+		cmd := NewCmd("longcmd", "", flag.ContinueOnError)
+		cmd.SetDescription("This command has only long name")
+
+		// 添加只有长名称的标志
+		cmd.String("aconfig", "", "Config file path", "/etc/app.conf")
+
+		// 验证帮助信息生成
+		help := cmd.Help()
+		if !strings.Contains(help, "longcmd") {
+			t.Error("Command long name not found in help")
+		}
+		if strings.Contains(help, "-c") {
+			t.Error("Unexpected short name in help")
+		}
+	})
+
+	// 测试用例2: 只有短名称的命令
+	t.Run("Command with short name only", func(t *testing.T) {
+		cmd := NewCmd("", "s", flag.ContinueOnError)
+		cmd.SetDescription("This command has only short name")
+
+		// 跳过内置标志绑定，避免冲突
+		cmd.initFlagBound = true
+
+		// 添加只有短名称的标志
+		cmd.String("", "c", "Config file path", "/etc/app.conf")
+
+		// 验证帮助信息生成
+		help := cmd.Help()
+		if !strings.Contains(help, "-c") {
+			t.Error("Command short name not found in help")
+		}
+		if strings.Contains(help, "--config") {
+			t.Error("Unexpected long name in help")
+		}
+	})
+
+	// 测试用例3: 混合名称的命令和标志
+	t.Run("Mixed name command and flags", func(t *testing.T) {
+		cmd := NewCmd("mixed", "m", flag.ContinueOnError)
+		cmd.SetDescription("This command has both long and short names")
+
+		// 添加各种组合的标志
+		cmd.String("config", "c", "Config file path", "/etc/app.conf")
+		cmd.String("output", "", "Output directory", "./out")
+		cmd.String("", "v", "Verbose mode", "false")
+
+		// 验证帮助信息生成
+		help := cmd.Help()
+
+		// 检查命令名称显示
+		if !strings.Contains(help, "mixed, m") {
+			t.Error("Command name display incorrect")
+		}
+
+		// 检查标志显示
+		if !strings.Contains(help, "--config, -c") {
+			t.Error("Flag with both names display incorrect")
+		}
+		if !strings.Contains(help, "--output") {
+			t.Error("Flag with long name only display incorrect")
+		}
+		if !strings.Contains(help, "-v") {
+			t.Error("Flag with short name only display incorrect")
+		}
+	})
 }

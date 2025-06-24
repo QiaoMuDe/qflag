@@ -16,7 +16,7 @@ func TestGenerateHelpInfo_BasicCommand(t *testing.T) {
 	helpInfo := generateHelpInfo(cmd)
 
 	// 验证命令名称和描述
-	if !strings.Contains(helpInfo, "testcmd(tc)") {
+	if !strings.Contains(helpInfo, "testcmd, tc") {
 		t.Errorf("帮助信息未包含命令名称, 实际输出: %s", helpInfo)
 	}
 }
@@ -111,7 +111,7 @@ func TestGenerateHelpInfo_EnglishLanguage(t *testing.T) {
 	helpInfo := generateHelpInfo(cmd)
 
 	// 验证英文模板内容
-	if !strings.Contains(helpInfo, "Name: testcmd(tc)") {
+	if !strings.Contains(helpInfo, "Name: testcmd, tc") {
 		t.Errorf("帮助信息未包含英文名称, 实际输出: %s", helpInfo)
 	}
 	if !strings.Contains(helpInfo, "Desc: English test command") {

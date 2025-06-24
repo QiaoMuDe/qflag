@@ -89,11 +89,16 @@ func writeLogoText(cmd *Cmd, buf *bytes.Buffer) {
 // tpl: 模板实例
 // buf: 输出缓冲区
 func writeCommandHeader(cmd *Cmd, tpl HelpTemplate, buf *bytes.Buffer) {
-	// 如果子命令不为空, 则使用带有短名称的模板
-	if cmd.ShortName() != "" {
+	// 修改后的命令名称显示逻辑
+	if cmd.LongName() != "" && cmd.ShortName() != "" {
+		// 同时有长短名称
 		fmt.Fprintf(buf, tpl.CmdNameWithShort, cmd.LongName(), cmd.ShortName())
-	} else {
+	} else if cmd.LongName() != "" {
+		// 只有长名称
 		fmt.Fprintf(buf, tpl.CmdName, cmd.LongName())
+	} else {
+		// 只有短名称
+		fmt.Fprintf(buf, tpl.CmdName, cmd.ShortName())
 	}
 
 	// 如果描述不为空, 则写入描述
@@ -172,13 +177,16 @@ func writeOptions(cmd *Cmd, tpl HelpTemplate, buf *bytes.Buffer) {
 		// 格式化选项部分
 		optPart := ""
 
-		// 如果标志有短标志, 则使用模板1, 否则使用模板2
-		if flag.shortFlag != "" {
-			// --longFlag, -shortFlag <type>
+		// 根据标志生成选项部分
+		if flag.longFlag != "" && flag.shortFlag != "" {
+			// 同时有长短选项
 			optPart = fmt.Sprintf(tpl.Option1, flag.longFlag, flag.shortFlag, flag.typeStr)
-		} else {
-			// --longFlag <type>
+		} else if flag.longFlag != "" {
+			// 只有长选项
 			optPart = fmt.Sprintf(tpl.Option2, flag.longFlag, flag.typeStr)
+		} else {
+			// 只有短选项
+			optPart = fmt.Sprintf(tpl.Option3, flag.shortFlag, flag.typeStr)
 		}
 
 		// 计算选项部分需要的填充空格
@@ -301,9 +309,22 @@ func writeSubCmds(cmd *Cmd, tpl HelpTemplate, buf *bytes.Buffer) {
 
 	// 生成对齐的子命令信息
 	for _, subCmd := range sortedSubCmds {
-		namePart := subCmd.fs.Name()
-		if subCmd.ShortName() != "" {
-			namePart = fmt.Sprintf("%s, %s", subCmd.fs.Name(), subCmd.ShortName())
+		// 构建子命令名称
+		var namePart string
+
+		// 根据子命令名称和短名称生成名称部分
+		if subCmd.LongName() != "" && subCmd.ShortName() != "" {
+			// 如果长短名称都存在, 则同时显示
+			namePart = fmt.Sprintf("%s, %s", subCmd.LongName(), subCmd.ShortName())
+		} else if subCmd.LongName() != "" {
+			// 如果只有长短名称中的一个存在, 则只显示一个
+			namePart = subCmd.LongName()
+		} else if subCmd.ShortName() != "" {
+			// 如果只有长短名称中的一个存在, 则只显示一个
+			namePart = subCmd.ShortName()
+		} else {
+			// 如果长短名称都不存在, 则使用默认的注册名
+			namePart = subCmd.fs.Name()
 		}
 
 		// 格式化输出，确保描述信息对齐
