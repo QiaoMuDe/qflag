@@ -347,18 +347,26 @@ func (c *Cmd) initBuiltinFlags() {
 // 返回值:
 // error: 如果验证失败则返回错误信息,否则返回nil
 func (c *Cmd) validateFlag(longName, shortName string) error {
-	// 新增格式校验
-	if strings.ContainsAny(longName, invalidFlagChars) {
-		return fmt.Errorf("The flag name '%s' contains illegal characters", longName)
-	}
-
 	// 检查标志名称和短名称是否为空
 	if longName == "" {
-		return fmt.Errorf("Flag name cannot be empty")
+		return fmt.Errorf("Flag long name cannot be empty")
 	}
+
 	// if shortName == "" {
 	// 	return fmt.Errorf("Flag short name cannot be empty")
 	// }
+
+	// 检查长名称是否包含非法字符
+	if strings.ContainsAny(longName, invalidFlagChars) {
+		return fmt.Errorf("The flag long name '%s' contains illegal characters", longName)
+	}
+
+	// 检查短名称是否包含非法字符
+	if shortName != "" {
+		if strings.ContainsAny(shortName, invalidFlagChars) {
+			return fmt.Errorf("The flag short name '%s' contains illegal characters", shortName)
+		}
+	}
 
 	// 检查标志是否已存在
 	if _, exists := c.flagRegistry.GetByName(longName); exists {
