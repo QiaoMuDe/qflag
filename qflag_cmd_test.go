@@ -731,3 +731,27 @@ func TestBuiltinFlags(t *testing.T) {
 		}
 	})
 }
+
+// TestEnumFlag_Validation 测试枚举标志的验证功能
+func TestEnumFlag_Validation(t *testing.T) {
+	// 创建枚举标志
+	cmd1 := NewCmd("cmd1", "", flag.ContinueOnError)
+	enumFlag := cmd1.Enum("enum", "e", "option1", "枚举标志的描述", []string{"option1", "option2", "option3"})
+
+	// 测试用例：有效枚举值
+	if err := enumFlag.Set("option2"); err != nil {
+		t.Errorf("期望有效枚举值无错误, 实际错误: %v", err)
+	}
+
+	// 测试用例：无效枚举值
+	if err := enumFlag.Set("invalid"); err == nil {
+		t.Error("期望无效枚举值返回错误, 实际无错误")
+	} else if !strings.Contains(err.Error(), "invalid enum value 'invalid', options are") {
+		t.Errorf("错误信息不符合预期: %v", err)
+	}
+
+	// 测试用例：大小写敏感
+	if err := enumFlag.Set("Option1"); err != nil {
+		t.Errorf("期望测试大小写敏感无错误, 错误信息: %v", err)
+	}
+}

@@ -1117,6 +1117,9 @@ func (c *Cmd) EnumVar(f *EnumFlag, longName, shortName string, defValue string, 
 		options = make([]string, 0)
 	}
 
+	// 默认值小写处理
+	defValue = strings.ToLower(defValue)
+
 	// 显式初始化当前值的默认值
 	currentStr := defValue
 
