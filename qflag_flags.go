@@ -8,6 +8,14 @@ import (
 	"time"
 )
 
+// Validator 验证器接口，所有自定义验证器需实现此接口
+type Validator interface {
+	// Validate 验证参数值是否合法
+	// value: 待验证的参数值
+	// 返回值: 验证通过返回nil, 否则返回错误信息
+	Validate(value any) error
+}
+
 // Flag 所有标志类型的通用接口,定义了标志的元数据访问方法
 type Flag interface {
 	LongName() string   // 获取标志的长名称
