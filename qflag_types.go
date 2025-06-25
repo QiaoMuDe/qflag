@@ -139,9 +139,3 @@ var FlagSplitSlice = []string{
 	FlagSplitPipe,      // 竖线
 	FlagKVColon,        // 冒号
 }
-
-// MapFlag支持的键值分割符切片
-var MapFlagKVDelimiters = []string{
-	FlagKVColon, // 冒号
-	FlagKVEqual, // 等号
-}

@@ -273,6 +273,10 @@ func (f *SliceFlag) Set(value string) error {
 		if strings.Contains(value, delimiter) {
 			// 根据分隔符分割字符串
 			elements = strings.Split(value, delimiter)
+			// 去除每个元素的首尾空白字符
+			for i, e := range elements {
+				elements[i] = strings.TrimSpace(e)
+			}
 			found = true
 			break // 找到第一个匹配的分隔符后停止
 		}
@@ -280,7 +284,7 @@ func (f *SliceFlag) Set(value string) error {
 
 	// 如果没有找到分隔符,将整个值作为单个元素
 	if !found {
-		elements = []string{value}
+		elements = []string{strings.TrimSpace(value)}
 	}
 
 	// 过滤空元素（如果启用）
@@ -334,15 +338,3 @@ func (f *SliceFlag) SetSkipEmpty(skip bool) {
 	defer f.mu.Unlock()
 	f.SkipEmpty = skip
 }
-
-// // MapFlag 映射类型标志结构体
-// // 继承BaseFlag[map[string]string]泛型结构体,实现Flag接口
-// type MapFlag struct {
-// 	BaseFlag[map[string]string]            // 基类
-// 	pairDelimiters              []string   // 键值对分隔符
-// 	kvDelimiters                []string   // 键值分隔符
-// 	mu                          sync.Mutex // 锁
-// }
-
-// // Type 返回标志类型
-// func (f *MapFlag) Type() FlagType { return FlagTypeMap }
