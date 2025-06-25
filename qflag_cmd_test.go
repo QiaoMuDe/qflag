@@ -5,6 +5,7 @@ import (
 	"flag"
 	"io"
 	"os"
+	"reflect"
 	"strings"
 	"testing"
 	"time"
@@ -753,5 +754,67 @@ func TestEnumFlag_Validation(t *testing.T) {
 	// 测试用例：大小写敏感
 	if err := enumFlag.Set("Option1"); err != nil {
 		t.Errorf("期望测试大小写敏感无错误, 错误信息: %v", err)
+	}
+}
+
+// TestSliceStringFlag 测试切片字符串类型标志
+func TestSliceStringFlag(t *testing.T) {
+	// 测试默认值
+	cmd := NewCmd("test", "t", flag.ContinueOnError)
+	sliceFlag := cmd.Slice("slice", "s", []string{"default"}, "test slice string flag")
+	if !reflect.DeepEqual(sliceFlag.GetDefault(), []string{"default"}) {
+		t.Errorf("SliceStringFlag 默认值 = %v, 期望 %v", sliceFlag.GetDefault(), []string{"default"})
+	}
+
+	// 测试长标志单个值
+	{
+		cmd := NewCmd("test", "t", flag.ContinueOnError)
+		sliceFlag := cmd.Slice("slice", "s", []string{}, "test slice string flag")
+		err := cmd.Parse([]string{"--slice", "value1"})
+		if err != nil {
+			t.Fatalf("解析() 错误 = %v", err)
+		}
+		if !reflect.DeepEqual(sliceFlag.Get(), []string{"value1"}) {
+			t.Errorf("长标志切片值 = %v, 期望 %v", sliceFlag.Get(), []string{"value1"})
+		}
+	}
+
+	// 测试短标志单个值
+	{
+		cmd := NewCmd("test", "t", flag.ContinueOnError)
+		sliceFlag := cmd.Slice("slice", "s", []string{}, "test slice string flag")
+		err := cmd.Parse([]string{"-s", "value2"})
+		if err != nil {
+			t.Fatalf("解析() 错误 = %v", err)
+		}
+		if !reflect.DeepEqual(sliceFlag.Get(), []string{"value2"}) {
+			t.Errorf("短标志切片值 = %v, 期望 %v", sliceFlag.Get(), []string{"value2"})
+		}
+	}
+
+	// 测试多次指定同一标志
+	{
+		cmd := NewCmd("test", "t", flag.ContinueOnError)
+		sliceFlag := cmd.Slice("slice", "s", []string{}, "test slice string flag")
+		err := cmd.Parse([]string{"--slice", "v1", "-s", "v2", "--slice", "v3"})
+		if err != nil {
+			t.Fatalf("解析() 错误 = %v", err)
+		}
+		if !reflect.DeepEqual(sliceFlag.Get(), []string{"v1", "v2", "v3"}) {
+			t.Errorf("多值切片 = %v, 期望 %v", sliceFlag.Get(), []string{"v1", "v2", "v3"})
+		}
+	}
+
+	// 测试逗号分隔值
+	{
+		cmd := NewCmd("test", "t", flag.ContinueOnError)
+		sliceFlag := cmd.Slice("slice", "s", []string{}, "test slice string flag")
+		err := cmd.Parse([]string{"--slice", "a,b,c", "-s", "d,e"})
+		if err != nil {
+			t.Fatalf("解析() 错误 = %v", err)
+		}
+		if !reflect.DeepEqual(sliceFlag.Get(), []string{"a", "b", "c", "d", "e"}) {
+			t.Errorf("逗号分隔切片 = %v, 期望 %v", sliceFlag.Get(), []string{"a", "b", "c", "d", "e"})
+		}
 	}
 }
