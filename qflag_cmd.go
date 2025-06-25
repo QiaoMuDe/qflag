@@ -829,7 +829,8 @@ func (c *Cmd) StringVar(f *StringFlag, longName, shortName, defValue, usage stri
 	}
 
 	// 显式初始化当前值的默认值
-	currentStr := defValue
+	currentStr := new(string)
+	*currentStr = defValue
 
 	// 修改传入的标志对象
 	f.cmd = c               // 修改标志对象 - 命令对象
@@ -837,7 +838,7 @@ func (c *Cmd) StringVar(f *StringFlag, longName, shortName, defValue, usage stri
 	f.shortName = shortName // 修改标志对象 - 短标志名
 	f.defValue = defValue   // 修改标志对象 - 默认值
 	f.usage = usage         // 修改标志对象 - 帮助说明
-	f.value = &currentStr   // 修改标志对象 - 当前值
+	f.value = currentStr    // 修改标志对象 - 当前值
 
 	// 创建FlagMeta对象
 	meta := &FlagMeta{
@@ -846,12 +847,12 @@ func (c *Cmd) StringVar(f *StringFlag, longName, shortName, defValue, usage stri
 
 	// 绑定短标志
 	if shortName != "" {
-		c.fs.StringVar(&currentStr, shortName, defValue, usage)
+		c.fs.StringVar(currentStr, shortName, defValue, usage)
 	}
 
 	// 绑定长标志
 	if longName != "" {
-		c.fs.StringVar(&currentStr, longName, defValue, usage)
+		c.fs.StringVar(currentStr, longName, defValue, usage)
 	}
 
 	// 注册Flag对象
@@ -875,7 +876,8 @@ func (c *Cmd) IntVar(f *IntFlag, longName, shortName string, defValue int, usage
 	}
 
 	// 初始化默认值
-	currentInt := defValue
+	currentInt := new(int)
+	*currentInt = defValue
 
 	// 修改传入的标志对象
 	f.cmd = c               // 修改标志对象 - 命令对象
@@ -883,7 +885,7 @@ func (c *Cmd) IntVar(f *IntFlag, longName, shortName string, defValue int, usage
 	f.shortName = shortName // 修改标志对象 - 短标志名
 	f.defValue = defValue   // 修改标志对象 - 默认值
 	f.usage = usage         // 修改标志对象 - 帮助说明
-	f.value = &currentInt   // 修改标志对象 - 当前值
+	f.value = currentInt    // 修改标志对象 - 当前值
 
 	// 创建FlagMeta对象
 	meta := &FlagMeta{
@@ -892,12 +894,12 @@ func (c *Cmd) IntVar(f *IntFlag, longName, shortName string, defValue int, usage
 
 	// 绑定短标志
 	if shortName != "" {
-		c.fs.IntVar(&currentInt, shortName, defValue, usage)
+		c.fs.IntVar(currentInt, shortName, defValue, usage)
 	}
 
 	// 绑定长标志
 	if longName != "" {
-		c.fs.IntVar(&currentInt, longName, defValue, usage)
+		c.fs.IntVar(currentInt, longName, defValue, usage)
 	}
 
 	// 注册Flag对象
@@ -930,14 +932,17 @@ func (c *Cmd) BoolVar(f *BoolFlag, longName, shortName string, defValue bool, us
 		panic(validateErr)
 	}
 
+	// 显式初始化
+	currentBool := new(bool) // 创建当前值指针
+	*currentBool = defValue
+
 	// 修改传入的标志对象
 	f.cmd = c               // 修改标志对象 - 命令对象
 	f.longName = longName   // 修改标志对象 - 长标志名
 	f.shortName = shortName // 修改标志对象 - 短标志名
 	f.defValue = defValue   // 修改标志对象 - 默认值
 	f.usage = usage         // 修改标志对象 - 帮助说明
-	f.value = new(bool)     // 创建当前值指针
-	*f.value = defValue
+	f.value = currentBool   // 修改标志对象 - 当前值
 
 	// 创建FlagMeta对象
 	meta := &FlagMeta{
@@ -1043,7 +1048,7 @@ func (c *Cmd) DurationVar(f *DurationFlag, longName, shortName string, defValue 
 		panic(validateErr)
 	}
 
-	// 初始化默认值
+	// 初始化默认值(值类型)
 	currentDuration := new(time.Duration)
 	*currentDuration = defValue
 
@@ -1155,6 +1160,64 @@ func (c *Cmd) EnumVar(f *EnumFlag, longName, shortName string, defValue string, 
 	// 绑定长标志
 	if longName != "" {
 		c.fs.StringVar(&currentStr, longName, defValue, usage)
+	}
+
+	// 注册Flag对象
+	if registerErr := c.flagRegistry.RegisterFlag(meta); registerErr != nil {
+		panic(registerErr)
+	}
+}
+
+// Slice 绑定字符串切片类型标志并内部注册Flag对象
+//
+// 参数依次为: 长标志名、短标志、默认值、帮助说明
+//
+// 返回值: 字符串切片标志对象指针
+func (c *Cmd) Slice(longName, shortName string, defValue []string, usage string) *SliceFlag {
+	f := &SliceFlag{}
+	c.SliceVar(f, longName, shortName, defValue, usage)
+	return f
+}
+
+// SliceVar 绑定字符串切片类型标志到指针并内部注册Flag对象
+//
+// 参数依次为: 字符串切片标志指针、长标志名、短标志、默认值、帮助说明
+func (c *Cmd) SliceVar(f *SliceFlag, longName, shortName string, defValue []string, usage string) {
+	// 检查指针是否为空
+	if f == nil {
+		panic("SliceFlag pointer cannot be nil")
+	}
+
+	// 参数校验（复用公共函数）
+	if validateErr := c.validateFlag(longName, shortName); validateErr != nil {
+		panic(validateErr)
+	}
+
+	// 初始化
+	currentSlice := &defValue
+
+	// 修改传入的标志对象
+	f.cmd = c                          // 修改标志对象 - 命令对象
+	f.longName = longName              // 修改标志对象 - 长标志名
+	f.shortName = shortName            // 修改标志对象 - 短标志名
+	f.defValue = defValue              // 修改标志对象 - 默认值
+	f.usage = usage                    // 修改标志对象 - 帮助说明
+	f.value = currentSlice             // 修改标志对象 - 当前值
+	f.delimiters = SliceFlagSplitSlice // 修改标志对象 - 分隔符切片
+
+	// 创建FlagMeta对象
+	meta := &FlagMeta{
+		flag: f, // 添加标志对象 - Flag对象
+	}
+
+	// 绑定短标志
+	if shortName != "" {
+		c.fs.Var(f, shortName, usage)
+	}
+
+	// 绑定长标志
+	if longName != "" {
+		c.fs.Var(f, longName, usage)
 	}
 
 	// 注册Flag对象

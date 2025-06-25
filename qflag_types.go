@@ -38,6 +38,7 @@ const (
 	FlagTypeFloat                        // 浮点数类型
 	FlagTypeEnum                         // 枚举类型
 	FlagTypeDuration                     // 时间间隔类型
+	FlagTypeSlice                        // 切片类型
 )
 
 // 内置标志名称
@@ -119,4 +120,18 @@ var ChineseTemplate = HelpTemplate{
 	DefaultNote:           "当长选项和短选项同时使用时，最后指定的选项将优先生效。", //默认注意事项
 	ExamplesHeader:        "\n示例:\n",                     // 示例信息头部模板
 	ExampleItem:           "  %d、%s\n     %s\n",          // 序号、描述、用法
+}
+
+// 定义切片标志的分隔符常量
+const (
+	SliceFlagSplitComma     = "," // 逗号
+	SliceFlagSplitSemicolon = ";" // 分号
+	SliceFlagSplitPipe      = "|" // 竖线
+)
+
+// SliceFlag 切片标志支持的分割符切片
+var SliceFlagSplitSlice = []string{
+	SliceFlagSplitComma,     // 逗号
+	SliceFlagSplitSemicolon, // 分号
+	SliceFlagSplitPipe,      // 竖线
 }

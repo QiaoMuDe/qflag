@@ -4,6 +4,7 @@ import (
 	"errors"
 	"flag"
 	"fmt"
+	"reflect"
 	"strings"
 	"testing"
 )
@@ -233,6 +234,132 @@ func TestCommandAndFlagRegistration(t *testing.T) {
 		}
 		if !strings.Contains(help, "-v") {
 			t.Error("Flag with short name only display incorrect")
+		}
+	})
+}
+
+// TestSliceFlag 测试SliceFlag的功能
+func TestSliceFlag(t *testing.T) {
+	// 测试基本切片解析功能
+	t.Run("BasicSliceParsing", func(t *testing.T) {
+		flag := &SliceFlag{
+			BaseFlag: BaseFlag[[]string]{
+				defValue: []string{},
+				value:    new([]string),
+			},
+			delimiters: []string{","},
+		}
+
+		// 测试正常分割
+		if err := flag.Set("a,b,c"); err != nil {
+			t.Errorf("Set failed: %v", err)
+		}
+		result := flag.Get()
+		expected := []string{"a", "b", "c"}
+		if !reflect.DeepEqual(result, expected) {
+			t.Errorf("Expected %v, got %v", expected, result)
+		}
+
+		// 测试无分隔符情况
+		if err := flag.Set("d"); err != nil {
+			t.Errorf("Set failed: %v", err)
+		}
+		result = flag.Get()
+		expected = []string{"a", "b", "c", "d"}
+		if !reflect.DeepEqual(result, expected) {
+			t.Errorf("Expected %v, got %v", expected, result)
+		}
+	})
+
+	// 测试空元素过滤功能
+	t.Run("EmptyElementFiltering", func(t *testing.T) {
+		// 测试SkipEmpty=true情况
+		flag := &SliceFlag{
+			BaseFlag: BaseFlag[[]string]{
+				defValue: []string{},
+				value:    new([]string),
+			},
+			delimiters: []string{","},
+			SkipEmpty:  true,
+		}
+
+		if err := flag.Set("a,,b,,c"); err != nil {
+			t.Errorf("Set failed: %v", err)
+		}
+		result := flag.Get()
+		expected := []string{"a", "b", "c"}
+		if !reflect.DeepEqual(result, expected) {
+			t.Errorf("Expected %v, got %v", expected, result)
+		}
+
+		// 测试SkipEmpty=false情况
+		flag = &SliceFlag{
+			BaseFlag: BaseFlag[[]string]{
+				defValue: []string{},
+				value:    new([]string),
+			},
+			delimiters: []string{","},
+			SkipEmpty:  false,
+		}
+
+		if err := flag.Set("a,,b,,c"); err != nil {
+			t.Errorf("Set failed: %v", err)
+		}
+		result = flag.Get()
+		expected = []string{"a", "", "b", "", "c"}
+		if !reflect.DeepEqual(result, expected) {
+			t.Errorf("Expected %v, got %v", expected, result)
+		}
+	})
+
+	// 测试SetSkipEmpty方法
+	t.Run("SetSkipEmptyMethod", func(t *testing.T) {
+		flag := &SliceFlag{
+			BaseFlag: BaseFlag[[]string]{
+				defValue: []string{},
+				value:    new([]string),
+			},
+			delimiters: []string{","},
+		}
+
+		// 设置SkipEmpty=true
+		flag.SetSkipEmpty(true)
+		if err := flag.Set("x,,y"); err != nil {
+			t.Errorf("Set failed: %v", err)
+		}
+		result := flag.Get()
+		expected := []string{"x", "y"}
+		if !reflect.DeepEqual(result, expected) {
+			t.Errorf("Expected %v, got %v", expected, result)
+		}
+
+		// 动态修改为SkipEmpty=false
+		flag.SetSkipEmpty(false)
+		if err := flag.Set("z,,w"); err != nil {
+			t.Errorf("Set failed: %v", err)
+		}
+		result = flag.Get()
+		expected = []string{"x", "y", "z", "", "w"}
+		if !reflect.DeepEqual(result, expected) {
+			t.Errorf("Expected %v, got %v", expected, result)
+		}
+	})
+
+	// 测试错误情况
+	t.Run("ErrorHandling", func(t *testing.T) {
+		flag := &SliceFlag{
+			BaseFlag: BaseFlag[[]string]{
+				defValue: []string{},
+				value:    new([]string),
+			},
+			delimiters: []string{","},
+		}
+
+		// 测试空输入
+		if err := flag.Set(""); err == nil {
+			t.Error("Expected error for empty input, got nil")
+		} else if !strings.Contains(err.Error(), "slice cannot be empty") {
+			t.Errorf("Unexpected error message: %v", err)
 		}
 	})
 }
