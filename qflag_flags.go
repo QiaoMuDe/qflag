@@ -334,3 +334,15 @@ func (f *SliceFlag) SetSkipEmpty(skip bool) {
 	defer f.mu.Unlock()
 	f.SkipEmpty = skip
 }
+
+// // MapFlag 映射类型标志结构体
+// // 继承BaseFlag[map[string]string]泛型结构体,实现Flag接口
+// type MapFlag struct {
+// 	BaseFlag[map[string]string]            // 基类
+// 	pairDelimiters              []string   // 键值对分隔符
+// 	kvDelimiters                []string   // 键值分隔符
+// 	mu                          sync.Mutex // 锁
+// }
+
+// // Type 返回标志类型
+// func (f *MapFlag) Type() FlagType { return FlagTypeMap }

@@ -1204,13 +1204,13 @@ func (c *Cmd) SliceVar(f *SliceFlag, longName, shortName string, defValue []stri
 	currentSlice := &defValue
 
 	// 修改传入的标志对象
-	f.cmd = c                          // 修改标志对象 - 命令对象
-	f.longName = longName              // 修改标志对象 - 长标志名
-	f.shortName = shortName            // 修改标志对象 - 短标志名
-	f.defValue = defValue              // 修改标志对象 - 默认值
-	f.usage = usage                    // 修改标志对象 - 帮助说明
-	f.value = currentSlice             // 修改标志对象 - 当前值
-	f.delimiters = SliceFlagSplitSlice // 修改标志对象 - 分隔符切片
+	f.cmd = c                     // 修改标志对象 - 命令对象
+	f.longName = longName         // 修改标志对象 - 长标志名
+	f.shortName = shortName       // 修改标志对象 - 短标志名
+	f.defValue = defValue         // 修改标志对象 - 默认值
+	f.usage = usage               // 修改标志对象 - 帮助说明
+	f.value = currentSlice        // 修改标志对象 - 当前值
+	f.delimiters = FlagSplitSlice // 修改标志对象 - 分隔符切片
 
 	// 创建FlagMeta对象
 	meta := &FlagMeta{

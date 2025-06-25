@@ -39,6 +39,7 @@ const (
 	FlagTypeEnum                         // 枚举类型
 	FlagTypeDuration                     // 时间间隔类型
 	FlagTypeSlice                        // 切片类型
+	FlagTypeMap                          // 映射类型
 )
 
 // 内置标志名称
@@ -122,16 +123,25 @@ var ChineseTemplate = HelpTemplate{
 	ExampleItem:           "  %d、%s\n     %s\n",          // 序号、描述、用法
 }
 
-// 定义切片标志的分隔符常量
+// 定义标志的分隔符常量
 const (
-	SliceFlagSplitComma     = "," // 逗号
-	SliceFlagSplitSemicolon = ";" // 分号
-	SliceFlagSplitPipe      = "|" // 竖线
+	FlagSplitComma     = "," // 逗号
+	FlagSplitSemicolon = ";" // 分号
+	FlagSplitPipe      = "|" // 竖线
+	FlagKVColon        = ":" // 冒号
+	FlagKVEqual        = "=" // 等号
 )
 
-// SliceFlag 切片标志支持的分割符切片
-var SliceFlagSplitSlice = []string{
-	SliceFlagSplitComma,     // 逗号
-	SliceFlagSplitSemicolon, // 分号
-	SliceFlagSplitPipe,      // 竖线
+// Flag支持的标志分隔符切片
+var FlagSplitSlice = []string{
+	FlagSplitComma,     // 逗号
+	FlagSplitSemicolon, // 分号
+	FlagSplitPipe,      // 竖线
+	FlagKVColon,        // 冒号
+}
+
+// MapFlag支持的键值分割符切片
+var MapFlagKVDelimiters = []string{
+	FlagKVColon, // 冒号
+	FlagKVEqual, // 等号
 }
