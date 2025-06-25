@@ -61,13 +61,11 @@ type QCommandLineInterface interface {
 func init() {
 	// 处理可能的空os.Args情况
 	if len(os.Args) == 0 {
-		// 如果os.Args为空,则创建一个新的Cmd对象,命令行参数为"app",短名字为"a",错误处理方式为ExitOnError
-		QCommandLine = NewCmd("app", "a", flag.ExitOnError)
+		// 如果os.Args为空,则创建一个新的Cmd对象,命令行参数为"myapp",短名字为"a",错误处理方式为ExitOnError
+		QCommandLine = NewCmd("myapp", "", flag.ExitOnError)
 	} else {
-		// 如果os.Args不为空,则创建一个新的Cmd对象,命令行参数为filepath.Base(os.Args[0]),短名字为第一个字符,错误处理方式为ExitOnError
-		longName := filepath.Base(os.Args[0])
-		shortName := string(longName[0]) // 获取第一个字符作为短名称
-		QCommandLine = NewCmd(longName, shortName, flag.ExitOnError)
+		// 如果os.Args不为空,则创建一个新的Cmd对象,命令行参数为filepath.Base(os.Args[0]),错误处理方式为ExitOnError
+		QCommandLine = NewCmd(filepath.Base(os.Args[0]), "", flag.ExitOnError)
 	}
 }
 
