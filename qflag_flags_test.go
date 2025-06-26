@@ -7,6 +7,7 @@ import (
 	"reflect"
 	"strings"
 	"testing"
+	"time"
 )
 
 // positiveIntValidator 验证整数是否为正数（首字母小写, 非导出）
@@ -362,4 +363,274 @@ func TestSliceFlag(t *testing.T) {
 			t.Errorf("Unexpected error message: %v", err)
 		}
 	})
+
+	// 测试新增的Len方法返回长度是否符合预期
+	t.Run("Len", func(t *testing.T) {
+		flag := &SliceFlag{
+			BaseFlag: BaseFlag[[]string]{
+				defValue: []string{"a", "b", "c"},
+				value:    new([]string),
+			},
+			delimiters: []string{","},
+		}
+
+		if err := flag.Set("a,b,c"); err != nil {
+			t.Errorf("Unexpected error: %v", err)
+		}
+
+		if flag.Len() != 3 {
+			t.Errorf("Expected length 3, got %d", flag.Len())
+		}
+	})
+}
+
+// TestIsSetMethods 测试所有标志类型的IsSet()方法行为
+func TestIsSetMethods(t *testing.T) {
+	// 测试用例结构体：包含标志实例、设置值函数和测试名称
+	type testCase struct {
+		name     string
+		f        Flag
+		setValue func(f Flag) error
+	}
+
+	// 创建测试用例集合
+	testCases := []testCase{
+		// IntFlag测试用例
+		{
+			name: "IntFlag未设置值",
+			f: &IntFlag{
+				BaseFlag: BaseFlag[int]{
+					longName:  "intFlag",
+					shortName: "i",
+					defValue:  0,
+					usage:     "整数标志测试",
+				},
+			},
+			setValue: func(f Flag) error { return nil },
+		},
+		{
+			name: "IntFlag已设置值",
+			f: &IntFlag{
+				BaseFlag: BaseFlag[int]{
+					longName:  "intFlag",
+					shortName: "i",
+					defValue:  0,
+					usage:     "整数标志测试",
+				},
+			},
+			setValue: func(f Flag) error { return f.(*IntFlag).Set(100) },
+		},
+		{
+			name: "IntFlag重置后",
+			f: &IntFlag{
+				BaseFlag: BaseFlag[int]{
+					longName:  "intFlag",
+					shortName: "i",
+					defValue:  0,
+					usage:     "整数标志测试",
+				},
+			},
+			setValue: func(f Flag) error {
+				if err := f.(*IntFlag).Set(100); err != nil {
+					return err
+				}
+				f.Reset()
+				return nil
+			},
+		},
+
+		// StringFlag测试用例
+		{
+			name: "StringFlag未设置值",
+			f: &StringFlag{
+				BaseFlag: BaseFlag[string]{
+					longName:  "strFlag",
+					shortName: "s",
+					defValue:  "default",
+					usage:     "字符串标志测试",
+				},
+			},
+			setValue: func(f Flag) error { return nil },
+		},
+		{
+			name: "StringFlag已设置值",
+			f: &StringFlag{
+				BaseFlag: BaseFlag[string]{
+					longName:  "strFlag",
+					shortName: "s",
+					defValue:  "default",
+					usage:     "字符串标志测试",
+				},
+			},
+			setValue: func(f Flag) error { return f.(*StringFlag).Set("test") },
+		},
+
+		// BoolFlag测试用例
+		{
+			name: "BoolFlag未设置值",
+			f: &BoolFlag{
+				BaseFlag: BaseFlag[bool]{
+					longName:  "boolFlag",
+					shortName: "b",
+					defValue:  false,
+					usage:     "布尔标志测试",
+				},
+			},
+			setValue: func(f Flag) error { return nil },
+		},
+		{
+			name: "BoolFlag已设置值",
+			f: &BoolFlag{
+				BaseFlag: BaseFlag[bool]{
+					longName:  "boolFlag",
+					shortName: "b",
+					defValue:  false,
+					usage:     "布尔标志测试",
+				},
+			},
+			setValue: func(f Flag) error { return f.(*BoolFlag).Set(true) },
+		},
+
+		// FloatFlag测试用例
+		{
+			name: "FloatFlag未设置值",
+			f: &FloatFlag{
+				BaseFlag: BaseFlag[float64]{
+					longName:  "floatFlag",
+					shortName: "f",
+					defValue:  0.0,
+					usage:     "浮点标志测试",
+				},
+			},
+			setValue: func(f Flag) error { return nil },
+		},
+		{
+			name: "FloatFlag已设置值",
+			f: &FloatFlag{
+				BaseFlag: BaseFlag[float64]{
+					longName:  "floatFlag",
+					shortName: "f",
+					defValue:  0.0,
+					usage:     "浮点标志测试",
+				},
+			},
+			setValue: func(f Flag) error { return f.(*FloatFlag).Set(3.14) },
+		},
+
+		// DurationFlag测试用例
+		{
+			name: "DurationFlag未设置值",
+			f: &DurationFlag{
+				BaseFlag: BaseFlag[time.Duration]{
+					longName:  "durationFlag",
+					shortName: "d",
+					defValue:  0,
+					usage:     "时间间隔标志测试",
+				},
+			},
+			setValue: func(f Flag) error { return nil },
+		},
+		{
+			name: "DurationFlag已设置值",
+			f: &DurationFlag{
+				BaseFlag: BaseFlag[time.Duration]{
+					longName:  "durationFlag",
+					shortName: "d",
+					defValue:  0,
+					usage:     "时间间隔标志测试",
+				},
+			},
+			setValue: func(f Flag) error { return f.(*DurationFlag).Set((5 * time.Second).String()) },
+		},
+
+		// EnumFlag测试用例
+		{
+			name: "EnumFlag未设置值",
+			f: &EnumFlag{
+				BaseFlag: BaseFlag[string]{
+					longName:  "enumFlag",
+					shortName: "e",
+					defValue:  "default",
+					usage:     "枚举标志测试",
+				},
+			},
+			setValue: func(f Flag) error { return nil },
+		},
+		{
+			name: "EnumFlag已设置值",
+			f: &EnumFlag{
+				BaseFlag: BaseFlag[string]{
+					longName:  "enumFlag",
+					shortName: "e",
+					defValue:  "default",
+					usage:     "枚举标志测试",
+				},
+			},
+			setValue: func(f Flag) error { return f.(*EnumFlag).Set("option1") },
+		},
+
+		// SliceFlag测试用例
+		{
+			name: "SliceFlag未设置值",
+			f: &SliceFlag{
+				BaseFlag: BaseFlag[[]string]{
+					longName:  "sliceFlag",
+					shortName: "sl",
+					defValue:  []string{"default"},
+					usage:     "切片标志测试",
+				},
+			},
+			setValue: func(f Flag) error { return nil },
+		},
+		{
+			name: "SliceFlag已设置值",
+			f: &SliceFlag{
+				BaseFlag: BaseFlag[[]string]{
+					longName:  "sliceFlag",
+					shortName: "sl",
+					defValue:  []string{"default"},
+					usage:     "切片标志测试",
+				},
+			},
+			setValue: func(f Flag) error { return f.(*SliceFlag).Set("item1,item2") },
+		},
+	}
+
+	// 执行测试用例
+	for _, tc := range testCases {
+		t.Run(tc.name, func(t *testing.T) {
+			// 初始状态检查
+			if tc.f.IsSet() {
+				t.Errorf("%s: 初始状态下IsSet()应为false, 实际为%v", tc.name, tc.f.IsSet())
+			}
+
+			// 设置值
+			if err := tc.setValue(tc.f); err != nil {
+				t.Fatalf("%s: 设置值失败: %v", tc.name, err)
+			}
+
+			// 根据测试类型判断预期结果
+			shouldBeSet := true
+			if strings.Contains(tc.name, "未设置值") || strings.Contains(tc.name, "重置后") {
+				shouldBeSet = false
+			}
+
+			// 检查设置后状态
+			if tc.f.IsSet() != shouldBeSet {
+				// 修复重置后状态的预期值
+				if strings.Contains(tc.name, "重置后") {
+					shouldBeSet = false
+				}
+				t.Errorf("%s: 设置后IsSet()应为%v, 实际为%v", tc.name, shouldBeSet, tc.f.IsSet())
+			}
+
+			// 重置标志
+			tc.f.Reset()
+
+			// 检查重置后状态
+			if tc.f.IsSet() {
+				t.Errorf("%s: 重置后IsSet()应为false, 实际为true", tc.name)
+			}
+		})
+	}
 }
