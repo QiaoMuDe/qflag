@@ -103,12 +103,12 @@ func TestIntRangeValidator(t *testing.T) {
 		{"int8 type", 0, 100, int8(50), nil},
 		{"uint type", 0, 100, uint(50), nil},
 		{"uint64 type", 100, 200, uint64(150), nil},
-		{"non-integer type", 5, 10, "15", fmt.Errorf("value is not an integer type")},
+		{"non-integer type", 5, 10, "15", fmt.Errorf("value is not an int64-compatible integer type")},
 	}
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			v := &IntRangeValidator{Min: tt.min, Max: tt.max}
+			v := &IntRangeValidator64{Min: tt.min, Max: tt.max}
 			err := v.Validate(tt.value)
 			if (err == nil && tt.expected != nil) || (err != nil && tt.expected == nil) {
 				t.Errorf("expected error %v, got %v", tt.expected, err)

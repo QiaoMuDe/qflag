@@ -3,6 +3,7 @@ package qflag
 
 import (
 	"fmt"
+	"sort"
 	"strings"
 	"sync"
 	"time"
@@ -157,6 +158,15 @@ type IntFlag struct {
 // Type 返回标志类型
 func (f *IntFlag) Type() FlagType { return FlagTypeInt }
 
+// SetRange 设置整数的有效范围
+//
+// min: 最小值
+// max: 最大值
+func (f *IntFlag) SetRange(min, max int) {
+	validator := &IntRangeValidator{min, max}
+	f.SetValidator(validator)
+}
+
 // StringFlag 字符串类型标志结构体
 // 继承BaseFlag[string]泛型结构体,实现Flag接口
 type StringFlag struct {
@@ -176,6 +186,25 @@ func (f *StringFlag) String() string {
 // 返回值：字符串的字符数(按UTF-8编码计算)
 func (f *StringFlag) Len() int {
 	return len(f.Get())
+}
+
+// ToUpper 将字符串标志值转换为大写
+func (f *StringFlag) ToUpper() string {
+	return strings.ToUpper(f.Get())
+}
+
+// ToLower 将字符串标志值转换为小写
+func (f *StringFlag) ToLower() string {
+	return strings.ToLower(f.Get())
+}
+
+// Contains 检查字符串是否包含指定子串
+//
+// 参数: substr 子串
+//
+// 返回值: true表示包含, false表示不包含
+func (f *StringFlag) Contains(substr string) bool {
+	return strings.Contains(f.Get(), substr)
 }
 
 // BoolFlag 布尔类型标志结构体
@@ -428,4 +457,42 @@ func (f *SliceFlag) Clear() {
 	f.mu.Lock()
 	defer f.mu.Unlock()
 	f.value = &[]string{}
+}
+
+// Remove 从切片中移除指定元素（支持移除空字符串元素）
+//
+// 参数: element 待移除的元素（支持空字符串）
+//
+// 返回值: 操作成功返回nil，否则返回错误信息
+func (f *SliceFlag) Remove(element string) error {
+	// 获取当前切片
+	current := f.Get()
+
+	// 遍历当前切片
+	newSlice := []string{}
+	for _, item := range current {
+		if item != element {
+			newSlice = append(newSlice, item)
+		}
+	}
+
+	return f.BaseFlag.Set(newSlice)
+}
+
+// Sort 对切片进行排序
+//
+// 功能：对当前切片标志的值进行原地排序，修改原切片内容
+// 排序规则：采用Go标准库的sort.Strings()函数进行字典序排序（按Unicode代码点升序排列）
+// 注意事项：
+//  1. 排序会直接修改当前标志的值，而非返回新切片
+//  2. 排序区分大小写，遵循Unicode代码点比较规则（如'A' < 'a' < 'z'）
+//  3. 若切片未设置值，将使用默认值进行排序
+//
+// 返回值：
+//
+//	排序成功返回nil，若排序过程中发生错误则返回错误信息
+func (f *SliceFlag) Sort() error {
+	current := f.Get()
+	sort.Strings(current)
+	return f.BaseFlag.Set(current)
 }
