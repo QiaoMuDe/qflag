@@ -21,10 +21,10 @@ func init() {
 	// 处理可能的空os.Args情况
 	if len(os.Args) == 0 {
 		// 如果os.Args为空,则创建一个新的Cmd对象,命令行参数为"myapp",短名字为"",错误处理方式为ExitOnError
-		QCommandLine = NewCmd("myapp", "", flag.ExitOnError)
+		QCommandLine = NewCommand("myapp", "", flag.ExitOnError)
 	} else {
 		// 如果os.Args不为空,则创建一个新的Cmd对象,命令行参数为filepath.Base(os.Args[0]),错误处理方式为ExitOnError
-		QCommandLine = NewCmd(filepath.Base(os.Args[0]), "", flag.ExitOnError)
+		QCommandLine = NewCommand(filepath.Base(os.Args[0]), "", flag.ExitOnError)
 	}
 }
 
@@ -93,7 +93,7 @@ type Cmd struct {
 // 实现类需保证线程安全，所有方法应支持并发调用
 //
 // 示例用法:
-// cmd := NewCmd("app", "a", flag.ContinueOnError)
+// cmd := NewCommand("app", "a", flag.ContinueOnError)
 // cmd.SetDescription("示例应用程序")
 // cmd.String("config", "c", "配置文件路径", "/etc/app.conf")
 type CmdInterface interface {
@@ -146,6 +146,50 @@ type CmdInterface interface {
 	DurationVar(f *flags.DurationFlag, longName, shortName string, defValue time.Duration, usage string)    // 绑定时间间隔类型标志到指定变量
 	EnumVar(f *flags.EnumFlag, longName, shortName string, defValue string, usage string, options []string) // 绑定枚举标志到指定变量
 	SliceVar(f *flags.SliceFlag, longName, shortName string, defValue []string, usage string)               // 绑定字符串切片标志到指定变量
+}
+
+// NewCommand 创建新的命令实例
+// 参数:
+// longName: 命令长名称
+// shortName: 命令短名称
+// errorHandling: 错误处理方式
+// 返回值: *Cmd命令实例指针
+// errorHandling可选值: flag.ContinueOnError、flag.ExitOnError、flag.PanicOnError
+func NewCommand(longName string, shortName string, errorHandling flag.ErrorHandling) *Cmd {
+	// 检查命令名称是否同时为空
+	if longName == "" && shortName == "" {
+		panic("cmd long name and short name cannot both be empty")
+	}
+
+	// 设置默认的错误处理方式为ContinueOnError, 避免测试时意外退出
+	if errorHandling == 0 {
+		errorHandling = flag.ContinueOnError
+	}
+
+	// 创建标志注册表
+	flagRegistry := flags.NewFlagRegistry()
+
+	// 确定命令名称：优先使用长名称，如果长名称为空则使用短名称
+	cmdName := longName
+	if cmdName == "" {
+		cmdName = shortName
+	}
+
+	// 创建新的Cmd实例
+	cmd := &Cmd{
+		fs:                  flag.NewFlagSet(cmdName, errorHandling), // 创建新的flag集
+		args:                []string{},                              // 命令行参数
+		flagRegistry:        flagRegistry,                            // 初始化标志注册表
+		helpFlag:            &flags.BoolFlag{},                       // 初始化帮助标志
+		showInstallPathFlag: &flags.BoolFlag{},                       // 初始化显示安装路径标志
+		versionFlag:         &flags.BoolFlag{},                       // 初始化版本信息标志
+		userInfo: UserInfo{
+			longName:  longName,  // 命令长名称
+			shortName: shortName, // 命令短名称
+		},
+	}
+
+	return cmd
 }
 
 // SetVersion 设置版本信息
@@ -467,50 +511,6 @@ func (c *Cmd) validateFlag(longName, shortName string) error {
 	}
 
 	return nil
-}
-
-// NewCmd 创建新的命令实例
-// 参数:
-// longName: 命令长名称
-// shortName: 命令短名称
-// errorHandling: 错误处理方式
-// 返回值: *Cmd命令实例指针
-// errorHandling可选值: flag.ContinueOnError、flag.ExitOnError、flag.PanicOnError
-func NewCmd(longName string, shortName string, errorHandling flag.ErrorHandling) *Cmd {
-	// 检查命令名称是否同时为空
-	if longName == "" && shortName == "" {
-		panic("cmd long name and short name cannot both be empty")
-	}
-
-	// 设置默认的错误处理方式为ContinueOnError, 避免测试时意外退出
-	if errorHandling == 0 {
-		errorHandling = flag.ContinueOnError
-	}
-
-	// 创建标志注册表
-	flagRegistry := flags.NewFlagRegistry()
-
-	// 确定命令名称：优先使用长名称，如果长名称为空则使用短名称
-	cmdName := longName
-	if cmdName == "" {
-		cmdName = shortName
-	}
-
-	// 创建新的Cmd实例
-	cmd := &Cmd{
-		fs:                  flag.NewFlagSet(cmdName, errorHandling), // 创建新的flag集
-		args:                []string{},                              // 命令行参数
-		flagRegistry:        flagRegistry,                            // 初始化标志注册表
-		helpFlag:            &flags.BoolFlag{},                       // 初始化帮助标志
-		showInstallPathFlag: &flags.BoolFlag{},                       // 初始化显示安装路径标志
-		versionFlag:         &flags.BoolFlag{},                       // 初始化版本信息标志
-		userInfo: UserInfo{
-			longName:  longName,  // 命令长名称
-			shortName: shortName, // 命令短名称
-		},
-	}
-
-	return cmd
 }
 
 // AddSubCmd 关联一个或多个子命令到当前命令
