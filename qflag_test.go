@@ -34,7 +34,7 @@ func TestStringFlagLong(t *testing.T) {
 	// 测试String方法(仅长标志)
 	f := cmd.String(flagName, "sf", defValue, usage)
 	if f == nil {
-		t.Error("String() 返回了 nil")
+		t.Fatal("String() 返回了 nil")
 	}
 
 	// 测试长标志解析
@@ -77,7 +77,7 @@ func TestStringFlagShort(t *testing.T) {
 	// 测试String方法(仅短标志)
 	f := cmd.String("sf", shortName, defValue, usage)
 	if f == nil {
-		t.Error("String() 返回了 nil")
+		t.Fatal("String() 返回了 nil")
 	}
 
 	// 测试短标志解析
@@ -120,7 +120,7 @@ func TestIntFlagLong(t *testing.T) {
 	// 测试Int方法(仅长标志)
 	f := cmd.Int(flagName, "if", defValue, usage)
 	if f == nil {
-		t.Error("Int() 返回了 nil")
+		t.Fatal("Int() 返回了 nil")
 	}
 
 	// 测试长标志解析
@@ -163,7 +163,7 @@ func TestIntFlagShort(t *testing.T) {
 	// 测试Int方法(仅短标志)
 	f := cmd.Int("ci", shortName, defValue, usage)
 	if f == nil {
-		t.Error("Int() 返回了 nil")
+		t.Fatal("Int() 返回了 nil")
 	}
 
 	// 测试短标志解析
@@ -206,7 +206,7 @@ func TestBoolFlagLong(t *testing.T) {
 	// 测试Bool方法(仅长标志)
 	f := cmd.Bool(flagName, "bl", defValue, usage)
 	if f == nil {
-		t.Error("Bool() 返回了 nil")
+		t.Fatal("Bool() 返回了 nil")
 	}
 
 	// 测试长标志解析
@@ -249,7 +249,7 @@ func TestBoolFlagShort(t *testing.T) {
 	// 测试Bool方法(仅短标志)
 	f := cmd.Bool("ct", shortName, defValue, usage)
 	if f == nil {
-		t.Error("Bool() 返回了 nil")
+		t.Fatal("Bool() 返回了 nil")
 	}
 
 	// 测试短标志解析
@@ -292,7 +292,7 @@ func TestFloatFlagLong(t *testing.T) {
 	// 测试Float方法(仅长标志)
 	f := cmd.Float(flagName, "ff", defValue, usage)
 	if f == nil {
-		t.Error("Float() 返回了 nil")
+		t.Fatal("Int() 返回了 nil")
 	}
 
 	// 测试长标志解析
@@ -335,7 +335,7 @@ func TestFloatFlagShort(t *testing.T) {
 	// 测试Float方法(仅短标志)
 	f := cmd.Float("cf", shortName, defValue, usage)
 	if f == nil {
-		t.Error("Float() 返回了 nil")
+		t.Fatal("Int() 返回了 nil")
 	}
 
 	// 测试短标志解析
@@ -402,7 +402,10 @@ func TestHelpFlag(t *testing.T) {
 		// 只在测试失败时输出捕获的内容
 		if t.Failed() {
 			var buf bytes.Buffer
-			buf.ReadFrom(r)
+			_, err := buf.ReadFrom(r)
+			if err != nil {
+				t.Errorf("ReadFrom failed: %v", err)
+			}
 			t.Logf("捕获的输出:\n%s", buf.String())
 		}
 	}()
@@ -475,17 +478,23 @@ func TestIntFlag_Methods(t *testing.T) {
 	}
 
 	// 测试边界值
-	f.Set(0)
+	if err := f.Set(0); err != nil {
+		t.Fatalf("Set failed: %v", err)
+	}
 	if f.Get() != 0 {
 		t.Errorf("IntFlag.Get() 返回 %v，期望为 %v", f.Get(), 0)
 	}
 
-	f.Set(-1)
+	if err := f.Set(-1); err != nil {
+		t.Fatalf("Set failed: %v", err)
+	}
 	if f.Get() != -1 {
 		t.Errorf("IntFlag.Get() 返回 %v，期望为 %v", f.Get(), -1)
 	}
 
-	f.Set(2147483647)
+	if err := f.Set(2147483647); err != nil {
+		t.Fatalf("Set failed: %v", err)
+	}
 	if f.Get() != 2147483647 {
 		t.Errorf("IntFlag.Get() 返回 %v，期望为 %v", f.Get(), 2147483647)
 	}
@@ -523,12 +532,16 @@ func TestStringFlag_Methods(t *testing.T) {
 	}
 
 	// 测试边界值
-	f.Set("")
+	if err := f.Set(""); err != nil {
+		t.Fatalf("Set failed: %v", err)
+	}
 	if f.Get() != "" {
 		t.Errorf("StringFlag.Get() 返回 %q，期望为 %q", f.Get(), "")
 	}
 
-	f.Set("long_string_with_special_chars_!@#$%^&*()")
+	if err := f.Set("long_string_with_special_chars_!@#$%^&*()"); err != nil {
+		t.Fatalf("Set failed: %v", err)
+	}
 	if f.Get() != "long_string_with_special_chars_!@#$%^&*()" {
 		t.Errorf("StringFlag.Get() 返回 %q，期望为 %q", f.Get(), "long_string_with_special_chars_!@#$%^&*()")
 	}
@@ -566,12 +579,16 @@ func TestBoolFlag_Methods(t *testing.T) {
 	}
 
 	// 测试切换布尔值
-	f.Set(false)
+	if err := f.Set(false); err != nil {
+		t.Fatalf("Set failed: %v", err)
+	}
 	if f.Get() != false {
 		t.Errorf("BoolFlag.Get() 返回 %v，期望为 %v", f.Get(), false)
 	}
 
-	f.Set(true)
+	if err := f.Set(true); err != nil {
+		t.Fatalf("Set failed: %v", err)
+	}
 	if f.Get() != true {
 		t.Errorf("BoolFlag.Get() 返回 %v，期望为 %v", f.Get(), true)
 	}
@@ -609,17 +626,23 @@ func TestFloatFlag_Methods(t *testing.T) {
 	}
 
 	// 测试边界值
-	f.Set(0.0)
+	if err := f.Set(0.0); err != nil {
+		t.Fatalf("Set failed: %v", err)
+	}
 	if f.Get() != 0.0 {
 		t.Errorf("FloatFlag.Get() 返回 %v，期望为 %v", f.Get(), 0.0)
 	}
 
-	f.Set(-1.5)
+	if err := f.Set(-1.5); err != nil {
+		t.Fatalf("Set failed: %v", err)
+	}
 	if f.Get() != -1.5 {
 		t.Errorf("FloatFlag.Get() 返回 %v，期望为 %v", f.Get(), -1.5)
 	}
 
-	f.Set(1.7976931348623157e+308)
+	if err := f.Set(1.7976931348623157e+308); err != nil {
+		t.Fatalf("Set failed: %v", err)
+	}
 	if f.Get() != 1.7976931348623157e+308 {
 		t.Errorf("FloatFlag.Get() 返回 %v，期望为 %v", f.Get(), 1.7976931348623157e+308)
 	}

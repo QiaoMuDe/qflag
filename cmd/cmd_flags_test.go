@@ -461,7 +461,10 @@ func TestUint16Var(t *testing.T) {
 
 			// 读取缓冲区内容
 			var buf bytes.Buffer
-			io.Copy(&buf, r)
+			_, copyErr := io.Copy(&buf, r)
+			if copyErr != nil {
+				t.Errorf("Failed to copy output: %v", copyErr)
+			}
 
 			// 仅在详细模式下打印输出
 			if testing.Verbose() {

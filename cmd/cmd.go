@@ -154,6 +154,10 @@ type CmdInterface interface {
 	TimeVar(f *flags.TimeFlag, longName, shortName string, defValue time.Time, usage string)                // 绑定时间类型标志到指定变量
 }
 
+// 保持兼容API
+// 支持 NewCmd 别名
+var NewCmd = NewCommand
+
 // NewCommand 创建新的命令实例
 // 参数:
 // longName: 命令长名称

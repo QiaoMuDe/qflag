@@ -158,7 +158,10 @@ func TestErrorHandling(t *testing.T) {
 
 	// 读取缓冲区内容并打印
 	var buf bytes.Buffer
-	io.Copy(&buf, r)
+	_, err := io.Copy(&buf, r)
+	if err != nil {
+		t.Errorf("Failed to copy output: %v", err)
+	}
 	t.Logf("测试输出:\n%s", buf.String())
 }
 
@@ -616,59 +619,56 @@ func TestBuiltinFlags(t *testing.T) {
 	// 测试根命令的--version和-v标志
 	t.Run("root command version flags", func(t *testing.T) {
 		// 创建带有版本信息的根命令
-		rootCmd := NewCommand("test", "t", flag.ContinueOnError)
-		rootCmd.SetVersion("1.0.0")
+		rootCmd1 := NewCommand("test", "t", flag.ContinueOnError)
+		rootCmd1.SetVersion("1.0.0")
 
 		// 测试--version标志
 		args := []string{"--version"}
-		if err := rootCmd.Parse(args); err != nil {
+		if err := rootCmd1.Parse(args); err != nil {
 			t.Fatalf("解析--version标志失败: %v", err)
 		}
-		if !rootCmd.versionFlag.Get() {
+		if !rootCmd1.versionFlag.Get() {
 			t.Error("--version标志未被正确设置")
 		}
 
 		// 重置命令并测试-v短标志
-		rootCmd = NewCommand("test", "t", flag.ContinueOnError)
-		rootCmd.SetVersion("1.0.0")
+		rootCmd1 = NewCommand("test", "t", flag.ContinueOnError)
+		rootCmd1.SetVersion("1.0.0")
 		args = []string{"-v"}
-		if err := rootCmd.Parse(args); err != nil {
+		if err := rootCmd1.Parse(args); err != nil {
 			t.Fatalf("解析-v标志失败: %v", err)
 		}
-		if !rootCmd.versionFlag.Get() {
+		if !rootCmd1.versionFlag.Get() {
 			t.Error("-v标志未被正确设置")
 		}
 	})
 
 	// 测试根命令的--show-install-path和-sip标志
 	t.Run("root command install path flags", func(t *testing.T) {
-		// 创建根命令
-		rootCmd := NewCommand("test", "t", flag.ContinueOnError)
-
-		// 重置命令并测试-sip短标志
-		rootCmd = NewCommand("test", "t", flag.ContinueOnError)
+		// 创建并重置命令以测试-sip短标志
+		installPathCmd := NewCommand("test", "t", flag.ContinueOnError)
 		args := []string{"-sip"}
-		if err := rootCmd.Parse(args); err != nil {
+		if err := installPathCmd.Parse(args); err != nil {
 			t.Fatalf("解析-sip标志失败: %v", err)
 		}
-		if !rootCmd.showInstallPathFlag.Get() {
+		if !installPathCmd.showInstallPathFlag.Get() {
 			t.Error("-sip标志未被正确设置")
 		}
 	})
 
 	// 测试ParseFlagsOnly也能正确处理这些标志
 	t.Run("ParseFlagsOnly handles builtin flags", func(t *testing.T) {
-		rootCmd := NewCommand("test", "t", flag.ContinueOnError)
-		rootCmd.SetVersion("1.0.0")
+		parseFlagsCmd := NewCommand("test", "t", flag.ContinueOnError)
+		parseFlagsCmd.SetVersion("1.0.0")
 
 		args := []string{"-v", "-sip"}
-		if err := rootCmd.ParseFlagsOnly(args); err != nil {
+		if err := parseFlagsCmd.ParseFlagsOnly(args); err != nil {
 			t.Fatalf("ParseFlagsOnly解析标志失败: %v", err)
 		}
-		if !rootCmd.versionFlag.Get() {
+		if !parseFlagsCmd.versionFlag.Get() {
 			t.Error("ParseFlagsOnly未正确设置versionFlag")
 		}
-		if !rootCmd.showInstallPathFlag.Get() {
+		if !parseFlagsCmd.showInstallPathFlag.Get() {
 			t.Error("ParseFlagsOnly未正确设置showInstallPathFlag")
 		}
 	})
@@ -1056,10 +1056,18 @@ func TestNestedCmdHelp(t *testing.T) {
 	cmd3.AddExample(ExampleInfo{Description: "示例2", Usage: "echo 222"})
 
 	// 构建命令层级
-	cmd1.AddSubCmd(cmd2)
-	cmd2.AddSubCmd(cmd3)
-	cmd2.AddSubCmd(cmd4, cmd5)
-	cmd3.AddSubCmd(cmd6, cmd7, cmd8)
+	if err := cmd1.AddSubCmd(cmd2); err != nil {
+		t.Fatalf("Failed to add subcommand: %v", err)
+	}
+	if err := cmd2.AddSubCmd(cmd3); err != nil {
+		t.Fatalf("Failed to add subcommand: %v", err)
+	}
+	if err := cmd2.AddSubCmd(cmd4, cmd5); err != nil {
+		t.Fatalf("Failed to add subcommand: %v", err)
+	}
+	if err := cmd3.AddSubCmd(cmd6, cmd7, cmd8); err != nil {
+		t.Fatalf("Failed to add subcommand: %v", err)
+	}
 
 	// 添加注意事项
 	cmd1.AddNote("注意事项1")
