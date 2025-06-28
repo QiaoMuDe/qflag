@@ -18,6 +18,8 @@ const (
 	FlagTypeDuration                     // 时间间隔类型
 	FlagTypeSlice                        // 切片类型
 	FlagTypeTime                         // 时间类型
+	FlagTypeMap                          // 映射类型
+	FlagTypePath                         // 路径类型
 )
 
 // 内置标志名称
@@ -98,6 +100,10 @@ func FlagTypeToString(flagType FlagType) string {
 		return "<duration>"
 	case FlagTypeTime:
 		return "<time>"
+	case FlagTypeMap:
+		return "<map>"
+	case FlagTypePath:
+		return "<path>"
 	default:
 		return "<unknown>"
 	}

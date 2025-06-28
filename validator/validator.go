@@ -6,6 +6,7 @@ import (
 	"errors"
 	"fmt"
 	"math"
+	"os"
 	"reflect"
 	"regexp"
 	"time"
@@ -394,4 +395,29 @@ func (v *EnumValidator) Validate(value any) error {
 	}
 
 	return fmt.Errorf("value %v is not in allowed values list", value)
+}
+
+// PathValidator 路径验证器
+// 实现Validator接口,用于验证路径是否存在且规范化
+type PathValidator struct{}
+
+// Validate 验证路径是否存在且规范化
+func (v *PathValidator) Validate(value any) error {
+	path, ok := value.(string)
+	if !ok {
+		return fmt.Errorf("path must be a string")
+	}
+
+	if path == "" {
+		return fmt.Errorf("path cannot be empty")
+	}
+
+	// 检查路径是否存在
+	if _, err := os.Stat(path); os.IsNotExist(err) {
+		return fmt.Errorf("path does not exist: %s", path)
+	} else if err != nil {
+		return fmt.Errorf("failed to check path: %v", err)
+	}
+
+	return nil
 }

@@ -275,3 +275,57 @@ func Time(longName, shortName string, defValue time.Time, usage string) *flags.T
 func TimeVar(f *flags.TimeFlag, longName, shortName string, defValue time.Time, usage string) {
 	QCommandLine.TimeVar(f, longName, shortName, defValue, usage)
 }
+
+// Map 为全局默认命令创建一个键值对类型的命令行标志。
+// 该函数会调用全局默认命令实例的 Map 方法，为命令行添加一个支持长短标志的键值对参数。
+// 参数说明：
+//   - longName: 标志的长名称，在命令行中以 --longName 的形式使用。
+//   - shortName: 标志的短名称，在命令行中以 -shortName 的形式使用。
+//   - defValue: 标志的默认值，当命令行未指定该标志时使用。
+//   - usage: 标志的帮助说明信息，用于在显示帮助信息时展示。
+//
+// 返回值：
+//   - *flags.MapFlag: 指向新创建的键值对标志对象的指针。
+func Map(longName, shortName string, defValue map[string]string, usage string) *flags.MapFlag {
+	return QCommandLine.Map(longName, shortName, defValue, usage)
+}
+
+// MapVar 为全局默认命令将一个键值对类型的命令行标志绑定到指定的 MapFlag 指针。
+// 该函数会调用全局默认命令实例的 MapVar 方法，为命令行添加支持长短标志的键值对参数，
+// 并将该参数与传入的 MapFlag 指针关联，以便后续获取和使用该标志的值。
+// 参数说明：
+//   - f: 指向 MapFlag 的指针，用于存储和管理该键值对类型命令行标志的相关信息。
+//   - longName: 命令行标志的长名称，在命令行中需以 --longName 的格式使用。
+//   - shortName: 命令行标志的短名称，在命令行中需以 -shortName 的格式使用。
+//   - defValue: 该命令行标志的默认值，当用户在命令行中未指定该标志时，会使用此默认值。
+//   - usage: 该命令行标志的帮助说明信息，会在显示帮助信息时展示给用户。
+func MapVar(f *flags.MapFlag, longName, shortName string, defValue map[string]string, usage string) {
+	QCommandLine.MapVar(f, longName, shortName, defValue, usage)
+}
+
+// Path 为全局默认命令创建一个路径类型的命令行标志。
+// 该函数会调用全局默认命令实例的 Path 方法，为命令行添加一个支持长短标志的路径参数。
+// 参数说明：
+//   - longName: 标志的长名称，在命令行中以 --longName 的形式使用。
+//   - shortName: 标志的短名称，在命令行中以 -shortName 的形式使用。
+//   - defValue: 标志的默认值，当命令行未指定该标志时使用。
+//   - usage: 标志的帮助说明信息，用于在显示帮助信息时展示。
+//
+// 返回值：
+//   - *flags.PathFlag: 指向新创建的路径标志对象的指针。
+func Path(longName, shortName string, defValue string, usage string) *flags.PathFlag {
+	return QCommandLine.Path(longName, shortName, defValue, usage)
+}
+
+// PathVar 为全局默认命令将一个路径类型的命令行标志绑定到指定的 PathFlag 指针。
+// 该函数会调用全局默认命令实例的 PathVar 方法，为命令行添加支持长短标志的路径参数，
+// 并将该参数与传入的 PathFlag 指针关联，以便后续获取和使用该标志的值。
+// 参数说明：
+//   - f: 指向 PathFlag 的指针，用于存储和管理该路径类型命令行标志的相关信息。
+//   - longName: 命令行标志的长名称，在命令行中需以 --longName 的格式使用。
+//   - shortName: 命令行标志的短名称，在命令行中需以 -shortName 的格式使用。
+//   - defValue: 该命令行标志的默认值，当用户在命令行中未指定该标志时，会使用此默认值。
+//   - usage: 该命令行标志的帮助说明信息，会在显示帮助信息时展示给用户。
+func PathVar(f *flags.PathFlag, longName, shortName string, defValue string, usage string) {
+	QCommandLine.PathVar(f, longName, shortName, defValue, usage)
+}
