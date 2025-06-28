@@ -971,6 +971,8 @@ type CmdInterface interface {
     Float(longName, shortName string, defValue float64, usage string) *FloatFlag // 添加浮点数类型标志
     Duration(longName, shortName string, defValue time.Duration, usage string) *DurationFlag // 添加时间间隔类型标志
     Enum(longName, shortName string, defValue string, usage string, enumValues []string) *EnumFlag // 添加枚举类型标志
+    Int64(longName, shortName string, defValue int64, usage string) *Int64Flag // 添加64位整数类型标志
+    Uint16(longName, shortName string, defValue uint16, usage string) *Uint16Flag // 添加16位无符号整数类型标志
     Slice(longName, shortName string, defValue []string, usage string) *SliceFlag                  // 添加字符串切片类型标志  
     StringVar(f *StringFlag, longName, shortName, defValue, usage string) // 绑定字符串标志到指定变量
     IntVar(f *IntFlag, longName, shortName string, defValue int, usage string) // 绑定整数标志到指定变量
@@ -1319,6 +1321,56 @@ type HelpTemplate struct {
 ```
 
 HelpTemplate 帮助信息模板结构体。
+
+### Int64Flag 结构体
+
+```go
+type Int64Flag struct {
+    BaseFlag[int64]
+}
+```
+
+Int64Flag 64位整数类型标志结构体 继承 BaseFlag[int64] 泛型结构体，实现 Flag 接口。
+
+```go
+func (f *Int64Flag) SetRange(min, max int64)
+```
+
+SetRange 设置64位整数的有效范围。参数 min 为最小值，max 为最大值。
+
+```go
+func (f *Int64Flag) Type() FlagType
+```
+
+Type 返回标志类型，固定为 FlagTypeInt64。
+
+### Uint16Flag 结构体
+
+```go
+type Uint16Flag struct {
+    BaseFlag[uint16]
+}
+```
+
+Uint16Flag 16位无符号整数类型标志结构体 继承 BaseFlag[uint16] 泛型结构体，实现 Flag 接口。
+
+```go
+func (f *Uint16Flag) Set(value string) error
+```
+
+Set 解析并设置16位无符号整数值，验证值是否在0-65535范围内。
+
+```go
+func (f *Uint16Flag) String() string
+```
+
+String 返回当前值的字符串表示。
+
+```go
+func (f *Uint16Flag) Type() FlagType
+```
+
+Type 返回标志类型，固定为 FlagTypeUint16。
 
 ### IntFlag 结构体
 

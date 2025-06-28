@@ -15,6 +15,7 @@ type BaseFlag[T any] struct {
 	mu          sync.Mutex // 并发访问锁
 	validator   Validator  // 验证器接口
 	initialized bool       // 标志是否已初始化
+	isSet       bool       // 标志是否已被设置值
 }
 
 // Init 初始化标志的元数据和值指针, 无需显式调用, 仅在创建标志对象时自动调用
@@ -78,7 +79,7 @@ func (f *BaseFlag[T]) GetDefaultAny() any { return f.defValue }
 func (f *BaseFlag[T]) IsSet() bool {
 	f.mu.Lock()
 	defer f.mu.Unlock()
-	return f.value != nil
+	return f.isSet
 }
 
 // Get 获取标志的实际值
@@ -130,6 +131,9 @@ func (f *BaseFlag[T]) Set(value T) error {
 	// 设置标志值
 	f.value = &v
 
+	// 标志已设置
+	f.isSet = true
+
 	return nil
 }
 
@@ -152,5 +156,6 @@ func (f *BaseFlag[T]) String() string {
 func (f *BaseFlag[T]) Reset() {
 	f.mu.Lock()
 	defer f.mu.Unlock()
-	f.value = nil // 重置为未设置状态,下次Get()会返回默认值
+	f.value = nil   // 重置为未设置状态,下次Get()会返回默认值
+	f.isSet = false // 重置设置状态
 }

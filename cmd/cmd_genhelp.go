@@ -310,11 +310,11 @@ func collectFlags(cmd *Cmd) []flagInfo {
 
 		// 创建标志元数据
 		flagInfos = append(flagInfos, flagInfo{
-			longFlag:  flag.GetLongName(),                   // 长标志名
-			shortFlag: flag.GetShortName(),                  // 短标志
-			usage:     flag.GetUsage(),                      // 使用说明
-			defValue:  defValue,                             // 默认值
-			typeStr:   flagTypeToString(flag.GetFlagType()), // 标志类型字符串
+			longFlag:  flag.GetLongName(),                         // 长标志名
+			shortFlag: flag.GetShortName(),                        // 短标志
+			usage:     flag.GetUsage(),                            // 使用说明
+			defValue:  defValue,                                   // 默认值
+			typeStr:   flags.FlagTypeToString(flag.GetFlagType()), // 标志类型字符串
 		})
 	}
 
@@ -512,25 +512,4 @@ func getFullCommandPath(cmd *Cmd) string {
 		return cmd.fs.Name()
 	}
 	return getFullCommandPath(cmd.parentCmd) + " " + cmd.fs.Name()
-}
-
-// flagTypeToString 将FlagType转换为字符串
-func flagTypeToString(flagType flags.FlagType) string {
-	switch flagType {
-	case flags.FlagTypeInt:
-		return "<int>"
-	case flags.FlagTypeString:
-		return "<string>"
-	case flags.FlagTypeBool:
-		// 布尔类型没有参数类型字符串
-		return ""
-	case flags.FlagTypeFloat:
-		return "<float>"
-	case flags.FlagTypeEnum:
-		return "<enum>"
-	case flags.FlagTypeDuration:
-		return "<duration>"
-	default:
-		return "<unknown>"
-	}
 }

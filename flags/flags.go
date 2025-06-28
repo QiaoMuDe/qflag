@@ -10,6 +10,7 @@ type FlagType int
 const (
 	FlagTypeInt      FlagType = iota + 1 // 整数类型
 	FlagTypeInt64                        // 64位整数类型
+	FlagTypeUint16                       // 16位无符号整数类型
 	FlagTypeString                       // 字符串类型
 	FlagTypeBool                         // 布尔类型
 	FlagTypeFloat                        // 浮点数类型
@@ -73,4 +74,29 @@ type TypedFlag[T any] interface {
 	GetPointer() *T         // 获取标志值的指针
 	Set(T) error            // 设置标志的具体类型值
 	SetValidator(Validator) // 设置标志的验证器
+}
+
+// FlagTypeToString 将FlagType转换为字符串
+func FlagTypeToString(flagType FlagType) string {
+	switch flagType {
+	case FlagTypeInt:
+		return "<int>"
+	case FlagTypeInt64:
+		return "<int64>"
+	case FlagTypeUint16:
+		return "<uint16>"
+	case FlagTypeString:
+		return "<string>"
+	case FlagTypeBool:
+		// 布尔类型没有参数类型字符串
+		return ""
+	case FlagTypeFloat:
+		return "<float>"
+	case FlagTypeEnum:
+		return "<enum>"
+	case FlagTypeDuration:
+		return "<duration>"
+	default:
+		return "<unknown>"
+	}
 }
