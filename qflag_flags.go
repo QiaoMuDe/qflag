@@ -249,3 +249,29 @@ func Uint16(longName, shortName string, defValue uint16, usage string) *flags.Ui
 func Uint16Var(f *flags.Uint16Flag, longName, shortName string, defValue uint16, usage string) {
 	QCommandLine.Uint16Var(f, longName, shortName, defValue, usage)
 }
+
+// Time 为全局默认命令定义一个时间类型的命令行标志。
+// 该函数会调用全局默认命令实例 `QCommandLine` 的 `Time` 方法，为命令行添加支持长短标志的时间类型参数，
+// 参数说明：
+//   - longName: 命令行标志的长名称，在命令行中使用时需遵循 `--longName` 的格式。
+//   - shortName: 命令行标志的短名称，在命令行中使用时需遵循 `-shortName` 的格式。
+//   - defValue: 命令行标志的默认值。
+//   - usage: 命令行标志的用法说明。
+//
+// 返回值：
+//   - *flags.TimeFlag: 指向新创建的时间类型标志对象的指针。
+func Time(longName, shortName string, defValue time.Time, usage string) *flags.TimeFlag {
+	return QCommandLine.Time(longName, shortName, defValue, usage)
+}
+
+// TimeVar 为全局默认命令定义一个时间类型的命令行标志，并将其绑定到指定的 `TimeFlag` 指针。
+// 该函数会调用全局默认命令实例 `QCommandLine` 的 `TimeVar` 方法，为命令行添加支持长短标志的时间类型参数，
+// 参数说明：
+//   - f: 指向要绑定的 `TimeFlag` 对象的指针。
+//   - longName: 命令行标志的长名称，在命令行中使用时需遵循 `--longName` 的格式。
+//   - shortName: 命令行标志的短名称，在命令行中使用时需遵循 `-shortName` 的格式。
+//   - defValue: 命令行标志的默认值。
+//   - usage: 命令行标志的用法说明。
+func TimeVar(f *flags.TimeFlag, longName, shortName string, defValue time.Time, usage string) {
+	QCommandLine.TimeVar(f, longName, shortName, defValue, usage)
+}

@@ -59,6 +59,7 @@ type QCommandLineInterface interface {
 	Slice(longName, shortName string, defValue []string, usage string) *flags.SliceFlag                  // 添加字符串切片类型标志
 	Int64(longName, shortName string, defValue int64, usage string) *flags.Int64Flag                     // 添加64位整型类型标志
 	Uint16(longName, shortName string, defValue uint16, usage string) *flags.Uint16Flag                  // 添加无符号16位整型类型标志
+	Time(longName, shortName string, defValue time.Time, usage string) *flags.TimeFlag                   // 添加时间类型标志
 
 	// 绑定变量方法
 	StringVar(f *flags.StringFlag, longName, shortName, defValue, usage string)                                // 绑定字符串标志到指定变量
@@ -70,6 +71,7 @@ type QCommandLineInterface interface {
 	SliceVar(f *flags.SliceFlag, longName, shortName string, defValue []string, usage string)                  // 绑定字符串切片标志到指定变量
 	Int64Var(f *flags.Int64Flag, longName, shortName string, defValue int64, usage string)                     // 绑定64位整型标志到指定变量
 	Uint16Var(f *flags.Uint16Flag, longName, shortName string, defValue uint16, usage string)                  // 绑定16位无符号整型标志到指定变量
+	TimeVar(f *flags.TimeFlag, longName, shortName string, defValue time.Time, usage string)                   // 绑定时间类型标志到指定变量
 }
 
 // SetVersion 为全局默认命令设置版本信息

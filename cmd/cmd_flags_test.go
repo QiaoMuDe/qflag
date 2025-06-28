@@ -474,3 +474,109 @@ func TestUint16Var(t *testing.T) {
 		})
 	})
 }
+
+// TestTimeVar 测试TimeVar方法的功能
+func TestTimeVar(t *testing.T) {
+	// 测试指针为nil的情况
+	{
+		t.Run("nil pointer", func(t *testing.T) {
+			cmd := NewCommand("test", "t", flag.ContinueOnError)
+			defer func() {
+				if r := recover(); r == nil {
+					t.Error("TimeVar with nil pointer should panic")
+				}
+			}()
+			cmd.TimeVar(nil, "time", "tm", time.Date(2023, time.January, 1, 0, 0, 0, 0, time.UTC), "test time flag")
+		})
+	}
+
+	// 测试正常功能
+	{
+		t.Run("normal case", func(t *testing.T) {
+			cmd := NewCommand("test", "t", flag.ContinueOnError)
+			var timeFlag flags.TimeFlag
+			defaultTime := time.Date(2023, time.January, 1, 0, 0, 0, 0, time.UTC)
+			cmd.TimeVar(&timeFlag, "time", "tm", defaultTime, "test time flag")
+
+			// 测试默认值
+			if !timeFlag.Get().Equal(defaultTime) {
+				t.Errorf("default value = %v, want %v", timeFlag.Get(), defaultTime)
+			}
+
+			// 测试长标志解析
+			inputTime := "2023-12-31T23:59:59Z"
+			if err := cmd.Parse([]string{"--time", inputTime}); err != nil {
+				t.Fatalf("Parse failed: %v", err)
+			}
+			parsedTime, _ := time.Parse(time.RFC3339, inputTime)
+			if !timeFlag.Get().Equal(parsedTime) {
+				t.Errorf("after --time, value = %v, want %v", timeFlag.Get(), parsedTime)
+			}
+
+			// 测试短标志解析
+			cmd = NewCommand("test-short", "ts", flag.ContinueOnError)
+			var timeFlagShort flags.TimeFlag
+			cmd.TimeVar(&timeFlagShort, "time-short", "t", defaultTime, "test time short flag")
+			shortInput := "2024-01-01"
+			if err := cmd.Parse([]string{"-t", shortInput}); err != nil {
+				t.Fatalf("Parse failed: %v", err)
+			}
+			shortParsed, _ := time.Parse("2006-01-02", shortInput)
+			if !timeFlagShort.Get().Equal(shortParsed) {
+				t.Errorf("after -t, value = %v, want %v", timeFlagShort.Get(), shortParsed)
+			}
+		})
+	}
+
+	// 测试无效格式
+	{
+		t.Run("invalid format", func(t *testing.T) {
+			cmd := NewCommand("test", "t", flag.ContinueOnError)
+			var timeFlag flags.TimeFlag
+			defaultTime := time.Date(2023, time.January, 1, 0, 0, 0, 0, time.UTC)
+			cmd.TimeVar(&timeFlag, "time", "tm", defaultTime, "test time flag")
+
+			// 捕获标准错误
+			oldStderr := os.Stderr
+			_, w, _ := os.Pipe()
+			os.Stderr = w
+
+			defer func() {
+				w.Close()
+				os.Stderr = oldStderr
+			}()
+
+			err := cmd.Parse([]string{"--time", "invalid-time"})
+			if err == nil {
+				t.Fatal("expected error for invalid time format")
+			}
+
+			// 验证默认值不变
+			if !timeFlag.Get().Equal(defaultTime) {
+				t.Errorf("default value changed after invalid input: %v", timeFlag.Get())
+			}
+		})
+	}
+}
+
+// TestTime 测试Time方法的功能
+func TestTime(t *testing.T) {
+	cmd := NewCommand("test", "t", flag.ContinueOnError)
+	defaultTime := time.Date(2023, time.January, 1, 0, 0, 0, 0, time.UTC)
+	flag := cmd.Time("time", "tm", defaultTime, "test time flag")
+
+	// 验证默认值
+	if !flag.Get().Equal(defaultTime) {
+		t.Errorf("default value = %v, want %v", flag.Get(), defaultTime)
+	}
+
+	// 验证解析功能
+	inputTime := "2023-06-15T10:30:00+08:00"
+	if err := cmd.Parse([]string{"--time", inputTime}); err != nil {
+		t.Fatalf("Parse failed: %v", err)
+	}
+	parsedTime, _ := time.Parse(time.RFC3339, inputTime)
+	if !flag.Get().Equal(parsedTime) {
+		t.Errorf("parsed value = %v, want %v", flag.Get(), parsedTime)
+	}
+}
