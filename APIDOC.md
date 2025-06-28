@@ -400,6 +400,22 @@ func NewValidationErrorf(format string, v ...interface{}) error
 
 - `error`: 包含格式化消息的验证错误实例。
 
+### JoinErrors
+
+```go
+func JoinErrors(errors []error) error
+```
+
+将错误切片合并为单个错误，并去除重复错误。当存在多个错误时，会生成包含所有唯一错误的合并消息。
+
+**参数:**
+
+- `errors`: 错误切片，包含需要合并的错误实例。
+
+**返回值:**
+
+- `error`: 合并后的错误实例；若输入切片为空，则返回nil。
+
 ### Parse
 
 ```go
@@ -763,7 +779,7 @@ Float 添加浮点型标志，返回标志对象指针 参数依次为：长标�
 func (c *Cmd) FloatVar(f *FloatFlag, longName, shortName string, defValue float64, usage string)
 ```
 
-FloatVar 绑定浮点型标志到指针并内部注册 Flag 对象 参数依次为：浮点数标志指针、长标志名、短标志、默认值、帮助说明。
+FloatVar 绑定浮点数标志到指针并内部注册 Flag 对象 参数依次为：浮点数标志指针、长标志名、短标志、默认值、帮助说明。
 
 ```go
 func (c *Cmd) GetExamples() []ExampleInfo
@@ -939,18 +955,18 @@ type CmdInterface interface {
     SetVersion(version string)  // 设置版本信息
     GetVersion() string     // 获取版本信息
     String(longName, shortName, usage, defValue string) *StringFlag // 添加字符串类型标志
-    Int(longName, shortName, usage string, defValue int) *IntFlag // 添加整数类型标志
-    Bool(longName, shortName, usage string, defValue bool) *BoolFlag // 添加布尔类型标志
-    Float(longName, shortName, usage string, defValue float64) *FloatFlag // 添加浮点数类型标志
-    Duration(longName, shortName, usage string, defValue time.Duration) *DurationFlag // 添加时间间隔类型标志
-    Enum(longName, shortName string, defValue string, usage string, options []string) *EnumFlag // 添加枚举类型标志
+    Int(longName, shortName string, defValue int, usage string) *IntFlag // 添加整数类型标志
+    Bool(longName, shortName string, defValue bool, usage string) *BoolFlag // 添加布尔类型标志
+    Float(longName, shortName string, defValue float64, usage string) *FloatFlag // 添加浮点数类型标志
+    Duration(longName, shortName string, defValue time.Duration, usage string) *DurationFlag // 添加时间间隔类型标志
+    Enum(longName, shortName string, defValue string, usage string, enumValues []string) *EnumFlag // 添加枚举类型标志
     Slice(longName, shortName string, defValue []string, usage string) *SliceFlag                  // 添加字符串切片类型标志  
     StringVar(f *StringFlag, longName, shortName, defValue, usage string) // 绑定字符串标志到指定变量
     IntVar(f *IntFlag, longName, shortName string, defValue int, usage string) // 绑定整数标志到指定变量
     BoolVar(f *BoolFlag, longName, shortName string, defValue bool, usage string) // 绑定布尔标志到指定变量
     FloatVar(f *FloatFlag, longName, shortName string, defValue float64, usage string) // 绑定浮点数标志到指定变量
     DurationVar(f *DurationFlag, longName, shortName string, defValue time.Duration, usage string) // 绑定时间间隔类型标志到指定变量
-    EnumVar(f *EnumFlag, longName, shortName string, defValue string, usage string, options []string) // 绑定枚举标志到指定变量
+    EnumVar(f *EnumFlag, longName, shortName string, defValue string, usage string, enumValues []string) // 绑定枚举标志到指定变量
     SliceVar(f *SliceFlag, longName, shortName string, defValue []string, usage string)                  // 绑定字符串切片标志到指定变量  
     SetLogoText(logoText string) // 设置logo文本
     GetLogoText() string // 获取logo文本
@@ -1438,7 +1454,5 @@ type Validator interface {
 ```
 
 Validator 验证器接口，所有自定义验证器需实现此接口。
-
-```
 
 ```
