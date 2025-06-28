@@ -1,4 +1,4 @@
-package qflag
+package qerr
 
 import (
 	"fmt"
@@ -23,8 +23,8 @@ func NewValidationErrorf(format string, v ...interface{}) error {
 	return fmt.Errorf("%s: %s", ErrValidationFailed, fmt.Sprintf(format, v...))
 }
 
-// joinErrors 将错误切片合并为单个错误，并去除重复错误
-func joinErrors(errors []error) error {
+// JoinErrors 将错误切片合并为单个错误，并去除重复错误
+func JoinErrors(errors []error) error {
 	if len(errors) == 0 {
 		return nil
 	}

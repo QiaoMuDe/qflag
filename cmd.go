@@ -8,6 +8,8 @@ import (
 	"strings"
 	"sync"
 	"time"
+
+	"gitee.com/MM-Q/qflag/qerr"
 )
 
 // UserInfo 存储用户自定义信息的嵌套结构体
@@ -578,7 +580,7 @@ func (c *Cmd) AddSubCmd(subCmds ...*Cmd) error {
 
 	// 如果有验证错误，返回所有错误信息
 	if len(errors) > 0 {
-		return fmt.Errorf("Failed to add subcommands: %w", joinErrors(errors))
+		return fmt.Errorf("Failed to add subcommands: %w", qerr.JoinErrors(errors))
 	}
 
 	// 第二阶段：批量添加子命令
@@ -613,7 +615,7 @@ func (c *Cmd) Parse(args []string) (err error) {
 		// 添加panic捕获
 		if r := recover(); r != nil {
 			// 使用预定义的恐慌错误常量
-			err = fmt.Errorf("%s: %v", ErrPanicRecovered, r)
+			err = fmt.Errorf("%s: %v", qerr.ErrPanicRecovered, r)
 		}
 	}()
 
@@ -634,7 +636,7 @@ func (c *Cmd) Parse(args []string) (err error) {
 
 		// 调用flag库解析参数
 		if parseErr := c.fs.Parse(args); parseErr != nil {
-			err = fmt.Errorf("%s: %w", ErrFlagParseFailed, parseErr)
+			err = fmt.Errorf("%s: %w", qerr.ErrFlagParseFailed, parseErr)
 			return
 		}
 
@@ -681,7 +683,7 @@ func (c *Cmd) Parse(args []string) (err error) {
 				if c.args[0] == subCmd.LongName() || c.args[0] == subCmd.ShortName() {
 					// 将剩余参数传递给子命令解析
 					if parseErr := subCmd.Parse(c.args[1:]); parseErr != nil {
-						err = fmt.Errorf("%s: %w", ErrSubCommandParseFailed, parseErr)
+						err = fmt.Errorf("%s: %w", qerr.ErrSubCommandParseFailed, parseErr)
 					}
 					return
 				}
@@ -733,7 +735,7 @@ func (c *Cmd) ParseFlagsOnly(args []string) (err error) {
 		// 添加panic捕获
 		if r := recover(); r != nil {
 			// 使用预定义的恐慌错误常量
-			err = fmt.Errorf("%s: %v", ErrPanicRecovered, r)
+			err = fmt.Errorf("%s: %v", qerr.ErrPanicRecovered, r)
 		}
 	}()
 
@@ -749,7 +751,7 @@ func (c *Cmd) ParseFlagsOnly(args []string) (err error) {
 
 		// 调用flag库解析参数
 		if parseErr := c.fs.Parse(args); parseErr != nil {
-			err = fmt.Errorf("%s: %w", ErrFlagParseFailed, parseErr)
+			err = fmt.Errorf("%s: %w", qerr.ErrFlagParseFailed, parseErr)
 			return
 		}
 
