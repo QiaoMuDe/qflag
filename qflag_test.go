@@ -4,8 +4,11 @@ import (
 	"bytes"
 	"flag"
 	"os"
+	"strings"
 	"testing"
 	"time"
+
+	"gitee.com/MM-Q/qflag/flags"
 )
 
 // TestStringFlagLong 测试字符串类型长标志的注册和解析
@@ -42,8 +45,8 @@ func TestStringFlagLong(t *testing.T) {
 	}
 
 	// 验证值
-	if *f.value != "test-value" {
-		t.Errorf("字符串标志的值为 %q，期望为 %q", *f.value, "test-value")
+	if f.Get() != "test-value" {
+		t.Errorf("字符串标志的值为 %q，期望为 %q", f.Get(), "test-value")
 	}
 }
 
@@ -85,8 +88,8 @@ func TestStringFlagShort(t *testing.T) {
 	}
 
 	// 验证值
-	if *f.value != "test-value" {
-		t.Errorf("字符串标志的值为 %q，期望为 %q", *f.value, "test-value")
+	if f.Get() != "test-value" {
+		t.Errorf("字符串标志的值为 %q，期望为 %q", f.Get(), "test-value")
 	}
 }
 
@@ -128,8 +131,8 @@ func TestIntFlagLong(t *testing.T) {
 	}
 
 	// 验证值
-	if *f.value != 200 {
-		t.Errorf("整数标志的值为 %d，期望为 %d", *f.value, 200)
+	if f.Get() != 200 {
+		t.Errorf("整数标志的值为 %d，期望为 %d", f.Get(), 200)
 	}
 }
 
@@ -171,8 +174,8 @@ func TestIntFlagShort(t *testing.T) {
 	}
 
 	// 验证值
-	if *f.value != 200 {
-		t.Errorf("整数标志的值为 %d，期望为 %d", *f.value, 200)
+	if f.Get() != 200 {
+		t.Errorf("整数标志的值为 %d，期望为 %d", f.Get(), 200)
 	}
 }
 
@@ -214,8 +217,8 @@ func TestBoolFlagLong(t *testing.T) {
 	}
 
 	// 验证值
-	if *f.value != true {
-		t.Errorf("布尔标志的值为 %v，期望为 %v", *f.value, true)
+	if f.Get() != true {
+		t.Errorf("布尔标志的值为 %v，期望为 %v", f.Get(), true)
 	}
 }
 
@@ -257,8 +260,8 @@ func TestBoolFlagShort(t *testing.T) {
 	}
 
 	// 验证值
-	if *f.value != true {
-		t.Errorf("布尔标志的值为 %v，期望为 %v", *f.value, true)
+	if f.Get() != true {
+		t.Errorf("布尔标志的值为 %v，期望为 %v", f.Get(), true)
 	}
 }
 
@@ -300,8 +303,8 @@ func TestFloatFlagLong(t *testing.T) {
 	}
 
 	// 验证值
-	if *f.value != 6.28 {
-		t.Errorf("浮点数标志的值为 %v，期望为 %v", *f.value, 6.28)
+	if f.Get() != 6.28 {
+		t.Errorf("浮点数标志的值为 %v，期望为 %v", f.Get(), 6.28)
 	}
 }
 
@@ -343,8 +346,8 @@ func TestFloatFlagShort(t *testing.T) {
 	}
 
 	// 验证值
-	if *f.value != 6.28 {
-		t.Errorf("浮点数标志的值为 %v，期望为 %v", *f.value, 6.28)
+	if f.Get() != 6.28 {
+		t.Errorf("浮点数标志的值为 %v，期望为 %v", f.Get(), 6.28)
 	}
 }
 
@@ -503,7 +506,7 @@ func TestCmd_Arg(t *testing.T) {
 
 // TestIntFlag_Interface 验证IntFlag实现了Flag接口
 func TestIntFlag_Interface(t *testing.T) {
-	var f Flag = &IntFlag{}
+	var f flags.Flag = &flags.IntFlag{}
 	_ = f // 若编译通过，则说明实现了接口
 }
 
@@ -516,8 +519,8 @@ func TestIntFlag_Methods(t *testing.T) {
 
 	f := cmd.Int("intflag", "i", defValue, "整数标志测试")
 
-	if f.longName != "intflag" {
-		t.Errorf("IntFlag.Name() 返回 %q，期望为 %q", f.longName, "intflag")
+	if f.LongName() != "intflag" {
+		t.Errorf("IntFlag.Name() 返回 %q，期望为 %q", f.LongName(), "intflag")
 	}
 	if f.ShortName() != "i" {
 		t.Errorf("IntFlag.ShortName() 返回 %q，期望为 %q", f.ShortName(), "i")
@@ -528,8 +531,8 @@ func TestIntFlag_Methods(t *testing.T) {
 	if f.GetDefault() != defValue {
 		t.Errorf("IntFlag.GetDefault() 返回 %v，期望为 %v", f.GetDefault(), defValue)
 	}
-	if f.Type() != FlagTypeInt {
-		t.Errorf("IntFlag.Type() 返回 %v，期望为 %v", f.Type(), FlagTypeInt)
+	if f.Type() != flags.FlagTypeInt {
+		t.Errorf("IntFlag.Type() 返回 %v，期望为 %v", f.Type(), flags.FlagTypeInt)
 	}
 
 	// 测试边界值
@@ -551,7 +554,7 @@ func TestIntFlag_Methods(t *testing.T) {
 
 // TestStringFlag_Interface 验证StringFlag实现了Flag接口
 func TestStringFlag_Interface(t *testing.T) {
-	var f Flag = &StringFlag{}
+	var f flags.Flag = &flags.StringFlag{}
 	_ = f
 }
 
@@ -564,8 +567,8 @@ func TestStringFlag_Methods(t *testing.T) {
 
 	f := cmd.String("strflag", "s", defValue, "字符串标志测试")
 
-	if f.longName != "strflag" {
-		t.Errorf("StringFlag.Name() 返回 %q，期望为 %q", f.longName, "strflag")
+	if f.LongName() != "strflag" {
+		t.Errorf("StringFlag.Name() 返回 %q，期望为 %q", f.LongName(), "strflag")
 	}
 	if f.ShortName() != "s" {
 		t.Errorf("StringFlag.ShortName() 返回 %q，期望为 %q", f.ShortName(), "s")
@@ -576,8 +579,8 @@ func TestStringFlag_Methods(t *testing.T) {
 	if f.GetDefault() != defValue {
 		t.Errorf("StringFlag.GetDefault() 返回 %v，期望为 %v", f.GetDefault(), defValue)
 	}
-	if f.Type() != FlagTypeString {
-		t.Errorf("StringFlag.Type() 返回 %v，期望为 %v", f.Type(), FlagTypeString)
+	if f.Type() != flags.FlagTypeString {
+		t.Errorf("StringFlag.Type() 返回 %v，期望为 %v", f.Type(), flags.FlagTypeString)
 	}
 
 	// 测试边界值
@@ -594,7 +597,7 @@ func TestStringFlag_Methods(t *testing.T) {
 
 // TestBoolFlag_Interface 验证BoolFlag实现了Flag接口
 func TestBoolFlag_Interface(t *testing.T) {
-	var f Flag = &BoolFlag{}
+	var f flags.Flag = &flags.BoolFlag{}
 	_ = f
 }
 
@@ -607,8 +610,8 @@ func TestBoolFlag_Methods(t *testing.T) {
 
 	f := cmd.Bool("boolflag", "b", defValue, "布尔标志测试")
 
-	if f.longName != "boolflag" {
-		t.Errorf("BoolFlag.Name() 返回 %q，期望为 %q", f.longName, "boolflag")
+	if f.LongName() != "boolflag" {
+		t.Errorf("BoolFlag.Name() 返回 %q，期望为 %q", f.LongName(), "boolflag")
 	}
 	if f.ShortName() != "b" {
 		t.Errorf("BoolFlag.ShortName() 返回 %q，期望为 %q", f.ShortName(), "b")
@@ -619,8 +622,8 @@ func TestBoolFlag_Methods(t *testing.T) {
 	if f.GetDefault() != defValue {
 		t.Errorf("BoolFlag.GetDefault() 返回 %v，期望为 %v", f.GetDefault(), defValue)
 	}
-	if f.Type() != FlagTypeBool {
-		t.Errorf("BoolFlag.Type() 返回 %v，期望为 %v", f.Type(), FlagTypeBool)
+	if f.Type() != flags.FlagTypeBool {
+		t.Errorf("BoolFlag.Type() 返回 %v，期望为 %v", f.Type(), flags.FlagTypeBool)
 	}
 
 	// 测试切换布尔值
@@ -637,7 +640,7 @@ func TestBoolFlag_Methods(t *testing.T) {
 
 // TestFloatFlag_Interface 验证FloatFlag实现了Flag接口
 func TestFloatFlag_Interface(t *testing.T) {
-	var f Flag = &FloatFlag{}
+	var f flags.Flag = &flags.FloatFlag{}
 	_ = f
 }
 
@@ -650,8 +653,8 @@ func TestFloatFlag_Methods(t *testing.T) {
 
 	f := cmd.Float("floatflag", "f", defValue, "浮点数标志测试")
 
-	if f.longName != "floatflag" {
-		t.Errorf("FloatFlag.Name() 返回 %q，期望为 %q", f.longName, "floatflag")
+	if f.LongName() != "floatflag" {
+		t.Errorf("FloatFlag.Name() 返回 %q，期望为 %q", f.LongName(), "floatflag")
 	}
 	if f.ShortName() != "f" {
 		t.Errorf("FloatFlag.ShortName() 返回 %q，期望为 %q", f.ShortName(), "f")
@@ -662,8 +665,8 @@ func TestFloatFlag_Methods(t *testing.T) {
 	if f.GetDefault() != defValue {
 		t.Errorf("FloatFlag.GetDefault() 返回 %v，期望为 %v", f.GetDefault(), defValue)
 	}
-	if f.Type() != FlagTypeFloat {
-		t.Errorf("FloatFlag.Type() 返回 %v，期望为 %v", f.Type(), FlagTypeFloat)
+	if f.Type() != flags.FlagTypeFloat {
+		t.Errorf("FloatFlag.Type() 返回 %v，期望为 %v", f.Type(), flags.FlagTypeFloat)
 	}
 
 	// 测试边界值
@@ -691,13 +694,13 @@ func TestBindHelpFlag(t *testing.T) {
 	if !cmd.initFlagBound {
 		t.Error("帮助标志应该已绑定")
 	}
-	if _, ok := cmd.flagRegistry.GetByName(helpFlagName); !ok {
+	if _, ok := cmd.flagRegistry.GetByName(flags.HelpFlagName); !ok {
 		t.Error("帮助标志应该已注册")
 	}
 
 	// 当短帮助标志名存在时，检查该标志是否已注册，若未注册则报错。
-	_, ok := cmd.flagRegistry.GetByName(helpFlagShortName)
-	if helpFlagShortName != "" && !ok {
+	_, ok := cmd.flagRegistry.GetByName(flags.HelpFlagShortName)
+	if flags.HelpFlagShortName != "" && !ok {
 		t.Error("短帮助标志应该已注册")
 	}
 }
@@ -879,4 +882,75 @@ func (w *testLogWriter) Write(p []byte) (n int, err error) {
 		w.t.Log(string(p))
 	}
 	return len(p), nil
+}
+
+func TestCommandAndFlagRegistration(t *testing.T) {
+	// 测试用例1: 只有长名称的命令
+	t.Run("Command with long name only", func(t *testing.T) {
+		cmd := NewCmd("longcmd", "", flag.ContinueOnError)
+		cmd.SetDescription("This command has only long name")
+
+		// 添加只有长名称的标志
+		cmd.String("aconfig", "", "Config file path", "/etc/app.conf")
+
+		// 验证帮助信息生成
+		help := cmd.GetHelp()
+		if !strings.Contains(help, "longcmd") {
+			t.Error("Command long name not found in help")
+		}
+		if strings.Contains(help, "-c") {
+			t.Error("Unexpected short name in help")
+		}
+	})
+
+	// 测试用例2: 只有短名称的命令
+	t.Run("Command with short name only", func(t *testing.T) {
+		cmd := NewCmd("", "s", flag.ContinueOnError)
+		cmd.SetDescription("This command has only short name")
+
+		// 跳过内置标志绑定，避免冲突
+		cmd.initFlagBound = true
+
+		// 添加只有短名称的标志
+		cmd.String("", "c", "Config file path", "/etc/app.conf")
+
+		// 验证帮助信息生成
+		help := cmd.GetHelp()
+		if !strings.Contains(help, "-c") {
+			t.Error("Command short name not found in help")
+		}
+		if strings.Contains(help, "--config") {
+			t.Error("Unexpected long name in help")
+		}
+	})
+
+	// 测试用例3: 混合名称的命令和标志
+	t.Run("Mixed name command and flags", func(t *testing.T) {
+		cmd := NewCmd("mixed", "m", flag.ContinueOnError)
+		cmd.SetDescription("This command has both long and short names")
+
+		// 添加各种组合的标志
+		cmd.String("config", "c", "Config file path", "/etc/app.conf")
+		cmd.String("output", "", "Output directory", "./out")
+		cmd.String("", "v", "Verbose mode", "false")
+
+		// 验证帮助信息生成
+		help := cmd.GetHelp()
+
+		// 检查命令名称显示
+		if !strings.Contains(help, "mixed, m") {
+			t.Error("Command name display incorrect")
+		}
+
+		// 检查标志显示
+		if !strings.Contains(help, "--config, -c") {
+			t.Error("Flag with both names display incorrect")
+		}
+		if !strings.Contains(help, "--output") {
+			t.Error("Flag with long name only display incorrect")
+		}
+		if !strings.Contains(help, "-v") {
+			t.Error("Flag with short name only display incorrect")
+		}
+	})
 }

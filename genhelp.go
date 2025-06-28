@@ -5,11 +5,13 @@ import (
 	"fmt"
 	"sort"
 	"time"
+
+	"gitee.com/MM-Q/qflag/flags"
 )
 
-// FlagInfo 标志信息结构体
+// flagInfo 标志信息结构体
 // 用于存储命令行标志的元数据，包括长名称、短名称、用法说明和默认值
-type FlagInfo struct {
+type flagInfo struct {
 	longFlag  string // 长标志名称
 	shortFlag string // 短标志名称
 	usage     string // 用法说明
@@ -289,25 +291,25 @@ func writeOptions(cmd *Cmd, tpl HelpTemplate, buf *bytes.Buffer) {
 }
 
 // collectFlags 收集所有标志信息
-func collectFlags(cmd *Cmd) []FlagInfo {
-	var flags []FlagInfo
+func collectFlags(cmd *Cmd) []flagInfo {
+	var flagInfos []flagInfo
 
 	// 遍历所有标志, 收集标志信息
-	for _, f := range cmd.flagRegistry.allFlags {
+	for _, f := range cmd.flagRegistry.GetAllFlags() {
 		flag := f // 获取标志类型
 
 		// 收集默认值
 		defValue := fmt.Sprintf("%v", flag.GetDefault())
 
 		// 对Duration类型进行特殊格式化
-		if flag.GetFlagType() == FlagTypeDuration {
+		if flag.GetFlagType() == flags.FlagTypeDuration {
 			if duration, ok := flag.GetDefault().(time.Duration); ok {
 				defValue = duration.String() // 获取时间间隔标志的默认值的字符串表示
 			}
 		}
 
 		// 创建标志元数据
-		flags = append(flags, FlagInfo{
+		flagInfos = append(flagInfos, flagInfo{
 			longFlag:  flag.GetLongName(),                   // 长标志名
 			shortFlag: flag.GetShortName(),                  // 短标志
 			usage:     flag.GetUsage(),                      // 使用说明
@@ -316,11 +318,11 @@ func collectFlags(cmd *Cmd) []FlagInfo {
 		})
 	}
 
-	return flags
+	return flagInfos
 }
 
 // sortFlags 按短标志字母顺序排序，有短标志的选项优先
-func sortFlags(flags []FlagInfo) {
+func sortFlags(flags []flagInfo) {
 	sort.Slice(flags, func(i, j int) bool {
 		a, b := flags[i], flags[j]
 		return sortWithShortNamePriority(
@@ -432,7 +434,7 @@ func writeSubCmds(cmd *Cmd, tpl HelpTemplate, buf *bytes.Buffer) {
 }
 
 // calculateMaxWidth 计算最大标志名称宽度用于对齐
-func calculateMaxWidth(flags []FlagInfo) (int, error) {
+func calculateMaxWidth(flags []flagInfo) (int, error) {
 	// 如果没有标志，则返回0
 	if len(flags) == 0 {
 		return 0, nil
@@ -513,20 +515,20 @@ func getFullCommandPath(cmd *Cmd) string {
 }
 
 // flagTypeToString 将FlagType转换为字符串
-func flagTypeToString(flagType FlagType) string {
+func flagTypeToString(flagType flags.FlagType) string {
 	switch flagType {
-	case FlagTypeInt:
+	case flags.FlagTypeInt:
 		return "<int>"
-	case FlagTypeString:
+	case flags.FlagTypeString:
 		return "<string>"
-	case FlagTypeBool:
+	case flags.FlagTypeBool:
 		// 布尔类型没有参数类型字符串
 		return ""
-	case FlagTypeFloat:
+	case flags.FlagTypeFloat:
 		return "<float>"
-	case FlagTypeEnum:
+	case flags.FlagTypeEnum:
 		return "<enum>"
-	case FlagTypeDuration:
+	case flags.FlagTypeDuration:
 		return "<duration>"
 	default:
 		return "<unknown>"

@@ -549,13 +549,12 @@ type BaseFlag[T any] struct {
 
 字段：
 
-* `Name` ：标志的长名称。
-* `Short` ：标志的短名称。
-* `Usage` ：标志的帮助说明信息。
-* `DefValue` ：标志的默认值。
-* `Value` ：标志的当前值。
-* `Changed` ：标志的值是否被修改过的标志位。
-* `Validator` ：标志的验证器接口，用于自定义参数验证逻辑。
+* `longName` ：标志的长名称。
+* `shortName` ：标志的短名称。
+* `usage` ：标志的帮助说明信息。
+* `defValue` ：标志的默认值。
+* `value` ：标志的当前值。
+* `validator` ：标志的验证器接口，用于自定义参数验证逻辑。
 
 ```go
 func (f *BaseFlag[T]) Get() T
