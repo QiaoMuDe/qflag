@@ -1,4 +1,4 @@
-package qflag
+package cmd
 
 import (
 	"bytes"

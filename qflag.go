@@ -15,8 +15,8 @@ import (
 项目地址: https://gitee.com/MM-Q/qflag
 */
 
-// QCommandLine 全局默认Cmd实例
-var QCommandLine *Cmd
+// QCommandLine 全局默认Command实例
+var QCommandLine *Command
 
 // QCommandLineInterface 定义了全局默认命令行接口，提供统一的命令行参数管理功能
 // 该接口封装了命令行程序的常用操作，包括标志添加、参数解析和帮助信息展示
