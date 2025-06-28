@@ -88,6 +88,15 @@ var EnglishTemplate = HelpTemplate{
 
 ## 函数
 
+### NewCmd
+
+```go
+// NewCmd 导出cmd包中的NewCommand函数
+func NewCmd(longName string, shortName string, errorHandling flag.ErrorHandling) *cmd.Cmd
+```
+
+NewCmd 创建新的命令实例 参数：longName：命令长名称 shortName：命令短名称 errorHandling：错误处理方式 返回值：*Cmd 命令实例指针 errorHandling 可选值：flag.ContinueOnError、flag.ExitOnError、flag.PanicOnError。
+
 ### AddExample
 
 ```go
@@ -109,14 +118,14 @@ func AddNote(note string)
 ### AddSubCmd
 
 ```go
-func AddSubCmd(subCmds ...*Cmd) error
+func AddSubCmd(subCmds ...*cmd.Cmd) error
 ```
 
 向全局默认命令实例 `QCommandLine` 添加一个或多个子命令。
 
 **参数:**
 
-- `subCmds`: 可变参数，接收一个或多个 `*Cmd` 类型的子命令实例。
+- `subCmds`: 可变参数，接收一个或多个 `*cmd.Cmd` 类型的子命令实例。
 
 **返回值:**
 
@@ -674,253 +683,255 @@ type Cmd struct {
 Cmd 命令行标志管理结构体，封装参数解析、长短标志互斥及帮助系统。
 
 ```go
-var QCommandLine *Cmd
+var QCommandLine *cmd.Cmd
 ```
 
 QCommandLine 全局默认 Cmd 实例。
 
 ```go
-func NewCmd(longName string, shortName string, errorHandling flag.ErrorHandling) *Cmd
+func NewCommand(longName string, shortName string, errorHandling flag.ErrorHandling) *cmd.Cmd
+
 ```
 
-NewCmd 创建新的命令实例 参数：longName：命令长名称 shortName：命令短名称 errorHandling：错误处理方式 返回值：*Cmd 命令实例指针 errorHandling 可选值：flag.ContinueOnError、flag.ExitOnError、flag.PanicOnError。
+NewCommand 创建新的命令实例 参数：longName：命令长名称 shortName：命令短名称 errorHandling：错误处理方式 返回值：*cmd.Cmd 命令实例指针 errorHandling 可选值：flag.ContinueOnError、flag.ExitOnError、flag.PanicOnError。
+
 
 ```go
-func SubCmds() []*Cmd
+func SubCmds() []*cmd.Cmd
 ```
 
 SubCmds 获取所有已注册的子命令列表。
 
 ```go
-func (c *Cmd) AddExample(e ExampleInfo)
+func (c *cmd.Cmd) AddExample(e ExampleInfo)
 ```
 
 AddExample 为命令添加使用示例 description：示例描述 usage：示例使用方式。
 
 ```go
-func (c *Cmd) AddNote(note string)
+func (c *cmd.Cmd) AddNote(note string)
 ```
 
 AddNote 添加备注信息到命令。
 
 ```go
-func (c *Cmd) AddSubCmd(subCmds ...*Cmd) error
+func (c *cmd.Cmd) AddSubCmd(subCmds ...*cmd.Cmd) error
 ```
 
 AddSubCmd 关联一个或多个子命令到当前命令 支持批量添加多个子命令，遇到错误时收集所有错误并返回 参数：subCmds：一个或多个子命令实例指针 返回值：错误信息列表，如果所有子命令添加成功则返回 nil。
 
 ```go
-func (c *Cmd) Arg(i int) string
+func (c *cmd.Cmd) Arg(i int) string
 ```
 
 Arg 获取指定索引的非标志参数。
 
 ```go
-func (c *Cmd) Args() []string
+func (c *cmd.Cmd) Args() []string
 ```
 
 Args 获取非标志参数切片。
 
 ```go
-func (c *Cmd) Bool(longName, shortName string, defValue bool, usage string) *BoolFlag
+func (c *cmd.Cmd) Bool(longName, shortName string, defValue bool, usage string) *BoolFlag
 ```
 
 Bool 添加布尔类型标志，返回标志对象指针 参数依次为：长标志名、短标志、默认值、帮助说明。
 
 ```go
-func (c *Cmd) BoolVar(f *BoolFlag, longName, shortName string, defValue bool, usage string)
+func (c *cmd.Cmd) BoolVar(f *BoolFlag, longName, shortName string, defValue bool, usage string)
 ```
 
 BoolVar 绑定布尔类型标志到指针并内部注册 Flag 对象 参数依次为：布尔标志指针、长标志名、短标志、默认值、帮助说明。
 
 ```go
-func (c *Cmd) Description() string
+func (c *cmd.Cmd) Description() string
 ```
 
 Description 返回命令描述。
 
 ```go
-func (c *Cmd) Duration(longName, shortName string, defValue time.Duration, usage string) *DurationFlag
+func (c *cmd.Cmd) Duration(longName, shortName string, defValue time.Duration, usage string) *DurationFlag
 ```
 
 Duration 添加时间间隔类型标志，返回标志对象指针 参数依次为：长标志名、短标志、默认值、帮助说明。
 
 ```go
-func (c *Cmd) DurationVar(f *DurationFlag, longName, shortName string, defValue time.Duration, usage string)
+func (c *cmd.Cmd) DurationVar(f *DurationFlag, longName, shortName string, defValue time.Duration, usage string)
 ```
 
 DurationVar 绑定时间间隔类型标志到指针并内部注册 Flag 对象 参数依次为：时间间隔标志指针、长标志名、短标志、默认值、帮助说明。
 
 ```go
-func (c *Cmd) Enum(longName, shortName string, defValue string, usage string, options []string) *EnumFlag
+func (c *cmd.Cmd) Enum(longName, shortName string, defValue string, usage string, options []string) *EnumFlag
 ```
 
 Enum 添加枚举类型标志，返回标志对象指针 参数依次为：长标志名、短标志、默认值、帮助说明、限制该标志取值的枚举值切片。
 
 ```go
-func (c *Cmd) EnumVar(f *EnumFlag, longName, shortName string, defValue string, usage string, options []string)
+func (c *cmd.Cmd) EnumVar(f *EnumFlag, longName, shortName string, defValue string, usage string, options []string)
 ```
 
 EnumVar 绑定枚举类型标志到指针并内部注册 Flag 对象 参数依次为：枚举标志指针、长标志名、短标志、默认值、帮助说明、限制该标志取值的枚举值切片。
 
 ```go
-func (c *Cmd) FlagExists(name string) bool
+func (c *cmd.Cmd) FlagExists(name string) bool
 ```
 
 FlagExists 检查指定名称的标志是否存在。
 
 ```go
-func (c *Cmd) Float(longName, shortName string, defValue float64, usage string) *FloatFlag
+func (c *cmd.Cmd) Float(longName, shortName string, defValue float64, usage string) *FloatFlag
 ```
 
 Float 添加浮点型标志，返回标志对象指针 参数依次为：长标志名、短标志、默认值、帮助说明。
 
 ```go
-func (c *Cmd) FloatVar(f *FloatFlag, longName, shortName string, defValue float64, usage string)
+func (c *cmd.Cmd) FloatVar(f *FloatFlag, longName, shortName string, defValue float64, usage string)
 ```
 
 FloatVar 绑定浮点数标志到指针并内部注册 Flag 对象 参数依次为：浮点数标志指针、长标志名、短标志、默认值、帮助说明。
 
 ```go
-func (c *Cmd) GetExamples() []ExampleInfo
+func (c *cmd.Cmd) GetExamples() []ExampleInfo
 ```
 
 GetExamples 获取所有使用示例 返回示例切片的副本，防止外部修改。
 
 ```go
-func (c *Cmd) GetLogoText() string
+func (c *cmd.Cmd) GetLogoText() string
 ```
 
 GetLogoText 获取 logo 文本。
 
 ```go
-func (c *Cmd) GetModuleHelps() string
+func (c *cmd.Cmd) GetModuleHelps() string
 ```
 
 GetModuleHelps 获取自定义模块帮助信息。
 
 ```go
-func (c *Cmd) GetNotes() []string
+func (c *cmd.Cmd) GetNotes() []string
 ```
 
 GetNotes 获取所有备注信息。
 
 ```go
-func (c *Cmd) GetUseChinese() bool
+func (c *cmd.Cmd) GetUseChinese() bool
 ```
 
 GetUseChinese 获取是否使用中文帮助信息。
 
 ```go
-func (c *Cmd) Help() string
+func (c *cmd.Cmd) Help() string
 ```
 
 Help 返回命令用法。
 
 ```go
-func (c *Cmd) Int(longName, shortName string, defValue int, usage string) *IntFlag
+func (c *cmd.Cmd) Int(longName, shortName string, defValue int, usage string) *IntFlag
 ```
 
 Int 添加整数类型标志，返回标志对象指针 参数依次为：长标志名、短标志、默认值、帮助说明。
 
 ```go
-func (c *Cmd) IntVar(f *IntFlag, longName, shortName string, defValue int, usage string)
+func (c *cmd.Cmd) IntVar(f *IntFlag, longName, shortName string, defValue int, usage string)
 ```
 
 IntVar 绑定整数类型标志到指针并内部注册 Flag 对象 参数依次为：整数标志指针、长标志名、短标志、默认值、帮助说明。
 
 ```go
-func (c *Cmd) LongName() string
+func (c *cmd.Cmd) LongName() string
 ```
 
 LongName 返回命令长名称。
 
 ```go
-func (c *Cmd) NArg() int
+func (c *cmd.Cmd) NArg() int
 ```
 
 NArg 获取非标志参数的数量。
 
 ```go
-func (c *Cmd) NFlag() int
+func (c *cmd.Cmd) NFlag() int
 ```
 
 NFlag 获取标志的数量。
 
 ```go
-func (c *Cmd) Parse(args []string) (err error)
+func (c *cmd.Cmd) Parse(args []string) (err error)
 ```
 
 Parse 解析命令行参数，自动检查长短标志，并处理内置标志 如果有子命令则会自动解析子命令的参数 参数：args：命令行参数切片 注意：该方法保证每个 Cmd 实例只会解析一次。
 
 ```go
-func (c *Cmd) ParseFlagsOnly(args []string) (err error)
+func (c *cmd.Cmd) ParseFlagsOnly(args []string) (err error)
 ```
 
 ParseFlagsOnly 仅解析当前命令的标志参数（忽略子命令, 不会自动解析子命令） 参数：args：命令行参数切片 注意：该方法保证每个 Cmd 实例只会解析一次。
 
 ```go
-func (c *Cmd) PrintHelp()
+func (c *cmd.Cmd) PrintHelp()
 ```
 
 PrintHelp 打印命令的帮助信息，优先打印用户的帮助信息，否则自动生成帮助信息。
 
 ```go
-func (c *Cmd) SetDescription(desc string)
+func (c *cmd.Cmd) SetDescription(desc string)
 ```
 
 SetDescription 设置命令描述。
 
 ```go
-func (c *Cmd) SetHelp(help string)
+func (c *cmd.Cmd) SetHelp(help string)
 ```
 
 SetHelp 设置用户自定义命令帮助信息。
 
 ```go
-func (c *Cmd) SetLogoText(logoText string)
+func (c *cmd.Cmd) SetLogoText(logoText string)
 ```
 
 SetLogoText 设置 logo 文本。
 
 ```go
-func (c *Cmd) SetModuleHelps(moduleHelps string)
+func (c *cmd.Cmd) SetModuleHelps(moduleHelps string)
 ```
 
 SetModuleHelps 设置自定义模块帮助信息。
 
 ```go
-func (c *Cmd) SetUsage(usage string)
+func (c *cmd.Cmd) SetUsage(usage string)
 ```
 
 SetUsage 设置自定义命令用法。
 
 ```go
-func (c *Cmd) SetUseChinese(useChinese bool)
+func (c *cmd.Cmd) SetUseChinese(useChinese bool)
 ```
 
 SetUseChinese 设置是否使用中文帮助信息。
 
 ```go
-func (c *Cmd) ShortName() string
+func (c *cmd.Cmd) ShortName() string
 ```
 
 ShortName 返回命令短名称。
 
 ```go
-func (c *Cmd) String(longName, shortName, defValue, usage string) *StringFlag
+func (c *cmd.Cmd) String(longName, shortName, defValue, usage string) *StringFlag
 ```
 
 String 添加字符串类型标志，返回标志对象指针 参数依次为：长标志名、短标志、默认值、帮助说明。
 
 ```go
-func (c *Cmd) StringVar(f *StringFlag, longName, shortName, defValue, usage string)
+func (c *cmd.Cmd) StringVar(f *StringFlag, longName, shortName, defValue, usage string)
 ```
 
 StringVar 绑定字符串类型标志到指针并内部注册 Flag 对象 参数依次为：字符串标志指针、长标志名、短标志、默认值、帮助说明。
 
 ```go
-func (c *Cmd) SubCmds() []*Cmd
+func (c *cmd.Cmd) SubCmds() []*cmd.Cmd
 ```
 
 SubCmds 返回子命令列表。
@@ -938,8 +949,8 @@ type CmdInterface interface {
     SetUsageSyntax(usageSyntax string) // 设置自定义命令用法，覆盖自动生成内容
     GetUseChinese() bool // 获取是否使用中文帮助信息
     SetUseChinese(useChinese bool) // 设置是否使用中文帮助信息
-    AddSubCmd(subCmd *Cmd) // 添加子命令，子命令会继承父命令的上下文
-    SubCmds() []*Cmd // 获取所有已注册的子命令列表
+    AddSubCmd(subCmd *cmd.Cmd) // 添加子命令，子命令会继承父命令的上下文
+    SubCmds() []*cmd.Cmd // 获取所有已注册的子命令列表
     Parse(args []string) error // 解析命令行参数，自动处理标志和子命令
     ParseFlagsOnly(args []string) (err error) // 仅解析标志参数，不处理子命令
     Args() []string // 获取所有非标志参数(未绑定到任何标志的参数)
@@ -1350,8 +1361,8 @@ type QCommandLineInterface interface {
     SetUsageSyntax(usage string) // 设置命令用法格式
     GetUseChinese() bool // 获取是否使用中文帮助信息
     SetUseChinese(useChinese bool) // 设置是否使用中文帮助信息
-    AddSubCmd(subCmd *Cmd) // 添加子命令，子命令会继承父命令的上下文
-    SubCmds() []*Cmd // 获取所有已注册的子命令列表
+    AddSubCmd(subCmd *cmd.Cmd) // 添加子命令，子命令会继承父命令的上下文
+    SubCmds() []*cmd.Cmd // 获取所有已注册的子命令列表
     Parse() error // 解析命令行参数，自动处理标志和子命令
     ParseFlagsOnly() error // 解析命令行参数，仅处理标志，不处理子命令
     Args() []string // 获取所有非标志参数(未绑定到任何标志的参数)
@@ -1454,5 +1465,7 @@ type Validator interface {
 ```
 
 Validator 验证器接口，所有自定义验证器需实现此接口。
+
+```
 
 ```
