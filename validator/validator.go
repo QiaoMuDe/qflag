@@ -1,6 +1,6 @@
-// qflag_validator.go
+// validator.go
 // 提供常用的参数验证器实现
-package qflag
+package validator
 
 import (
 	"errors"

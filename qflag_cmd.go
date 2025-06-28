@@ -4,6 +4,7 @@ import (
 	"flag"
 	"fmt"
 	"os"
+	"path/filepath"
 	"strings"
 	"sync"
 	"time"
@@ -550,7 +551,7 @@ func (c *Cmd) AddSubCmd(subCmds ...*Cmd) error {
 		}
 
 		// 检测循环引用
-		if hasCycle(c, cmd) {
+		if c.hasCycle(cmd) {
 			errors = append(errors, fmt.Errorf("Cyclic reference detected: Command %s already exists in the command chain", cmd.LongName()))
 			continue
 		}
@@ -808,6 +809,82 @@ func (c *Cmd) ParseFlagsOnly(args []string) (err error) {
 	}
 
 	return nil
+}
+
+// hasCycle 检测当前命令与待添加子命令间是否存在循环引用
+// 循环引用场景包括：
+// 1. 子命令直接或间接引用当前命令
+// 2. 子命令的父命令链中包含当前命令
+// 参数:
+//
+//	child: 待添加的子命令实例
+//
+// 返回值:
+//
+//	存在循环引用返回true，否则返回false
+func (c *Cmd) hasCycle(child *Cmd) bool {
+	if c == nil || child == nil {
+		return false
+	}
+
+	visited := make(map[*Cmd]bool)
+	return c.dfs(child, visited)
+}
+
+// dfs 深度优先搜索检测循环引用
+// 递归检查当前节点及其子命令、父命令链中是否包含目标节点(q)
+// 参数:
+//
+//	current: 当前遍历的命令节点
+//	visited: 已访问节点集合，防止重复遍历
+//
+// 返回值:
+//
+//	找到目标节点返回true，否则返回false
+func (c *Cmd) dfs(current *Cmd, visited map[*Cmd]bool) bool {
+	// 已访问过当前节点，直接返回避免无限循环
+	if visited[current] {
+		return false
+	}
+	visited[current] = true
+
+	// 找到目标节点，存在循环引用
+	if current == c {
+		return true
+	}
+
+	// 递归检查所有子命令
+	for _, subCmd := range current.subCmds {
+		if c.dfs(subCmd, visited) {
+			return true
+		}
+	}
+
+	// 检查父命令链
+	if current.parentCmd != nil {
+		return c.dfs(current.parentCmd, visited)
+	}
+
+	return false
+}
+
+// GetExecutablePath 获取程序的绝对安装路径
+// 如果无法通过 os.Executable 获取路径,则使用 os.Args[0] 作为替代
+// 返回：程序的绝对路径字符串
+func GetExecutablePath() string {
+	// 尝试使用 os.Executable 获取可执行文件的绝对路径
+	exePath, err := os.Executable()
+	if err != nil {
+		// 如果 os.Executable 报错,使用 os.Args[0] 作为替代
+		exePath = os.Args[0]
+	}
+	// 使用 filepath.Abs 确保路径是绝对路径
+	absPath, err := filepath.Abs(exePath)
+	if err != nil {
+		// 如果 filepath.Abs 报错,直接返回原始路径
+		return exePath
+	}
+	return absPath
 }
 
 // String 添加字符串类型标志, 返回标志对象指针

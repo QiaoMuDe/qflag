@@ -7,7 +7,52 @@ import (
 	"strings"
 	"sync"
 	"time"
+
+	"gitee.com/MM-Q/qflag/validator"
 )
+
+// 定义非法字符集常量, 防止非法的标志名称
+const invalidFlagChars = " !@#$%^&*(){}[]|\\;:'\"<>,.?/"
+
+// 标志类型
+type FlagType int
+
+const (
+	FlagTypeInt      FlagType = iota + 1 // 整数类型
+	FlagTypeString                       // 字符串类型
+	FlagTypeBool                         // 布尔类型
+	FlagTypeFloat                        // 浮点数类型
+	FlagTypeEnum                         // 枚举类型
+	FlagTypeDuration                     // 时间间隔类型
+	FlagTypeSlice                        // 切片类型
+	FlagTypeMap                          // 映射类型
+)
+
+// 内置标志名称
+var (
+	helpFlagName            = "help"    // 帮助标志名称
+	helpFlagShortName       = "h"       // 帮助标志短名称
+	showInstallPathFlagName = "sip"     // 显示安装路径标志名称
+	versionFlagLongName     = "version" // 版本标志名称
+	versionFlagShortName    = "v"       // 版本标志短名称
+)
+
+// 定义标志的分隔符常量
+const (
+	FlagSplitComma     = "," // 逗号
+	FlagSplitSemicolon = ";" // 分号
+	FlagSplitPipe      = "|" // 竖线
+	FlagKVColon        = ":" // 冒号
+	FlagKVEqual        = "=" // 等号
+)
+
+// Flag支持的标志分隔符切片
+var FlagSplitSlice = []string{
+	FlagSplitComma,     // 逗号
+	FlagSplitSemicolon, // 分号
+	FlagSplitPipe,      // 竖线
+	FlagKVColon,        // 冒号
+}
 
 // Validator 验证器接口, 所有自定义验证器需实现此接口
 type Validator interface {
@@ -163,7 +208,7 @@ func (f *IntFlag) Type() FlagType { return FlagTypeInt }
 // min: 最小值
 // max: 最大值
 func (f *IntFlag) SetRange(min, max int) {
-	validator := &IntRangeValidator{min, max}
+	validator := &validator.IntRangeValidator{Min: min, Max: max}
 	f.SetValidator(validator)
 }
 

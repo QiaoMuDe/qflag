@@ -739,7 +739,7 @@ func TestHasCycle(t *testing.T) {
 	cmd4 := NewCmd("", "c4", flag.ExitOnError)
 
 	// 无循环情况
-	if hasCycle(cmd1, cmd2) {
+	if cmd1.hasCycle(cmd2) {
 		t.Error("初始时不应存在循环引用")
 	}
 
@@ -754,16 +754,16 @@ func TestHasCycle(t *testing.T) {
 	cmd3.parentCmd = cmd2
 
 	// 检测循环
-	if hasCycle(cmd1, cmd4) {
+	if cmd1.hasCycle(cmd4) {
 		t.Error("与不相关的命令不应存在循环引用")
 	}
-	if !hasCycle(cmd1, cmd1) { // 自引用
+	if !cmd1.hasCycle(cmd1) { // 自引用
 		t.Error("应检测到自循环引用")
 	}
-	if !hasCycle(cmd2, cmd1) { // 反向引用
+	if !cmd2.hasCycle(cmd1) { // 反向引用
 		t.Error("应检测到反向循环引用")
 	}
-	if !hasCycle(cmd3, cmd1) { // 多级反向引用
+	if !cmd3.hasCycle(cmd1) { // 多级反向引用
 		t.Error("应检测到多级反向循环引用")
 	}
 }

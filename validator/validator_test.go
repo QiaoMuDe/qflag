@@ -1,6 +1,6 @@
-// qflag_validator_test.go
+// validator_test.go
 // 验证器测试用例
-package qflag
+package validator
 
 import (
 	"fmt"
