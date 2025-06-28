@@ -3,20 +3,16 @@
 package qflag
 
 import (
-	"flag"
 	"os"
-	"path/filepath"
 	"time"
 
+	"gitee.com/MM-Q/qflag/cmd"
 	"gitee.com/MM-Q/qflag/flags"
 )
 
 /*
 项目地址: https://gitee.com/MM-Q/qflag
 */
-
-// QCommandLine 全局默认Command实例
-var QCommandLine *Command
 
 // QCommandLineInterface 定义了全局默认命令行接口，提供统一的命令行参数管理功能
 // 该接口封装了命令行程序的常用操作，包括标志添加、参数解析和帮助信息展示
@@ -32,8 +28,8 @@ type QCommandLineInterface interface {
 	GetUsageSyntax() string            // 获取命令用法格式
 	GetUseChinese() bool               // 获取是否使用中文帮助信息
 	SetUseChinese(useChinese bool)     // 设置是否使用中文帮助信息
-	AddSubCmd(subCmd *Cmd)             // 添加子命令，子命令会继承父命令的上下文
-	SubCmds() []*Cmd                   // 获取所有已注册的子命令列表
+	AddSubCmd(subCmd *cmd.Cmd)         // 添加子命令，子命令会继承父命令的上下文
+	SubCmds() []*cmd.Cmd               // 获取所有已注册的子命令列表
 	Parse() error                      // 解析命令行参数，自动处理标志和子命令
 	ParseFlagsOnly() error             // 解析命令行参数，仅处理标志，不处理子命令
 	Args() []string                    // 获取所有非标志参数(未绑定到任何标志的参数)
@@ -44,8 +40,8 @@ type QCommandLineInterface interface {
 	FlagExists(name string) bool       // 检查指定名称的标志是否存在(支持长/短名称)
 	AddNote(note string)               // 添加一个注意事项
 	GetNotes() []string                // 获取所有备注信息
-	AddExample(e ExampleInfo)          // 添加一个示例信息
-	GetExamples() []ExampleInfo        // 获取示例信息列表
+	AddExample(e cmd.ExampleInfo)      // 添加一个示例信息
+	GetExamples() []cmd.ExampleInfo    // 获取示例信息列表
 	SetVersion(version string)         // 设置版本信息
 	GetVersion() string                // 获取版本信息
 	SetLogoText(logoText string)       // 设置logo文本
@@ -70,18 +66,6 @@ type QCommandLineInterface interface {
 	DurationVar(f *flags.DurationFlag, longName, shortName string, defValue time.Duration, usage string)       // 绑定时间间隔类型标志到指定变量
 	EnumVar(f *flags.EnumFlag, longName, shortName string, defValue string, usage string, enumValues []string) // 绑定枚举标志到指定变量
 	SliceVar(f *flags.SliceFlag, longName, shortName string, defValue []string, usage string)                  // 绑定字符串切片标志到指定变量
-}
-
-// 在包初始化时创建全局默认Cmd实例
-func init() {
-	// 处理可能的空os.Args情况
-	if len(os.Args) == 0 {
-		// 如果os.Args为空,则创建一个新的Cmd对象,命令行参数为"myapp",短名字为"a",错误处理方式为ExitOnError
-		QCommandLine = NewCmd("myapp", "", flag.ExitOnError)
-	} else {
-		// 如果os.Args不为空,则创建一个新的Cmd对象,命令行参数为filepath.Base(os.Args[0]),错误处理方式为ExitOnError
-		QCommandLine = NewCmd(filepath.Base(os.Args[0]), "", flag.ExitOnError)
-	}
 }
 
 // SetVersion 为全局默认命令设置版本信息
@@ -342,7 +326,7 @@ func ParseFlagsOnly() error {
 //
 // 返回值:
 //   - error: 若添加子命令过程中出现错误（如子命令为 `nil` 或存在循环引用），则返回错误信息；否则返回 `nil`。
-func AddSubCmd(subCmds ...*Cmd) error {
+func AddSubCmd(subCmds ...*cmd.Cmd) error {
 	return QCommandLine.AddSubCmd(subCmds...)
 }
 
@@ -422,7 +406,7 @@ func GetNotes() []string {
 }
 
 // SubCmds 获取所有已注册的子命令列表
-func SubCmds() []*Cmd {
+func SubCmds() []*cmd.Cmd {
 	return QCommandLine.SubCmds()
 }
 
@@ -454,7 +438,7 @@ func AddNote(note string) {
 // 该函数用于添加命令行标志的示例，这些示例将在命令行帮助信息中显示。
 // 参数:
 //   - e: 示例信息，ExampleInfo 类型。
-func AddExample(e ExampleInfo) {
+func AddExample(e cmd.ExampleInfo) {
 	QCommandLine.AddExample(e)
 }
 
@@ -462,7 +446,7 @@ func AddExample(e ExampleInfo) {
 // 该函数用于获取命令行标志的示例信息列表。
 // 返回值:
 //   - []ExampleInfo: 示例信息列表，每个元素为 ExampleInfo 类型。
-func GetExamples() []ExampleInfo {
+func GetExamples() []cmd.ExampleInfo {
 	return QCommandLine.GetExamples()
 }
 

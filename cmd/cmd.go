@@ -13,6 +13,21 @@ import (
 	"gitee.com/MM-Q/qflag/qerr"
 )
 
+// QCommandLine 全局默认Command实例
+var QCommandLine *Cmd
+
+// 在包初始化时创建全局默认Cmd实例
+func init() {
+	// 处理可能的空os.Args情况
+	if len(os.Args) == 0 {
+		// 如果os.Args为空,则创建一个新的Cmd对象,命令行参数为"myapp",短名字为"",错误处理方式为ExitOnError
+		QCommandLine = NewCmd("myapp", "", flag.ExitOnError)
+	} else {
+		// 如果os.Args不为空,则创建一个新的Cmd对象,命令行参数为filepath.Base(os.Args[0]),错误处理方式为ExitOnError
+		QCommandLine = NewCmd(filepath.Base(os.Args[0]), "", flag.ExitOnError)
+	}
+}
+
 // UserInfo 存储用户自定义信息的嵌套结构体
 type UserInfo struct {
 	// 命令长名称

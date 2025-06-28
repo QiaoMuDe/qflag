@@ -11,6 +11,8 @@ import (
 	"strings"
 	"testing"
 	"time"
+
+	"gitee.com/MM-Q/qflag/flags"
 )
 
 // TestNewCmd 测试创建新命令
@@ -562,69 +564,6 @@ func TestParseVsParseFlagsOnly(t *testing.T) {
 	})
 }
 
-// // TestBuiltinFlags 测试内置标志-v/--version和-sip/--show-install-path的功能
-// func TestBuiltinFlags(t *testing.T) {
-// 	// 测试根命令的--version和-v标志
-// 	t.Run("root command version flags", func(t *testing.T) {
-// 		// 创建带有版本信息的根命令
-// 		rootCmd := NewCmd("test", "t", flag.ContinueOnError)
-// 		rootCmd.SetVersion("1.0.0")
-
-// 		// 测试--version标志
-// 		args := []string{"--version"}
-// 		if err := rootCmd.Parse(args); err != nil {
-// 			t.Fatalf("解析--version标志失败: %v", err)
-// 		}
-// 		if !rootCmd.versionFlag.Get() {
-// 			t.Error("--version标志未被正确设置")
-// 		}
-
-// 		// 重置命令并测试-v短标志
-// 		rootCmd = NewCmd("test", "t", flag.ContinueOnError)
-// 		rootCmd.SetVersion("1.0.0")
-// 		args = []string{"-v"}
-// 		if err := rootCmd.Parse(args); err != nil {
-// 			t.Fatalf("解析-v标志失败: %v", err)
-// 		}
-// 		if !rootCmd.versionFlag.Get() {
-// 			t.Error("-v标志未被正确设置")
-// 		}
-// 	})
-
-// 	// 测试根命令的--show-install-path和-sip标志
-// 	t.Run("root command install path flags", func(t *testing.T) {
-// 		// 创建根命令
-// 		rootCmd := NewCmd("test", "t", flag.ContinueOnError)
-
-// 		// 重置命令并测试-sip短标志
-// 		rootCmd = NewCmd("test", "t", flag.ContinueOnError)
-// 		args := []string{"-sip"}
-// 		if err := rootCmd.Parse(args); err != nil {
-// 			t.Fatalf("解析-sip标志失败: %v", err)
-// 		}
-// 		if !rootCmd.showInstallPathFlag.Get() {
-// 			t.Error("-sip标志未被正确设置")
-// 		}
-// 	})
-
-// 	// 测试ParseFlagsOnly也能正确处理这些标志
-// 	t.Run("ParseFlagsOnly handles builtin flags", func(t *testing.T) {
-// 		rootCmd := NewCmd("test", "t", flag.ContinueOnError)
-// 		rootCmd.SetVersion("1.0.0")
-
-// 		args := []string{"-v", "-sip"}
-// 		if err := rootCmd.ParseFlagsOnly(args); err != nil {
-// 			t.Fatalf("ParseFlagsOnly解析标志失败: %v", err)
-// 		}
-// 		if !rootCmd.versionFlag.Get() {
-// 			t.Error("ParseFlagsOnly未正确设置versionFlag")
-// 		}
-// 		if !rootCmd.showInstallPathFlag.Get() {
-// 			t.Error("ParseFlagsOnly未正确设置showInstallPathFlag")
-// 		}
-// 	})
-// }
-
 func TestBuiltinFlags(t *testing.T) {
 	// 捕获标准输出和标准错误输出
 	var stdout, stderr bytes.Buffer
@@ -1001,5 +940,234 @@ func TestSetLogoTextAndModuleHelps(t *testing.T) {
 	// 验证Logo文本
 	if !strings.Contains(helpInfo, "Test Logo Text") {
 		t.Errorf("帮助信息未包含Logo文本, 实际输出: %s", helpInfo)
+	}
+}
+
+// TestBindHelpFlag 测试绑定帮助标志
+func TestBindHelpFlag(t *testing.T) {
+	cmd := NewCmd("test", "t", flag.ExitOnError)
+	cmd.initBuiltinFlags()
+	// 验证帮助标志已绑定
+	if !cmd.initFlagBound {
+		t.Error("帮助标志应该已绑定")
+	}
+	if _, ok := cmd.flagRegistry.GetByName(flags.HelpFlagName); !ok {
+		t.Error("帮助标志应该已注册")
+	}
+
+	// 当短帮助标志名存在时，检查该标志是否已注册，若未注册则报错。
+	_, ok := cmd.flagRegistry.GetByName(flags.HelpFlagShortName)
+	if flags.HelpFlagShortName != "" && !ok {
+		t.Error("短帮助标志应该已注册")
+	}
+}
+
+// TestHasCycle 测试检测循环引用
+func TestHasCycle(t *testing.T) {
+	cmd1 := NewCmd("cmd1", "", flag.ExitOnError)
+	cmd2 := NewCmd("", "c2", flag.ExitOnError)
+	cmd3 := NewCmd("cmd3", "c3", flag.ExitOnError)
+	cmd4 := NewCmd("", "c4", flag.ExitOnError)
+
+	// 无循环情况
+	if cmd1.hasCycle(cmd2) {
+		t.Error("初始时不应存在循环引用")
+	}
+
+	// 添加子命令
+	if err := cmd1.AddSubCmd(cmd2); err != nil {
+		t.Errorf("添加子命令时出错: %v", err)
+	}
+	cmd2.parentCmd = cmd1
+	if err := cmd2.AddSubCmd(cmd3); err != nil {
+		t.Errorf("添加子命令时出错: %v", err)
+	}
+	cmd3.parentCmd = cmd2
+
+	// 检测循环
+	if cmd1.hasCycle(cmd4) {
+		t.Error("与不相关的命令不应存在循环引用")
+	}
+	if !cmd1.hasCycle(cmd1) { // 自引用
+		t.Error("应检测到自循环引用")
+	}
+	if !cmd2.hasCycle(cmd1) { // 反向引用
+		t.Error("应检测到反向循环引用")
+	}
+	if !cmd3.hasCycle(cmd1) { // 多级反向引用
+		t.Error("应检测到多级反向循环引用")
+	}
+}
+
+// testLogWriter 用于将flag.FlagSet的输出重定向到testing.T的Log方法
+type testLogWriter struct {
+	t *testing.T
+}
+
+func (w *testLogWriter) Write(p []byte) (n int, err error) {
+	if testing.Verbose() {
+		w.t.Log(string(p))
+	}
+	return len(p), nil
+}
+
+// TestNestedCmdHelp 测试嵌套子命令的帮助信息生成
+func TestNestedCmdHelp(t *testing.T) {
+	// 创建三级嵌套命令结构
+	cmd1 := NewCmd("cmd1", "", flag.ExitOnError)
+	cmd1.SetDescription("一级命令描述")
+	cmd1.String("config", "c", "config.json", "配置文件路径")
+
+	cmd2 := NewCmd("", "c2", flag.ExitOnError)
+	cmd2.SetDescription("二级命令描述")
+	cmd2.Int("port", "p", 8080, "服务端口号")
+
+	cmd3 := NewCmd("cmd3", "", flag.ExitOnError)
+	cmd3.SetDescription("三级命令描述")
+	cmd3.Bool("verbose", "", false, "详细输出模式")
+	cmd3.SetUseChinese(true)
+	cmd2.SetUseChinese(true)
+	cmd3.String("output", "o", "", "输出文件路径")
+	cmd3.Float("timeout", "t", 5.0, "超时时间")
+	cmd3.Duration("duration", "d", 10*time.Second, "持续时间")
+	cmd3.Enum("format", "f", "json", "输出格式", []string{"json", "xml", "yaml"})
+
+	cmd4 := NewCmd("ssssssscmd4", "ccccc4", flag.ExitOnError)
+	cmd4.SetDescription("四级命令描述")
+
+	cmd5 := NewCmd("acmd5", "ccccc5", flag.ExitOnError)
+	cmd5.SetDescription("五级命令描述")
+
+	// 新增子命令用于测试帮助信息生成
+	cmd6 := NewCmd("randomizer", "rz", flag.ExitOnError)
+	cmd6.SetDescription("新增六级命令描述")
+	cmd6.Float("timeout", "t", 5.0, "超时时间")
+
+	cmd7 := NewCmd("generator", "gn", flag.ExitOnError)
+	cmd7.SetDescription("新增七级命令描述")
+	cmd7.String("format", "f", "json", "输出格式")
+
+	cmd8 := NewCmd("processor", "ps", flag.ExitOnError)
+	cmd8.SetDescription("新增八级命令描述")
+	cmd8.Int("retry", "r", 3, "重试次数")
+
+	// 添加示例
+	cmd3.AddExample(ExampleInfo{Description: "示例1", Usage: "echo 111"})
+	cmd3.AddExample(ExampleInfo{Description: "示例2", Usage: "echo 222"})
+
+	// 构建命令层级
+	cmd1.AddSubCmd(cmd2)
+	cmd2.AddSubCmd(cmd3)
+	cmd2.AddSubCmd(cmd4, cmd5)
+	cmd3.AddSubCmd(cmd6, cmd7, cmd8)
+
+	// 添加注意事项
+	cmd1.AddNote("注意事项1")
+	cmd1.AddNote("注意事项2")
+	cmd2.AddNote("注意事项3")
+	cmd3.AddNote("注意事项4")
+
+	// 解析命令行参数
+	if err := cmd1.Parse([]string{}); err != nil {
+		t.Errorf("解析命令行参数时出错: %v", err)
+	}
+
+	// 测试帮助信息生成
+	// 使用t.Log()替代fmt.Println()，并添加testing.Verbose()条件控制
+	printSection := func(section string) {
+		if testing.Verbose() {
+			t.Log(section)
+		}
+	}
+
+	printSeparator := func() {
+		if testing.Verbose() {
+			t.Log("========================")
+		}
+	}
+
+	printUsage := func(cmd *Cmd) {
+		if testing.Verbose() {
+			// 重定向cmd.PrintUsage()输出到t.Log
+			o := cmd.fs.Output()
+			cmd.fs.SetOutput(&testLogWriter{t: t})
+			cmd.PrintHelp()
+			cmd.fs.SetOutput(o)
+		}
+	}
+
+	// 一级命令帮助信息
+	printSection("=== 一级命令帮助信息 ===")
+	printUsage(cmd1)
+	printSeparator()
+
+	// 二级命令帮助信息
+	printSection("=== 二级命令帮助信息 ===")
+	printUsage(cmd2)
+	printSeparator()
+
+	// 三级命令帮助信息
+	printSection("=== 三级命令帮助信息 ===")
+	printUsage(cmd3)
+	printSeparator()
+}
+
+// TestCmd_Description 测试Cmd的Description和SetDescription方法
+func TestCmd_Description(t *testing.T) {
+	cmd := &Cmd{}
+	desc := "测试描述"
+	cmd.SetDescription(desc)
+	if cmd.GetDescription() != desc {
+		t.Errorf("Description() 返回 %q，期望为 %q", cmd.GetDescription(), desc)
+	}
+}
+
+// TestCmd_Args 测试Cmd的Args方法
+func TestCmd_Args(t *testing.T) {
+	args := []string{"arg1", "arg2"}
+	cmd := &Cmd{args: args}
+	result := cmd.Args()
+	// 检查长度
+	if len(result) != len(args) {
+		t.Fatalf("Args() 返回的长度为 %d，期望为 %d", len(result), len(args))
+	}
+	// 检查每个元素
+	for i, arg := range args {
+		if result[i] != arg {
+			t.Errorf("Args()[%d] 返回 %q，期望为 %q", i, result[i], arg)
+		}
+	}
+}
+
+// TestCmd_Arg 测试Cmd的Arg方法
+func TestCmd_Arg(t *testing.T) {
+	cmd := &Cmd{args: []string{"arg0", "arg1", "arg2"}}
+	tests := []struct {
+		name string
+		i    int
+		want string
+	}{{
+		name: "有效索引 0",
+		i:    0,
+		want: "arg0",
+	}, {
+		name: "有效索引 1",
+		i:    1,
+		want: "arg1",
+	}, {
+		name: "索引越界",
+		i:    3,
+		want: "",
+	}, {
+		name: "负索引",
+		i:    -1,
+		want: "",
+	}}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			if got := cmd.Arg(tt.i); got != tt.want {
+				t.Errorf("Arg(%d) 返回 %q，期望为 %q", tt.i, got, tt.want)
+			}
+		})
 	}
 }

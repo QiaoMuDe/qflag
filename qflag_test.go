@@ -6,8 +6,8 @@ import (
 	"os"
 	"strings"
 	"testing"
-	"time"
 
+	"gitee.com/MM-Q/qflag/cmd"
 	"gitee.com/MM-Q/qflag/flags"
 )
 
@@ -27,7 +27,7 @@ func TestStringFlagLong(t *testing.T) {
 		}
 	}()
 
-	cmd := NewCmd("test", "t", flag.ContinueOnError)
+	cmd := cmd.NewCmd("test", "t", flag.ContinueOnError)
 	flagName := "string-flag"
 	defValue := "default"
 	usage := "测试字符串标志"
@@ -70,7 +70,7 @@ func TestStringFlagShort(t *testing.T) {
 		}
 	}()
 
-	cmd := NewCmd("test", "t", flag.ContinueOnError)
+	cmd := cmd.NewCmd("test", "t", flag.ContinueOnError)
 	shortName := "s"
 	defValue := "default"
 	usage := "测试字符串标志"
@@ -113,7 +113,7 @@ func TestIntFlagLong(t *testing.T) {
 		}
 	}()
 
-	cmd := NewCmd("test", "t", flag.ContinueOnError)
+	cmd := cmd.NewCmd("test", "t", flag.ContinueOnError)
 	flagName := "int-flag"
 	defValue := 100
 	usage := "测试整数标志"
@@ -156,7 +156,7 @@ func TestIntFlagShort(t *testing.T) {
 		}
 	}()
 
-	cmd := NewCmd("test", "t", flag.ContinueOnError)
+	cmd := cmd.NewCmd("test", "t", flag.ContinueOnError)
 	shortName := "i"
 	defValue := 100
 	usage := "测试整数标志"
@@ -199,7 +199,7 @@ func TestBoolFlagLong(t *testing.T) {
 		}
 	}()
 
-	cmd := NewCmd("test", "t", flag.ContinueOnError)
+	cmd := cmd.NewCmd("test", "t", flag.ContinueOnError)
 	flagName := "bool-flag"
 	defValue := false
 	usage := "测试布尔标志"
@@ -242,7 +242,7 @@ func TestBoolFlagShort(t *testing.T) {
 		}
 	}()
 
-	cmd := NewCmd("test", "t", flag.ContinueOnError)
+	cmd := cmd.NewCmd("test", "t", flag.ContinueOnError)
 	shortName := "b"
 	defValue := false
 	usage := "测试布尔标志"
@@ -285,7 +285,7 @@ func TestFloatFlagLong(t *testing.T) {
 		}
 	}()
 
-	cmd := NewCmd("test", "t", flag.ContinueOnError)
+	cmd := cmd.NewCmd("test", "t", flag.ContinueOnError)
 	flagName := "float-flag"
 	defValue := 3.14
 	usage := "测试浮点数标志"
@@ -328,7 +328,7 @@ func TestFloatFlagShort(t *testing.T) {
 		}
 	}()
 
-	cmd := NewCmd("test", "t", flag.ContinueOnError)
+	cmd := cmd.NewCmd("test", "t", flag.ContinueOnError)
 	shortName := "f"
 	defValue := 3.14
 	usage := "测试浮点数标志"
@@ -381,7 +381,7 @@ func TestParseError(t *testing.T) {
 		}
 	}()
 
-	cmd := NewCmd("test", "t", flag.ContinueOnError)
+	cmd := cmd.NewCmd("test", "t", flag.ContinueOnError)
 	cmd.Int("int-flag", "i", 0, "测试整数标志")
 
 	// 测试无效参数
@@ -408,7 +408,7 @@ func TestHelpFlag(t *testing.T) {
 		}
 	}()
 
-	cmd := NewCmd("test", "t", flag.ContinueOnError)
+	cmd := cmd.NewCmd("test", "t", flag.ContinueOnError)
 	cmd.String("string-flag", "s", "", "测试字符串标志")
 
 	// 测试帮助标志
@@ -420,7 +420,7 @@ func TestHelpFlag(t *testing.T) {
 
 // TestCmd_Name 测试Cmd的Name方法
 func TestCmd_Name(t *testing.T) {
-	cmd := NewCmd("testcmd", "t", flag.ContinueOnError)
+	cmd := cmd.NewCmd("testcmd", "t", flag.ContinueOnError)
 	if cmd.LongName() != "testcmd" {
 		t.Errorf("Name() 返回 %q，期望为 %q", cmd.LongName(), "testcmd")
 	}
@@ -428,79 +428,19 @@ func TestCmd_Name(t *testing.T) {
 
 // TestCmd_ShortName 测试Cmd的ShortName方法
 func TestCmd_ShortName(t *testing.T) {
-	cmd := NewCmd("testcmd", "tc", flag.ContinueOnError)
+	cmd := cmd.NewCmd("testcmd", "tc", flag.ContinueOnError)
 	if cmd.ShortName() != "tc" {
 		t.Errorf("ShortName() 返回 %q，期望为 %q", cmd.ShortName(), "tc")
 	}
 }
 
-// TestCmd_Description 测试Cmd的Description和SetDescription方法
-func TestCmd_Description(t *testing.T) {
-	cmd := &Cmd{}
-	desc := "测试描述"
-	cmd.SetDescription(desc)
-	if cmd.GetDescription() != desc {
-		t.Errorf("Description() 返回 %q，期望为 %q", cmd.GetDescription(), desc)
-	}
-}
-
 // TestCmd_Usage 测试Cmd的Usage和SetUsage方法
 func TestCmd_Usage(t *testing.T) {
-	cmd := NewCmd("test", "t", flag.ContinueOnError)
+	cmd := cmd.NewCmd("test", "t", flag.ContinueOnError)
 	usage := "测试用法"
 	cmd.SetHelp(usage)
 	if cmd.GetHelp() != usage {
 		t.Errorf("GetHelp() 返回 %q，期望为 %q", cmd.GetHelp(), usage)
-	}
-}
-
-// TestCmd_Args 测试Cmd的Args方法
-func TestCmd_Args(t *testing.T) {
-	args := []string{"arg1", "arg2"}
-	cmd := &Cmd{args: args}
-	result := cmd.Args()
-	// 检查长度
-	if len(result) != len(args) {
-		t.Fatalf("Args() 返回的长度为 %d，期望为 %d", len(result), len(args))
-	}
-	// 检查每个元素
-	for i, arg := range args {
-		if result[i] != arg {
-			t.Errorf("Args()[%d] 返回 %q，期望为 %q", i, result[i], arg)
-		}
-	}
-}
-
-// TestCmd_Arg 测试Cmd的Arg方法
-func TestCmd_Arg(t *testing.T) {
-	cmd := &Cmd{args: []string{"arg0", "arg1", "arg2"}}
-	tests := []struct {
-		name string
-		i    int
-		want string
-	}{{
-		name: "有效索引 0",
-		i:    0,
-		want: "arg0",
-	}, {
-		name: "有效索引 1",
-		i:    1,
-		want: "arg1",
-	}, {
-		name: "索引越界",
-		i:    3,
-		want: "",
-	}, {
-		name: "负索引",
-		i:    -1,
-		want: "",
-	}}
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			if got := cmd.Arg(tt.i); got != tt.want {
-				t.Errorf("Arg(%d) 返回 %q，期望为 %q", tt.i, got, tt.want)
-			}
-		})
 	}
 }
 
@@ -515,7 +455,7 @@ func TestIntFlag_Methods(t *testing.T) {
 	defValue := 100
 
 	// 新建子命令
-	cmd := NewCmd("test", "t", flag.ContinueOnError)
+	cmd := cmd.NewCmd("test", "t", flag.ContinueOnError)
 
 	f := cmd.Int("intflag", "i", defValue, "整数标志测试")
 
@@ -563,7 +503,7 @@ func TestStringFlag_Methods(t *testing.T) {
 	defValue := "default string"
 
 	// 新建子命令
-	cmd := NewCmd("test", "t", flag.ContinueOnError)
+	cmd := cmd.NewCmd("test", "t", flag.ContinueOnError)
 
 	f := cmd.String("strflag", "s", defValue, "字符串标志测试")
 
@@ -606,7 +546,7 @@ func TestBoolFlag_Methods(t *testing.T) {
 	defValue := true
 
 	// 新建子命令
-	cmd := NewCmd("test", "t", flag.ContinueOnError)
+	cmd := cmd.NewCmd("test", "t", flag.ContinueOnError)
 
 	f := cmd.Bool("boolflag", "b", defValue, "布尔标志测试")
 
@@ -649,7 +589,7 @@ func TestFloatFlag_Methods(t *testing.T) {
 	defValue := 3.14
 
 	// 新建子命令
-	cmd := NewCmd("test", "t", flag.ContinueOnError)
+	cmd := cmd.NewCmd("test", "t", flag.ContinueOnError)
 
 	f := cmd.Float("floatflag", "f", defValue, "浮点数标志测试")
 
@@ -686,36 +626,17 @@ func TestFloatFlag_Methods(t *testing.T) {
 	}
 }
 
-// TestBindHelpFlag 测试绑定帮助标志
-func TestBindHelpFlag(t *testing.T) {
-	cmd := NewCmd("test", "t", flag.ExitOnError)
-	cmd.initBuiltinFlags()
-	// 验证帮助标志已绑定
-	if !cmd.initFlagBound {
-		t.Error("帮助标志应该已绑定")
-	}
-	if _, ok := cmd.flagRegistry.GetByName(flags.HelpFlagName); !ok {
-		t.Error("帮助标志应该已注册")
-	}
-
-	// 当短帮助标志名存在时，检查该标志是否已注册，若未注册则报错。
-	_, ok := cmd.flagRegistry.GetByName(flags.HelpFlagShortName)
-	if flags.HelpFlagShortName != "" && !ok {
-		t.Error("短帮助标志应该已注册")
-	}
-}
-
 // TestPrintUsage 测试打印用法
 func TestPrintUsage(t *testing.T) {
 	// 测试自定义用法信息
-	cmd1 := NewCmd("test", "t", flag.ExitOnError)
+	cmd1 := cmd.NewCmd("test", "t", flag.ExitOnError)
 	cmd1.SetUsageSyntax("自定义用法信息")
 	if testing.Verbose() {
 		cmd1.PrintHelp()
 	}
 
 	// 测试自动生成的用法信息
-	cmd2 := NewCmd("test2", "t2", flag.ExitOnError)
+	cmd2 := cmd.NewCmd("test2", "t2", flag.ExitOnError)
 	cmd2.SetDescription("测试描述")
 	cmd2.Bool("verbose", "v", false, "详细输出")
 	cmd2.Int("count", "cc", 0, "重复次数")
@@ -724,8 +645,8 @@ func TestPrintUsage(t *testing.T) {
 	}
 
 	// 测试带子命令的用法信息
-	cmd3 := NewCmd("parent", "0t", flag.ExitOnError)
-	subCmd := NewCmd("child", "xd", flag.ExitOnError)
+	cmd3 := cmd.NewCmd("parent", "0t", flag.ExitOnError)
+	subCmd := cmd.NewCmd("child", "xd", flag.ExitOnError)
 	if err := cmd3.AddSubCmd(subCmd); err != nil {
 		t.Errorf("添加子命令时出错: %v", err)
 	}
@@ -734,160 +655,10 @@ func TestPrintUsage(t *testing.T) {
 	}
 }
 
-// TestHasCycle 测试检测循环引用
-func TestHasCycle(t *testing.T) {
-	cmd1 := NewCmd("cmd1", "", flag.ExitOnError)
-	cmd2 := NewCmd("", "c2", flag.ExitOnError)
-	cmd3 := NewCmd("cmd3", "c3", flag.ExitOnError)
-	cmd4 := NewCmd("", "c4", flag.ExitOnError)
-
-	// 无循环情况
-	if cmd1.hasCycle(cmd2) {
-		t.Error("初始时不应存在循环引用")
-	}
-
-	// 添加子命令
-	if err := cmd1.AddSubCmd(cmd2); err != nil {
-		t.Errorf("添加子命令时出错: %v", err)
-	}
-	cmd2.parentCmd = cmd1
-	if err := cmd2.AddSubCmd(cmd3); err != nil {
-		t.Errorf("添加子命令时出错: %v", err)
-	}
-	cmd3.parentCmd = cmd2
-
-	// 检测循环
-	if cmd1.hasCycle(cmd4) {
-		t.Error("与不相关的命令不应存在循环引用")
-	}
-	if !cmd1.hasCycle(cmd1) { // 自引用
-		t.Error("应检测到自循环引用")
-	}
-	if !cmd2.hasCycle(cmd1) { // 反向引用
-		t.Error("应检测到反向循环引用")
-	}
-	if !cmd3.hasCycle(cmd1) { // 多级反向引用
-		t.Error("应检测到多级反向循环引用")
-	}
-}
-
-// TestNestedCmdHelp 测试嵌套子命令的帮助信息生成
-func TestNestedCmdHelp(t *testing.T) {
-	// 创建三级嵌套命令结构
-	cmd1 := NewCmd("cmd1", "", flag.ExitOnError)
-	cmd1.SetDescription("一级命令描述")
-	cmd1.String("config", "c", "config.json", "配置文件路径")
-
-	cmd2 := NewCmd("", "c2", flag.ExitOnError)
-	cmd2.SetDescription("二级命令描述")
-	cmd2.Int("port", "p", 8080, "服务端口号")
-
-	cmd3 := NewCmd("cmd3", "", flag.ExitOnError)
-	cmd3.SetDescription("三级命令描述")
-	cmd3.Bool("verbose", "", false, "详细输出模式")
-	cmd3.SetUseChinese(true)
-	cmd2.SetUseChinese(true)
-	cmd3.String("output", "o", "", "输出文件路径")
-	cmd3.Float("timeout", "t", 5.0, "超时时间")
-	cmd3.Duration("duration", "d", 10*time.Second, "持续时间")
-	cmd3.Enum("format", "f", "json", "输出格式", []string{"json", "xml", "yaml"})
-
-	cmd4 := NewCmd("ssssssscmd4", "ccccc4", flag.ExitOnError)
-	cmd4.SetDescription("四级命令描述")
-
-	cmd5 := NewCmd("acmd5", "ccccc5", flag.ExitOnError)
-	cmd5.SetDescription("五级命令描述")
-
-	// 新增子命令用于测试帮助信息生成
-	cmd6 := NewCmd("randomizer", "rz", flag.ExitOnError)
-	cmd6.SetDescription("新增六级命令描述")
-	cmd6.Float("timeout", "t", 5.0, "超时时间")
-
-	cmd7 := NewCmd("generator", "gn", flag.ExitOnError)
-	cmd7.SetDescription("新增七级命令描述")
-	cmd7.String("format", "f", "json", "输出格式")
-
-	cmd8 := NewCmd("processor", "ps", flag.ExitOnError)
-	cmd8.SetDescription("新增八级命令描述")
-	cmd8.Int("retry", "r", 3, "重试次数")
-
-	// 添加示例
-	cmd3.AddExample(ExampleInfo{"示例1", "echo 111"})
-	cmd3.AddExample(ExampleInfo{"示例2", "echo 222"})
-
-	// 构建命令层级
-	cmd1.AddSubCmd(cmd2)
-	cmd2.AddSubCmd(cmd3)
-	cmd2.AddSubCmd(cmd4, cmd5)
-	cmd3.AddSubCmd(cmd6, cmd7, cmd8)
-
-	// 添加注意事项
-	cmd1.AddNote("注意事项1")
-	cmd1.AddNote("注意事项2")
-	cmd2.AddNote("注意事项3")
-	cmd3.AddNote("注意事项4")
-
-	// 解析命令行参数
-	if err := cmd1.Parse([]string{}); err != nil {
-		t.Errorf("解析命令行参数时出错: %v", err)
-	}
-
-	// 测试帮助信息生成
-	// 使用t.Log()替代fmt.Println()，并添加testing.Verbose()条件控制
-	printSection := func(section string) {
-		if testing.Verbose() {
-			t.Log(section)
-		}
-	}
-
-	printSeparator := func() {
-		if testing.Verbose() {
-			t.Log("========================")
-		}
-	}
-
-	printUsage := func(cmd *Cmd) {
-		if testing.Verbose() {
-			// 重定向cmd.PrintUsage()输出到t.Log
-			o := cmd.fs.Output()
-			cmd.fs.SetOutput(&testLogWriter{t: t})
-			cmd.PrintHelp()
-			cmd.fs.SetOutput(o)
-		}
-	}
-
-	// 一级命令帮助信息
-	printSection("=== 一级命令帮助信息 ===")
-	printUsage(cmd1)
-	printSeparator()
-
-	// 二级命令帮助信息
-	printSection("=== 二级命令帮助信息 ===")
-	printUsage(cmd2)
-	printSeparator()
-
-	// 三级命令帮助信息
-	printSection("=== 三级命令帮助信息 ===")
-	printUsage(cmd3)
-	printSeparator()
-}
-
-// testLogWriter 用于将flag.FlagSet的输出重定向到testing.T的Log方法
-type testLogWriter struct {
-	t *testing.T
-}
-
-func (w *testLogWriter) Write(p []byte) (n int, err error) {
-	if testing.Verbose() {
-		w.t.Log(string(p))
-	}
-	return len(p), nil
-}
-
 func TestCommandAndFlagRegistration(t *testing.T) {
 	// 测试用例1: 只有长名称的命令
 	t.Run("Command with long name only", func(t *testing.T) {
-		cmd := NewCmd("longcmd", "", flag.ContinueOnError)
+		cmd := cmd.NewCmd("longcmd", "", flag.ContinueOnError)
 		cmd.SetDescription("This command has only long name")
 
 		// 添加只有长名称的标志
@@ -905,11 +676,8 @@ func TestCommandAndFlagRegistration(t *testing.T) {
 
 	// 测试用例2: 只有短名称的命令
 	t.Run("Command with short name only", func(t *testing.T) {
-		cmd := NewCmd("", "s", flag.ContinueOnError)
+		cmd := cmd.NewCmd("", "s", flag.ContinueOnError)
 		cmd.SetDescription("This command has only short name")
-
-		// 跳过内置标志绑定，避免冲突
-		cmd.initFlagBound = true
 
 		// 添加只有短名称的标志
 		cmd.String("", "c", "Config file path", "/etc/app.conf")
@@ -926,7 +694,7 @@ func TestCommandAndFlagRegistration(t *testing.T) {
 
 	// 测试用例3: 混合名称的命令和标志
 	t.Run("Mixed name command and flags", func(t *testing.T) {
-		cmd := NewCmd("mixed", "m", flag.ContinueOnError)
+		cmd := cmd.NewCmd("mixed", "m", flag.ContinueOnError)
 		cmd.SetDescription("This command has both long and short names")
 
 		// 添加各种组合的标志
