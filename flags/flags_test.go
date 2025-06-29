@@ -422,7 +422,7 @@ func TestIsSetMethods(t *testing.T) {
 		// FloatFlag测试用例
 		{
 			name: "FloatFlag未设置值",
-			f: &FloatFlag{
+			f: &Float64Flag{
 				BaseFlag: BaseFlag[float64]{
 					longName:  "floatFlag",
 					shortName: "f",
@@ -434,7 +434,7 @@ func TestIsSetMethods(t *testing.T) {
 		},
 		{
 			name: "FloatFlag已设置值",
-			f: &FloatFlag{
+			f: &Float64Flag{
 				BaseFlag: BaseFlag[float64]{
 					longName:  "floatFlag",
 					shortName: "f",
@@ -442,7 +442,7 @@ func TestIsSetMethods(t *testing.T) {
 					usage:     "浮点标志测试",
 				},
 			},
-			setValue: func(f Flag) error { return f.(*FloatFlag).Set(3.14) },
+			setValue: func(f Flag) error { return f.(*Float64Flag).Set(3.14) },
 		},
 
 		// DurationFlag测试用例

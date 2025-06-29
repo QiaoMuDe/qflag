@@ -48,8 +48,8 @@ func Bool(longName, shortName string, defValue bool, usage string) *flags.BoolFl
 	return QCommandLine.Bool(longName, shortName, defValue, usage)
 }
 
-// Float 为全局默认命令创建一个浮点数类型的命令行标志。
-// 该函数会调用全局默认命令实例的 Float 方法，为命令行添加一个支持长短标志的浮点数参数。
+// Float64 为全局默认命令创建一个浮点数类型的命令行标志。
+// 该函数会调用全局默认命令实例的 Float64 方法，为命令行添加一个支持长短标志的浮点数参数。
 // 参数说明：
 //   - name: 标志的长名称，在命令行中以 --name 的形式使用。
 //   - shortName: 标志的短名称，在命令行中以 -shortName 的形式使用。
@@ -58,8 +58,8 @@ func Bool(longName, shortName string, defValue bool, usage string) *flags.BoolFl
 //
 // 返回值：
 //   - *flags.FloatFlag: 指向新创建的浮点数标志对象的指针。
-func Float(longName, shortName string, defValue float64, usage string) *flags.FloatFlag {
-	return QCommandLine.Float(longName, shortName, defValue, usage)
+func Float64(longName, shortName string, defValue float64, usage string) *flags.Float64Flag {
+	return QCommandLine.Float64(longName, shortName, defValue, usage)
 }
 
 // StringVar 函数的作用是将一个字符串类型的命令行标志绑定到全局默认命令的 `StringFlag` 指针上。
@@ -103,8 +103,8 @@ func BoolVar(f *flags.BoolFlag, longName, shortName string, defValue bool, usage
 	QCommandLine.BoolVar(f, longName, shortName, defValue, usage)
 }
 
-// FloatVar 为全局默认命令绑定一个浮点数类型的命令行标志到指定的 `FloatFlag` 指针。
-// 该函数会调用全局默认命令实例 `QCommandLine` 的 `FloatVar` 方法，为命令行添加支持长短标志的浮点数参数，
+// Float64Var 为全局默认命令绑定一个浮点数类型的命令行标志到指定的 `FloatFlag` 指针。
+// 该函数会调用全局默认命令实例 `QCommandLine` 的 `Float64Var` 方法，为命令行添加支持长短标志的浮点数参数，
 // 并将该参数与传入的 `FloatFlag` 指针关联，以便后续获取和使用该标志的值。
 // 参数说明：
 // - f: 指向 `FloatFlag` 的指针，用于存储和管理该浮点数类型命令行标志的相关信息，包括当前值、默认值等。
@@ -112,8 +112,8 @@ func BoolVar(f *flags.BoolFlag, longName, shortName string, defValue bool, usage
 // - shortName: 命令行标志的短名称，在命令行中需以 `-shortName` 的格式使用。
 // - defValue: 该命令行标志的默认值，当用户在命令行中未指定该标志时，会使用此默认值。
 // - usage: 该命令行标志的帮助说明信息，会在显示帮助信息时展示给用户，用于解释该标志的用途。
-func FloatVar(f *flags.FloatFlag, longName, shortName string, defValue float64, usage string) {
-	QCommandLine.FloatVar(f, longName, shortName, defValue, usage)
+func Float64Var(f *flags.Float64Flag, longName, shortName string, defValue float64, usage string) {
+	QCommandLine.Float64Var(f, longName, shortName, defValue, usage)
 }
 
 // Enum 为全局默认命令定义一个枚举类型的命令行标志。

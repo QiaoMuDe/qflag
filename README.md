@@ -40,7 +40,7 @@ go get -u gitee.com/MM-Q/qflag
 | Int | 整数类型标志 | `--port 8080` |
 | Int64 | 64位整数类型标志 | `--size 1073741824` |
 | Uint16 | 无符号16位整数类型标志 | `--timeout 300` |
-| Bool | 布尔类型标志 | `--debug true` |
+| Bool | 布尔类型标志 | `--debug` |
 | Float | 浮点数类型标志 | `--threshold 0.95` |
 | Enum | 枚举类型标志 | `--mode "debug"` |
 | Slice | 切片类型标志 | `--files file1.txt,file2.txt` |

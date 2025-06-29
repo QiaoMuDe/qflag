@@ -13,7 +13,7 @@ const (
 	FlagTypeUint16                       // 16位无符号整数类型
 	FlagTypeString                       // 字符串类型
 	FlagTypeBool                         // 布尔类型
-	FlagTypeFloat                        // 浮点数类型
+	FlagTypeFloat64                      // 64位浮点数类型
 	FlagTypeEnum                         // 枚举类型
 	FlagTypeDuration                     // 时间间隔类型
 	FlagTypeSlice                        // 切片类型
@@ -92,8 +92,8 @@ func FlagTypeToString(flagType FlagType) string {
 	case FlagTypeBool:
 		// 布尔类型没有参数类型字符串
 		return ""
-	case FlagTypeFloat:
-		return "<float>"
+	case FlagTypeFloat64:
+		return "<float64>"
 	case FlagTypeEnum:
 		return "<enum>"
 	case FlagTypeDuration:

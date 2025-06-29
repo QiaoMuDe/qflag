@@ -156,14 +156,14 @@ func TestFloatVar(t *testing.T) {
 				t.Error("FloatVar with nil pointer should panic")
 			}
 		}()
-		cmd.FloatVar(nil, "float", "f", 3.14, "test float flag")
+		cmd.Float64Var(nil, "float", "f", 3.14, "test float flag")
 	})
 
 	// 测试正常功能
 	t.Run("normal case", func(t *testing.T) {
 		cmd := NewCommand("test", "t", flag.ContinueOnError)
-		var floatFlag flags.FloatFlag
-		cmd.FloatVar(&floatFlag, "float", "fl", 3.14, "test float flag")
+		var floatFlag flags.Float64Flag
+		cmd.Float64Var(&floatFlag, "float", "fl", 3.14, "test float flag")
 
 		// 测试默认值
 		if floatFlag.Get() != 3.14 {
@@ -180,8 +180,8 @@ func TestFloatVar(t *testing.T) {
 
 		// 测试短标志解析
 		cmd = NewCommand("test", "t", flag.ContinueOnError)
-		var floatFlagShort flags.FloatFlag
-		cmd.FloatVar(&floatFlagShort, "float-short", "fs", 3.14, "test float short flag")
+		var floatFlagShort flags.Float64Flag
+		cmd.Float64Var(&floatFlagShort, "float-short", "fs", 3.14, "test float short flag")
 		if err := cmd.Parse([]string{"-fs", "1.618"}); err != nil {
 			t.Fatalf("Parse failed: %v", err)
 		}

@@ -4,7 +4,7 @@ import "testing"
 
 // TestFloatFlag_BasicFunctionality 测试FloatFlag的基本功能
 func TestFloatFlag_BasicFunctionality(t *testing.T) {
-	flag := &FloatFlag{
+	flag := &Float64Flag{
 		BaseFlag: BaseFlag[float64]{
 			defValue: 0.0,
 			value:    new(float64),
@@ -42,8 +42,8 @@ func TestFloatFlag_BasicFunctionality(t *testing.T) {
 
 // TestFloatFlag_Type 验证Type()方法返回正确的标志类型
 func TestFloatFlag_Type(t *testing.T) {
-	flag := &FloatFlag{}
-	if flag.Type() != FlagTypeFloat {
-		t.Errorf("Type()应返回%d, 实际返回%d", FlagTypeFloat, flag.Type())
+	flag := &Float64Flag{}
+	if flag.Type() != FlagTypeFloat64 {
+		t.Errorf("Type()应返回%d, 实际返回%d", FlagTypeFloat64, flag.Type())
 	}
 }

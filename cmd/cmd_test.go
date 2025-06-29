@@ -48,7 +48,7 @@ func TestFlagBinding(t *testing.T) {
 	strFlag := cmd.String("string", "s", "test string flag", "default")
 	intFlag := cmd.Int("int", "i", 123, "test int flag")
 	boolFlag := cmd.Bool("bool", "b", false, "test bool flag")
-	floatFlag := cmd.Float("float", "f", 3.14, "test float flag")
+	floatFlag := cmd.Float64("float", "f", 3.14, "test float flag")
 
 	// 测试标志解析
 	err := cmd.Parse([]string{"--string", "value", "--int", "456", "--bool", "--float", "2.718"})
@@ -277,7 +277,7 @@ func TestBoolFlag(t *testing.T) {
 func TestFloatFlag(t *testing.T) {
 	// 测试默认值
 	cmd := NewCommand("test", "t", flag.ContinueOnError)
-	floatFlag := cmd.Float("float", "f", 3.14, "test float flag")
+	floatFlag := cmd.Float64("float", "f", 3.14, "test float flag")
 	if floatFlag.Get() != 3.14 {
 		t.Errorf("浮点数标志默认值 = %v, 期望 %v", floatFlag.Get(), 3.14)
 	}
@@ -285,7 +285,7 @@ func TestFloatFlag(t *testing.T) {
 	// 测试长标志
 	{
 		cmd := NewCommand("test", "t", flag.ContinueOnError)
-		floatFlag := cmd.Float("float", "f", 3.14, "test float flag")
+		floatFlag := cmd.Float64("float", "f", 3.14, "test float flag")
 		err := cmd.Parse([]string{"--float", "2.718"})
 		if err != nil {
 			t.Fatalf("解析() 错误 = %v", err)
@@ -298,7 +298,7 @@ func TestFloatFlag(t *testing.T) {
 	// 测试短标志
 	{
 		cmd := NewCommand("test", "t", flag.ContinueOnError)
-		floatFlag := cmd.Float("float", "f", 3.14, "test float flag")
+		floatFlag := cmd.Float64("float", "f", 3.14, "test float flag")
 		err := cmd.Parse([]string{"-f", "1.618"})
 		if err != nil {
 			t.Fatalf("解析() 错误 = %v", err)
@@ -1028,7 +1028,7 @@ func TestNestedCmdHelp(t *testing.T) {
 	cmd3.SetUseChinese(true)
 	cmd2.SetUseChinese(true)
 	cmd3.String("output", "o", "", "输出文件路径")
-	cmd3.Float("timeout", "t", 5.0, "超时时间")
+	cmd3.Float64("timeout", "t", 5.0, "超时时间")
 	cmd3.Duration("duration", "d", 10*time.Second, "持续时间")
 	cmd3.Enum("format", "f", "json", "输出格式", []string{"json", "xml", "yaml"})
 
@@ -1041,7 +1041,7 @@ func TestNestedCmdHelp(t *testing.T) {
 	// 新增子命令用于测试帮助信息生成
 	cmd6 := NewCommand("randomizer", "rz", flag.ExitOnError)
 	cmd6.SetDescription("新增六级命令描述")
-	cmd6.Float("timeout", "t", 5.0, "超时时间")
+	cmd6.Float64("timeout", "t", 5.0, "超时时间")
 
 	cmd7 := NewCommand("generator", "gn", flag.ExitOnError)
 	cmd7.SetDescription("新增七级命令描述")

@@ -236,17 +236,17 @@ func FlagExists(name string) bool
 
 - `bool`: 若标志存在，则返回 `true`；否则返回 `false`。
 
-### FloatVar
+### Float64Var
 
 ```go
-func FloatVar(f *FloatFlag, longName, shortName string, defValue float64, usage string)
+func Float64Var(f *FloatFlag, longName, shortName string, defValue float64, usage string)
 ```
 
 将浮点类型的命令行标志绑定到全局默认命令实例 `QCommandLine` 中。
 
 **参数:**
 
-- `f`: 指向 `FloatFlag` 类型的指针，用于存储和管理浮点类型命令行标志的相关信息。
+- `f`: 指向 `Float64Flag` 类型的指针，用于存储和管理浮点类型命令行标志的相关信息。
 - `longName`: 标志的长名称，在命令行中以 `--longName` 的形式使用。
 - `shortName`: 标志的短名称，在命令行中以 `-shortName` 的形式使用。
 - `defValue`: 标志的默认值，当命令行未指定该标志时使用。
@@ -694,7 +694,6 @@ func NewCommand(longName string, shortName string, errorHandling flag.ErrorHandl
 ```
 
 NewCommand 创建新的命令实例 参数：longName：命令长名称 shortName：命令短名称 errorHandling：错误处理方式 返回值：*cmd.Cmd 命令实例指针 errorHandling 可选值：flag.ContinueOnError、flag.ExitOnError、flag.PanicOnError。
-
 
 ```go
 func SubCmds() []*cmd.Cmd
@@ -1266,21 +1265,21 @@ const (
 )
 ```
 
-### FloatFlag 结构体
+### Float64Flag 结构体
 
 ```go
-type FloatFlag struct {
+type Float64Flag struct {
     BaseFlag[float64]
 }
 ```
 
-FloatFlag 浮点型标志结构体 继承 BaseFlag[float64] 泛型结构体，实现 Flag 接口。
+Float64Flag 浮点型标志结构体 继承 BaseFlag[float64] 泛型结构体，实现 Flag 接口。
 
 ```go
-func Float(longName, shortName string, defValue float64, usage string) *FloatFlag
+func Float64(longName, shortName string, defValue float64, usage string) *FloatFlag
 ```
 
-Float 为全局默认命令创建一个浮点数类型的命令行标志。该函数会调用全局默认命令实例的 Float 方法，为命令行添加一个支持长短标志的浮点数参数。 参数说明： - name：标志的长名称，在命令行中以 `--name` 的形式使用。 - shortName：标志的短名称，在命令行中以 `-shortName` 的形式使用。 - defValue：标志的默认值，当命令行未指定该标志时使用。 - usage：标志的帮助说明信息，用于在显示帮助信息时展示。 返回值： - *FloatFlag：指向新创建的浮点数标志对象的指针。
+Float64 为全局默认命令创建一个浮点数类型的命令行标志。该函数会调用全局默认命令实例的 Float64 方法，为命令行添加一个支持长短标志的浮点数参数。 参数说明： - name：标志的长名称，在命令行中以 `--name` 的形式使用。 - shortName：标志的短名称，在命令行中以 `-shortName` 的形式使用。 - defValue：标志的默认值，当命令行未指定该标志时使用。 - usage：标志的帮助说明信息，用于在显示帮助信息时展示。 返回值： - *Float64Flag：指向新创建的浮点数标志对象的指针。
 
 ```go
 func (f *FloatFlag) SetValidator(validator Validator)

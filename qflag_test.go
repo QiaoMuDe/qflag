@@ -290,7 +290,7 @@ func TestFloatFlagLong(t *testing.T) {
 	usage := "测试浮点数标志"
 
 	// 测试Float方法(仅长标志)
-	f := cmd.Float(flagName, "ff", defValue, usage)
+	f := cmd.Float64(flagName, "ff", defValue, usage)
 	if f == nil {
 		t.Fatal("Int() 返回了 nil")
 	}
@@ -333,7 +333,7 @@ func TestFloatFlagShort(t *testing.T) {
 	usage := "测试浮点数标志"
 
 	// 测试Float方法(仅短标志)
-	f := cmd.Float("cf", shortName, defValue, usage)
+	f := cmd.Float64("cf", shortName, defValue, usage)
 	if f == nil {
 		t.Fatal("Int() 返回了 nil")
 	}
@@ -596,7 +596,7 @@ func TestBoolFlag_Methods(t *testing.T) {
 
 // TestFloatFlag_Interface 验证FloatFlag实现了Flag接口
 func TestFloatFlag_Interface(t *testing.T) {
-	var f flags.Flag = &flags.FloatFlag{}
+	var f flags.Flag = &flags.Float64Flag{}
 	_ = f
 }
 
@@ -607,7 +607,7 @@ func TestFloatFlag_Methods(t *testing.T) {
 	// 新建子命令
 	cmd := NewCmd("test", "t", flag.ContinueOnError)
 
-	f := cmd.Float("floatflag", "f", defValue, "浮点数标志测试")
+	f := cmd.Float64("floatflag", "f", defValue, "浮点数标志测试")
 
 	if f.LongName() != "floatflag" {
 		t.Errorf("FloatFlag.Name() 返回 %q，期望为 %q", f.LongName(), "floatflag")
@@ -621,8 +621,8 @@ func TestFloatFlag_Methods(t *testing.T) {
 	if f.GetDefault() != defValue {
 		t.Errorf("FloatFlag.GetDefault() 返回 %v，期望为 %v", f.GetDefault(), defValue)
 	}
-	if f.Type() != flags.FlagTypeFloat {
-		t.Errorf("FloatFlag.Type() 返回 %v，期望为 %v", f.Type(), flags.FlagTypeFloat)
+	if f.Type() != flags.FlagTypeFloat64 {
+		t.Errorf("FloatFlag.Type() 返回 %v，期望为 %v", f.Type(), flags.FlagTypeFloat64)
 	}
 
 	// 测试边界值
