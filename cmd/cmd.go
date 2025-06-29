@@ -104,6 +104,7 @@ type CmdInterface interface {
 	SetDescription(desc string)               // 设置命令描述信息，用于帮助输出
 	GetHelp() string                          // 获取自定义帮助信息
 	SetHelp(help string)                      // 设置自定义帮助信息，覆盖自动生成内容
+	LoadHelp(filePath string) error           // 加载自定义帮助信息，从文件中读取
 	SetUsageSyntax(usageSyntax string)        // 设置自定义用法说明，覆盖自动生成内容
 	GetUsageSyntax() string                   // 获取自定义用法说明
 	GetUseChinese() bool                      // 获取是否使用中文帮助信息
@@ -317,6 +318,34 @@ func (c *Cmd) SetHelp(help string) {
 	c.setMu.Lock()
 	defer c.setMu.Unlock()
 	c.userInfo.help = help
+}
+
+// LoadHelp 从指定文件加载帮助信息
+//
+// 参数:
+// filePath: 帮助信息文件路径
+//
+// 返回值:
+// error: 如果文件不存在或读取文件失败，则返回错误信息
+func (c *Cmd) LoadHelp(filePath string) error {
+	// 检查是否为空
+	if filePath == "" {
+		return fmt.Errorf("file path cannot be empty")
+	}
+
+	// 直接读取文件内容并处理可能的错误（包括文件不存在的情况）
+	// 移除了单独的os.Stat检查以避免竞态条件
+	content, err := os.ReadFile(filePath)
+	if err != nil {
+		if os.IsNotExist(err) {
+			return fmt.Errorf("File %s does not exist", filePath)
+		}
+		return fmt.Errorf("Failed to read file %s: %w", filePath, err)
+	}
+
+	// 设置帮助信息
+	c.SetHelp(string(content))
+	return nil
 }
 
 // SubCmds 返回子命令列表

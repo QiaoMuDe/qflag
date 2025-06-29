@@ -24,6 +24,7 @@ type QCommandLineInterface interface {
 	SetDescription(desc string)        // 设置命令描述信息
 	GetHelp() string                   // 获取命令帮助信息
 	SetHelp(help string)               // 设置命令帮助信息
+	LoadHelp(filepath string) error    // 从指定文件加载帮助信息
 	SetUsageSyntax(usageSyntax string) // 设置命令用法格式
 	GetUsageSyntax() string            // 获取命令用法格式
 	GetUseChinese() bool               // 获取是否使用中文帮助信息
@@ -280,6 +281,20 @@ func GetHelp() string {
 //   - help: 新的帮助信息，字符串类型。
 func SetHelp(help string) {
 	QCommandLine.SetHelp(help)
+}
+
+// LoadHelp 从文件中加载帮助信息
+// 参数:
+//   - filepath: 文件路径，字符串类型。
+//
+// 返回值:
+//   - error: 如果加载失败，则返回错误信息；否则返回 nil。
+//
+// 示例:
+//
+//	qflag.LoadHelp("help.txt")
+func LoadHelp(filepath string) error {
+	return QCommandLine.LoadHelp(filepath)
 }
 
 // SetUsageSyntax 配置全局默认命令实例 `QCommandLine` 的用法信息。

@@ -543,6 +543,17 @@ func SetHelp(help string)
 - **参数**：
   - `help`：新的帮助信息。
 
+### LoadHelp
+
+从文件中加载帮助信息。
+
+```go
+func LoadHelp(filePath string)
+```
+
+- **参数**：
+  - `filePath`：帮助信息文件路径。
+
 ### SetLogoText
 
 配置全局默认命令实例 `QCommandLine` 的 logo 文本。

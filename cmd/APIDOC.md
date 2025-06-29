@@ -112,6 +112,7 @@ type CmdInterface interface {
     SetDescription(desc string)
     GetHelp() string
     SetHelp(help string)
+    LoadHelp(filePath string) error
     SetUsageSyntax(usageSyntax string)
     GetUsageSyntax() string
     GetUseChinese() bool
