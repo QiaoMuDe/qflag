@@ -477,6 +477,51 @@ func (c *Cmd) AddSubCmd(subCmds ...*Cmd) error {
 //   - 若检测到子命令, 会将剩余参数传递给子命令的Parse方法
 //   - 处理内置标志执行逻辑
 func (c *Cmd) Parse(args []string) (err error) {
+	return c.parseCommon(args, true)
+}
+
+// ParseFlagsOnly 仅解析当前命令的标志参数（忽略子命令）
+// 主要功能：
+//  1. 解析当前命令的长短标志及内置标志
+//  2. 验证枚举类型标志的有效性
+//  3. 明确忽略所有子命令及后续参数
+//
+// 参数：
+//
+//	args: 原始命令行参数切片（子命令及后续参数会被忽略）
+//
+// 返回值：
+//
+//	解析过程中遇到的错误（如标志格式错误等）
+//
+// 注意事项：
+//   - 每个Cmd实例仅会被解析一次（线程安全）
+//   - 不会处理任何子命令，所有参数均视为当前命令的标志或位置参数
+//   - 处理内置标志逻辑
+func (c *Cmd) ParseFlagsOnly(args []string) (err error) {
+	return c.parseCommon(args, false)
+}
+
+// parseCommon 命令行参数解析公共逻辑
+// 主要功能：
+//  1. 通用参数解析流程（标志解析、内置标志处理、错误处理）
+//  2. 枚举类型标志验证
+//  3. 可选的子命令解析支持
+//
+// 参数：
+//
+//	args: 原始命令行参数切片
+//	parseSubcommands: 是否解析子命令（true: 解析子命令, false: 忽略子命令）
+//
+// 返回值：
+//
+//	解析过程中遇到的错误（如标志格式错误、子命令解析失败等）
+//
+// 注意事项：
+//   - 每个Cmd实例仅会被解析一次（线程安全）
+//   - 内置标志(-h/--help, -v/--version等)处理逻辑在此实现
+//   - 子命令解析仅在parseSubcommands=true时执行
+func (c *Cmd) parseCommon(args []string, parseSubcommands bool) (err error) {
 	defer func() {
 		// 添加panic捕获
 		if r := recover(); r != nil {
@@ -542,120 +587,22 @@ func (c *Cmd) Parse(args []string) (err error) {
 		// 设置非标志参数
 		c.args = append(c.args, c.fs.Args()...)
 
-		// 检查是否有子命令
-		if len(c.args) > 0 {
-			for _, subCmd := range c.subCmds {
-				// 第一个非标志参数如果匹配到子命令，则解析子命令
-				if c.args[0] == subCmd.LongName() || c.args[0] == subCmd.ShortName() {
-					// 将剩余参数传递给子命令解析
-					if parseErr := subCmd.Parse(c.args[1:]); parseErr != nil {
-						err = fmt.Errorf("%s: %w", qerr.ErrSubCommandParseFailed, parseErr)
-					}
-					return
-				}
-			}
-		}
-
-		// 检查枚举类型标志是否有效
-		for _, meta := range c.flagRegistry.GetAllFlags() {
-			if meta.GetFlagType() == flags.FlagTypeEnum {
-				if enumFlag, ok := meta.GetFlag().(*flags.EnumFlag); ok {
-					// 调用IsCheck方法进行验证
-					if checkErr := enumFlag.IsCheck(enumFlag.Get()); checkErr != nil {
-						// 如果验证失败，则返回错误信息，错误信息： 无效的枚举值, 可选值: [a, b, c]
-						err = checkErr
+		// 如果允许解析子命令, 则进入子命令解析阶段, 否则跳过
+		if parseSubcommands {
+			// 检查是否有子命令
+			if len(c.args) > 0 {
+				for _, subCmd := range c.subCmds {
+					// 第一个非标志参数如果匹配到子命令，则解析子命令
+					if c.args[0] == subCmd.LongName() || c.args[0] == subCmd.ShortName() {
+						// 将剩余参数传递给子命令解析
+						if parseErr := subCmd.Parse(c.args[1:]); parseErr != nil {
+							err = fmt.Errorf("%s: %w", qerr.ErrSubCommandParseFailed, parseErr)
+						}
+						return
 					}
 				}
 			}
 		}
-	})
-
-	// 检查是否报错
-	if err != nil {
-		return err
-	}
-
-	return nil
-}
-
-// ParseFlagsOnly 仅解析当前命令的标志参数（忽略子命令）
-// 主要功能：
-//  1. 解析当前命令的长短标志及内置标志
-//  2. 验证枚举类型标志的有效性
-//  3. 明确忽略所有子命令及后续参数
-//
-// 参数：
-//
-//	args: 原始命令行参数切片（子命令及后续参数会被忽略）
-//
-// 返回值：
-//
-//	解析过程中遇到的错误（如标志格式错误等）
-//
-// 注意事项：
-//   - 每个Cmd实例仅会被解析一次（线程安全）
-//   - 不会处理任何子命令，所有参数均视为当前命令的标志或位置参数
-//   - 处理内置标志逻辑
-func (c *Cmd) ParseFlagsOnly(args []string) (err error) {
-	defer func() {
-		// 添加panic捕获
-		if r := recover(); r != nil {
-			// 使用预定义的恐慌错误常量
-			err = fmt.Errorf("%s: %v", qerr.ErrPanicRecovered, r)
-		}
-	}()
-
-	// 确保只解析一次
-	c.parseOnce.Do(func() {
-		// 初始化内置标志
-		c.initBuiltinFlags()
-
-		// 设置使用说明
-		c.fs.Usage = func() {
-			c.PrintHelp()
-		}
-
-		// 调用flag库解析参数
-		if parseErr := c.fs.Parse(args); parseErr != nil {
-			err = fmt.Errorf("%s: %w", qerr.ErrFlagParseFailed, parseErr)
-			return
-		}
-
-		// 检查是否使用-h/--help标志
-		if c.helpFlag.Get() {
-			c.PrintHelp()
-			if c.fs.ErrorHandling() != flag.ContinueOnError {
-				// 只有在ExitOnError或PanicOnError时才退出
-				os.Exit(0)
-			}
-			return
-		}
-
-		// 只有在顶级命令中处理-sip/--show-install-path和-v/--version标志
-		if c.parentCmd == nil {
-			// 检查是否使用-sip/--show-install-path标志
-			if c.showInstallPathFlag.Get() {
-				fmt.Println(GetExecutablePath())
-				if c.fs.ErrorHandling() != flag.ContinueOnError {
-					// 只有在ExitOnError或PanicOnError时才退出
-					os.Exit(0)
-				}
-				return
-			}
-
-			// 检查是否使用-v/--version标志
-			if c.versionFlag.Get() {
-				fmt.Println(c.GetVersion())
-				if c.fs.ErrorHandling() != flag.ContinueOnError {
-					// 只有在ExitOnError或PanicOnError时才退出
-					os.Exit(0)
-				}
-				return
-			}
-		}
-
-		// 设置非标志参数
-		c.args = append(c.args, c.fs.Args()...)
 
 		// 检查枚举类型标志是否有效
 		for _, meta := range c.flagRegistry.GetAllFlags() {
