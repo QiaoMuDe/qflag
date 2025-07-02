@@ -4,7 +4,6 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
-	"sort"
 	"strings"
 )
 
@@ -329,72 +328,4 @@ func GetExecutablePath() string {
 		return exePath
 	}
 	return absPath
-}
-
-// levenshteinDistance 计算两个字符串之间的编辑距离
-func levenshteinDistance(s, t string) int {
-	m, n := len(s), len(t)
-	dp := make([][]int, m+1)
-	for i := range dp {
-		dp[i] = make([]int, n+1)
-		dp[i][0] = i
-	}
-	for j := range dp[0] {
-		dp[0][j] = j
-	}
-
-	for i := 1; i <= m; i++ {
-		for j := 1; j <= n; j++ {
-			cost := 0
-			if s[i-1] != t[j-1] {
-				cost = 1
-			}
-			dp[i][j] = min(dp[i-1][j]+1, min(dp[i][j-1]+1, dp[i-1][j-1]+cost))
-		}
-	}
-	return dp[m][n]
-}
-
-// min 返回两个整数中的最小值
-func min(a, b int) int {
-	if a < b {
-		return a
-	}
-	return b
-}
-
-// suggestSimilarItems 查找与输入相似的候选项
-func suggestSimilarItems(input string, candidates []string, maxResults int) []string {
-	type candidateDistance struct {
-		item     string
-		distance int
-	}
-
-	var distances []candidateDistance
-	inputLower := strings.ToLower(input)
-
-	for _, candidate := range candidates {
-		if candidate == "" {
-			continue
-		}
-		d := levenshteinDistance(inputLower, strings.ToLower(candidate))
-		// 只考虑距离小于输入长度一半的候选项
-		if d <= len(input)/2 {
-			distances = append(distances, candidateDistance{candidate, d})
-		}
-	}
-
-	// 按距离排序
-	sort.Slice(distances, func(i, j int) bool {
-		return distances[i].distance < distances[j].distance
-	})
-
-	// 限制结果数量
-	resultCount := min(len(distances), maxResults)
-	results := make([]string, 0, resultCount)
-	for i := 0; i < resultCount; i++ {
-		results = append(results, distances[i].item)
-	}
-
-	return results
 }
