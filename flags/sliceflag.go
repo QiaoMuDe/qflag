@@ -12,8 +12,8 @@ import (
 type SliceFlag struct {
 	BaseFlag[[]string]              // 基类
 	delimiters         []string     // 分隔符
-	mu                 sync.RWMutex // 读写锁
-	SkipEmpty          bool         // 是否跳过空元素
+	rwMu               sync.RWMutex // 读写锁
+	skipEmpty          bool         // 是否跳过空元素
 }
 
 // Type 返回标志类型
@@ -40,8 +40,8 @@ func (f *SliceFlag) Set(value string) error {
 	var elements []string
 
 	// 加读锁保护分隔符切片访问
-	f.mu.RLock()
-	defer f.mu.RUnlock()
+	f.rwMu.RLock()
+	defer f.rwMu.RUnlock()
 
 	// 检查是否包含分隔符切片中的任何分隔符
 	found := false
@@ -64,7 +64,7 @@ func (f *SliceFlag) Set(value string) error {
 	}
 
 	// 过滤空元素（如果启用）
-	if f.SkipEmpty {
+	if f.skipEmpty {
 		filtered := make([]string, 0, len(elements))
 		for _, e := range elements {
 			if e != "" {
@@ -94,8 +94,8 @@ func (f *SliceFlag) Set(value string) error {
 //
 // 线程安全的分隔符更新
 func (f *SliceFlag) SetDelimiters(delimiters []string) {
-	f.mu.Lock()
-	defer f.mu.Unlock()
+	f.rwMu.Lock()
+	defer f.rwMu.Unlock()
 
 	// 检查分隔符是否为空
 	if len(delimiters) == 0 {
@@ -109,8 +109,8 @@ func (f *SliceFlag) SetDelimiters(delimiters []string) {
 
 // GetDelimiters 获取当前分隔符列表
 func (f *SliceFlag) GetDelimiters() []string {
-	f.mu.RLock()
-	defer f.mu.RUnlock()
+	f.rwMu.RLock()
+	defer f.rwMu.RUnlock()
 	// 返回拷贝避免外部修改内部切片
 	res := make([]string, len(f.delimiters))
 	copy(res, f.delimiters)
@@ -121,9 +121,9 @@ func (f *SliceFlag) GetDelimiters() []string {
 //
 // 参数: skip - 为true时跳过空元素, 为false时保留空元素
 func (f *SliceFlag) SetSkipEmpty(skip bool) {
-	f.mu.Lock()
-	defer f.mu.Unlock()
-	f.SkipEmpty = skip
+	f.rwMu.Lock()
+	defer f.rwMu.Unlock()
+	f.skipEmpty = skip
 }
 
 // Len 获取切片长度
@@ -141,8 +141,8 @@ func (f *SliceFlag) Contains(element string) bool {
 	current := f.Get()
 
 	// 加读锁保护分隔符切片访问
-	f.mu.RLock()
-	defer f.mu.RUnlock()
+	f.rwMu.RLock()
+	defer f.rwMu.RUnlock()
 
 	// 直接遍历当前值(已确保非nil)
 	for _, item := range current {
@@ -155,10 +155,12 @@ func (f *SliceFlag) Contains(element string) bool {
 
 // Clear 清空切片所有元素
 //
+// 返回值: 操作成功返回nil, 否则返回错误信息
+//
 // 注意：该方法会改变切片的指针
-func (f *SliceFlag) Clear() {
+func (f *SliceFlag) Clear() error {
 	// 使用BaseFlag的Set方法确保线程安全
-	f.BaseFlag.Set([]string{})
+	return f.BaseFlag.Set([]string{})
 }
 
 // Remove 从切片中移除指定元素（支持移除空字符串元素）
@@ -171,8 +173,8 @@ func (f *SliceFlag) Remove(element string) error {
 	current := f.Get()
 
 	// 加写锁保护切片访问
-	f.mu.Lock()
-	defer f.mu.Unlock()
+	f.rwMu.Lock()
+	defer f.rwMu.Unlock()
 
 	// 遍历当前切片，移除指定元素
 	newSlice := []string{}

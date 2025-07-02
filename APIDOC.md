@@ -746,12 +746,6 @@ Uint16Var 函数创建一个无符号16位整数类型标志，并将其绑定�
 ## 类型
 
 ```go
-type BaseFlag = flags.BaseFlag[any]
-```
-
-BaseFlag 导出flag包中的BaseFlag结构体
-
-```go
 type BoolFlag = flags.BoolFlag
 ```
 

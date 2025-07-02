@@ -45,7 +45,7 @@ func TestSliceFlag_SkipEmpty(t *testing.T) {
 			value:    new([]string),
 		},
 		delimiters: []string{","},
-		SkipEmpty:  true,
+		skipEmpty:  true,
 	}
 
 	if err := flag.Set("a,,b,,c"); err != nil {
@@ -64,7 +64,7 @@ func TestSliceFlag_SkipEmpty(t *testing.T) {
 			value:    new([]string),
 		},
 		delimiters: []string{","},
-		SkipEmpty:  false,
+		skipEmpty:  false,
 	}
 
 	if err := flag.Set("a,,b,,c"); err != nil {
@@ -135,7 +135,9 @@ func TestSliceFlag_ClearAndRemove(t *testing.T) {
 	}
 
 	// 测试Clear
-	flag.Clear()
+	if err := flag.Clear(); err != nil {
+		t.Errorf("Clear failed: %v", err)
+	}
 	if flag.Len() != 0 {
 		t.Errorf("After Clear, expected length 0, got %d", flag.Len())
 	}

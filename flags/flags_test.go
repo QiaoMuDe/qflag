@@ -209,7 +209,7 @@ func TestSliceFlag(t *testing.T) {
 				value:    new([]string),
 			},
 			delimiters: []string{","},
-			SkipEmpty:  true,
+			skipEmpty:  true,
 		}
 
 		if err := flag.Set("a,,b,,c"); err != nil {
@@ -228,7 +228,7 @@ func TestSliceFlag(t *testing.T) {
 				value:    new([]string),
 			},
 			delimiters: []string{","},
-			SkipEmpty:  false,
+			skipEmpty:  false,
 		}
 
 		if err := flag.Set("a,,b,,c"); err != nil {
