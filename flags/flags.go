@@ -11,6 +11,8 @@ const (
 	FlagTypeInt      FlagType = iota + 1 // 整数类型
 	FlagTypeInt64                        // 64位整数类型
 	FlagTypeUint16                       // 16位无符号整数类型
+	FlagTypeUint32                       // 32位无符号整数类型
+	FlagTypeUint64                       // 64位无符号整数类型
 	FlagTypeString                       // 字符串类型
 	FlagTypeBool                         // 布尔类型
 	FlagTypeFloat64                      // 64位浮点数类型
@@ -20,6 +22,9 @@ const (
 	FlagTypeTime                         // 时间类型
 	FlagTypeMap                          // 映射类型
 	FlagTypePath                         // 路径类型
+	FlagTypeIP4                          // IPv4地址类型
+	FlagTypeIP6                          // IPv6地址类型
+	FlagTypeURL                          // URL类型
 )
 
 // 内置标志名称
@@ -87,6 +92,10 @@ func FlagTypeToString(flagType FlagType) string {
 		return "<int64>"
 	case FlagTypeUint16:
 		return "<uint16>"
+	case FlagTypeUint32:
+		return "<uint32>"
+	case FlagTypeUint64:
+		return "<uint64>"
 	case FlagTypeString:
 		return "<string>"
 	case FlagTypeBool:
@@ -104,6 +113,12 @@ func FlagTypeToString(flagType FlagType) string {
 		return "<map>"
 	case FlagTypePath:
 		return "<path>"
+	case FlagTypeIP4:
+		return "<ipv4>"
+	case FlagTypeIP6:
+		return "<ipv6>"
+	case FlagTypeURL:
+		return "<url>"
 	default:
 		return "<unknown>"
 	}

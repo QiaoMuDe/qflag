@@ -31,6 +31,10 @@ func (f *SliceFlag) String() string {
 // 注意: 如果切片中包含分隔符,则根据分隔符进行分割, 否则将整个值作为单个元素
 // 例如: "a,b,c" -> ["a", "b", "c"]
 func (f *SliceFlag) Set(value string) error {
+	// 加读锁保护分隔符切片访问
+	f.rwMu.Lock()
+	defer f.rwMu.Unlock()
+
 	// 检查空值
 	if value == "" {
 		return fmt.Errorf("slice cannot be empty")
@@ -38,10 +42,6 @@ func (f *SliceFlag) Set(value string) error {
 
 	// 存储分割后的元素
 	var elements []string
-
-	// 加读锁保护分隔符切片访问
-	f.rwMu.RLock()
-	defer f.rwMu.RUnlock()
 
 	// 检查是否包含分隔符切片中的任何分隔符
 	found := false
@@ -74,18 +74,8 @@ func (f *SliceFlag) Set(value string) error {
 		elements = filtered
 	}
 
-	// 获取当前切片值
-	current := f.Get()
-
-	// 预分配切片容量以减少内存分配
-	newValues := make([]string, 0, len(current)+len(elements))
-
-	// 将当前值和新增的值添加到新的切片中
-	newValues = append(newValues, current...)
-	newValues = append(newValues, elements...)
-
 	// 调用基类方法设置值
-	return f.BaseFlag.Set(newValues)
+	return f.BaseFlag.Set(elements)
 }
 
 // SetDelimiters 设置切片解析的分隔符列表
@@ -227,7 +217,7 @@ func (f *SliceFlag) Init(longName, shortName string, defValue []string, usage st
 	valuePtr := &valueCopy
 
 	// 2. 调用基类初始化通用字段
-	if err := f.BaseFlag.Init(longName, shortName, defValue, usage, valuePtr); err != nil {
+	if err := f.BaseFlag.Init(longName, shortName, usage, valuePtr); err != nil {
 		return err
 	}
 

@@ -10,8 +10,8 @@ func TestTimeFlag_BasicFunctionality(t *testing.T) {
 	defaultTime := time.Date(2023, time.January, 1, 0, 0, 0, 0, time.UTC)
 	flag := &TimeFlag{
 		BaseFlag: BaseFlag[time.Time]{
-			defValue: defaultTime,
-			value:    new(time.Time),
+			initialValue: defaultTime,
+			value:        new(time.Time),
 		},
 	}
 

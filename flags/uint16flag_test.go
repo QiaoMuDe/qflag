@@ -8,8 +8,8 @@ import (
 func TestUint16Flag_ValidParsing(t *testing.T) {
 	flag := &Uint16Flag{
 		BaseFlag: BaseFlag[uint16]{
-			defValue: 0,
-			value:    new(uint16),
+			initialValue: 0,
+			value:        new(uint16),
 		},
 	}
 
@@ -46,8 +46,8 @@ func TestUint16Flag_ValidParsing(t *testing.T) {
 func TestUint16Flag_InvalidParsing(t *testing.T) {
 	flag := &Uint16Flag{
 		BaseFlag: BaseFlag[uint16]{
-			defValue: 0,
-			value:    new(uint16),
+			initialValue: 0,
+			value:        new(uint16),
 		},
 	}
 

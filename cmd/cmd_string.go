@@ -37,7 +37,7 @@ func (c *Cmd) StringVar(f *flags.StringFlag, longName, shortName, defValue, usag
 	*currentStr = defValue
 
 	// 初始化Flag对象
-	if initErr := f.Init(longName, shortName, defValue, usage, currentStr); initErr != nil {
+	if initErr := f.Init(longName, shortName, usage, currentStr); initErr != nil {
 		panic(initErr)
 	}
 

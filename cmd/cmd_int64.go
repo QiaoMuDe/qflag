@@ -24,7 +24,7 @@ func (c *Cmd) Int64Var(f *flags.Int64Flag, longName, shortName string, defValue 
 	*currentInt64 = defValue
 
 	// 初始化Flag对象
-	if initErr := f.Init(longName, shortName, defValue, usage, currentInt64); initErr != nil {
+	if initErr := f.Init(longName, shortName, usage, currentInt64); initErr != nil {
 		panic(initErr)
 	}
 

@@ -9,8 +9,8 @@ import (
 func TestSliceFlag_BasicParsing(t *testing.T) {
 	flag := &SliceFlag{
 		BaseFlag: BaseFlag[[]string]{
-			defValue: []string{},
-			value:    new([]string),
+			initialValue: []string{},
+			value:        new([]string),
 		},
 		delimiters: []string{","},
 	}
@@ -30,7 +30,12 @@ func TestSliceFlag_BasicParsing(t *testing.T) {
 		t.Errorf("Set failed: %v", err)
 	}
 	result = flag.Get()
-	expected = []string{"a", "b", "c", "d"}
+	expected = []string{"d"}
+	if !reflect.DeepEqual(result, expected) {
+		t.Errorf("Expected %v, got %v", expected, result)
+	}
+	result = flag.Get()
+	expected = []string{"d"}
 	if !reflect.DeepEqual(result, expected) {
 		t.Errorf("Expected %v, got %v", expected, result)
 	}
@@ -41,8 +46,8 @@ func TestSliceFlag_SkipEmpty(t *testing.T) {
 	// 测试SkipEmpty=true情况
 	flag := &SliceFlag{
 		BaseFlag: BaseFlag[[]string]{
-			defValue: []string{},
-			value:    new([]string),
+			initialValue: []string{},
+			value:        new([]string),
 		},
 		delimiters: []string{","},
 		skipEmpty:  true,
@@ -60,8 +65,8 @@ func TestSliceFlag_SkipEmpty(t *testing.T) {
 	// 测试SkipEmpty=false情况
 	flag = &SliceFlag{
 		BaseFlag: BaseFlag[[]string]{
-			defValue: []string{},
-			value:    new([]string),
+			initialValue: []string{},
+			value:        new([]string),
 		},
 		delimiters: []string{","},
 		skipEmpty:  false,
@@ -81,15 +86,15 @@ func TestSliceFlag_SkipEmpty(t *testing.T) {
 func TestSliceFlag_LenAndContains(t *testing.T) {
 	flag := &SliceFlag{
 		BaseFlag: BaseFlag[[]string]{
-			defValue: []string{"x", "y"},
-			value:    new([]string),
+			initialValue: []string{"x", "y"},
+			value:        new([]string),
 		},
 		delimiters: []string{","},
 	}
 
 	// 测试Len
-	if flag.Len() != 0 {
-		t.Errorf("Expected length 0, got %d", flag.Len())
+	if flag.Len() != 2 {
+		t.Errorf("Expected length 2, got %d", flag.Len())
 	}
 
 	// 设置值后测试
@@ -113,8 +118,8 @@ func TestSliceFlag_LenAndContains(t *testing.T) {
 func TestSliceFlag_ClearAndRemove(t *testing.T) {
 	flag := &SliceFlag{
 		BaseFlag: BaseFlag[[]string]{
-			defValue: []string{},
-			value:    new([]string),
+			initialValue: []string{},
+			value:        new([]string),
 		},
 		delimiters: []string{","},
 	}
@@ -147,8 +152,8 @@ func TestSliceFlag_ClearAndRemove(t *testing.T) {
 func TestSliceFlag_Sort(t *testing.T) {
 	flag := &SliceFlag{
 		BaseFlag: BaseFlag[[]string]{
-			defValue: []string{},
-			value:    new([]string),
+			initialValue: []string{},
+			value:        new([]string),
 		},
 		delimiters: []string{","},
 	}

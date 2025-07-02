@@ -35,7 +35,7 @@ func (c *Cmd) Float64Var(f *flags.Float64Flag, longName, shortName string, defVa
 	*currentFloat = defValue
 
 	// 初始化Flag对象
-	if initErr := f.Init(longName, shortName, defValue, usage, currentFloat); initErr != nil {
+	if initErr := f.Init(longName, shortName, usage, currentFloat); initErr != nil {
 		panic(initErr)
 	}
 

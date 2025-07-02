@@ -1,13 +1,16 @@
 package flags
 
-import "testing"
+import (
+	"fmt"
+	"testing"
+)
 
 // TestFloatFlag_BasicFunctionality 测试FloatFlag的基本功能
 func TestFloatFlag_BasicFunctionality(t *testing.T) {
 	flag := &Float64Flag{
 		BaseFlag: BaseFlag[float64]{
-			defValue: 0.0,
-			value:    new(float64),
+			initialValue: 0.0,
+			value:        new(float64),
 		},
 	}
 
@@ -22,7 +25,7 @@ func TestFloatFlag_BasicFunctionality(t *testing.T) {
 	// 测试设置有效值
 	testCases := []float64{3.14, -2.5, 0.0, 100.0}
 	for _, val := range testCases {
-		if err := flag.Set(val); err != nil {
+		if err := flag.Set(fmt.Sprint(val)); err != nil {
 			t.Errorf("设置值%.2f失败: %v", val, err)
 		}
 		if flag.Get() != val {

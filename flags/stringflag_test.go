@@ -8,8 +8,8 @@ import (
 func TestStringFlag_BasicFunctionality(t *testing.T) {
 	flag := &StringFlag{
 		BaseFlag: BaseFlag[string]{
-			defValue: "default",
-			value:    new(string),
+			initialValue: "default",
+			value:        new(string),
 		},
 	}
 

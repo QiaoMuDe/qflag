@@ -50,7 +50,7 @@ func (f *PathFlag) Init(longName, shortName string, defValue string, usage strin
 	*valuePtr = absDefValue
 
 	// 调用基类方法初始化
-	if err := f.BaseFlag.Init(longName, shortName, defValue, usage, valuePtr); err != nil {
+	if err := f.BaseFlag.Init(longName, shortName, usage, valuePtr); err != nil {
 		return err
 	}
 

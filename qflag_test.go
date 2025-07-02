@@ -478,21 +478,21 @@ func TestIntFlag_Methods(t *testing.T) {
 	}
 
 	// 测试边界值
-	if err := f.Set(0); err != nil {
+	if err := f.Set("0"); err != nil {
 		t.Fatalf("Set failed: %v", err)
 	}
 	if f.Get() != 0 {
 		t.Errorf("IntFlag.Get() 返回 %v，期望为 %v", f.Get(), 0)
 	}
 
-	if err := f.Set(-1); err != nil {
+	if err := f.Set("-1"); err != nil {
 		t.Fatalf("Set failed: %v", err)
 	}
 	if f.Get() != -1 {
 		t.Errorf("IntFlag.Get() 返回 %v，期望为 %v", f.Get(), -1)
 	}
 
-	if err := f.Set(2147483647); err != nil {
+	if err := f.Set("2147483647"); err != nil {
 		t.Fatalf("Set failed: %v", err)
 	}
 	if f.Get() != 2147483647 {
@@ -579,14 +579,14 @@ func TestBoolFlag_Methods(t *testing.T) {
 	}
 
 	// 测试切换布尔值
-	if err := f.Set(false); err != nil {
+	if err := f.Set("false"); err != nil {
 		t.Fatalf("Set failed: %v", err)
 	}
 	if f.Get() != false {
 		t.Errorf("BoolFlag.Get() 返回 %v，期望为 %v", f.Get(), false)
 	}
 
-	if err := f.Set(true); err != nil {
+	if err := f.Set("true"); err != nil {
 		t.Fatalf("Set failed: %v", err)
 	}
 	if f.Get() != true {
@@ -626,21 +626,21 @@ func TestFloatFlag_Methods(t *testing.T) {
 	}
 
 	// 测试边界值
-	if err := f.Set(0.0); err != nil {
+	if err := f.Set("0.0"); err != nil {
 		t.Fatalf("Set failed: %v", err)
 	}
 	if f.Get() != 0.0 {
 		t.Errorf("FloatFlag.Get() 返回 %v，期望为 %v", f.Get(), 0.0)
 	}
 
-	if err := f.Set(-1.5); err != nil {
+	if err := f.Set("-1.5"); err != nil {
 		t.Fatalf("Set failed: %v", err)
 	}
 	if f.Get() != -1.5 {
 		t.Errorf("FloatFlag.Get() 返回 %v，期望为 %v", f.Get(), -1.5)
 	}
 
-	if err := f.Set(1.7976931348623157e+308); err != nil {
+	if err := f.Set("1.7976931348623157e+308"); err != nil {
 		t.Fatalf("Set failed: %v", err)
 	}
 	if f.Get() != 1.7976931348623157e+308 {

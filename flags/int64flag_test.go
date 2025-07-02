@@ -1,6 +1,7 @@
 package flags
 
 import (
+	"fmt"
 	"testing"
 )
 
@@ -8,8 +9,8 @@ import (
 func TestInt64Flag_BasicFunctionality(t *testing.T) {
 	flag := &Int64Flag{
 		BaseFlag: BaseFlag[int64]{
-			defValue: 0,
-			value:    new(int64),
+			initialValue: 0,
+			value:        new(int64),
 		},
 	}
 
@@ -24,7 +25,7 @@ func TestInt64Flag_BasicFunctionality(t *testing.T) {
 	// 测试设置有效值
 	testCases := []int64{100, -50, 0, 9223372036854775807}
 	for _, val := range testCases {
-		if err := flag.Set(val); err != nil {
+		if err := flag.Set(fmt.Sprint(val)); err != nil {
 			t.Errorf("设置值%d失败: %v", val, err)
 		}
 		if flag.Get() != val {
@@ -46,8 +47,8 @@ func TestInt64Flag_BasicFunctionality(t *testing.T) {
 func TestInt64Flag_RangeValidation(t *testing.T) {
 	flag := &Int64Flag{
 		BaseFlag: BaseFlag[int64]{
-			defValue: 100,
-			value:    new(int64),
+			initialValue: 100,
+			value:        new(int64),
 		},
 	}
 
@@ -57,7 +58,7 @@ func TestInt64Flag_RangeValidation(t *testing.T) {
 	// 测试有效范围内的值
 	validValues := []int64{-1000, 0, 500, 1000}
 	for _, val := range validValues {
-		if err := flag.Set(val); err != nil {
+		if err := flag.Set(fmt.Sprint(val)); err != nil {
 			t.Errorf("设置有效值%d失败: %v", val, err)
 		}
 	}
@@ -65,7 +66,7 @@ func TestInt64Flag_RangeValidation(t *testing.T) {
 	// 测试超出范围的值
 	invalidValues := []int64{-1001, 1001, -9223372036854775808, 9223372036854775807}
 	for _, val := range invalidValues {
-		if err := flag.Set(val); err == nil {
+		if err := flag.Set(fmt.Sprint(val)); err == nil {
 			t.Errorf("设置无效值%d应返回错误", val)
 		}
 	}

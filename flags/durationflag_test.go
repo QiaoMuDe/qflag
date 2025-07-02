@@ -9,8 +9,8 @@ import (
 func TestDurationFlag_ValidParsing(t *testing.T) {
 	flag := &DurationFlag{
 		BaseFlag: BaseFlag[time.Duration]{
-			defValue: 0,
-			value:    new(time.Duration),
+			initialValue: 0,
+			value:        new(time.Duration),
 		},
 	}
 
@@ -47,8 +47,8 @@ func TestDurationFlag_ValidParsing(t *testing.T) {
 func TestDurationFlag_InvalidCases(t *testing.T) {
 	flag := &DurationFlag{
 		BaseFlag: BaseFlag[time.Duration]{
-			defValue: 0,
-			value:    new(time.Duration),
+			initialValue: 0,
+			value:        new(time.Duration),
 		},
 	}
 
@@ -72,8 +72,8 @@ func TestDurationFlag_InvalidCases(t *testing.T) {
 func TestDurationFlag_TypeAndString(t *testing.T) {
 	flag := &DurationFlag{
 		BaseFlag: BaseFlag[time.Duration]{
-			defValue: 5 * time.Second,
-			value:    new(time.Duration),
+			initialValue: 5 * time.Second,
+			value:        new(time.Duration),
 		},
 	}
 

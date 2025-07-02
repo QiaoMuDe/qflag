@@ -75,7 +75,7 @@ func (f *EnumFlag) Init(longName, shortName string, defValue string, usage strin
 	*valuePtr = strings.ToLower(defValue)
 
 	// 调用基类方法初始化字段
-	if err := f.BaseFlag.Init(longName, shortName, defValue, usage, valuePtr); err != nil {
+	if err := f.BaseFlag.Init(longName, shortName, usage, valuePtr); err != nil {
 		return err
 	}
 

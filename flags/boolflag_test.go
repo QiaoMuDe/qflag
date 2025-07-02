@@ -7,8 +7,8 @@ func TestBoolFlag_BasicFunctionality(t *testing.T) {
 	// 创建BoolFlag实例
 	flag := &BoolFlag{
 		BaseFlag: BaseFlag[bool]{
-			defValue: false,
-			value:    new(bool),
+			initialValue: false,
+			value:        new(bool),
 		},
 	}
 
@@ -21,7 +21,7 @@ func TestBoolFlag_BasicFunctionality(t *testing.T) {
 	}
 
 	// 测试2: 设置并验证true值
-	if err := flag.Set(true); err != nil {
+	if err := flag.Set("true"); err != nil {
 		t.Fatalf("设置true值失败: %v", err)
 	}
 	if flag.Get() != true {
@@ -32,7 +32,7 @@ func TestBoolFlag_BasicFunctionality(t *testing.T) {
 	}
 
 	// 测试3: 设置并验证false值
-	if err := flag.Set(false); err != nil {
+	if err := flag.Set("false"); err != nil {
 		t.Fatalf("设置false值失败: %v", err)
 	}
 	if flag.Get() != false {

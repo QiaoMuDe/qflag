@@ -24,7 +24,7 @@ func (c *Cmd) IntVar(f *flags.IntFlag, longName, shortName string, defValue int,
 	*currentInt = defValue
 
 	// 初始化Flag对象
-	if initErr := f.Init(longName, shortName, defValue, usage, currentInt); initErr != nil {
+	if initErr := f.Init(longName, shortName, usage, currentInt); initErr != nil {
 		panic(initErr)
 	}
 

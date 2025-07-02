@@ -20,7 +20,7 @@ func (c *Cmd) Uint16Var(f *flags.Uint16Flag, longName, shortName string, defValu
 	currentUint16 := new(uint16)
 	*currentUint16 = defValue
 
-	if initErr := f.Init(longName, shortName, defValue, usage, currentUint16); initErr != nil {
+	if initErr := f.Init(longName, shortName, usage, currentUint16); initErr != nil {
 		panic(initErr)
 	}
 

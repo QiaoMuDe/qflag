@@ -1,6 +1,7 @@
 package flags
 
 import (
+	"fmt"
 	"testing"
 )
 
@@ -8,8 +9,8 @@ import (
 func TestIntFlag_BasicFunctionality(t *testing.T) {
 	flag := &IntFlag{
 		BaseFlag: BaseFlag[int]{
-			defValue: 0,
-			value:    new(int),
+			initialValue: 0,
+			value:        new(int),
 		},
 	}
 
@@ -24,7 +25,7 @@ func TestIntFlag_BasicFunctionality(t *testing.T) {
 	// 测试设置有效值
 	testCases := []int{10, -5, 0, 1000}
 	for _, val := range testCases {
-		if err := flag.Set(val); err != nil {
+		if err := flag.Set(fmt.Sprint(val)); err != nil {
 			t.Errorf("设置值%d失败: %v", val, err)
 		}
 		if flag.Get() != val {
@@ -46,8 +47,8 @@ func TestIntFlag_BasicFunctionality(t *testing.T) {
 func TestIntFlag_RangeValidation(t *testing.T) {
 	flag := &IntFlag{
 		BaseFlag: BaseFlag[int]{
-			defValue: 5,
-			value:    new(int),
+			initialValue: 5,
+			value:        new(int),
 		},
 	}
 
@@ -57,7 +58,7 @@ func TestIntFlag_RangeValidation(t *testing.T) {
 	// 测试有效范围内的值
 	validValues := []int{1, 5, 10}
 	for _, val := range validValues {
-		if err := flag.Set(val); err != nil {
+		if err := flag.Set(fmt.Sprint(val)); err != nil {
 			t.Errorf("设置有效值%d失败: %v", val, err)
 		}
 	}
@@ -65,7 +66,7 @@ func TestIntFlag_RangeValidation(t *testing.T) {
 	// 测试超出范围的值
 	invalidValues := []int{0, 11, -5, 100}
 	for _, val := range invalidValues {
-		if err := flag.Set(val); err == nil {
+		if err := flag.Set(fmt.Sprint(val)); err == nil {
 			t.Errorf("设置无效值%d应返回错误", val)
 		}
 	}

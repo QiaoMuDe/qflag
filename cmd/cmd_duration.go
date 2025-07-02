@@ -28,7 +28,7 @@ func (c *Cmd) DurationVar(f *flags.DurationFlag, longName, shortName string, def
 	*currentDuration = defValue
 
 	// 初始化Flag对象
-	if initErr := f.Init(longName, shortName, defValue, usage, currentDuration); initErr != nil {
+	if initErr := f.Init(longName, shortName, usage, currentDuration); initErr != nil {
 		panic(initErr)
 	}
 

@@ -46,8 +46,8 @@ func TestIntFlag_Validator(t *testing.T) {
 	// 创建整数标志
 	flag := &IntFlag{
 		BaseFlag: BaseFlag[int]{
-			defValue: 0,
-			value:    new(int),
+			initialValue: 0,
+			value:        new(int),
 		},
 	}
 
@@ -55,12 +55,12 @@ func TestIntFlag_Validator(t *testing.T) {
 	flag.SetValidator(&positiveIntValidator{})
 
 	// 测试用例：有效正值
-	if err := flag.Set(100); err != nil {
+	if err := flag.Set("100"); err != nil {
 		t.Errorf("expected no error for valid positive value, got %v", err)
 	}
 
 	// 测试用例：无效负值
-	if err := flag.Set(-5); err == nil {
+	if err := flag.Set("-5"); err == nil {
 		t.Error("expected error for negative value, got nil")
 	} else if err.Error() != "invalid value for : value must be positive" {
 		t.Errorf("unexpected error message: %v", err)
@@ -72,8 +72,8 @@ func TestStringFlag_Validator(t *testing.T) {
 	// 创建字符串标志
 	flag := &StringFlag{
 		BaseFlag: BaseFlag[string]{
-			defValue: "",
-			value:    new(string),
+			initialValue: "",
+			value:        new(string),
 		},
 	}
 
@@ -104,8 +104,8 @@ func TestBaseFlag_GetPointer(t *testing.T) {
 	// 1. 测试整数类型标志的指针行为
 	intFlag := &IntFlag{
 		BaseFlag: BaseFlag[int]{
-			defValue: 10,
-			value:    nil,
+			initialValue: 10,
+			value:        nil,
 		},
 	}
 
@@ -115,7 +115,7 @@ func TestBaseFlag_GetPointer(t *testing.T) {
 	}
 
 	// 设置值后验证指针有效性
-	if err := intFlag.Set(20); err != nil {
+	if err := intFlag.Set("20"); err != nil {
 		t.Fatalf("设置IntFlag值失败: %v", err)
 	}
 
@@ -137,7 +137,7 @@ func TestBaseFlag_GetPointer(t *testing.T) {
 	// 2. 测试字符串类型标志的指针行为
 	strFlag := &StringFlag{
 		BaseFlag: BaseFlag[string]{
-			defValue: "default",
+			initialValue: "default",
 		},
 	}
 
@@ -153,8 +153,8 @@ func TestBaseFlag_GetPointer(t *testing.T) {
 	// 3. 测试默认值场景（值未显式设置时）
 	defaultFlag := &BoolFlag{
 		BaseFlag: BaseFlag[bool]{
-			defValue: true,
-			value:    nil,
+			initialValue: true,
+			value:        nil,
 		},
 	}
 
@@ -173,8 +173,8 @@ func TestSliceFlag(t *testing.T) {
 	t.Run("BasicSliceParsing", func(t *testing.T) {
 		flag := &SliceFlag{
 			BaseFlag: BaseFlag[[]string]{
-				defValue: []string{},
-				value:    new([]string),
+				initialValue: []string{},
+				value:        new([]string),
 			},
 			delimiters: []string{","},
 		}
@@ -194,7 +194,7 @@ func TestSliceFlag(t *testing.T) {
 			t.Errorf("Set failed: %v", err)
 		}
 		result = flag.Get()
-		expected = []string{"a", "b", "c", "d"}
+		expected = []string{"d"}
 		if !reflect.DeepEqual(result, expected) {
 			t.Errorf("Expected %v, got %v", expected, result)
 		}
@@ -205,8 +205,8 @@ func TestSliceFlag(t *testing.T) {
 		// 测试SkipEmpty=true情况
 		flag := &SliceFlag{
 			BaseFlag: BaseFlag[[]string]{
-				defValue: []string{},
-				value:    new([]string),
+				initialValue: []string{},
+				value:        new([]string),
 			},
 			delimiters: []string{","},
 			skipEmpty:  true,
@@ -224,8 +224,8 @@ func TestSliceFlag(t *testing.T) {
 		// 测试SkipEmpty=false情况
 		flag = &SliceFlag{
 			BaseFlag: BaseFlag[[]string]{
-				defValue: []string{},
-				value:    new([]string),
+				initialValue: []string{},
+				value:        new([]string),
 			},
 			delimiters: []string{","},
 			skipEmpty:  false,
@@ -245,8 +245,8 @@ func TestSliceFlag(t *testing.T) {
 	t.Run("SetSkipEmptyMethod", func(t *testing.T) {
 		flag := &SliceFlag{
 			BaseFlag: BaseFlag[[]string]{
-				defValue: []string{},
-				value:    new([]string),
+				initialValue: []string{},
+				value:        new([]string),
 			},
 			delimiters: []string{","},
 		}
@@ -268,7 +268,7 @@ func TestSliceFlag(t *testing.T) {
 			t.Errorf("Set failed: %v", err)
 		}
 		result = flag.Get()
-		expected = []string{"x", "y", "z", "", "w"}
+		expected = []string{"z", "", "w"}
 		if !reflect.DeepEqual(result, expected) {
 			t.Errorf("Expected %v, got %v", expected, result)
 		}
@@ -278,8 +278,8 @@ func TestSliceFlag(t *testing.T) {
 	t.Run("ErrorHandling", func(t *testing.T) {
 		flag := &SliceFlag{
 			BaseFlag: BaseFlag[[]string]{
-				defValue: []string{},
-				value:    new([]string),
+				initialValue: []string{},
+				value:        new([]string),
 			},
 			delimiters: []string{","},
 		}
@@ -296,8 +296,8 @@ func TestSliceFlag(t *testing.T) {
 	t.Run("Len", func(t *testing.T) {
 		flag := &SliceFlag{
 			BaseFlag: BaseFlag[[]string]{
-				defValue: []string{"a", "b", "c"},
-				value:    new([]string),
+				initialValue: []string{"a", "b", "c"},
+				value:        new([]string),
 			},
 			delimiters: []string{","},
 		}
@@ -328,10 +328,10 @@ func TestIsSetMethods(t *testing.T) {
 			name: "IntFlag未设置值",
 			f: &IntFlag{
 				BaseFlag: BaseFlag[int]{
-					longName:  "intFlag",
-					shortName: "i",
-					defValue:  0,
-					usage:     "整数标志测试",
+					longName:     "intFlag",
+					shortName:    "i",
+					initialValue: 0,
+					usage:        "整数标志测试",
 				},
 			},
 			setValue: func(f Flag) error { return nil },
@@ -340,26 +340,26 @@ func TestIsSetMethods(t *testing.T) {
 			name: "IntFlag已设置值",
 			f: &IntFlag{
 				BaseFlag: BaseFlag[int]{
-					longName:  "intFlag",
-					shortName: "i",
-					defValue:  0,
-					usage:     "整数标志测试",
+					longName:     "intFlag",
+					shortName:    "i",
+					initialValue: 0,
+					usage:        "整数标志测试",
 				},
 			},
-			setValue: func(f Flag) error { return f.(*IntFlag).Set(100) },
+			setValue: func(f Flag) error { return f.(*IntFlag).Set("100") },
 		},
 		{
 			name: "IntFlag重置后",
 			f: &IntFlag{
 				BaseFlag: BaseFlag[int]{
-					longName:  "intFlag",
-					shortName: "i",
-					defValue:  0,
-					usage:     "整数标志测试",
+					longName:     "intFlag",
+					shortName:    "i",
+					initialValue: 0,
+					usage:        "整数标志测试",
 				},
 			},
 			setValue: func(f Flag) error {
-				if err := f.(*IntFlag).Set(100); err != nil {
+				if err := f.(*IntFlag).Set("100"); err != nil {
 					return err
 				}
 				f.Reset()
@@ -372,10 +372,10 @@ func TestIsSetMethods(t *testing.T) {
 			name: "StringFlag未设置值",
 			f: &StringFlag{
 				BaseFlag: BaseFlag[string]{
-					longName:  "strFlag",
-					shortName: "s",
-					defValue:  "default",
-					usage:     "字符串标志测试",
+					longName:     "strFlag",
+					shortName:    "s",
+					initialValue: "default",
+					usage:        "字符串标志测试",
 				},
 			},
 			setValue: func(f Flag) error { return nil },
@@ -384,10 +384,10 @@ func TestIsSetMethods(t *testing.T) {
 			name: "StringFlag已设置值",
 			f: &StringFlag{
 				BaseFlag: BaseFlag[string]{
-					longName:  "strFlag",
-					shortName: "s",
-					defValue:  "default",
-					usage:     "字符串标志测试",
+					longName:     "strFlag",
+					shortName:    "s",
+					initialValue: "default",
+					usage:        "字符串标志测试",
 				},
 			},
 			setValue: func(f Flag) error { return f.(*StringFlag).Set("test") },
@@ -398,10 +398,10 @@ func TestIsSetMethods(t *testing.T) {
 			name: "BoolFlag未设置值",
 			f: &BoolFlag{
 				BaseFlag: BaseFlag[bool]{
-					longName:  "boolFlag",
-					shortName: "b",
-					defValue:  false,
-					usage:     "布尔标志测试",
+					longName:     "boolFlag",
+					shortName:    "b",
+					initialValue: false,
+					usage:        "布尔标志测试",
 				},
 			},
 			setValue: func(f Flag) error { return nil },
@@ -410,13 +410,13 @@ func TestIsSetMethods(t *testing.T) {
 			name: "BoolFlag已设置值",
 			f: &BoolFlag{
 				BaseFlag: BaseFlag[bool]{
-					longName:  "boolFlag",
-					shortName: "b",
-					defValue:  false,
-					usage:     "布尔标志测试",
+					longName:     "boolFlag",
+					shortName:    "b",
+					initialValue: false,
+					usage:        "布尔标志测试",
 				},
 			},
-			setValue: func(f Flag) error { return f.(*BoolFlag).Set(true) },
+			setValue: func(f Flag) error { return f.(*BoolFlag).Set("true") },
 		},
 
 		// FloatFlag测试用例
@@ -424,10 +424,10 @@ func TestIsSetMethods(t *testing.T) {
 			name: "FloatFlag未设置值",
 			f: &Float64Flag{
 				BaseFlag: BaseFlag[float64]{
-					longName:  "floatFlag",
-					shortName: "f",
-					defValue:  0.0,
-					usage:     "浮点标志测试",
+					longName:     "floatFlag",
+					shortName:    "f",
+					initialValue: 0.0,
+					usage:        "浮点标志测试",
 				},
 			},
 			setValue: func(f Flag) error { return nil },
@@ -436,13 +436,13 @@ func TestIsSetMethods(t *testing.T) {
 			name: "FloatFlag已设置值",
 			f: &Float64Flag{
 				BaseFlag: BaseFlag[float64]{
-					longName:  "floatFlag",
-					shortName: "f",
-					defValue:  0.0,
-					usage:     "浮点标志测试",
+					longName:     "floatFlag",
+					shortName:    "f",
+					initialValue: 0.0,
+					usage:        "浮点标志测试",
 				},
 			},
-			setValue: func(f Flag) error { return f.(*Float64Flag).Set(3.14) },
+			setValue: func(f Flag) error { return f.(*Float64Flag).Set("3.14") },
 		},
 
 		// DurationFlag测试用例
@@ -450,10 +450,10 @@ func TestIsSetMethods(t *testing.T) {
 			name: "DurationFlag未设置值",
 			f: &DurationFlag{
 				BaseFlag: BaseFlag[time.Duration]{
-					longName:  "durationFlag",
-					shortName: "d",
-					defValue:  0,
-					usage:     "时间间隔标志测试",
+					longName:     "durationFlag",
+					shortName:    "d",
+					initialValue: 0,
+					usage:        "时间间隔标志测试",
 				},
 			},
 			setValue: func(f Flag) error { return nil },
@@ -462,10 +462,10 @@ func TestIsSetMethods(t *testing.T) {
 			name: "DurationFlag已设置值",
 			f: &DurationFlag{
 				BaseFlag: BaseFlag[time.Duration]{
-					longName:  "durationFlag",
-					shortName: "d",
-					defValue:  0,
-					usage:     "时间间隔标志测试",
+					longName:     "durationFlag",
+					shortName:    "d",
+					initialValue: 0,
+					usage:        "时间间隔标志测试",
 				},
 			},
 			setValue: func(f Flag) error { return f.(*DurationFlag).Set((5 * time.Second).String()) },
@@ -476,10 +476,10 @@ func TestIsSetMethods(t *testing.T) {
 			name: "EnumFlag未设置值",
 			f: &EnumFlag{
 				BaseFlag: BaseFlag[string]{
-					longName:  "enumFlag",
-					shortName: "e",
-					defValue:  "default",
-					usage:     "枚举标志测试",
+					longName:     "enumFlag",
+					shortName:    "e",
+					initialValue: "default",
+					usage:        "枚举标志测试",
 				},
 			},
 			setValue: func(f Flag) error { return nil },
@@ -488,10 +488,10 @@ func TestIsSetMethods(t *testing.T) {
 			name: "EnumFlag已设置值",
 			f: &EnumFlag{
 				BaseFlag: BaseFlag[string]{
-					longName:  "enumFlag",
-					shortName: "e",
-					defValue:  "default",
-					usage:     "枚举标志测试",
+					longName:     "enumFlag",
+					shortName:    "e",
+					initialValue: "default",
+					usage:        "枚举标志测试",
 				},
 			},
 			setValue: func(f Flag) error { return f.(*EnumFlag).Set("option1") },
@@ -502,10 +502,10 @@ func TestIsSetMethods(t *testing.T) {
 			name: "SliceFlag未设置值",
 			f: &SliceFlag{
 				BaseFlag: BaseFlag[[]string]{
-					longName:  "sliceFlag",
-					shortName: "sl",
-					defValue:  []string{"default"},
-					usage:     "切片标志测试",
+					longName:     "sliceFlag",
+					shortName:    "sl",
+					initialValue: []string{"default"},
+					usage:        "切片标志测试",
 				},
 			},
 			setValue: func(f Flag) error { return nil },
@@ -514,10 +514,10 @@ func TestIsSetMethods(t *testing.T) {
 			name: "SliceFlag已设置值",
 			f: &SliceFlag{
 				BaseFlag: BaseFlag[[]string]{
-					longName:  "sliceFlag",
-					shortName: "sl",
-					defValue:  []string{"default"},
-					usage:     "切片标志测试",
+					longName:     "sliceFlag",
+					shortName:    "sl",
+					initialValue: []string{"default"},
+					usage:        "切片标志测试",
 				},
 			},
 			setValue: func(f Flag) error { return f.(*SliceFlag).Set("item1,item2") },

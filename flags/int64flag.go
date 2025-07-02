@@ -1,6 +1,7 @@
 package flags
 
 import "gitee.com/MM-Q/qflag/validator"
+import "strconv"
 
 // Int64Flag 64位整数类型标志结构体
 // 继承BaseFlag[int64]泛型结构体,实现Flag接口
@@ -18,4 +19,13 @@ func (f *Int64Flag) Type() FlagType { return FlagTypeInt64 }
 func (f *Int64Flag) SetRange(min, max int64) {
 	validator := &validator.IntRangeValidator64{Min: min, Max: max}
 	f.SetValidator(validator)
+}
+
+// Set 实现flag.Value接口,解析并设置64位整数值
+func (f *Int64Flag) Set(value string) error {
+	int64Val, err := strconv.ParseInt(value, 10, 64)
+	if err != nil {
+		return err
+	}
+	return f.BaseFlag.Set(int64Val)
 }

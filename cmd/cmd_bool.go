@@ -24,7 +24,7 @@ func (c *Cmd) BoolVar(f *flags.BoolFlag, longName, shortName string, defValue bo
 	*currentBool = defValue
 
 	// 初始化Flag对象
-	if initErr := f.Init(longName, shortName, defValue, usage, currentBool); initErr != nil {
+	if initErr := f.Init(longName, shortName, usage, currentBool); initErr != nil {
 		panic(initErr)
 	}
 

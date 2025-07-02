@@ -24,7 +24,7 @@ func (c *Cmd) MapVar(f *flags.MapFlag, longName, shortName string, defValue map[
 	*currentMap = defValue
 
 	// 初始化Flag对象
-	if initErr := f.Init(longName, shortName, defValue, usage, currentMap); initErr != nil {
+	if initErr := f.Init(longName, shortName, usage, currentMap); initErr != nil {
 		panic(initErr)
 	}
 
