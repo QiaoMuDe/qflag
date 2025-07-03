@@ -63,6 +63,11 @@ type QCommandLineInterface interface {
 	Time(longName, shortName string, defValue time.Time, usage string) *flags.TimeFlag                   // 添加时间类型标志
 	Map(longName, shortName string, defValue map[string]string, usage string) *flags.MapFlag             // 添加Map标志
 	Path(longName, shortName string, defValue string, usage string) *flags.PathFlag                      // 添加路径标志
+	Uint32(longName, shortName string, defValue uint32, usage string) *flags.Uint32Flag                  // 添加无符号32位整型类型标志
+	Uint64(longName, shortName string, defValue uint64, usage string) *flags.Uint64Flag                  // 添加无符号64位整型类型标志
+	IP4(longName, shortName string, defValue string, usage string) *flags.IP4Flag                        // 添加IPv4地址标志
+	IP6(longName, shortName string, defValue string, usage string) *flags.IP6Flag                        // 添加IPv6地址标志
+	URL(longName, shortName string, defValue string, usage string) *flags.URLFlag                        // 添加URL标志
 
 	// 绑定变量方法
 	StringVar(f *flags.StringFlag, longName, shortName, defValue, usage string)                                // 绑定字符串标志到指定变量
@@ -77,6 +82,11 @@ type QCommandLineInterface interface {
 	TimeVar(f *flags.TimeFlag, longName, shortName string, defValue time.Time, usage string)                   // 绑定时间类型标志到指定变量
 	MapVar(f *flags.MapFlag, longName, shortName string, defValue map[string]string, usage string)             // 绑定字符串映射标志到指定变量
 	PathVar(f *flags.PathFlag, longName, shortName string, defValue string, usage string)                      // 绑定路径标志到指定变量
+	Uint32Var(f *flags.Uint32Flag, longName, shortName string, defValue uint32, usage string)                  // 绑定无符号32位整型标志到指定变量
+	Uint64Var(f *flags.Uint64Flag, longName, shortName string, defValue uint64, usage string)                  // 绑定无符号64位整型标志到指定变量
+	IP4Var(f *flags.IP4Flag, longName, shortName string, defValue string, usage string)                        // 绑定IPv4地址标志到指定变量
+	IP6Var(f *flags.IP6Flag, longName, shortName string, defValue string, usage string)                        // 绑定IPv6地址标志到指定变量
+	URLVar(f *flags.URLFlag, longName, shortName string, defValue string, usage string)                        // 绑定URL标志到指定变量
 }
 
 // SetVersion 为全局默认命令设置版本信息

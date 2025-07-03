@@ -1,10 +1,8 @@
-# Package cmd
+package cmd // import "gitee.com/MM-Q/qflag/cmd"
 
-该包提供了命令行标志管理结构体及其相关方法，用于封装参数解析、长短标志互斥及帮助系统。
 
-## VARIABLES
+VARIABLES
 
-```go
 var ChineseTemplate = HelpTemplate{
 	CmdName:              "名称: %s\n\n",
 	UsagePrefix:          "用法: ",
@@ -27,11 +25,8 @@ var ChineseTemplate = HelpTemplate{
 	ExamplesHeader:       "\n示例:\n",
 	ExampleItem:          "  %d、%s\n     %s\n",
 }
-```
+    中文模板实例
 
-中文模板实例。
-
-```go
 var EnglishTemplate = HelpTemplate{
 	CmdName:              "Name: %s\n\n",
 	UsagePrefix:          "Usage: ",
@@ -54,424 +49,337 @@ var EnglishTemplate = HelpTemplate{
 	ExamplesHeader:       "\nExamples:\n",
 	ExampleItem:          "  %d. %s\n     %s\n",
 }
-```
+    英文模板实例
 
-英文模板实例。
-
-```go
 var NewCmd = NewCommand
-```
+    保持兼容API 支持 NewCmd 别名
 
-保持兼容API，支持`NewCmd`别名。
 
-## FUNCTIONS
+FUNCTIONS
 
-```go
 func GetExecutablePath() string
-```
+    GetExecutablePath 获取程序的绝对安装路径 如果无法通过 os.Executable 获取路径,则使用 os.Args[0] 作为替代
+    返回：程序的绝对路径字符串
 
-`GetExecutablePath`获取程序的绝对安装路径。如果无法通过`os.Executable`获取路径，则使用`os.Args[0]`作为替代。返回程序的绝对路径字符串。
 
-## TYPES
+TYPES
 
-### Cmd
-
-```go
 type Cmd struct {
 	// Has unexported fields.
 }
-```
+    Cmd 命令行标志管理结构体,封装参数解析、长短标志互斥及帮助系统。
 
-`Cmd`命令行标志管理结构体，封装参数解析、长短标志互斥及帮助系统。
-
-```go
 var QCommandLine *Cmd
-```
+    QCommandLine 全局默认Command实例
 
-`QCommandLine`全局默认Command实例。
-
-```go
 func NewCommand(longName string, shortName string, errorHandling flag.ErrorHandling) *Cmd
-```
+    NewCommand 创建新的命令实例 参数: longName: 命令长名称 shortName:
+    命令短名称 errorHandling: 错误处理方式 返回值: *Cmd命令实例指针 errorHandling可选值:
+    flag.ContinueOnError、flag.ExitOnError、flag.PanicOnError
 
-`NewCommand`创建新的命令实例。
-
-**参数**：
-- `longName`：命令长名称
-- `shortName`：命令短名称
-- `errorHandling`：错误处理方式
-
-**返回值**：`*Cmd`命令实例指针
-
-`errorHandling`可选值：`flag.ContinueOnError`、`flag.ExitOnError`、`flag.PanicOnError`。
-
-### Cmd方法
-
-```go
 func (c *Cmd) AddExample(e ExampleInfo)
-```
+    AddExample 为命令添加使用示例 description: 示例描述 usage: 示例使用方式
 
-为命令添加使用示例。
-
-```go
 func (c *Cmd) AddNote(note string)
-```
+    AddNote 添加备注信息到命令
 
-添加备注信息到命令。
-
-```go
 func (c *Cmd) AddSubCmd(subCmds ...*Cmd) error
-```
+    AddSubCmd 关联一个或多个子命令到当前命令 支持批量添加多个子命令，遇到错误时收集所有错误并返回 参数:
 
-关联一个或多个子命令到当前命令，支持批量添加多个子命令，遇到错误时收集所有错误并返回。
+        subCmds: 一个或多个子命令实例指针
 
-**参数**：`subCmds`：一个或多个子命令实例指针
+    返回值:
 
-**返回值**：错误信息列表，如果所有子命令添加成功则返回`nil`。
+        错误信息列表, 如果所有子命令添加成功则返回nil
 
-```go
 func (c *Cmd) Arg(i int) string
-```
+    Arg 获取指定索引的非标志参数
 
-获取指定索引的非标志参数。
-
-```go
 func (c *Cmd) Args() []string
-```
+    Args 获取非标志参数切片
 
-获取非标志参数切片。
-
-```go
 func (c *Cmd) Bool(longName, shortName string, defValue bool, usage string) *flags.BoolFlag
-```
+    Bool 添加布尔类型标志, 返回标志对象指针
 
-添加布尔类型标志，返回标志对象指针。
+    参数依次为: 长标志名、短标志、默认值、帮助说明
 
-```go
+    返回值: 布尔标志对象指针
+
 func (c *Cmd) BoolVar(f *flags.BoolFlag, longName, shortName string, defValue bool, usage string)
-```
+    BoolVar 绑定布尔类型标志到指针并内部注册Flag对象
 
-绑定布尔类型标志到指针并内部注册Flag对象。
+    参数依次为: 布尔标志指针、长标志名、短标志、默认值、帮助说明
 
-```go
 func (c *Cmd) Duration(longName, shortName string, defValue time.Duration, usage string) *flags.DurationFlag
-```
+    Duration 添加时间间隔类型标志, 返回标志对象指针
 
-添加时间间隔类型标志，返回标志对象指针。
+    参数依次为: 长标志名、短标志、默认值、帮助说明
 
-```go
+    返回值: 时间间隔标志对象指针
+
 func (c *Cmd) DurationVar(f *flags.DurationFlag, longName, shortName string, defValue time.Duration, usage string)
-```
+    DurationVar 绑定时间间隔类型标志到指针并内部注册Flag对象
 
-绑定时间间隔类型标志到指针并内部注册Flag对象。
+    参数依次为: 时间间隔标志指针、长标志名、短标志、默认值、帮助说明
 
-```go
 func (c *Cmd) Enum(longName, shortName string, defValue string, usage string, options []string) *flags.EnumFlag
-```
+    Enum 添加枚举类型标志, 返回标志对象指针
 
-添加枚举类型标志，返回标志对象指针。
+    参数依次为: 长标志名、短标志、默认值、帮助说明、限制该标志取值的枚举值切片
 
-```go
+    返回值: 枚举标志对象指针
+
 func (c *Cmd) EnumVar(f *flags.EnumFlag, longName, shortName string, defValue string, usage string, options []string)
-```
+    EnumVar 绑定枚举类型标志到指针并内部注册Flag对象
 
-绑定枚举类型标志到指针并内部注册Flag对象。
+    参数依次为: 枚举标志指针、长标志名、短标志、默认值、帮助说明、限制该标志取值的枚举值切片
 
-```go
 func (c *Cmd) FlagExists(name string) bool
-```
+    FlagExists 检查指定名称的标志是否存在
 
-检查指定名称的标志是否存在。
-
-```go
 func (c *Cmd) Float64(longName, shortName string, defValue float64, usage string) *flags.Float64Flag
-```
+    Float64 添加浮点型标志, 返回标志对象指针
 
-添加浮点型标志，返回标志对象指针。
+    参数依次为: 长标志名、短标志、默认值、帮助说明
 
-```go
+    返回值: 浮点型标志对象指针
+
 func (c *Cmd) Float64Var(f *flags.Float64Flag, longName, shortName string, defValue float64, usage string)
-```
+    Float64Var 绑定浮点型标志到指针并内部注册Flag对象
 
-绑定浮点型标志到指针并内部注册Flag对象。
+    参数依次为: 浮点数标志指针、长标志名、短标志、默认值、帮助说明
 
-```go
 func (c *Cmd) GetDescription() string
-```
+    GetDescription 返回命令描述
 
-返回命令描述。
-
-```go
 func (c *Cmd) GetExamples() []ExampleInfo
-```
+    GetExamples 获取所有使用示例 返回示例切片的副本，防止外部修改
 
-获取所有使用示例，返回示例切片的副本，防止外部修改。
-
-```go
 func (c *Cmd) GetHelp() string
-```
+    GetHelp 返回命令用法帮助信息
 
-返回命令用法帮助信息。
-
-```go
 func (c *Cmd) GetLogoText() string
-```
+    GetLogoText 获取logo文本
 
-获取logo文本。
-
-```go
 func (c *Cmd) GetModuleHelps() string
-```
+    GetModuleHelps 获取自定义模块帮助信息
 
-获取自定义模块帮助信息。
-
-```go
 func (c *Cmd) GetNotes() []string
-```
+    GetNotes 获取所有备注信息
 
-获取所有备注信息。
-
-```go
 func (c *Cmd) GetUsageSyntax() string
-```
+    GetUsageSyntax 获取自定义命令用法
 
-获取自定义命令用法。
-
-```go
 func (c *Cmd) GetUseChinese() bool
-```
+    GetUseChinese 获取是否使用中文帮助信息
 
-获取是否使用中文帮助信息。
-
-```go
 func (c *Cmd) GetVersion() string
-```
+    GetVersion 获取版本信息
 
-获取版本信息。
+func (c *Cmd) IP4(longName, shortName string, defValue string, usage string) *flags.IP4Flag
+    IP4 添加IPv4地址类型标志, 返回标志对象指针 参数依次为: 长标志名、短标志、默认值、帮助说明 返回值: IPv4地址标志对象指针
 
-```go
+func (c *Cmd) IP4Var(f *flags.IP4Flag, longName, shortName string, defValue string, usage string)
+    IP4Var 绑定IPv4地址类型标志到指针并内部注册Flag对象 参数依次为: IPv4标志指针、长标志名、短标志、默认值、帮助说明
+
+func (c *Cmd) IP6(longName, shortName string, defValue string, usage string) *flags.IP6Flag
+    IP6 添加IPv6地址类型标志, 返回标志对象指针 参数依次为: 长标志名、短标志、默认值、帮助说明 返回值: IPv6地址标志对象指针
+
+func (c *Cmd) IP6Var(f *flags.IP6Flag, longName, shortName string, defValue string, usage string)
+    IP6Var 绑定IPv6地址类型标志到指针并内部注册Flag对象 参数依次为: IPv6标志指针、长标志名、短标志、默认值、帮助说明
+
 func (c *Cmd) Int(longName, shortName string, defValue int, usage string) *flags.IntFlag
-```
+    Int 添加整数类型标志, 返回标志对象指针
 
-添加整数类型标志，返回标志对象指针。
+    参数依次为: 长标志名、短标志、默认值、帮助说明 返回值: 整数标志对象指针
 
-```go
 func (c *Cmd) Int64(longName, shortName string, defValue int64, usage string) *flags.Int64Flag
-```
+    Int64 添加64位整数类型标志, 返回标志对象指针
 
-添加64位整数类型标志，返回标志对象指针。
+    参数依次为: 长标志名、短标志、默认值、帮助说明
 
-```go
+    返回值: 64位整数标志对象指针
+
 func (c *Cmd) Int64Var(f *flags.Int64Flag, longName, shortName string, defValue int64, usage string)
-```
+    Int64Var 绑定64位整数类型标志到指针并内部注册Flag对象
 
-绑定64位整数类型标志到指针并内部注册Flag对象。
+    参数依次为: 64位整数标志指针、长标志名、短标志、默认值、帮助说明
 
-```go
 func (c *Cmd) IntVar(f *flags.IntFlag, longName, shortName string, defValue int, usage string)
-```
+    IntVar 绑定整数类型标志到指针并内部注册Flag对象
 
-绑定整数类型标志到指针并内部注册Flag对象。
+    参数依次为: 整数标志指针、长标志名、短标志、默认值、帮助说明
 
-```go
 func (c *Cmd) LoadHelp(filePath string) error
-```
+    LoadHelp 从指定文件加载帮助信息
 
-从指定文件加载帮助信息。
+    参数: filePath: 帮助信息文件路径
 
-```go
+    返回值: error: 如果文件不存在或读取文件失败，则返回错误信息
+
 func (c *Cmd) LongName() string
-```
+    LongName 返回命令长名称
 
-返回命令长名称。
-
-```go
 func (c *Cmd) Map(longName, shortName string, defValue map[string]string, usage string) *flags.MapFlag
-```
+    Map 添加键值对类型标志, 返回标志对象指针
 
-添加键值对类型标志，返回标志对象指针。
+    参数依次为: 长标志名、短标志、默认值、帮助说明 返回值: 键值对标志对象指针
 
-```go
 func (c *Cmd) MapVar(f *flags.MapFlag, longName, shortName string, defValue map[string]string, usage string)
-```
+    MapVar 绑定键值对类型标志到指针并内部注册Flag对象
 
-绑定键值对类型标志到指针并内部注册Flag对象。
+    参数依次为: 键值对标志指针、长标志名、短标志、默认值、帮助说明
 
-```go
 func (c *Cmd) NArg() int
-```
+    NArg 获取非标志参数的数量
 
-获取非标志参数的数量。
-
-```go
 func (c *Cmd) NFlag() int
-```
+    NFlag 获取标志的数量
 
-获取标志的数量。
-
-```go
 func (c *Cmd) Parse(args []string) (err error)
-```
+    Parse 完整解析命令行参数（含子命令处理） 主要功能：
+     1. 解析当前命令的长短标志及内置标志
+     2. 自动检测并解析子命令及其参数（若存在）
+     3. 验证枚举类型标志的有效性
 
-完整解析命令行参数（含子命令处理）。
+    参数：
 
-**主要功能**：
-1. 解析当前命令的长短标志及内置标志
-2. 自动检测并解析子命令及其参数（若存在）
-3. 验证枚举类型标志的有效性
+        args: 原始命令行参数切片（包含可能的子命令及参数）
 
-**参数**：`args`：原始命令行参数切片（包含可能的子命令及参数）
+    返回值：
 
-**返回值**：解析过程中遇到的错误（如标志格式错误、子命令解析失败等）
+        解析过程中遇到的错误（如标志格式错误、子命令解析失败等）
 
-**注意事项**：
-- 每个`Cmd`实例仅会被解析一次（线程安全）
-- 若检测到子命令，会将剩余参数传递给子命令的`Parse`方法
-- 处理内置标志执行逻辑
+    注意事项：
+      - 每个Cmd实例仅会被解析一次(线程安全)
+      - 若检测到子命令, 会将剩余参数传递给子命令的Parse方法
+      - 处理内置标志执行逻辑
 
-```go
 func (c *Cmd) ParseFlagsOnly(args []string) (err error)
-```
+    ParseFlagsOnly 仅解析当前命令的标志参数（忽略子命令） 主要功能：
+     1. 解析当前命令的长短标志及内置标志
+     2. 验证枚举类型标志的有效性
+     3. 明确忽略所有子命令及后续参数
 
-仅解析当前命令的标志参数（忽略子命令）。
+    参数：
 
-**主要功能**：
-1. 解析当前命令的长短标志及内置标志
-2. 验证枚举类型标志的有效性
-3. 明确忽略所有子命令及后续参数
+        args: 原始命令行参数切片（子命令及后续参数会被忽略）
 
-**参数**：`args`：原始命令行参数切片（子命令及后续参数会被忽略）
+    返回值：
 
-**返回值**：解析过程中遇到的错误（如标志格式错误等）
+        解析过程中遇到的错误（如标志格式错误等）
 
-**注意事项**：
-- 每个`Cmd`实例仅会被解析一次（线程安全）
-- 不会处理任何子命令，所有参数均视为当前命令的标志或位置参数
-- 处理内置标志逻辑
+    注意事项：
+      - 每个Cmd实例仅会被解析一次（线程安全）
+      - 不会处理任何子命令，所有参数均视为当前命令的标志或位置参数
+      - 处理内置标志逻辑
 
-```go
 func (c *Cmd) Path(longName, shortName string, defValue string, usage string) *flags.PathFlag
-```
+    Path 添加路径类型标志, 返回标志对象指针
 
-添加路径类型标志，返回标志对象指针。
+    参数依次为: 长标志名、短标志、默认值、帮助说明 返回值: 路径标志对象指针
 
-```go
 func (c *Cmd) PathVar(f *flags.PathFlag, longName, shortName string, defValue string, usage string)
-```
+    PathVar 绑定路径类型标志到指针并内部注册Flag对象
 
-绑定路径类型标志到指针并内部注册Flag对象。
+    参数依次为: 路径标志指针、长标志名、短标志、默认值、帮助说明
 
-```go
 func (c *Cmd) PrintHelp()
-```
+    PrintHelp 打印命令的帮助信息, 优先打印用户的帮助信息, 否则自动生成帮助信息
 
-打印命令的帮助信息，优先打印用户的帮助信息，否则自动生成帮助信息。
-
-```go
 func (c *Cmd) SetDescription(desc string)
-```
+    SetDescription 设置命令描述
 
-设置命令描述。
-
-```go
 func (c *Cmd) SetHelp(help string)
-```
+    SetHelp 设置用户自定义命令帮助信息
 
-设置用户自定义命令帮助信息。
-
-```go
 func (c *Cmd) SetLogoText(logoText string)
-```
+    SetLogoText 设置logo文本
 
-设置logo文本。
-
-```go
 func (c *Cmd) SetModuleHelps(moduleHelps string)
-```
+    SetModuleHelps 设置自定义模块帮助信息
 
-设置自定义模块帮助信息。
-
-```go
 func (c *Cmd) SetUsageSyntax(usageSyntax string)
-```
+    SetUsageSyntax 设置自定义命令用法
 
-设置自定义命令用法。
-
-```go
 func (c *Cmd) SetUseChinese(useChinese bool)
-```
+    SetUseChinese 设置是否使用中文帮助信息
 
-设置是否使用中文帮助信息。
-
-```go
 func (c *Cmd) SetVersion(version string)
-```
+    SetVersion 设置版本信息
 
-设置版本信息。
-
-```go
 func (c *Cmd) ShortName() string
-```
+    ShortName 返回命令短名称
 
-返回命令短名称。
-
-```go
 func (c *Cmd) Slice(longName, shortName string, defValue []string, usage string) *flags.SliceFlag
-```
+    Slice 绑定字符串切片类型标志并内部注册Flag对象
 
-绑定字符串切片类型标志并内部注册Flag对象。
+    参数依次为: 长标志名、短标志、默认值、帮助说明
 
-```go
+    返回值: 字符串切片标志对象指针
+
 func (c *Cmd) SliceVar(f *flags.SliceFlag, longName, shortName string, defValue []string, usage string)
-```
+    SliceVar 绑定字符串切片类型标志到指针并内部注册Flag对象
 
-绑定字符串切片类型标志到指针并内部注册Flag对象。
+    参数依次为: 字符串切片标志指针、长标志名、短标志、默认值、帮助说明
 
-```go
 func (c *Cmd) String(longName, shortName, defValue, usage string) *flags.StringFlag
-```
+    String 添加字符串类型标志, 返回标志对象指针
 
-添加字符串类型标志，返回标志对象指针。
+    参数依次为: 长标志名、短标志、默认值、帮助说明
 
-```go
+    返回值: 字符串标志对象指针
+
 func (c *Cmd) StringVar(f *flags.StringFlag, longName, shortName, defValue, usage string)
-```
+    StringVar 绑定字符串类型标志到指针并内部注册Flag对象
 
-绑定字符串类型标志到指针并内部注册Flag对象。
+    参数依次为: 字符串标志指针、长标志名、短标志、默认值、帮助说明
 
-```go
 func (c *Cmd) SubCmds() []*Cmd
-```
+    SubCmds 返回子命令列表
 
-返回子命令列表。
-
-```go
 func (c *Cmd) Time(longName, shortName string, defValue time.Time, usage string) *flags.TimeFlag
-```
+    Time 添加时间类型标志, 返回标志对象指针
 
-添加时间类型标志，返回标志对象指针。
+    参数依次为: 长标志名、短标志、默认值、帮助说明
 
-```go
+    返回值: 时间标志对象指针
+
 func (c *Cmd) TimeVar(f *flags.TimeFlag, longName, shortName string, defValue time.Time, usage string)
-```
+    TimeVar 绑定时间类型标志到指针并内部注册Flag对象
 
-绑定时间类型标志到指针并内部注册Flag对象。
+    参数依次为: 时间标志指针、长标志名、短标志、默认值、帮助说明
 
-```go
+func (c *Cmd) URL(longName, shortName string, defValue string, usage string) *flags.URLFlag
+    URL 添加URL类型标志, 返回标志对象指针 参数依次为: 长标志名、短标志、默认值、帮助说明 返回值: URL标志对象指针
+
+func (c *Cmd) URLVar(f *flags.URLFlag, longName, shortName string, defValue string, usage string)
+    URLVar 绑定URL类型标志到指针并内部注册Flag对象 参数依次为: URL标志指针、长标志名、短标志、默认值、帮助说明
+
 func (c *Cmd) Uint16(longName, shortName string, defValue uint16, usage string) *flags.Uint16Flag
-```
+    Uint16 添加16位无符号整数类型标志, 返回标志对象指针
 
-添加16位无符号整数类型标志，返回标志对象指针。
+    参数依次为: 长标志名、短标志、默认值、帮助说明
 
-```go
+    返回值: 16位无符号整数标志对象指针
+
 func (c *Cmd) Uint16Var(f *flags.Uint16Flag, longName, shortName string, defValue uint16, usage string)
-```
+    Uint16Var 绑定16位无符号整数类型标志到指针并内部注册Flag对象
 
-绑定16位无符号整数类型标志到指针并内部注册Flag对象。
+    参数依次为: 16位无符号整数标志指针、长标志名、短标志、默认值、帮助说明
 
-### CmdInterface
+func (c *Cmd) Uint32(longName, shortName string, defValue uint32, usage string) *flags.Uint32Flag
+    Uint32 添加32位无符号整数类型标志, 返回标志对象指针 参数依次为: 长标志名、短标志、默认值、帮助说明 返回值: 32位无符号整数标志对象指针
 
-```go
+func (c *Cmd) Uint32Var(f *flags.Uint32Flag, longName, shortName string, defValue uint32, usage string)
+    Uint32Var 绑定32位无符号整数类型标志到指针并内部注册Flag对象 参数依次为: 32位无符号整数标志指针、长标志名、短标志、默认值、帮助说明
+
+func (c *Cmd) Uint64(longName, shortName string, defValue uint64, usage string) *flags.Uint64Flag
+    Uint64 添加64位无符号整数类型标志, 返回标志对象指针 参数依次为: 长标志名、短标志、默认值、帮助说明 返回值: 64位无符号整数标志对象指针
+
+func (c *Cmd) Uint64Var(f *flags.Uint64Flag, longName, shortName string, defValue uint64, usage string)
+    Uint64Var 绑定64位无符号整数类型标志到指针并内部注册Flag对象 参数依次为: 64位无符号整数标志指针、长标志名、短标志、默认值、帮助说明
+
 type CmdInterface interface {
 	// 元数据操作方法
 	LongName() string                         // 获取命令名称(长名称)，如"app"
@@ -535,26 +443,18 @@ type CmdInterface interface {
 	PathVar(f *flags.PathFlag, longName, shortName string, defValue string, usage string) // 绑定路径标志到指定变量
 	// Has unexported methods.
 }
-```
+    CmdInterface 命令接口定义，封装命令行程序的核心功能 提供统一的命令管理、参数解析和帮助系统 实现类需保证线程安全，所有方法应支持并发调用
 
-`CmdInterface`命令接口定义，封装命令行程序的核心功能。提供统一的命令管理、参数解析和帮助系统。实现类需保证线程安全，所有方法应支持并发调用。
+    示例用法: cmd := NewCommand("app", "a", flag.ContinueOnError)
+    cmd.SetDescription("示例应用程序") cmd.String("config", "c", "配置文件路径",
+    "/etc/app.conf")
 
-**示例用法**：`cmd := NewCommand("app", "a", flag.ContinueOnError)`；`cmd.SetDescription("示例应用程序")`；`cmd.String("config", "c", "配置文件路径", "/etc/app.conf")`。
-
-### ExampleInfo
-
-```go
 type ExampleInfo struct {
 	Description string // 示例描述
 	Usage       string // 示例使用方式
 }
-```
+    ExampleInfo 示例信息结构体 用于存储命令的使用示例，包括描述和示例内容
 
-`ExampleInfo`示例信息结构体，用于存储命令的使用示例，包括描述和示例内容。
-
-### HelpTemplate
-
-```go
 type HelpTemplate struct {
 	CmdName              string // 命令名称模板
 	CmdNameWithShort     string // 命令名称带短名称模板
@@ -577,16 +477,10 @@ type HelpTemplate struct {
 	ExamplesHeader       string // 示例信息头部模板
 	ExampleItem          string // 示例信息项模板
 }
-```
+    HelpTemplate 帮助信息模板结构体
 
-`HelpTemplate`帮助信息模板结构体。
-
-### UserInfo
-
-```go
 type UserInfo struct {
 	// Has unexported fields.
 }
-```
+    UserInfo 存储用户自定义信息的嵌套结构体
 
-`UserInfo`存储用户自定义信息的嵌套结构体。
