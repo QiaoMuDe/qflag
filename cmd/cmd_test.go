@@ -971,8 +971,8 @@ func TestBindHelpFlag(t *testing.T) {
 	}
 }
 
-// TestHasCycle 测试检测循环引用
-func TestHasCycle(t *testing.T) {
+// TestHasCyclef 测试检测循环引用
+func TestHasCyclef(t *testing.T) {
 	cmd1 := NewCommand("cmd1", "", flag.ExitOnError)
 	cmd2 := NewCommand("", "c2", flag.ExitOnError)
 	cmd3 := NewCommand("cmd3", "c3", flag.ExitOnError)

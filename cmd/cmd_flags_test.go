@@ -11,8 +11,8 @@ import (
 	"gitee.com/MM-Q/qflag/flags"
 )
 
-// TestStringVar 测试StringVar方法的功能
-func TestStringVar(t *testing.T) {
+// TestStringVarf 测试StringVar方法的功能
+func TestStringVarf(t *testing.T) {
 	// 测试指针为nil的情况
 	t.Run("nil pointer", func(t *testing.T) {
 		cmd := NewCommand("test", "t", flag.ContinueOnError)
@@ -56,8 +56,8 @@ func TestStringVar(t *testing.T) {
 	})
 }
 
-// TestIntVar 测试IntVar方法的功能
-func TestIntVar(t *testing.T) {
+// TestIntVarf 测试IntVar方法的功能
+func TestIntVarf(t *testing.T) {
 	// 测试指针为nil的情况
 	t.Run("nil pointer", func(t *testing.T) {
 		cmd := NewCommand("test", "t", flag.ContinueOnError)
@@ -101,8 +101,8 @@ func TestIntVar(t *testing.T) {
 	})
 }
 
-// TestBoolVar 测试BoolVar方法的功能
-func TestBoolVar(t *testing.T) {
+// TestBoolVarf 测试BoolVar方法的功能
+func TestBoolVarf(t *testing.T) {
 	// 测试指针为nil的情况
 	t.Run("nil pointer", func(t *testing.T) {
 		cmd := NewCommand("test", "t", flag.ContinueOnError)
@@ -191,8 +191,8 @@ func TestFloatVar(t *testing.T) {
 	})
 }
 
-// TestDurationVar 测试DurationVar方法的功能
-func TestDurationVar(t *testing.T) {
+// TestDurationVarf 测试DurationVar方法的功能
+func TestDurationVarf(t *testing.T) {
 	var durationFlagShort flags.DurationFlag
 
 	// 测试指针为nil的情况
@@ -239,8 +239,8 @@ func TestDurationVar(t *testing.T) {
 	})
 }
 
-// TestEnumVar 测试EnumVar方法的功能
-func TestEnumVar(t *testing.T) {
+// TestEnumVarf 测试EnumVar方法的功能
+func TestEnumVarf(t *testing.T) {
 	var enumFlag flags.EnumFlag
 	var enumFlagShort flags.EnumFlag
 	options := []string{"test", "dev", "prod"}
@@ -299,8 +299,8 @@ func TestEnumVar(t *testing.T) {
 	})
 }
 
-// TestSliceVar 测试SliceVar方法的功能
-func TestSliceVar(t *testing.T) {
+// TestSliceVarf 测试SliceVar方法的功能
+func TestSliceVarf(t *testing.T) {
 	// 测试指针为nil的情况
 	t.Run("nil pointer", func(t *testing.T) {
 		cmd := NewCommand("test", "t", flag.ContinueOnError)
@@ -346,8 +346,8 @@ func TestSliceVar(t *testing.T) {
 	})
 }
 
-// TestInt64Var 测试Int64Var方法的功能
-func TestInt64Var(t *testing.T) {
+// TestInt64Varg 测试Int64Var方法的功能
+func TestInt64Varf(t *testing.T) {
 	// 测试指针为nil的情况
 	t.Run("nil pointer", func(t *testing.T) {
 		cmd := NewCommand("test", "t", flag.ContinueOnError)
@@ -393,8 +393,8 @@ func TestInt64Var(t *testing.T) {
 	})
 }
 
-// TestUint16Var 测试Uint16Var方法的功能
-func TestUint16Var(t *testing.T) {
+// TestUint16Varf 测试Uint16Var方法的功能
+func TestUint16Varf(t *testing.T) {
 	var uint16Flag flags.Uint16Flag
 	var uint16FlagShort flags.Uint16Flag
 
@@ -478,8 +478,8 @@ func TestUint16Var(t *testing.T) {
 	})
 }
 
-// TestTimeVar 测试TimeVar方法的功能
-func TestTimeVar(t *testing.T) {
+// TestTimeVarf 测试TimeVar方法的功能
+func TestTimeVarf(t *testing.T) {
 	// 测试指针为nil的情况
 	{
 		t.Run("nil pointer", func(t *testing.T) {
@@ -562,8 +562,8 @@ func TestTimeVar(t *testing.T) {
 	}
 }
 
-// TestTime 测试Time方法的功能
-func TestTime(t *testing.T) {
+// TestTimef 测试Time方法的功能
+func TestTimef(t *testing.T) {
 	cmd := NewCommand("test", "t", flag.ContinueOnError)
 	defaultTime := time.Date(2023, time.January, 1, 0, 0, 0, 0, time.UTC)
 	flag := cmd.Time("time", "tm", defaultTime, "test time flag")
