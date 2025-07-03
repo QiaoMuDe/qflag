@@ -35,12 +35,12 @@ func (c *Cmd) Int64Var(f *flags.Int64Flag, longName, shortName string, defValue 
 
 	// 绑定短标志
 	if shortName != "" {
-		c.fs.Int64Var(f.GetPointer(), shortName, defValue, usage)
+		c.fs.Var(f, shortName, usage)
 	}
 
 	// 绑定长标志
 	if longName != "" {
-		c.fs.Int64Var(f.GetPointer(), longName, defValue, usage)
+		c.fs.Var(f, longName, usage)
 	}
 
 	// 注册Flag对象

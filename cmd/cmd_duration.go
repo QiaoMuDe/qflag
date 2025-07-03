@@ -34,12 +34,12 @@ func (c *Cmd) DurationVar(f *flags.DurationFlag, longName, shortName string, def
 
 	// 绑定短标志
 	if shortName != "" {
-		c.fs.DurationVar(f.GetPointer(), shortName, defValue, usage)
+		c.fs.Var(f, shortName, usage)
 	}
 
 	// 绑定长标志
 	if longName != "" {
-		c.fs.DurationVar(f.GetPointer(), longName, defValue, usage)
+		c.fs.Var(f, longName, usage)
 	}
 
 	// 创建并注册标志元数据

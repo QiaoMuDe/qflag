@@ -22,3 +22,11 @@ func (f *BoolFlag) Set(value string) error {
 	}
 	return f.BaseFlag.Set(boolVal)
 }
+
+// String 实现flag.Value接口,返回布尔值字符串
+func (f *BoolFlag) String() string {
+	return f.BaseFlag.String()
+}
+
+// IsBoolFlag 实现flag.Value接口,返回布尔值
+func (f *BoolFlag) IsBoolFlag() bool { return true }

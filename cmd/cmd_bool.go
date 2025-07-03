@@ -35,12 +35,12 @@ func (c *Cmd) BoolVar(f *flags.BoolFlag, longName, shortName string, defValue bo
 
 	// 绑定短标志
 	if shortName != "" {
-		c.fs.BoolVar(f.GetPointer(), shortName, defValue, usage)
+		c.fs.Var(f, shortName, usage)
 	}
 
 	// 绑定长标志
 	if longName != "" {
-		c.fs.BoolVar(f.GetPointer(), longName, defValue, usage)
+		c.fs.Var(f, longName, usage)
 	}
 
 	// 注册Flag对象

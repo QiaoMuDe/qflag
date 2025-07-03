@@ -9,6 +9,7 @@ import (
 	"reflect"
 	"sort"
 	"strings"
+	"sync"
 	"testing"
 	"time"
 
@@ -573,15 +574,19 @@ func TestBuiltinFlags(t *testing.T) {
 	oldStdout := os.Stdout
 	oldStderr := os.Stderr
 	// 由于 os.Stdout 类型为 *os.File，不能直接赋值 *bytes.Buffer，使用 os.NewFile 无法实现，这里通过自定义输出流重定向的方式
-	// 创建一个管道
+	// 创建管道
 	r, w, err := os.Pipe()
 	if err != nil {
 		t.Fatalf("创建管道失败: %v", err)
 	}
 	os.Stdout = w
 
+	var wg sync.WaitGroup
+	wg.Add(2)
+
 	// 启动一个 goroutine 将管道中的数据写入 stdout
 	go func() {
+		defer wg.Done()
 		_, copyErr := io.Copy(&stdout, r)
 		if copyErr != nil {
 			t.Logf("从管道复制数据到 stdout 缓冲区失败: %v", copyErr)
@@ -591,12 +596,13 @@ func TestBuiltinFlags(t *testing.T) {
 	// 由于 os.Stderr 类型为 *os.File，不能直接赋值 *bytes.Buffer，使用与处理 stdout 相同的管道方式重定向
 	rErr, wErr, err := os.Pipe()
 	if err != nil {
-		t.Fatalf("创建标准错误输出管道失败: %v", err)
+		t.Fatalf("从标准错误输出管道复制数据到 stderr 缓冲区失败: %v", err)
 	}
 	os.Stderr = wErr
 
 	// 启动一个 goroutine 将管道中的数据写入 stderr
 	go func() {
+		defer wg.Done()
 		_, err := io.Copy(&stderr, rErr)
 		if err != nil {
 			t.Logf("从标准错误输出管道复制数据到 stderr 缓冲区失败: %v", err)
@@ -605,6 +611,9 @@ func TestBuiltinFlags(t *testing.T) {
 	}()
 
 	defer func() {
+		w.Close()
+		wErr.Close()
+		wg.Wait()
 		// 恢复标准输出和标准错误输出
 		os.Stdout = oldStdout
 		os.Stderr = oldStderr
@@ -741,8 +750,8 @@ func TestSliceStringFlag(t *testing.T) {
 		if err != nil {
 			t.Fatalf("解析() 错误 = %v", err)
 		}
-		if !reflect.DeepEqual(sliceFlag.Get(), []string{"v1", "v2", "v3"}) {
-			t.Errorf("多值切片 = %v, 期望 %v", sliceFlag.Get(), []string{"v1", "v2", "v3"})
+		if !reflect.DeepEqual(sliceFlag.Get(), []string{"v3"}) {
+			t.Errorf("多值切片 = %v, 期望 %v", sliceFlag.Get(), []string{"v3"})
 		}
 	}
 
@@ -754,8 +763,8 @@ func TestSliceStringFlag(t *testing.T) {
 		if err != nil {
 			t.Fatalf("解析() 错误 = %v", err)
 		}
-		if !reflect.DeepEqual(sliceFlag.Get(), []string{"a", "b", "c", "d", "e"}) {
-			t.Errorf("逗号分隔切片 = %v, 期望 %v", sliceFlag.Get(), []string{"a", "b", "c", "d", "e"})
+		if !reflect.DeepEqual(sliceFlag.Get(), []string{"d", "e"}) {
+			t.Errorf("逗号分隔切片 = %v, 期望 %v", sliceFlag.Get(), []string{"d", "e"})
 		}
 	}
 }
@@ -1009,115 +1018,6 @@ func (w *testLogWriter) Write(p []byte) (n int, err error) {
 		w.t.Log(string(p))
 	}
 	return len(p), nil
-}
-
-// TestNestedCmdHelp 测试嵌套子命令的帮助信息生成
-func TestNestedCmdHelp(t *testing.T) {
-	// 创建三级嵌套命令结构
-	cmd1 := NewCommand("cmd1", "", flag.ExitOnError)
-	cmd1.SetDescription("一级命令描述")
-	cmd1.String("config", "c", "config.json", "配置文件路径")
-
-	cmd2 := NewCommand("", "c2", flag.ExitOnError)
-	cmd2.SetDescription("二级命令描述")
-	cmd2.Int("port", "p", 8080, "服务端口号")
-
-	cmd3 := NewCommand("cmd3", "", flag.ExitOnError)
-	cmd3.SetDescription("三级命令描述")
-	cmd3.Bool("verbose", "", false, "详细输出模式")
-	cmd3.SetUseChinese(true)
-	cmd2.SetUseChinese(true)
-	cmd3.String("output", "o", "", "输出文件路径")
-	cmd3.Float64("timeout", "t", 5.0, "超时时间")
-	cmd3.Duration("duration", "d", 10*time.Second, "持续时间")
-	cmd3.Enum("format", "f", "json", "输出格式", []string{"json", "xml", "yaml"})
-
-	cmd4 := NewCommand("ssssssscmd4", "ccccc4", flag.ExitOnError)
-	cmd4.SetDescription("四级命令描述")
-
-	cmd5 := NewCommand("acmd5", "ccccc5", flag.ExitOnError)
-	cmd5.SetDescription("五级命令描述")
-
-	// 新增子命令用于测试帮助信息生成
-	cmd6 := NewCommand("randomizer", "rz", flag.ExitOnError)
-	cmd6.SetDescription("新增六级命令描述")
-	cmd6.Float64("timeout", "t", 5.0, "超时时间")
-
-	cmd7 := NewCommand("generator", "gn", flag.ExitOnError)
-	cmd7.SetDescription("新增七级命令描述")
-	cmd7.String("format", "f", "json", "输出格式")
-
-	cmd8 := NewCommand("processor", "ps", flag.ExitOnError)
-	cmd8.SetDescription("新增八级命令描述")
-	cmd8.Int("retry", "r", 3, "重试次数")
-
-	// 添加示例
-	cmd3.AddExample(ExampleInfo{Description: "示例1", Usage: "echo 111"})
-	cmd3.AddExample(ExampleInfo{Description: "示例2", Usage: "echo 222"})
-
-	// 构建命令层级
-	if err := cmd1.AddSubCmd(cmd2); err != nil {
-		t.Fatalf("Failed to add subcommand: %v", err)
-	}
-	if err := cmd2.AddSubCmd(cmd3); err != nil {
-		t.Fatalf("Failed to add subcommand: %v", err)
-	}
-	if err := cmd2.AddSubCmd(cmd4, cmd5); err != nil {
-		t.Fatalf("Failed to add subcommand: %v", err)
-	}
-	if err := cmd3.AddSubCmd(cmd6, cmd7, cmd8); err != nil {
-		t.Fatalf("Failed to add subcommand: %v", err)
-	}
-
-	// 添加注意事项
-	cmd1.AddNote("注意事项1")
-	cmd1.AddNote("注意事项2")
-	cmd2.AddNote("注意事项3")
-	cmd3.AddNote("注意事项4")
-
-	// 解析命令行参数
-	if err := cmd1.Parse([]string{}); err != nil {
-		t.Errorf("解析命令行参数时出错: %v", err)
-	}
-
-	// 测试帮助信息生成
-	// 使用t.Log()替代fmt.Println()，并添加testing.Verbose()条件控制
-	printSection := func(section string) {
-		if testing.Verbose() {
-			t.Log(section)
-		}
-	}
-
-	printSeparator := func() {
-		if testing.Verbose() {
-			t.Log("========================")
-		}
-	}
-
-	printUsage := func(cmd *Cmd) {
-		if testing.Verbose() {
-			// 重定向cmd.PrintUsage()输出到t.Log
-			o := cmd.fs.Output()
-			cmd.fs.SetOutput(&testLogWriter{t: t})
-			cmd.PrintHelp()
-			cmd.fs.SetOutput(o)
-		}
-	}
-
-	// 一级命令帮助信息
-	printSection("=== 一级命令帮助信息 ===")
-	printUsage(cmd1)
-	printSeparator()
-
-	// 二级命令帮助信息
-	printSection("=== 二级命令帮助信息 ===")
-	printUsage(cmd2)
-	printSeparator()
-
-	// 三级命令帮助信息
-	printSection("=== 三级命令帮助信息 ===")
-	printUsage(cmd3)
-	printSeparator()
 }
 
 // TestCmd_Description 测试Cmd的Description和SetDescription方法

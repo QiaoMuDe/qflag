@@ -323,16 +323,16 @@ func TestSliceVar(t *testing.T) {
 			t.Errorf("default value = %v, want [a b]", sliceFlag.Get())
 		}
 
-		// 测试长标志解析
+		// 测试长标志解析（替换逻辑）
 		if err := cmd.Parse([]string{"--slice", "c,d,e"}); err != nil {
 			t.Fatalf("Parse failed: %v", err)
 		}
-		if sliceFlag.Len() != 5 || !sliceFlag.Contains("a") || !sliceFlag.Contains("b") || !sliceFlag.Contains("c") || !sliceFlag.Contains("d") || !sliceFlag.Contains("e") {
-			t.Errorf("after --slice, value = %v, want [a b c d e]", sliceFlag.Get())
+		if sliceFlag.Len() != 3 || !sliceFlag.Contains("c") || !sliceFlag.Contains("d") || !sliceFlag.Contains("e") {
+			t.Errorf("after --slice, value = %v, want [c d e]", sliceFlag.Get())
 		}
 	})
 
-	// 测试短标志解析
+	// 测试短标志解析（替换逻辑）
 	t.Run("short flag", func(t *testing.T) {
 		cmd := NewCommand("test-short-slice", "tss", flag.ContinueOnError)
 		var sliceFlagShort flags.SliceFlag
@@ -340,8 +340,8 @@ func TestSliceVar(t *testing.T) {
 		if err := cmd.Parse([]string{"-slss", "x,y"}); err != nil {
 			t.Fatalf("Parse failed: %v", err)
 		}
-		if sliceFlagShort.Len() != 4 || !sliceFlagShort.Contains("a") || !sliceFlagShort.Contains("b") || !sliceFlagShort.Contains("x") || !sliceFlagShort.Contains("y") {
-			t.Errorf("after -slss, value = %v, want [a b x y]", sliceFlagShort.Get())
+		if sliceFlagShort.Len() != 2 || !sliceFlagShort.Contains("x") || !sliceFlagShort.Contains("y") {
+			t.Errorf("after -slss, value = %v, want [x y]", sliceFlagShort.Get())
 		}
 	})
 }

@@ -1,7 +1,10 @@
 package flags
 
-import "gitee.com/MM-Q/qflag/validator"
-import "strconv"
+import (
+	"strconv"
+
+	"gitee.com/MM-Q/qflag/validator"
+)
 
 // IntFlag 整数类型标志结构体
 // 继承BaseFlag[int]泛型结构体,实现Flag接口
@@ -28,4 +31,9 @@ func (f *IntFlag) Set(value string) error {
 		return err
 	}
 	return f.BaseFlag.Set(intVal)
+}
+
+// String 实现flag.Value接口,返回当前整数值的字符串表示
+func (f *IntFlag) String() string {
+	return f.BaseFlag.String()
 }

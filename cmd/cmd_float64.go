@@ -46,12 +46,12 @@ func (c *Cmd) Float64Var(f *flags.Float64Flag, longName, shortName string, defVa
 
 	// 绑定短标志
 	if shortName != "" {
-		c.fs.Float64Var(f.GetPointer(), shortName, defValue, usage)
+		c.fs.Var(f, shortName, usage)
 	}
 
 	// 绑定长标志
 	if longName != "" {
-		c.fs.Float64Var(f.GetPointer(), longName, defValue, usage)
+		c.fs.Var(f, longName, usage)
 	}
 
 	// 注册Flag对象

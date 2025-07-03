@@ -85,9 +85,13 @@ func (f *BaseFlag[T]) IsSet() bool {
 func (f *BaseFlag[T]) Get() T {
 	f.baseMu.RLock()
 	defer f.baseMu.RUnlock()
+
+	// 如果标志未设置值, 返回初始默认值
 	if !f.isSet {
 		return f.initialValue
 	}
+
+	// 返回标志值
 	return *f.value
 }
 
