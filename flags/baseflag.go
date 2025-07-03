@@ -66,10 +66,10 @@ func (f *BaseFlag[T]) ShortName() string { return f.shortName }
 // Usage 获取标志的用法说明
 func (f *BaseFlag[T]) Usage() string { return f.usage }
 
-// GetDefault 获取标志的默认值
+// GetDefault 获取标志的初始默认值
 func (f *BaseFlag[T]) GetDefault() T { return f.initialValue }
 
-// GetDefaultAny 获取标志的默认值(any类型)
+// GetDefaultAny 获取标志的初始默认值(any类型)
 func (f *BaseFlag[T]) GetDefaultAny() any { return f.initialValue }
 
 // IsSet 判断标志是否已被设置值
@@ -127,6 +127,8 @@ func (f *BaseFlag[T]) Set(value T) error {
 
 	// 设置标志值
 	f.value = &v
+
+	// 标志已设置
 	f.isSet = true
 
 	return nil
@@ -145,9 +147,9 @@ func (f *BaseFlag[T]) SetValidator(validator Validator) {
 func (f *BaseFlag[T]) Reset() {
 	f.baseMu.Lock()
 	defer f.baseMu.Unlock()
-	v := f.initialValue
-	f.value = &v
-	f.isSet = false
+	v := f.initialValue // 获取初始默认值
+	f.value = &v        // 重置标志值指针
+	f.isSet = false     // 标志未设置
 }
 
 // String 返回标志的字符串表示
