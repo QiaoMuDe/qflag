@@ -8,34 +8,35 @@ func (c *Cmd) Uint64Var(f *flags.Uint64Flag, longName, shortName string, defValu
 	c.rwMu.Lock()
 	defer c.rwMu.Unlock()
 
+	// 检查指针是否为空
 	if f == nil {
 		panic("Uint64Flag pointer cannot be nil")
 	}
 
+	// 参数校验（复用公共函数）
 	if validateErr := c.validateFlag(longName, shortName); validateErr != nil {
 		panic(validateErr)
 	}
 
+	// 显式初始化
 	currentUint64 := new(uint64)
 	*currentUint64 = defValue
 
+	// 注册flag
 	if initErr := f.Init(longName, shortName, usage, currentUint64); initErr != nil {
 		panic(initErr)
 	}
 
-	meta := &flags.FlagMeta{
-		Flag: f,
-	}
-
+	// 注册到flagSet
 	if shortName != "" {
 		c.fs.Var(f, shortName, usage)
 	}
-
 	if longName != "" {
 		c.fs.Var(f, longName, usage)
 	}
 
-	if registerErr := c.flagRegistry.RegisterFlag(meta); registerErr != nil {
+	// 注册到flagRegistry
+	if registerErr := c.flagRegistry.RegisterFlag(&flags.FlagMeta{Flag: f}); registerErr != nil {
 		panic(registerErr)
 	}
 }

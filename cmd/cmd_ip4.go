@@ -8,34 +8,35 @@ func (c *Cmd) IP4Var(f *flags.IP4Flag, longName, shortName string, defValue stri
 	c.rwMu.Lock()
 	defer c.rwMu.Unlock()
 
+	// 校验参数
 	if f == nil {
 		panic("IP4Flag pointer cannot be nil")
 	}
 
+	// 通用参数校验
 	if validateErr := c.validateFlag(longName, shortName); validateErr != nil {
 		panic(validateErr)
 	}
 
+	// 显式设置默认值
 	currentIP4 := new(string)
 	*currentIP4 = defValue
 
+	// 初始化标志
 	if initErr := f.Init(longName, shortName, usage, currentIP4); initErr != nil {
 		panic(initErr)
 	}
 
-	meta := &flags.FlagMeta{
-		Flag: f,
-	}
-
+	// 绑定标志
 	if shortName != "" {
 		c.fs.Var(f, shortName, usage)
 	}
-
 	if longName != "" {
 		c.fs.Var(f, longName, usage)
 	}
 
-	if registerErr := c.flagRegistry.RegisterFlag(meta); registerErr != nil {
+	// 注册Flag对象
+	if registerErr := c.flagRegistry.RegisterFlag(&flags.FlagMeta{Flag: f}); registerErr != nil {
 		panic(registerErr)
 	}
 }

@@ -27,11 +27,6 @@ func (c *Cmd) URLVar(f *flags.URLFlag, longName, shortName string, defValue stri
 		panic(initErr)
 	}
 
-	// 注册Flag对象
-	meta := &flags.FlagMeta{
-		Flag: f,
-	}
-
 	// 注册标志
 	if shortName != "" {
 		c.fs.Var(f, shortName, usage)
@@ -41,7 +36,7 @@ func (c *Cmd) URLVar(f *flags.URLFlag, longName, shortName string, defValue stri
 	}
 
 	// 注册Flag对象
-	if registerErr := c.flagRegistry.RegisterFlag(meta); registerErr != nil {
+	if registerErr := c.flagRegistry.RegisterFlag(&flags.FlagMeta{Flag: f}); registerErr != nil {
 		panic(registerErr)
 	}
 }

@@ -8,34 +8,34 @@ func (c *Cmd) Uint32Var(f *flags.Uint32Flag, longName, shortName string, defValu
 	c.rwMu.Lock()
 	defer c.rwMu.Unlock()
 
+	// 校验标志指针
 	if f == nil {
 		panic("Uint32Flag pointer cannot be nil")
 	}
 
+	// 通用标志校验
 	if validateErr := c.validateFlag(longName, shortName); validateErr != nil {
 		panic(validateErr)
 	}
 
+	// 设置标志指针
 	currentUint32 := new(uint32)
 	*currentUint32 = defValue
 
+	// 绑定默认值
 	if initErr := f.Init(longName, shortName, usage, currentUint32); initErr != nil {
 		panic(initErr)
 	}
 
-	meta := &flags.FlagMeta{
-		Flag: f,
-	}
-
+	// 绑定标志到指针
 	if shortName != "" {
 		c.fs.Var(f, shortName, usage)
 	}
-
 	if longName != "" {
 		c.fs.Var(f, longName, usage)
 	}
 
-	if registerErr := c.flagRegistry.RegisterFlag(meta); registerErr != nil {
+	if registerErr := c.flagRegistry.RegisterFlag(&flags.FlagMeta{Flag: f}); registerErr != nil {
 		panic(registerErr)
 	}
 }

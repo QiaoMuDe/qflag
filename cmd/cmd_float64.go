@@ -39,23 +39,16 @@ func (c *Cmd) Float64Var(f *flags.Float64Flag, longName, shortName string, defVa
 		panic(initErr)
 	}
 
-	// 创建FlagMeta对象
-	meta := &flags.FlagMeta{
-		Flag: f, // 添加标志对象 - Flag对象
-	}
-
-	// 绑定短标志
+	// 绑定长短标志
 	if shortName != "" {
 		c.fs.Var(f, shortName, usage)
 	}
-
-	// 绑定长标志
 	if longName != "" {
 		c.fs.Var(f, longName, usage)
 	}
 
 	// 注册Flag对象
-	if registerErr := c.flagRegistry.RegisterFlag(meta); registerErr != nil {
+	if registerErr := c.flagRegistry.RegisterFlag(&flags.FlagMeta{Flag: f}); registerErr != nil {
 		panic(registerErr)
 	}
 }

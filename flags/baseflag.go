@@ -156,3 +156,9 @@ func (f *BaseFlag[T]) Reset() {
 func (f *BaseFlag[T]) String() string {
 	return fmt.Sprint(f.Get())
 }
+
+// Type 返回标志类型
+// 注意：具体标志类型需要重写此方法返回正确的FlagType
+func (f *BaseFlag[T]) Type() FlagType {
+	return 0 // 默认实现，需要被子类重写
+}

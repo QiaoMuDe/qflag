@@ -41,11 +41,6 @@ func (c *Cmd) StringVar(f *flags.StringFlag, longName, shortName, defValue, usag
 		panic(initErr)
 	}
 
-	// 创建FlagMeta对象
-	meta := &flags.FlagMeta{
-		Flag: f, // 添加标志对象 - Flag对象
-	}
-
 	// 绑定短标志
 	if shortName != "" {
 		c.fs.Var(f, shortName, usage)
@@ -57,7 +52,7 @@ func (c *Cmd) StringVar(f *flags.StringFlag, longName, shortName, defValue, usag
 	}
 
 	// 注册Flag对象
-	if registerErr := c.flagRegistry.RegisterFlag(meta); registerErr != nil {
+	if registerErr := c.flagRegistry.RegisterFlag(&flags.FlagMeta{Flag: f}); registerErr != nil {
 		panic(registerErr)
 	}
 }
