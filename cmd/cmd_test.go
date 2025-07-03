@@ -1008,18 +1008,6 @@ func TestHasCycle(t *testing.T) {
 	}
 }
 
-// testLogWriter 用于将flag.FlagSet的输出重定向到testing.T的Log方法
-type testLogWriter struct {
-	t *testing.T
-}
-
-func (w *testLogWriter) Write(p []byte) (n int, err error) {
-	if testing.Verbose() {
-		w.t.Log(string(p))
-	}
-	return len(p), nil
-}
-
 // TestCmd_Description 测试Cmd的Description和SetDescription方法
 func TestCmd_Description(t *testing.T) {
 	cmd := &Cmd{}
