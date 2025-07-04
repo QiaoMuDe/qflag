@@ -348,27 +348,15 @@ func (c *Cmd) AddSubCmd(subCmds ...*Cmd) error {
 		return fmt.Errorf("subcommand list cannot be empty")
 	}
 
+	// 检查子命令map是否为nil
+	if c.subCmdMaps == nil {
+		c.subCmdMaps = make(map[string]*Cmd)
+	}
+
 	// 创建错误切片
 	var errors []error
 
-	// 使用sync.Map来存储子命令名称, 解决并发安全问题
-	var subCmdNames sync.Map
-	for _, cmd := range c.subCmds {
-		// 存储子命令的长名称（如果存在）
-		if cmd.LongName() != "" {
-			subCmdNames.Store(strings.ToLower(cmd.LongName()), true)
-		}
-
-		// 存储子命令的短名称（如果存在）
-		if cmd.ShortName() != "" {
-			subCmdNames.Store(strings.ToLower(cmd.ShortName()), true)
-		}
-	}
-
-	// 创建一个空的切片，用于存储已添加的子命令
-	addedCmds := make([]*Cmd, 0, len(subCmds))
-
-	// 第一阶段：验证所有子命令
+	// 验证所有子命令
 	for _, cmd := range subCmds {
 		if cmd == nil {
 			errors = append(errors, fmt.Errorf("Subcommand cannot be nil"))
@@ -381,35 +369,27 @@ func (c *Cmd) AddSubCmd(subCmds ...*Cmd) error {
 			continue
 		}
 
-		// 如果设置了长名称，则检查长名称是否已存在（大小写不敏感）
-		if cmd.LongName() != "" {
-			if _, loaded := subCmdNames.LoadOrStore(strings.ToLower(cmd.LongName()), true); loaded {
-				errors = append(errors, fmt.Errorf("Subcommand %s already exists", cmd.LongName()))
-				continue
-			}
+		// 检查子命令的长名称是否已存在
+		if _, exists := c.subCmdMaps[cmd.LongName()]; exists {
+			errors = append(errors, fmt.Errorf("Subcommand %s already exists", cmd.LongName()))
+			continue
 		}
 
-		// 如果设置了短名称，则检查短名称是否已存在（大小写不敏感）
-		if cmd.ShortName() != "" {
-			if _, loaded := subCmdNames.LoadOrStore(strings.ToLower(cmd.ShortName()), true); loaded {
-				errors = append(errors, fmt.Errorf("Subcommand %s already exists", cmd.ShortName()))
-				continue
-			}
+		// 检查子命令的短名称是否已存在
+		if _, exists := c.subCmdMaps[cmd.ShortName()]; exists {
+			errors = append(errors, fmt.Errorf("Subcommand %s already exists", cmd.ShortName()))
+			continue
 		}
 
-		// 如果没有错误，则将子命令添加到切片中
-		addedCmds = append(addedCmds, cmd)
+		// 验证通过立即添加
+		cmd.parentCmd = c                   // 设置父命令指针
+		c.subCmdMaps[cmd.ShortName()] = cmd // 添加短名称到子命令映射
+		c.subCmdMaps[cmd.LongName()] = cmd  // 添加长名称到子命令映射
 	}
 
 	// 如果有验证错误，返回所有错误信息
 	if len(errors) > 0 {
 		return fmt.Errorf("Failed to add subcommands: %w", qerr.JoinErrors(errors))
-	}
-
-	// 第二阶段：批量添加子命令
-	for _, cmd := range addedCmds {
-		cmd.parentCmd = c                  // 设置父命令指针
-		c.subCmds = append(c.subCmds, cmd) // 添加到子命令列表
 	}
 
 	return nil
