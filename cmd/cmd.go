@@ -77,6 +77,9 @@ type Cmd struct {
 	// 子命令映射表, 用于关联和查找子命令
 	subCmdMap map[string]*Cmd
 
+	// 子命令切片, 用于存储唯一实例(无重复)
+	subCmds []*Cmd
+
 	// 父命令指针,用于递归调用, 根命令的父命令为nil
 	parentCmd *Cmd
 
@@ -153,6 +156,7 @@ type CmdInterface interface {
 	GetModuleHelps() string                   // 获取自定义模块帮助信息
 	SetExitOnBuiltinFlags(exit bool) *Cmd     // 设置是否在添加内置标志时退出
 	SetDisableBuiltinFlags(disable bool) *Cmd // 设置是否禁用内置标志注册
+	CmdExists(cmdName string) bool            // 判断命令行参数中是否存在指定标志
 
 	// 添加标志方法
 	String(longName, shortName, usage, defValue string) *flags.StringFlag                             // 添加字符串类型标志
@@ -196,9 +200,9 @@ type CmdInterface interface {
 //
 // errorHandling可选值:
 //
-//   - flag.ContinueOnError：解析标志时遇到错误继续解析, 并返回错误信息
-//   - flag.ExitOnError：解析标志时遇到错误立即退出程序, 并返回错误信息
-//   - flag.PanicOnError：解析标志时遇到错误立即触发panic
+//   - flag.ContinueOnError: 解析标志时遇到错误继续解析, 并返回错误信息
+//   - flag.ExitOnError: 解析标志时遇到错误立即退出程序, 并返回错误信息
+//   - flag.PanicOnError: 解析标志时遇到错误立即触发panic
 func NewCmd(longName string, shortName string, errorHandling flag.ErrorHandling) *Cmd {
 	// 检查命令名称是否同时为空
 	if longName == "" && shortName == "" {
@@ -224,15 +228,19 @@ func NewCmd(longName string, shortName string, errorHandling flag.ErrorHandling)
 		fs:                  flag.NewFlagSet(cmdName, errorHandling), // 创建新的flag集
 		args:                []string{},                              // 命令行参数
 		subCmdMap:           map[string]*Cmd{},                       // 子命令映射
+		subCmds:             []*Cmd{},                                // 子命令切片
 		flagRegistry:        flagRegistry,                            // 初始化标志注册表
 		helpFlag:            &flags.BoolFlag{},                       // 初始化帮助标志
 		showInstallPathFlag: &flags.BoolFlag{},                       // 初始化显示安装路径标志
 		versionFlag:         &flags.BoolFlag{},                       // 初始化版本信息标志
 		userInfo: UserInfo{
-			longName:  longName,  // 命令长名称
-			shortName: shortName, // 命令短名称
+			longName:  longName,        // 命令长名称
+			shortName: shortName,       // 命令短名称
+			notes:     []string{},      // 命令备注
+			examples:  []ExampleInfo{}, // 命令示例
 		},
-		exitOnBuiltinFlags: true, // 默认保持原有行为, 在解析内置标志后退出
+		exitOnBuiltinFlags: true,       // 默认保持原有行为, 在解析内置标志后退出
+		builtinFlagNameMap: sync.Map{}, // 内置标志名称映射
 	}
 
 	return cmd
@@ -257,7 +265,7 @@ func (c *Cmd) SetExitOnBuiltinFlags(exit bool) *Cmd {
 
 // SetDisableBuiltinFlags 设置是否禁用内置标志注册
 //
-// 参数: disable - true表示禁用内置标志注册, false表示启用（默认）
+// 参数: disable - true表示禁用内置标志注册, false表示启用(默认)
 //
 // 返回值: 当前Cmd实例, 支持链式调用
 func (c *Cmd) SetDisableBuiltinFlags(disable bool) *Cmd {
@@ -282,22 +290,18 @@ func (c *Cmd) SubCmdMap() map[string]*Cmd {
 	return subCmdMap
 }
 
-// SubCmds 返回子命令列表
-//
-// 注意: 返回顺序不保证, 请勿依赖返回顺序
+// SubCmds 返回子命令切片
 func (c *Cmd) SubCmds() []*Cmd {
 	c.rwMu.RLock()
 	defer c.rwMu.RUnlock()
 
-	// 从map转换为切片并排序
-	subCmds := make([]*Cmd, 0, len(c.subCmdMap))
+	// 创建一个切片副本
+	result := make([]*Cmd, len(c.subCmds))
 
-	// 遍历子命令映射表, 将每个子命令添加到切片中
-	for _, cmd := range c.subCmdMap {
-		subCmds = append(subCmds, cmd)
-	}
+	// 拷贝子命令切片
+	copy(result, c.subCmds)
 
-	return subCmds
+	return result
 }
 
 // AddSubCmd 关联一个或多个子命令到当前命令
@@ -342,29 +346,36 @@ func (c *Cmd) AddSubCmd(subCmds ...*Cmd) error {
 		return fmt.Errorf("failed to add subcommands: %w", qerr.JoinErrors(errors))
 	}
 
+	// 预分配临时切片(容量=validCmds长度, 避免多次扩容)
+	tempList := make([]*Cmd, 0, len(validCmds))
+
 	// 添加阶段 - 仅处理通过验证的命令
 	for _, cmd := range validCmds {
 		cmd.parentCmd = c                  // 设置子命令的父命令指针
 		c.subCmdMap[cmd.ShortName()] = cmd // 将子命令的短名称和实例关联
 		c.subCmdMap[cmd.LongName()] = cmd  // 将子命令的长名称和实例关联
+		tempList = append(tempList, cmd)   // 先添加到临时切片
 	}
+
+	// 一次性合并到目标切片
+	c.subCmds = append(c.subCmds, tempList...)
 
 	return nil
 }
 
-// Parse 完整解析命令行参数（含子命令处理）
+// Parse 完整解析命令行参数(含子命令处理)
 // 主要功能：
 //  1. 解析当前命令的长短标志及内置标志
-//  2. 自动检测并解析子命令及其参数（若存在）
+//  2. 自动检测并解析子命令及其参数(若存在)
 //  3. 验证枚举类型标志的有效性
 //
 // 参数：
 //
-//	args: 原始命令行参数切片（包含可能的子命令及参数）
+//	args: 原始命令行参数切片(包含可能的子命令及参数)
 //
 // 返回值：
 //
-//	解析过程中遇到的错误（如标志格式错误、子命令解析失败等）
+//	解析过程中遇到的错误(如标志格式错误、子命令解析失败等)
 //
 // 注意事项：
 //   - 每个Cmd实例仅会被解析一次(线程安全)
@@ -379,7 +390,7 @@ func (c *Cmd) Parse(args []string) (err error) {
 	return err
 }
 
-// ParseFlagsOnly 仅解析当前命令的标志参数（忽略子命令）
+// ParseFlagsOnly 仅解析当前命令的标志参数(忽略子命令)
 // 主要功能：
 //  1. 解析当前命令的长短标志及内置标志
 //  2. 验证枚举类型标志的有效性
@@ -387,14 +398,14 @@ func (c *Cmd) Parse(args []string) (err error) {
 //
 // 参数：
 //
-//	args: 原始命令行参数切片（子命令及后续参数会被忽略）
+//	args: 原始命令行参数切片(子命令及后续参数会被忽略)
 //
 // 返回值：
 //
-//	解析过程中遇到的错误（如标志格式错误等）
+//	解析过程中遇到的错误(如标志格式错误等)
 //
 // 注意事项：
-//   - 每个Cmd实例仅会被解析一次（线程安全）
+//   - 每个Cmd实例仅会被解析一次(线程安全)
 //   - 不会处理任何子命令, 所有参数均视为当前命令的标志或位置参数
 //   - 处理内置标志逻辑
 func (c *Cmd) ParseFlagsOnly(args []string) (err error) {
@@ -407,22 +418,22 @@ func (c *Cmd) ParseFlagsOnly(args []string) (err error) {
 
 // parseCommon 命令行参数解析公共逻辑
 // 主要功能：
-//  1. 通用参数解析流程（标志解析、内置标志处理、错误处理）
+//  1. 通用参数解析流程(标志解析、内置标志处理、错误处理)
 //  2. 枚举类型标志验证
 //  3. 可选的子命令解析支持
 //
 // 参数：
 //
 //	args: 原始命令行参数切片
-//	parseSubcommands: 是否解析子命令（true: 解析子命令, false: 忽略子命令）
+//	parseSubcommands: 是否解析子命令(true: 解析子命令, false: 忽略子命令)
 //
 // 返回值：
 //
-//   - 解析过程中遇到的错误（如标志格式错误、子命令解析失败等）
-//   - 是否需要退出程序, 用于处理内部选项标志的解析处理情况（true: 需要退出, false: 不需要退出）
+//   - 解析过程中遇到的错误(如标志格式错误、子命令解析失败等)
+//   - 是否需要退出程序, 用于处理内部选项标志的解析处理情况(true: 需要退出, false: 不需要退出)
 //
 // 注意事项：
-//   - 每个Cmd实例仅会被解析一次（线程安全）
+//   - 每个Cmd实例仅会被解析一次(线程安全)
 //   - 内置标志(-h/--help, -v/--version等)处理逻辑在此实现
 //   - 子命令解析仅在parseSubcommands=true时执行
 func (c *Cmd) parseCommon(args []string, parseSubcommands bool) (err error, shouldExit bool) {

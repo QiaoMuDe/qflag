@@ -77,7 +77,7 @@ func (c *Cmd) GetNotes() []string {
 
 // Name 获取命令名称
 //
-// 注意:
+// 返回值:
 // - 优先返回长名称, 如果长名称不存在则返回短名称
 func (c *Cmd) Name() string {
 	if c.LongName() != "" {
@@ -436,4 +436,19 @@ func (c *Cmd) validateSubCmd(cmd *Cmd) error {
 	}
 
 	return nil
+}
+
+// CmdExists 检查子命令是否存在
+//
+// 参数:
+//   - cmdName: 子命令名称
+//
+// 返回:
+//   - bool: 子命令是否存在
+func (c *Cmd) CmdExists(cmdName string) bool {
+	c.rwMu.RLock()
+	defer c.rwMu.RUnlock()
+	// 检查子命令是否存在
+	_, ok := c.subCmdMap[cmdName]
+	return ok
 }
