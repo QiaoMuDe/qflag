@@ -95,17 +95,14 @@ func (c *Cmd) SetDescription(desc string) {
 
 // GetHelp 返回命令用法帮助信息
 func (c *Cmd) GetHelp() string {
-	// 仅对 userInfo.help 访问加锁
+	// 确保内置标志已初始化
+	c.initBuiltinFlags()
+
+	// 获取读锁
 	c.rwMu.RLock()
-	customHelp := c.userInfo.help
-	c.rwMu.RUnlock()
+	defer c.rwMu.RUnlock()
 
-	// 如果用户自定义了帮助信息，则直接返回
-	if customHelp != "" {
-		return customHelp
-	}
-
-	// 自动生成帮助信息
+	// 生成帮助信息或返回用户设置的帮助信息
 	return generateHelpInfo(c)
 }
 
@@ -239,10 +236,13 @@ func (c *Cmd) FlagExists(name string) bool {
 }
 
 // PrintHelp 打印命令的帮助信息, 优先打印用户的帮助信息, 否则自动生成帮助信息
+//
+// 注意:
+//
+//	打印帮助信息时, 不会自动退出程序
 func (c *Cmd) PrintHelp() {
-	c.rwMu.RLock()
-	defer c.rwMu.RUnlock()
-	fmt.Println(generateHelpInfo(c))
+	// 打印帮助信息
+	fmt.Println(c.GetHelp())
 }
 
 // hasCycle 检测当前命令与待添加子命令间是否存在循环引用

@@ -410,7 +410,7 @@ func TestHelpFlag(t *testing.T) {
 		}
 	}()
 
-	cmd := NewCmd("test", "t", flag.ContinueOnError)
+	cmd := NewCmd("test", "t", flag.ContinueOnError).SetExitOnBuiltinFlags(false)
 	cmd.String("string-flag", "s", "", "测试字符串标志")
 
 	// 测试帮助标志
@@ -651,14 +651,14 @@ func TestFloatFlag_Methods(t *testing.T) {
 // TestPrintUsage 测试打印用法
 func TestPrintUsage(t *testing.T) {
 	// 测试自定义用法信息
-	cmd1 := NewCmd("test", "t", flag.ExitOnError)
+	cmd1 := NewCmd("test", "t", flag.ExitOnError).SetExitOnBuiltinFlags(false)
 	cmd1.SetUsageSyntax("自定义用法信息")
 	if testing.Verbose() {
 		cmd1.PrintHelp()
 	}
 
 	// 测试自动生成的用法信息
-	cmd2 := NewCmd("test2", "t2", flag.ExitOnError)
+	cmd2 := NewCmd("test2", "t2", flag.ExitOnError).SetExitOnBuiltinFlags(false)
 	cmd2.SetDescription("测试描述")
 	cmd2.Bool("verbose", "v", false, "详细输出")
 	cmd2.Int("count", "cc", 0, "重复次数")
@@ -667,8 +667,8 @@ func TestPrintUsage(t *testing.T) {
 	}
 
 	// 测试带子命令的用法信息
-	cmd3 := NewCmd("parent", "0t", flag.ExitOnError)
-	subCmd := NewCmd("child", "xd", flag.ExitOnError)
+	cmd3 := NewCmd("parent", "0t", flag.ExitOnError).SetExitOnBuiltinFlags(false)
+	subCmd := NewCmd("child", "xd", flag.ExitOnError).SetExitOnBuiltinFlags(false)
 	if err := cmd3.AddSubCmd(subCmd); err != nil {
 		t.Errorf("添加子命令时出错: %v", err)
 	}

@@ -573,8 +573,6 @@ func TestBuiltinFlags(t *testing.T) {
 	var stdout, stderr bytes.Buffer
 	oldStdout := os.Stdout
 	oldStderr := os.Stderr
-	// 由于 os.Stdout 类型为 *os.File，不能直接赋值 *bytes.Buffer，使用 os.NewFile 无法实现，这里通过自定义输出流重定向的方式
-	// 创建管道
 	r, w, err := os.Pipe()
 	if err != nil {
 		t.Fatalf("创建管道失败: %v", err)
@@ -628,7 +626,7 @@ func TestBuiltinFlags(t *testing.T) {
 	// 测试根命令的--version和-v标志
 	t.Run("root command version flags", func(t *testing.T) {
 		// 创建带有版本信息的根命令
-		rootCmd1 := NewCommand("test", "t", flag.ContinueOnError)
+		rootCmd1 := NewCommand("test", "t", flag.ContinueOnError).SetExitOnBuiltinFlags(false)
 		rootCmd1.SetVersion("1.0.0")
 
 		// 测试--version标志
@@ -641,7 +639,7 @@ func TestBuiltinFlags(t *testing.T) {
 		}
 
 		// 重置命令并测试-v短标志
-		rootCmd1 = NewCommand("test", "t", flag.ContinueOnError)
+		rootCmd1 = NewCommand("test", "t", flag.ContinueOnError).SetExitOnBuiltinFlags(false)
 		rootCmd1.SetVersion("1.0.0")
 		args = []string{"-v"}
 		if err := rootCmd1.Parse(args); err != nil {
@@ -655,7 +653,7 @@ func TestBuiltinFlags(t *testing.T) {
 	// 测试根命令的--show-install-path和-sip标志
 	t.Run("root command install path flags", func(t *testing.T) {
 		// 创建并重置命令以测试-sip短标志
-		installPathCmd := NewCommand("test", "t", flag.ContinueOnError)
+		installPathCmd := NewCommand("test", "t", flag.ContinueOnError).SetExitOnBuiltinFlags(false)
 		args := []string{"-sip"}
 		if err := installPathCmd.Parse(args); err != nil {
 			t.Fatalf("解析-sip标志失败: %v", err)
@@ -667,7 +665,7 @@ func TestBuiltinFlags(t *testing.T) {
 
 	// 测试ParseFlagsOnly也能正确处理这些标志
 	t.Run("ParseFlagsOnly handles builtin flags", func(t *testing.T) {
-		parseFlagsCmd := NewCommand("test", "t", flag.ContinueOnError)
+		parseFlagsCmd := NewCommand("test", "t", flag.ContinueOnError).SetExitOnBuiltinFlags(false)
 		parseFlagsCmd.SetVersion("1.0.0")
 
 		args := []string{"-v", "-sip"}

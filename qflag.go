@@ -18,37 +18,38 @@ import (
 // 该接口封装了命令行程序的常用操作，包括标志添加、参数解析和帮助信息展示
 type QCommandLineInterface interface {
 	// 元数据操作方法
-	LongName() string                  // 获取命令长名称
-	ShortName() string                 // 获取命令短名称
-	GetDescription() string            // 获取命令描述信息
-	SetDescription(desc string)        // 设置命令描述信息
-	GetHelp() string                   // 获取命令帮助信息
-	SetHelp(help string)               // 设置命令帮助信息
-	LoadHelp(filepath string) error    // 从指定文件加载帮助信息
-	SetUsageSyntax(usageSyntax string) // 设置命令用法格式
-	GetUsageSyntax() string            // 获取命令用法格式
-	GetUseChinese() bool               // 获取是否使用中文帮助信息
-	SetUseChinese(useChinese bool)     // 设置是否使用中文帮助信息
-	AddSubCmd(subCmd *cmd.Cmd)         // 添加子命令，子命令会继承父命令的上下文
-	SubCmds() []*cmd.Cmd               // 获取所有已注册的子命令列表
-	Parse() error                      // 解析命令行参数，自动处理标志和子命令
-	ParseFlagsOnly() error             // 解析命令行参数，仅处理标志，不处理子命令
-	Args() []string                    // 获取所有非标志参数(未绑定到任何标志的参数)
-	Arg(i int) string                  // 获取指定索引的非标志参数，索引越界返回空字符串
-	NArg() int                         // 获取非标志参数的数量
-	NFlag() int                        // 获取已解析的标志数量
-	PrintHelp()                        // 打印命令帮助信息
-	FlagExists(name string) bool       // 检查指定名称的标志是否存在(支持长/短名称)
-	AddNote(note string)               // 添加一个注意事项
-	GetNotes() []string                // 获取所有备注信息
-	AddExample(e cmd.ExampleInfo)      // 添加一个示例信息
-	GetExamples() []cmd.ExampleInfo    // 获取示例信息列表
-	SetVersion(version string)         // 设置版本信息
-	GetVersion() string                // 获取版本信息
-	SetLogoText(logoText string)       // 设置logo文本
-	GetLogoText() string               // 获取logo文本
-	SetModuleHelps(moduleHelps string) // 设置自定义模块帮助信息
-	GetModuleHelps() string            // 获取自定义模块帮助信息
+	LongName() string                         // 获取命令长名称
+	ShortName() string                        // 获取命令短名称
+	GetDescription() string                   // 获取命令描述信息
+	SetDescription(desc string)               // 设置命令描述信息
+	GetHelp() string                          // 获取命令帮助信息
+	SetHelp(help string)                      // 设置命令帮助信息
+	LoadHelp(filepath string) error           // 从指定文件加载帮助信息
+	SetUsageSyntax(usageSyntax string)        // 设置命令用法格式
+	GetUsageSyntax() string                   // 获取命令用法格式
+	GetUseChinese() bool                      // 获取是否使用中文帮助信息
+	SetUseChinese(useChinese bool)            // 设置是否使用中文帮助信息
+	AddSubCmd(subCmd *cmd.Cmd)                // 添加子命令，子命令会继承父命令的上下文
+	SubCmds() []*cmd.Cmd                      // 获取所有已注册的子命令列表
+	Parse() error                             // 解析命令行参数，自动处理标志和子命令
+	ParseFlagsOnly() error                    // 解析命令行参数，仅处理标志，不处理子命令
+	Args() []string                           // 获取所有非标志参数(未绑定到任何标志的参数)
+	Arg(i int) string                         // 获取指定索引的非标志参数，索引越界返回空字符串
+	NArg() int                                // 获取非标志参数的数量
+	NFlag() int                               // 获取已解析的标志数量
+	PrintHelp()                               // 打印命令帮助信息
+	FlagExists(name string) bool              // 检查指定名称的标志是否存在(支持长/短名称)
+	AddNote(note string)                      // 添加一个注意事项
+	GetNotes() []string                       // 获取所有备注信息
+	AddExample(e cmd.ExampleInfo)             // 添加一个示例信息
+	GetExamples() []cmd.ExampleInfo           // 获取示例信息列表
+	SetVersion(version string)                // 设置版本信息
+	GetVersion() string                       // 获取版本信息
+	SetLogoText(logoText string)              // 设置logo文本
+	GetLogoText() string                      // 获取logo文本
+	SetModuleHelps(moduleHelps string)        // 设置自定义模块帮助信息
+	GetModuleHelps() string                   // 获取自定义模块帮助信息
+	SetExitOnBuiltinFlags(exit bool) *cmd.Cmd // 设置是否在处理内置标志时退出
 
 	// 添加标志方法
 	String(longName, shortName, defValue, usage string) *flags.StringFlag                                // 添加字符串类型标志
@@ -356,4 +357,16 @@ func SetModuleHelps(moduleHelps string) {
 //   - string: 模块帮助信息。
 func GetModuleHelps() string {
 	return QCommandLine.GetModuleHelps()
+}
+
+// SetExitOnBuiltinFlags 设置是否在解析内置参数时退出
+// 默认情况下为true，当解析到内置参数时，QFlag将退出程序
+// 参数:
+//   - exit: 是否退出
+//
+// 返回值:
+//   - *cmd.Cmd: 当前命令对象
+func SetExitOnBuiltinFlags(exit bool) *cmd.Cmd {
+	QCommandLine.SetExitOnBuiltinFlags(exit)
+	return QCommandLine
 }

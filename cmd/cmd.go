@@ -107,6 +107,9 @@ type Cmd struct {
 
 	// 版本标志指针,用于绑定和检查
 	versionFlag *flags.BoolFlag
+
+	// 控制内置标志是否自动退出
+	exitOnBuiltinFlags bool
 }
 
 // CmdInterface 命令接口定义，封装命令行程序的核心功能
@@ -150,6 +153,7 @@ type CmdInterface interface {
 	GetLogoText() string                      // 获取logo文本
 	SetModuleHelps(moduleHelps string)        // 设置自定义模块帮助信息
 	GetModuleHelps() string                   // 获取自定义模块帮助信息
+	SetExitOnBuiltinFlags(exit bool) *Cmd     // 设置是否在添加内置标志时退出
 
 	// 添加标志方法
 	String(longName, shortName, usage, defValue string) *flags.StringFlag                             // 添加字符串类型标志
@@ -223,9 +227,26 @@ func NewCommand(longName string, shortName string, errorHandling flag.ErrorHandl
 			longName:  longName,  // 命令长名称
 			shortName: shortName, // 命令短名称
 		},
+		exitOnBuiltinFlags: true, // 默认保持原有行为，在解析内置标志后退出
 	}
 
 	return cmd
+}
+
+// SetExitOnBuiltinFlags 设置是否在解析内置参数时退出
+// 默认情况下为true，当解析到内置参数时，QFlag将退出程序
+// 参数:
+//   - exit: 是否退出
+//
+// 返回值:
+//   - *cmd.Cmd: 当前命令对象
+func (c *Cmd) SetExitOnBuiltinFlags(exit bool) *Cmd {
+	c.rwMu.Lock()
+	defer c.rwMu.Unlock()
+	c.exitOnBuiltinFlags = exit
+
+	// 返回当前Cmd实例
+	return c
 }
 
 // SubCmds 返回子命令列表
@@ -554,8 +575,8 @@ func (c *Cmd) parseCommon(args []string, parseSubcommands bool) (err error) {
 		// 检查是否使用-h/--help标志
 		if c.helpFlag.Get() {
 			c.PrintHelp()
-			if c.fs.ErrorHandling() != flag.ContinueOnError {
-				// 只有在ExitOnError或PanicOnError时才退出
+			if c.exitOnBuiltinFlags {
+				// 仅在ExitOnBuiltinFlags时才退出
 				os.Exit(0)
 			}
 			return
@@ -566,8 +587,8 @@ func (c *Cmd) parseCommon(args []string, parseSubcommands bool) (err error) {
 			// 检查是否使用-sip/--show-install-path标志
 			if c.showInstallPathFlag.Get() {
 				fmt.Println(GetExecutablePath())
-				if c.fs.ErrorHandling() != flag.ContinueOnError {
-					// 只有在ExitOnError或PanicOnError时才退出
+				if c.exitOnBuiltinFlags {
+					// 仅在ExitOnBuiltinFlags时才退出
 					os.Exit(0)
 				}
 				return
@@ -576,8 +597,8 @@ func (c *Cmd) parseCommon(args []string, parseSubcommands bool) (err error) {
 			// 检查是否使用-v/--version标志
 			if c.versionFlag.Get() {
 				fmt.Println(c.GetVersion())
-				if c.fs.ErrorHandling() != flag.ContinueOnError {
-					// 只有在ExitOnError或PanicOnError时才退出
+				if c.exitOnBuiltinFlags {
+					// 仅在ExitOnBuiltinFlags时才退出
 					os.Exit(0)
 				}
 				return

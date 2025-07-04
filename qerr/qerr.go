@@ -11,6 +11,10 @@ const (
 	ErrSubCommandParseFailed = "Subcommand parsing error" // 子命令标志解析错误
 	ErrPanicRecovered        = "panic recovered"          // 恐慌捕获错误
 	ErrValidationFailed      = "Validation failed"        // 参数验证失败错误
+	ErrHelpRequested         = "help flag requested"      // 帮助标志请求错误
+	ErrVersionRequested      = "version flag requested"   // 版本标志请求错误
+	ErrNilPointer            = "nil pointer provided"     // 空指针错误
+	ErrFlagRegistration      = "flag registration failed" // 标志注册错误
 )
 
 // NewValidationError 创建一个新的验证错误

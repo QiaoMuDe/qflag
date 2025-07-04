@@ -107,9 +107,6 @@ func generateHelpInfo(cmd *Cmd) string {
 		return ""
 	}
 
-	// 确保内置标志已初始化
-	cmd.initBuiltinFlags()
-
 	// 如果用户指定了自定义帮助信息则优先返回
 	if cmd.userInfo.help != "" {
 		return cmd.userInfo.help
