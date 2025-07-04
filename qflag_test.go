@@ -651,8 +651,9 @@ func TestFloatFlag_Methods(t *testing.T) {
 // TestPrintUsage 测试打印用法
 func TestPrintUsage(t *testing.T) {
 	// 测试自定义用法信息
-	cmd1 := NewCmd("test", "t", flag.ExitOnError).SetExitOnBuiltinFlags(false)
-	cmd1.SetUsageSyntax("自定义用法信息")
+	cmd1 := NewCmd("test", "t", flag.ExitOnError)
+	cmd1.SetUseChinese(true)
+	cmd1.SetUsageSyntax("自定义用法信息\n")
 	if testing.Verbose() {
 		cmd1.PrintHelp()
 	}

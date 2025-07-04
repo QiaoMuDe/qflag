@@ -95,9 +95,6 @@ func (c *Cmd) SetDescription(desc string) {
 
 // GetHelp 返回命令用法帮助信息
 func (c *Cmd) GetHelp() string {
-	// 确保内置标志已初始化
-	c.initBuiltinFlags()
-
 	// 获取读锁
 	c.rwMu.RLock()
 	defer c.rwMu.RUnlock()

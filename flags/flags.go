@@ -36,6 +36,16 @@ var (
 	VersionFlagShortName    = "v"       // 版本标志短名称
 )
 
+// 内置标志使用说明
+var (
+	HelpFlagUsageEn            = "Show help information"                     // 帮助标志英文使用说明
+	HelpFlagUsageZh            = "显示帮助信息"                                    // 帮助标志中文使用说明
+	ShowInstallPathFlagUsageEn = "Show the installation path of the program" // 安装路径标志英文使用说明
+	ShowInstallPathFlagUsageZh = "显示程序的安装路径"                                 // 安装路径标志中文使用说明
+	VersionFlagUsageEn         = "Show the version of the program"           // 版本标志英文使用说明
+	VersionFlagUsageZh         = "显示程序的版本信息"                                 // 版本标志中文使用说明
+)
+
 // 定义标志的分隔符常量
 const (
 	FlagSplitComma     = "," // 逗号

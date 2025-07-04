@@ -953,10 +953,8 @@ func TestSetLogoTextAndModuleHelps(t *testing.T) {
 // TestBindHelpFlag 测试绑定帮助标志
 func TestBindHelpFlag(t *testing.T) {
 	cmd := NewCmd("test", "t", flag.ExitOnError)
-	cmd.initBuiltinFlags()
-	// 验证帮助标志已绑定
-	if !cmd.initFlagBound {
-		t.Error("帮助标志应该已绑定")
+	if err := cmd.Parse([]string{}); err != nil {
+		t.Errorf("解析命令行参数时出错: %v", err)
 	}
 	if _, ok := cmd.flagRegistry.GetByName(flags.HelpFlagName); !ok {
 		t.Error("帮助标志应该已注册")

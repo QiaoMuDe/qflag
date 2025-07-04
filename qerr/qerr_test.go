@@ -11,7 +11,7 @@ func TestNewValidationError(t *testing.T) {
 	if err == nil {
 		t.Error("NewValidationError returned nil error")
 	}
-	expected := ErrValidationFailed + ": " + msg
+	expected := ErrValidationFailed.Error() + ": " + msg
 	if err.Error() != expected {
 		t.Errorf("NewValidationError returned unexpected error message: got %q, want %q", err.Error(), expected)
 	}
@@ -26,7 +26,8 @@ func TestNewValidationErrorf(t *testing.T) {
 		t.Error("NewValidationErrorf returned nil error")
 	}
 	expectedMsg := "test error 123"
-	expected := ErrValidationFailed + ": " + expectedMsg
+	expected := ErrValidationFailed.Error() + ": " + expectedMsg
+
 	if err.Error() != expected {
 		t.Errorf("NewValidationErrorf returned unexpected error message: got %q, want %q", err.Error(), expected)
 	}

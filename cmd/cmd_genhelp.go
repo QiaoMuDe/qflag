@@ -259,6 +259,7 @@ func writeOptions(cmd *Cmd, tpl HelpTemplate, buf *bytes.Buffer) {
 	}
 	descStartPos := maxWidth + 5 // 增加5个空格作为间距
 
+	// 遍历所有标志
 	for _, flag := range flags {
 		// 格式化选项部分
 		optPart := ""

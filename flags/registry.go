@@ -16,6 +16,7 @@ type FlagMetaInterface interface {
 	GetFlag() Flag         // 获取标志对象
 	GetLongName() string   // 获取标志的长名称
 	GetShortName() string  // 获取标志的短名称
+	GetName() string       // 获取标志的名称
 	GetUsage() string      // 获取标志的用法描述
 	GetDefault() any       // 获取标志的默认值
 	GetValue() any         // 获取标志的当前值
@@ -26,6 +27,15 @@ func (m *FlagMeta) GetLongName() string { return m.Flag.LongName() }
 
 // GetShortName 获取标志的短名称
 func (m *FlagMeta) GetShortName() string { return m.Flag.ShortName() }
+
+// GetName 获取标志的名称
+// 优先返回长名称, 如果长名称为空, 则返回短名称
+func (m *FlagMeta) GetName() string {
+	if m.GetLongName() != "" {
+		return m.GetLongName()
+	}
+	return m.GetShortName()
+}
 
 // GetUsage 获取标志的用法描述
 func (m *FlagMeta) GetUsage() string { return m.Flag.Usage() }
