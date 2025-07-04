@@ -11,7 +11,7 @@ import (
 func TestIntVar(t *testing.T) {
 	// 测试指针为nil的情况
 	t.Run("nil pointer", func(t *testing.T) {
-		cmd := NewCommand("test", "t", flag.ContinueOnError)
+		cmd := NewCmd("test", "t", flag.ContinueOnError)
 		defer func() {
 			if r := recover(); r == nil {
 				t.Error("IntVar with nil pointer should panic")
@@ -22,7 +22,7 @@ func TestIntVar(t *testing.T) {
 
 	// 测试正常功能
 	t.Run("normal case", func(t *testing.T) {
-		cmd := NewCommand("test", "t", flag.ContinueOnError)
+		cmd := NewCmd("test", "t", flag.ContinueOnError)
 		var intFlag flags.IntFlag
 		cmd.IntVar(&intFlag, "int", "i", 42, "test int flag")
 
@@ -40,7 +40,7 @@ func TestIntVar(t *testing.T) {
 		}
 
 		// 测试短标志解析
-		cmd = NewCommand("test-short", "ts", flag.ContinueOnError)
+		cmd = NewCmd("test-short", "ts", flag.ContinueOnError)
 		var intFlagShort flags.IntFlag
 		cmd.IntVar(&intFlagShort, "int-short", "i", -5, "test int short flag")
 		if err := cmd.Parse([]string{"-i", "-20"}); err != nil {
@@ -53,7 +53,7 @@ func TestIntVar(t *testing.T) {
 
 	// 测试边界值
 	t.Run("boundary values", func(t *testing.T) {
-		cmd := NewCommand("test-boundary", "tb", flag.ContinueOnError)
+		cmd := NewCmd("test-boundary", "tb", flag.ContinueOnError)
 		var intFlag flags.IntFlag
 		cmd.IntVar(&intFlag, "int-boundary", "b", 0, "test int boundary values")
 
@@ -66,7 +66,7 @@ func TestIntVar(t *testing.T) {
 		}
 
 		// 测试最小值
-		cmd = NewCommand("test-min", "tm", flag.ContinueOnError)
+		cmd = NewCmd("test-min", "tm", flag.ContinueOnError)
 		var minIntFlag flags.IntFlag
 		cmd.IntVar(&minIntFlag, "int-min", "m", 0, "test int min value")
 		if err := cmd.Parse([]string{"--int-min", "-2147483648"}); err != nil {

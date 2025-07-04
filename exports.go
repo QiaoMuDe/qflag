@@ -19,8 +19,8 @@ var QCommandLine = cmd.QCommandLine
 // cmd 导出cmd包中的Cmd结构体
 type Cmd = cmd.Cmd
 
-// NewCmd 导出cmd包中的NewCommand函数
-var NewCmd = cmd.NewCommand
+// NewCmd 导出cmd包中的NewCmd函数
+var NewCmd = cmd.NewCmd
 
 // ExampleInfo 导出cmd包中的ExampleInfo结构体
 type ExampleInfo = cmd.ExampleInfo

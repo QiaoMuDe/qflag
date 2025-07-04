@@ -2,13 +2,14 @@ package cmd
 
 import (
 	"flag"
-	"gitee.com/MM-Q/qflag/flags"
 	"testing"
 	"time"
+
+	"gitee.com/MM-Q/qflag/flags"
 )
 
 func TestTime(t *testing.T) {
-	cmd := NewCommand("test", "t", flag.ContinueOnError)
+	cmd := NewCmd("test", "t", flag.ContinueOnError)
 	defaultTime := time.Date(2023, time.January, 1, 0, 0, 0, 0, time.UTC)
 	timeFlag := cmd.Time("time", "t", defaultTime, "time flag test")
 
@@ -34,7 +35,7 @@ func TestTime(t *testing.T) {
 }
 
 func TestTimeVar(t *testing.T) {
-	cmd := NewCommand("test", "t", flag.ContinueOnError)
+	cmd := NewCmd("test", "t", flag.ContinueOnError)
 	var timeFlag flags.TimeFlag
 	defaultTime := time.Date(2023, time.January, 1, 0, 0, 0, 0, time.UTC)
 	cmd.TimeVar(&timeFlag, "time", "t", defaultTime, "time flag test")
@@ -59,7 +60,7 @@ func TestTimeVar(t *testing.T) {
 }
 
 func TestTimeVar_NilPointer(t *testing.T) {
-	cmd := NewCommand("test", "t", flag.ContinueOnError)
+	cmd := NewCmd("test", "t", flag.ContinueOnError)
 	defer func() {
 		if r := recover(); r == nil {
 			t.Error("Expected panic when passing nil pointer to TimeVar")

@@ -11,7 +11,7 @@ import (
 func TestBoolVar(t *testing.T) {
 	// 测试指针为nil的情况
 	t.Run("nil pointer", func(t *testing.T) {
-		cmd := NewCommand("test", "t", flag.ContinueOnError)
+		cmd := NewCmd("test", "t", flag.ContinueOnError)
 		defer func() {
 			if r := recover(); r == nil {
 				t.Error("BoolVar with nil pointer should panic")
@@ -22,7 +22,7 @@ func TestBoolVar(t *testing.T) {
 
 	// 测试正常功能
 	t.Run("normal case", func(t *testing.T) {
-		cmd := NewCommand("test", "t", flag.ContinueOnError)
+		cmd := NewCmd("test", "t", flag.ContinueOnError)
 		var boolFlag flags.BoolFlag
 		cmd.BoolVar(&boolFlag, "bool", "b", false, "test bool flag")
 
@@ -40,7 +40,7 @@ func TestBoolVar(t *testing.T) {
 		}
 
 		// 测试短标志解析
-		cmd = NewCommand("test-short", "ts", flag.ContinueOnError)
+		cmd = NewCmd("test-short", "ts", flag.ContinueOnError)
 		var boolFlagShort flags.BoolFlag
 		cmd.BoolVar(&boolFlagShort, "bool-short", "b", false, "test bool short flag")
 		if err := cmd.Parse([]string{"-b"}); err != nil {

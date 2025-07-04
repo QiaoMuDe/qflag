@@ -2,13 +2,14 @@ package cmd
 
 import (
 	"flag"
-	"gitee.com/MM-Q/qflag/flags"
 	"testing"
+
+	"gitee.com/MM-Q/qflag/flags"
 )
 
 // TestUint16 测试Uint16方法的功能正确性
 func TestUint16(t *testing.T) {
-	cmd := NewCommand("test", "t", flag.ContinueOnError)
+	cmd := NewCmd("test", "t", flag.ContinueOnError)
 	defaultValue := uint16(32767)
 	uint16Flag := cmd.Uint16("port", "p", defaultValue, "uint16 flag test")
 
@@ -30,7 +31,7 @@ func TestUint16(t *testing.T) {
 
 // TestUint16Var 测试Uint16Var方法的功能正确性
 func TestUint16Var(t *testing.T) {
-	cmd := NewCommand("test", "t", flag.ContinueOnError)
+	cmd := NewCmd("test", "t", flag.ContinueOnError)
 	var uint16Flag flags.Uint16Flag
 	defaultValue := uint16(1024)
 	cmd.Uint16Var(&uint16Flag, "port", "p", defaultValue, "uint16 flag test")
@@ -53,7 +54,7 @@ func TestUint16Var(t *testing.T) {
 
 // TestUint16Var_NilPointer 测试Uint16Var方法传入nil指针时的错误处理
 func TestUint16Var_NilPointer(t *testing.T) {
-	cmd := NewCommand("test", "t", flag.ContinueOnError)
+	cmd := NewCmd("test", "t", flag.ContinueOnError)
 	defer func() {
 		if r := recover(); r == nil {
 			t.Error("Expected panic when passing nil pointer to Uint16Var")

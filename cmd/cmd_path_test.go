@@ -14,7 +14,7 @@ func TestPathVar(t *testing.T) {
 
 	// 测试指针为nil的情况
 	t.Run("nil pointer", func(t *testing.T) {
-		cmd := NewCommand("test", "t", flag.ContinueOnError)
+		cmd := NewCmd("test", "t", flag.ContinueOnError)
 		defer func() {
 			if r := recover(); r == nil {
 				t.Error("PathVar with nil pointer should panic")
@@ -26,7 +26,7 @@ func TestPathVar(t *testing.T) {
 	// 测试正常功能
 	t.Run("normal case", func(t *testing.T) {
 		defaultPath := "./default"
-		cmd := NewCommand("test", "t", flag.ContinueOnError)
+		cmd := NewCmd("test", "t", flag.ContinueOnError)
 		var pathFlag flags.PathFlag
 		cmd.PathVar(&pathFlag, "path", "p", defaultPath, "test path flag")
 
@@ -40,7 +40,7 @@ func TestPathVar(t *testing.T) {
 		}
 
 		// 测试短标志解析（使用临时目录确保路径存在）
-		cmd = NewCommand("test-short", "ts", flag.ContinueOnError)
+		cmd = NewCmd("test-short", "ts", flag.ContinueOnError)
 		var pathFlagShort flags.PathFlag
 		tempDir := t.TempDir()
 		cmd.PathVar(&pathFlagShort, "path-short", "p", "/", "test path short flag")
@@ -61,7 +61,7 @@ func TestPathVar(t *testing.T) {
 		invalidPath := filepath.Join(tempDir, "nonexistent.txt")
 
 		// 测试有效路径
-		cmdValid := NewCommand("test-valid", "tv", flag.ContinueOnError)
+		cmdValid := NewCmd("test-valid", "tv", flag.ContinueOnError)
 		var validPathFlag flags.PathFlag
 		cmdValid.PathVar(&validPathFlag, "valid-path", "v", "", "test valid path")
 		if err := cmdValid.Parse([]string{"--valid-path", validPath}); err != nil {
@@ -69,7 +69,7 @@ func TestPathVar(t *testing.T) {
 		}
 
 		// 测试无效路径（假设PathFlag有存在性验证）
-		cmdInvalid := NewCommand("test-invalid", "ti", flag.ContinueOnError)
+		cmdInvalid := NewCmd("test-invalid", "ti", flag.ContinueOnError)
 		var invalidPathFlag flags.PathFlag
 		cmdInvalid.PathVar(&invalidPathFlag, "invalid-path", "i", "", "test invalid path")
 		err := cmdInvalid.Parse([]string{"--invalid-path", invalidPath})

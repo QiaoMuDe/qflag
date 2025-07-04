@@ -14,7 +14,7 @@ func TestDurationVar(t *testing.T) {
 
 	// 测试指针为nil的情况
 	t.Run("nil pointer", func(t *testing.T) {
-		cmd := NewCommand("test", "t", flag.ContinueOnError)
+		cmd := NewCmd("test", "t", flag.ContinueOnError)
 		defer func() {
 			if r := recover(); r == nil {
 				t.Error("DurationVar with nil pointer should panic")
@@ -25,7 +25,7 @@ func TestDurationVar(t *testing.T) {
 
 	// 测试正常功能(长标志)
 	t.Run("normal case", func(t *testing.T) {
-		cmd := NewCommand("test", "t", flag.ContinueOnError)
+		cmd := NewCmd("test", "t", flag.ContinueOnError)
 		var durationFlag flags.DurationFlag
 		cmd.DurationVar(&durationFlag, "duration", "dur", time.Second*5, "test duration flag")
 
@@ -45,7 +45,7 @@ func TestDurationVar(t *testing.T) {
 
 	// 测试短标志解析
 	t.Run("short flag", func(t *testing.T) {
-		cmd := NewCommand("test-short", "ts", flag.ContinueOnError)
+		cmd := NewCmd("test-short", "ts", flag.ContinueOnError)
 		cmd.DurationVar(&durationFlagShort, "duration-short", "d", time.Second*5, "test duration short flag")
 		if err := cmd.Parse([]string{"-d", "2m"}); err != nil {
 			t.Fatalf("Parse failed: %v", err)

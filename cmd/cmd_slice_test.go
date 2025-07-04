@@ -12,7 +12,7 @@ func TestSliceVar(t *testing.T) {
 
 	// 测试指针为nil的情况
 	t.Run("nil pointer", func(t *testing.T) {
-		cmd := NewCommand("test", "t", flag.ContinueOnError)
+		cmd := NewCmd("test", "t", flag.ContinueOnError)
 		defer func() {
 			if r := recover(); r == nil {
 				t.Error("SliceVar with nil pointer should panic")
@@ -26,7 +26,7 @@ func TestSliceVar(t *testing.T) {
 		// 非nil默认值
 		t.Run("non-nil default", func(t *testing.T) {
 			defaultSlice := []string{"default1", "default2"}
-			cmd := NewCommand("test", "t", flag.ContinueOnError)
+			cmd := NewCmd("test", "t", flag.ContinueOnError)
 			var sliceFlag flags.SliceFlag
 			cmd.SliceVar(&sliceFlag, "slice", "s", defaultSlice, "test slice default")
 
@@ -38,7 +38,7 @@ func TestSliceVar(t *testing.T) {
 
 		// nil默认值（应初始化为空切片）
 		t.Run("nil default", func(t *testing.T) {
-			cmd := NewCommand("test", "t", flag.ContinueOnError)
+			cmd := NewCmd("test", "t", flag.ContinueOnError)
 			var sliceFlag flags.SliceFlag
 			cmd.SliceVar(&sliceFlag, "slice-nil", "n", nil, "test nil default")
 
@@ -53,7 +53,7 @@ func TestSliceVar(t *testing.T) {
 	t.Run("flag parsing", func(t *testing.T) {
 		// 长标志单值解析
 		t.Run("long flag single value", func(t *testing.T) {
-			cmd := NewCommand("test", "t", flag.ContinueOnError)
+			cmd := NewCmd("test", "t", flag.ContinueOnError)
 			var sliceFlag flags.SliceFlag
 			cmd.SliceVar(&sliceFlag, "slice", "s", nil, "test long flag")
 
@@ -69,7 +69,7 @@ func TestSliceVar(t *testing.T) {
 
 		// 长标志多值解析（逗号分隔）
 		t.Run("long flag multiple values", func(t *testing.T) {
-			cmd := NewCommand("test", "t", flag.ContinueOnError)
+			cmd := NewCmd("test", "t", flag.ContinueOnError)
 			var sliceFlag flags.SliceFlag
 			cmd.SliceVar(&sliceFlag, "slice", "s", nil, "test long flag multiple values")
 
@@ -91,7 +91,7 @@ func TestSliceVar(t *testing.T) {
 
 		// 短标志解析
 		t.Run("short flag", func(t *testing.T) {
-			cmd := NewCommand("test-short", "ts", flag.ContinueOnError)
+			cmd := NewCmd("test-short", "ts", flag.ContinueOnError)
 			var sliceFlag flags.SliceFlag
 			cmd.SliceVar(&sliceFlag, "slice-short", "s", nil, "test short flag")
 
@@ -113,7 +113,7 @@ func TestSliceVar(t *testing.T) {
 
 		// 空输入处理
 		t.Run("empty input", func(t *testing.T) {
-			cmd := NewCommand("test-empty", "te", flag.ContinueOnError)
+			cmd := NewCmd("test-empty", "te", flag.ContinueOnError)
 			var sliceFlag flags.SliceFlag
 			cmd.SliceVar(&sliceFlag, "slice-empty", "e", []string{"default"}, "test empty input")
 

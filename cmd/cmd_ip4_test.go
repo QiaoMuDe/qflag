@@ -11,7 +11,7 @@ import (
 func TestIP4Var(t *testing.T) {
 	// 测试指针为nil的情况
 	t.Run("nil pointer", func(t *testing.T) {
-		cmd := NewCommand("test", "t", flag.ContinueOnError)
+		cmd := NewCmd("test", "t", flag.ContinueOnError)
 		defer func() {
 			if r := recover(); r == nil {
 				t.Error("IP4Var with nil pointer should panic")
@@ -22,7 +22,7 @@ func TestIP4Var(t *testing.T) {
 
 	// 测试正常功能
 	t.Run("normal case", func(t *testing.T) {
-		cmd := NewCommand("test", "t", flag.ContinueOnError)
+		cmd := NewCmd("test", "t", flag.ContinueOnError)
 		var ip4Flag flags.IP4Flag
 		cmd.IP4Var(&ip4Flag, "ip4", "i", "192.168.1.1", "test ip4 flag")
 
@@ -40,7 +40,7 @@ func TestIP4Var(t *testing.T) {
 		}
 
 		// 测试短标志解析
-		cmd = NewCommand("test-short", "ts", flag.ContinueOnError)
+		cmd = NewCmd("test-short", "ts", flag.ContinueOnError)
 		var ip4FlagShort flags.IP4Flag
 		cmd.IP4Var(&ip4FlagShort, "ip4-short", "i", "172.16.0.1", "test ip4 short flag")
 		if err := cmd.Parse([]string{"-i", "172.16.0.2"}); err != nil {
@@ -53,7 +53,7 @@ func TestIP4Var(t *testing.T) {
 
 	// 测试无效IP地址
 	t.Run("invalid ip4", func(t *testing.T) {
-		cmd := NewCommand("test-invalid", "ti", flag.ContinueOnError)
+		cmd := NewCmd("test-invalid", "ti", flag.ContinueOnError)
 		var ip4Flag flags.IP4Flag
 		cmd.IP4Var(&ip4Flag, "ip4-invalid", "v", "127.0.0.1", "test invalid ip4")
 

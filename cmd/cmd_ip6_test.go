@@ -11,7 +11,7 @@ import (
 func TestIP6Var(t *testing.T) {
 	// 测试指针为nil的情况
 	t.Run("nil pointer", func(t *testing.T) {
-		cmd := NewCommand("test", "t", flag.ContinueOnError)
+		cmd := NewCmd("test", "t", flag.ContinueOnError)
 		defer func() {
 			if r := recover(); r == nil {
 				t.Error("IP6Var with nil pointer should panic")
@@ -22,7 +22,7 @@ func TestIP6Var(t *testing.T) {
 
 	// 测试正常功能
 	t.Run("normal case", func(t *testing.T) {
-		cmd := NewCommand("test", "t", flag.ContinueOnError)
+		cmd := NewCmd("test", "t", flag.ContinueOnError)
 		var ip6Flag flags.IP6Flag
 		cmd.IP6Var(&ip6Flag, "ip6", "I", "2001:db8::1", "test ip6 flag")
 
@@ -40,7 +40,7 @@ func TestIP6Var(t *testing.T) {
 		}
 
 		// 测试短标志解析
-		cmd = NewCommand("test-short", "ts", flag.ContinueOnError)
+		cmd = NewCmd("test-short", "ts", flag.ContinueOnError)
 		var ip6FlagShort flags.IP6Flag
 		cmd.IP6Var(&ip6FlagShort, "ip6-short", "I", "fe80::1", "test ip6 short flag")
 		if err := cmd.Parse([]string{"-I", "fe80::2"}); err != nil {
@@ -53,7 +53,7 @@ func TestIP6Var(t *testing.T) {
 
 	// 测试无效IP地址
 	t.Run("invalid ip6", func(t *testing.T) {
-		cmd := NewCommand("test-invalid", "ti", flag.ContinueOnError)
+		cmd := NewCmd("test-invalid", "ti", flag.ContinueOnError)
 		var ip6Flag flags.IP6Flag
 		cmd.IP6Var(&ip6Flag, "ip6-invalid", "V", "::1", "test invalid ip6")
 

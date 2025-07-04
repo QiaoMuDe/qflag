@@ -2,13 +2,14 @@ package cmd
 
 import (
 	"flag"
-	"gitee.com/MM-Q/qflag/flags"
 	"testing"
+
+	"gitee.com/MM-Q/qflag/flags"
 )
 
 // TestUint32 测试Uint32方法的功能正确性
 func TestUint32(t *testing.T) {
-	cmd := NewCommand("test", "t", flag.ContinueOnError)
+	cmd := NewCmd("test", "t", flag.ContinueOnError)
 	defaultValue := uint32(50000)
 	uint32Flag := cmd.Uint32("count", "c", defaultValue, "uint32 flag test")
 
@@ -30,7 +31,7 @@ func TestUint32(t *testing.T) {
 
 // TestUint32Var 测试Uint32Var方法的功能正确性
 func TestUint32Var(t *testing.T) {
-	cmd := NewCommand("test", "t", flag.ContinueOnError)
+	cmd := NewCmd("test", "t", flag.ContinueOnError)
 	var uint32Flag flags.Uint32Flag
 	defaultValue := uint32(30000)
 	cmd.Uint32Var(&uint32Flag, "count", "c", defaultValue, "uint32 flag test")
@@ -53,7 +54,7 @@ func TestUint32Var(t *testing.T) {
 
 // TestUint32Var_NilPointer 测试Uint32Var方法传入nil指针时的错误处理
 func TestUint32Var_NilPointer(t *testing.T) {
-	cmd := NewCommand("test", "t", flag.ContinueOnError)
+	cmd := NewCmd("test", "t", flag.ContinueOnError)
 	defer func() {
 		if r := recover(); r == nil {
 			t.Error("Expected panic when passing nil pointer to Uint32Var")

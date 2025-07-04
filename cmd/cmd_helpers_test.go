@@ -9,7 +9,7 @@ import (
 
 // TestSetVersionAndGetVersion 测试版本设置和获取功能
 func TestSetVersionAndGetVersion(t *testing.T) {
-	cmd := NewCommand("test", "t", flag.ContinueOnError)
+	cmd := NewCmd("test", "t", flag.ContinueOnError)
 	version := "v1.0.0"
 	cmd.SetVersion(version)
 
@@ -20,7 +20,7 @@ func TestSetVersionAndGetVersion(t *testing.T) {
 
 // TestAddNoteAndGetNotes 测试备注添加和获取功能
 func TestAddNoteAndGetNotes(t *testing.T) {
-	cmd := NewCommand("test", "t", flag.ContinueOnError)
+	cmd := NewCmd("test", "t", flag.ContinueOnError)
 	note1 := "Test note 1"
 	note2 := "Test note 2"
 
@@ -39,7 +39,7 @@ func TestAddNoteAndGetNotes(t *testing.T) {
 
 // TestLoadHelp 测试从文件加载帮助信息功能
 func TestLoadHelp(t *testing.T) {
-	cmd := NewCommand("test", "t", flag.ContinueOnError)
+	cmd := NewCmd("test", "t", flag.ContinueOnError)
 	content := "Test help content"
 
 	// 创建临时文件
@@ -68,7 +68,7 @@ func TestLoadHelp(t *testing.T) {
 
 // TestFlagExists 测试标志存在性检测功能
 func TestFlagExists(t *testing.T) {
-	cmd := NewCommand("test", "t", flag.ContinueOnError)
+	cmd := NewCmd("test", "t", flag.ContinueOnError)
 	cmd.String("test-flag", "t", "default", "test flag")
 
 	// 测试存在的标志
@@ -87,7 +87,7 @@ func TestFlagExists(t *testing.T) {
 
 // TestArgsMethods 测试参数获取相关方法
 func TestArgsMethods(t *testing.T) {
-	cmd := NewCommand("test", "t", flag.ContinueOnError)
+	cmd := NewCmd("test", "t", flag.ContinueOnError)
 	args := []string{"arg1", "arg2", "arg3"}
 
 	// 解析参数

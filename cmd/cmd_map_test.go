@@ -12,7 +12,7 @@ func TestMapVar(t *testing.T) {
 
 	// 测试指针为nil的情况
 	t.Run("nil pointer", func(t *testing.T) {
-		cmd := NewCommand("test", "t", flag.ContinueOnError)
+		cmd := NewCmd("test", "t", flag.ContinueOnError)
 		defer func() {
 			if r := recover(); r == nil {
 				t.Error("MapVar with nil pointer should panic")
@@ -24,7 +24,7 @@ func TestMapVar(t *testing.T) {
 	// 测试正常功能
 	t.Run("normal case", func(t *testing.T) {
 		defaultMap := map[string]string{"default": "value"}
-		cmd := NewCommand("test", "t", flag.ContinueOnError)
+		cmd := NewCmd("test", "t", flag.ContinueOnError)
 		var mapFlag flags.MapFlag
 		cmd.MapVar(&mapFlag, "map", "m", defaultMap, "test map flag")
 
@@ -42,7 +42,7 @@ func TestMapVar(t *testing.T) {
 		}
 
 		// 测试短标志解析（多个键值对）
-		cmd = NewCommand("test-short", "ts", flag.ContinueOnError)
+		cmd = NewCmd("test-short", "ts", flag.ContinueOnError)
 		var mapFlagShort flags.MapFlag
 		cmd.MapVar(&mapFlagShort, "map-short", "m", nil, "test map short flag")
 		if err := cmd.Parse([]string{"-m", "key1=val1,key2=val2"}); err != nil {
@@ -56,7 +56,7 @@ func TestMapVar(t *testing.T) {
 
 	// 测试自定义分隔符
 	t.Run("custom delimiters", func(t *testing.T) {
-		cmd := NewCommand("test-delimiters", "td", flag.ContinueOnError)
+		cmd := NewCmd("test-delimiters", "td", flag.ContinueOnError)
 		var mapFlag flags.MapFlag
 		cmd.MapVar(&mapFlag, "map-delim", "d", nil, "test map delimiters")
 		mapFlag.SetDelimiters(flags.FlagSplitSemicolon, flags.FlagKVColon)

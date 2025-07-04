@@ -2,13 +2,14 @@ package cmd
 
 import (
 	"flag"
-	"gitee.com/MM-Q/qflag/flags"
 	"net/url"
 	"testing"
+
+	"gitee.com/MM-Q/qflag/flags"
 )
 
 func TestURL(t *testing.T) {
-	cmd := NewCommand("test", "t", flag.ContinueOnError)
+	cmd := NewCmd("test", "t", flag.ContinueOnError)
 	defaultURL := "https://example.com"
 	urlFlag := cmd.URL("url", "u", defaultURL, "url flag test")
 
@@ -30,7 +31,7 @@ func TestURL(t *testing.T) {
 }
 
 func TestURLVar(t *testing.T) {
-	cmd := NewCommand("test", "t", flag.ContinueOnError)
+	cmd := NewCmd("test", "t", flag.ContinueOnError)
 	var urlFlag flags.URLFlag
 	defaultURL := "https://example.com"
 	cmd.URLVar(&urlFlag, "url", "u", defaultURL, "url flag test")
@@ -50,7 +51,7 @@ func TestURLVar(t *testing.T) {
 }
 
 func TestURLVar_NilPointer(t *testing.T) {
-	cmd := NewCommand("test", "t", flag.ContinueOnError)
+	cmd := NewCmd("test", "t", flag.ContinueOnError)
 	defer func() {
 		if r := recover(); r == nil {
 			t.Error("Expected panic when passing nil pointer to URLVar")

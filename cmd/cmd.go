@@ -21,10 +21,10 @@ func init() {
 	// 处理可能的空os.Args情况
 	if len(os.Args) == 0 {
 		// 如果os.Args为空,则创建一个新的Cmd对象,命令行参数为"myapp",短名字为"",错误处理方式为ExitOnError
-		QCommandLine = NewCommand("myapp", "", flag.ExitOnError)
+		QCommandLine = NewCmd("myapp", "", flag.ExitOnError)
 	} else {
 		// 如果os.Args不为空,则创建一个新的Cmd对象,命令行参数为filepath.Base(os.Args[0]),错误处理方式为ExitOnError
-		QCommandLine = NewCommand(filepath.Base(os.Args[0]), "", flag.ExitOnError)
+		QCommandLine = NewCmd(filepath.Base(os.Args[0]), "", flag.ExitOnError)
 	}
 }
 
@@ -117,7 +117,7 @@ type Cmd struct {
 // 实现类需保证线程安全，所有方法应支持并发调用
 //
 // 示例用法:
-// cmd := NewCommand("app", "a", flag.ContinueOnError)
+// cmd := NewCmd("app", "a", flag.ContinueOnError)
 // cmd.SetDescription("示例应用程序")
 // cmd.String("config", "c", "配置文件路径", "/etc/app.conf")
 type CmdInterface interface {
@@ -184,18 +184,23 @@ type CmdInterface interface {
 	PathVar(f *flags.PathFlag, longName, shortName string, defValue string, usage string)                   // 绑定路径标志到指定变量
 }
 
-// 保持兼容API
-// 支持 NewCmd 别名
-var NewCmd = NewCommand
-
-// NewCommand 创建新的命令实例
+// NewCmd 创建新的命令实例
+//
 // 参数:
-// longName: 命令长名称
-// shortName: 命令短名称
-// errorHandling: 错误处理方式
-// 返回值: *Cmd命令实例指针
-// errorHandling可选值: flag.ContinueOnError、flag.ExitOnError、flag.PanicOnError
-func NewCommand(longName string, shortName string, errorHandling flag.ErrorHandling) *Cmd {
+//
+//   - longName: 命令长名称
+//   - shortName: 命令短名称
+//   - errorHandling: 错误处理方式
+//
+// 返回值:
+//   - *Cmd: 新的命令实例指针
+//
+// errorHandling可选值:
+//
+//   - flag.ContinueOnError：解析标志时遇到错误继续解析，并返回错误信息
+//   - flag.ExitOnError：解析标志时遇到错误立即退出程序，并返回错误信息
+//   - flag.PanicOnError：解析标志时遇到错误立即触发panic
+func NewCmd(longName string, shortName string, errorHandling flag.ErrorHandling) *Cmd {
 	// 检查命令名称是否同时为空
 	if longName == "" && shortName == "" {
 		panic("cmd long name and short name cannot both be empty")

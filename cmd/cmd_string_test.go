@@ -2,12 +2,13 @@ package cmd
 
 import (
 	"flag"
-	"gitee.com/MM-Q/qflag/flags"
 	"testing"
+
+	"gitee.com/MM-Q/qflag/flags"
 )
 
 func TestString(t *testing.T) {
-	cmd := NewCommand("test", "t", flag.ContinueOnError)
+	cmd := NewCmd("test", "t", flag.ContinueOnError)
 	strFlag := cmd.String("str", "s", "default", "string flag test")
 
 	// 测试默认值
@@ -27,7 +28,7 @@ func TestString(t *testing.T) {
 }
 
 func TestStringVar(t *testing.T) {
-	cmd := NewCommand("test", "t", flag.ContinueOnError)
+	cmd := NewCmd("test", "t", flag.ContinueOnError)
 	var strFlag flags.StringFlag
 	cmd.StringVar(&strFlag, "str", "s", "default", "string flag test")
 
@@ -46,7 +47,7 @@ func TestStringVar(t *testing.T) {
 }
 
 func TestStringVar_NilPointer(t *testing.T) {
-	cmd := NewCommand("test", "t", flag.ContinueOnError)
+	cmd := NewCmd("test", "t", flag.ContinueOnError)
 	defer func() {
 		if r := recover(); r == nil {
 			t.Error("Expected panic when passing nil pointer to StringVar")

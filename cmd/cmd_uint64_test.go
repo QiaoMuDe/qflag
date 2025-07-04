@@ -2,13 +2,14 @@ package cmd
 
 import (
 	"flag"
-	"gitee.com/MM-Q/qflag/flags"
 	"testing"
+
+	"gitee.com/MM-Q/qflag/flags"
 )
 
 // TestUint64 测试Uint64方法的功能正确性
 func TestUint64(t *testing.T) {
-	cmd := NewCommand("test", "t", flag.ContinueOnError)
+	cmd := NewCmd("test", "t", flag.ContinueOnError)
 	defaultValue := uint64(100)
 	uint64Flag := cmd.Uint64("number", "n", defaultValue, "uint64 flag test")
 
@@ -30,7 +31,7 @@ func TestUint64(t *testing.T) {
 
 // TestUint64Var 测试Uint64Var方法的功能正确性
 func TestUint64Var(t *testing.T) {
-	cmd := NewCommand("test", "t", flag.ContinueOnError)
+	cmd := NewCmd("test", "t", flag.ContinueOnError)
 	var uint64Flag flags.Uint64Flag
 	defaultValue := uint64(150)
 	cmd.Uint64Var(&uint64Flag, "number", "n", defaultValue, "uint64 flag test")
@@ -53,7 +54,7 @@ func TestUint64Var(t *testing.T) {
 
 // TestUint64Var_NilPointer 测试Uint64Var方法传入nil指针时的错误处理
 func TestUint64Var_NilPointer(t *testing.T) {
-	cmd := NewCommand("test", "t", flag.ContinueOnError)
+	cmd := NewCmd("test", "t", flag.ContinueOnError)
 	defer func() {
 		if r := recover(); r == nil {
 			t.Error("Expected panic when passing nil pointer to Uint64Var")

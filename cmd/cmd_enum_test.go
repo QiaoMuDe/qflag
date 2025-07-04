@@ -13,7 +13,7 @@ func TestEnumVar(t *testing.T) {
 
 	// 测试指针为nil的情况
 	t.Run("nil pointer", func(t *testing.T) {
-		cmd := NewCommand("test-enum-nil", "ten", flag.ContinueOnError)
+		cmd := NewCmd("test-enum-nil", "ten", flag.ContinueOnError)
 		defer func() {
 			if r := recover(); r == nil {
 				t.Error("EnumVar with nil pointer should panic")
@@ -24,7 +24,7 @@ func TestEnumVar(t *testing.T) {
 
 	// 测试正常功能(长标志)
 	t.Run("normal case", func(t *testing.T) {
-		cmd1 := NewCommand("test-enum-normal", "tenm", flag.ContinueOnError)
+		cmd1 := NewCmd("test-enum-normal", "tenm", flag.ContinueOnError)
 		var enumFlag flags.EnumFlag
 		cmd1.EnumVar(&enumFlag, "enumq-test-normal", "m", "option1", "test enum normal flag", options)
 
@@ -43,7 +43,7 @@ func TestEnumVar(t *testing.T) {
 
 		// 测试长标志解析-无效选项
 		var enumFlagInvalid flags.EnumFlag
-		cmdInvalid := NewCommand("test-enum-invalid", "tein", flag.ContinueOnError)
+		cmdInvalid := NewCmd("test-enum-invalid", "tein", flag.ContinueOnError)
 		cmdInvalid.EnumVar(&enumFlagInvalid, "enumq-invalid", "a", "option1", "test enum invalid flag", options)
 		if err := cmdInvalid.Parse([]string{"--enumq-invalid", "invalid"}); err == nil {
 			t.Error("Parse should fail with invalid enum value")
@@ -53,7 +53,7 @@ func TestEnumVar(t *testing.T) {
 	// 测试短标志解析
 	t.Run("short flag", func(t *testing.T) {
 		var enumFlagShort flags.EnumFlag
-		cmd := NewCommand("test-enum-short", "tes", flag.ContinueOnError)
+		cmd := NewCmd("test-enum-short", "tes", flag.ContinueOnError)
 		cmd.EnumVar(&enumFlagShort, "enumq-short", "b", "option1", "test enum short flag", options)
 		if err := cmd.Parse([]string{"--enumq-short", "option3"}); err != nil {
 			t.Fatalf("Parse failed: %v", err)

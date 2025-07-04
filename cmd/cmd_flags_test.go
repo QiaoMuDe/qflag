@@ -15,7 +15,7 @@ import (
 func TestStringVarf(t *testing.T) {
 	// 测试指针为nil的情况
 	t.Run("nil pointer", func(t *testing.T) {
-		cmd := NewCommand("test", "t", flag.ContinueOnError)
+		cmd := NewCmd("test", "t", flag.ContinueOnError)
 		defer func() {
 			if r := recover(); r == nil {
 				t.Error("StringVar with nil pointer should panic")
@@ -26,7 +26,7 @@ func TestStringVarf(t *testing.T) {
 
 	// 测试正常功能
 	t.Run("normal case", func(t *testing.T) {
-		cmd := NewCommand("test", "t", flag.ContinueOnError)
+		cmd := NewCmd("test", "t", flag.ContinueOnError)
 		var strFlag flags.StringFlag
 		cmd.StringVar(&strFlag, "str", "st", "default", "test string flag")
 
@@ -44,7 +44,7 @@ func TestStringVarf(t *testing.T) {
 		}
 
 		// 测试短标志解析
-		cmd = NewCommand("test-short", "ts", flag.ContinueOnError)
+		cmd = NewCmd("test-short", "ts", flag.ContinueOnError)
 		var strFlagShort flags.StringFlag
 		cmd.StringVar(&strFlagShort, "str-short", "t", "default", "test string short flag")
 		if err := cmd.Parse([]string{"-t", "short"}); err != nil {
@@ -60,7 +60,7 @@ func TestStringVarf(t *testing.T) {
 func TestIntVarf(t *testing.T) {
 	// 测试指针为nil的情况
 	t.Run("nil pointer", func(t *testing.T) {
-		cmd := NewCommand("test", "t", flag.ContinueOnError)
+		cmd := NewCmd("test", "t", flag.ContinueOnError)
 		defer func() {
 			if r := recover(); r == nil {
 				t.Error("IntVar with nil pointer should panic")
@@ -71,7 +71,7 @@ func TestIntVarf(t *testing.T) {
 
 	// 测试正常功能
 	t.Run("normal case", func(t *testing.T) {
-		cmd := NewCommand("test", "t", flag.ContinueOnError)
+		cmd := NewCmd("test", "t", flag.ContinueOnError)
 		var intFlag flags.IntFlag
 		cmd.IntVar(&intFlag, "int", "iv", 123, "test int flag")
 
@@ -89,7 +89,7 @@ func TestIntVarf(t *testing.T) {
 		}
 
 		// 测试短标志解析
-		cmd = NewCommand("test", "t", flag.ContinueOnError)
+		cmd = NewCmd("test", "t", flag.ContinueOnError)
 		var intFlagShort flags.IntFlag
 		cmd.IntVar(&intFlagShort, "int", "iv", 123, "test int flag")
 		if err := cmd.Parse([]string{"-iv", "789"}); err != nil {
@@ -105,7 +105,7 @@ func TestIntVarf(t *testing.T) {
 func TestBoolVarf(t *testing.T) {
 	// 测试指针为nil的情况
 	t.Run("nil pointer", func(t *testing.T) {
-		cmd := NewCommand("test", "t", flag.ContinueOnError)
+		cmd := NewCmd("test", "t", flag.ContinueOnError)
 		defer func() {
 			if r := recover(); r == nil {
 				t.Error("BoolVar with nil pointer should panic")
@@ -116,7 +116,7 @@ func TestBoolVarf(t *testing.T) {
 
 	// 测试正常功能
 	t.Run("normal case", func(t *testing.T) {
-		cmd := NewCommand("test", "t", flag.ContinueOnError)
+		cmd := NewCmd("test", "t", flag.ContinueOnError)
 		var boolFlag flags.BoolFlag
 		cmd.BoolVar(&boolFlag, "bool", "bl", false, "test bool flag")
 
@@ -134,7 +134,7 @@ func TestBoolVarf(t *testing.T) {
 		}
 
 		// 测试短标志解析
-		cmd = NewCommand("test", "t", flag.ContinueOnError)
+		cmd = NewCmd("test", "t", flag.ContinueOnError)
 		var boolFlagShort flags.BoolFlag
 		cmd.BoolVar(&boolFlagShort, "bool-short", "b", false, "test bool short flag")
 		if err := cmd.Parse([]string{"-b"}); err != nil {
@@ -150,7 +150,7 @@ func TestBoolVarf(t *testing.T) {
 func TestFloatVar(t *testing.T) {
 	// 测试指针为nil的情况
 	t.Run("nil pointer", func(t *testing.T) {
-		cmd := NewCommand("test", "t", flag.ContinueOnError)
+		cmd := NewCmd("test", "t", flag.ContinueOnError)
 		defer func() {
 			if r := recover(); r == nil {
 				t.Error("FloatVar with nil pointer should panic")
@@ -161,7 +161,7 @@ func TestFloatVar(t *testing.T) {
 
 	// 测试正常功能
 	t.Run("normal case", func(t *testing.T) {
-		cmd := NewCommand("test", "t", flag.ContinueOnError)
+		cmd := NewCmd("test", "t", flag.ContinueOnError)
 		var floatFlag flags.Float64Flag
 		cmd.Float64Var(&floatFlag, "float", "fl", 3.14, "test float flag")
 
@@ -179,7 +179,7 @@ func TestFloatVar(t *testing.T) {
 		}
 
 		// 测试短标志解析
-		cmd = NewCommand("test", "t", flag.ContinueOnError)
+		cmd = NewCmd("test", "t", flag.ContinueOnError)
 		var floatFlagShort flags.Float64Flag
 		cmd.Float64Var(&floatFlagShort, "float-short", "fs", 3.14, "test float short flag")
 		if err := cmd.Parse([]string{"-fs", "1.618"}); err != nil {
@@ -197,7 +197,7 @@ func TestDurationVarf(t *testing.T) {
 
 	// 测试指针为nil的情况
 	t.Run("nil pointer", func(t *testing.T) {
-		cmd := NewCommand("test", "t", flag.ContinueOnError)
+		cmd := NewCmd("test", "t", flag.ContinueOnError)
 		defer func() {
 			if r := recover(); r == nil {
 				t.Error("DurationVar with nil pointer should panic")
@@ -208,7 +208,7 @@ func TestDurationVarf(t *testing.T) {
 
 	// 测试正常功能(长标志)
 	t.Run("normal case", func(t *testing.T) {
-		cmd := NewCommand("test", "t", flag.ContinueOnError)
+		cmd := NewCmd("test", "t", flag.ContinueOnError)
 		var durationFlag flags.DurationFlag
 		cmd.DurationVar(&durationFlag, "duration", "dur", time.Second*5, "test duration flag")
 
@@ -228,7 +228,7 @@ func TestDurationVarf(t *testing.T) {
 
 	// 测试短标志解析
 	t.Run("short flag", func(t *testing.T) {
-		cmd := NewCommand("test-short", "ts", flag.ContinueOnError)
+		cmd := NewCmd("test-short", "ts", flag.ContinueOnError)
 		cmd.DurationVar(&durationFlagShort, "duration-short", "d", time.Second*5, "test duration short flag")
 		if err := cmd.Parse([]string{"-d", "2m"}); err != nil {
 			t.Fatalf("Parse failed: %v", err)
@@ -248,7 +248,7 @@ func TestEnumVarf(t *testing.T) {
 
 	// 测试指针为nil的情况
 	t.Run("nil pointer", func(t *testing.T) {
-		cmd := NewCommand("test", "t", flag.ContinueOnError)
+		cmd := NewCmd("test", "t", flag.ContinueOnError)
 		defer func() {
 			if r := recover(); r == nil {
 				t.Error("EnumVar with nil pointer should panic")
@@ -259,7 +259,7 @@ func TestEnumVarf(t *testing.T) {
 
 	// 测试正常功能(长标志)
 	t.Run("normal case", func(t *testing.T) {
-		cmd := NewCommand("test", "t", flag.ContinueOnError)
+		cmd := NewCmd("test", "t", flag.ContinueOnError)
 		cmd.EnumVar(&enumFlag, "enum", "en", defaultValue, "test enum flag", options)
 
 		// 测试默认值
@@ -278,7 +278,7 @@ func TestEnumVarf(t *testing.T) {
 
 	// 测试短标志解析
 	t.Run("short flag", func(t *testing.T) {
-		cmd := NewCommand("test-short", "ts", flag.ContinueOnError)
+		cmd := NewCmd("test-short", "ts", flag.ContinueOnError)
 		cmd.EnumVar(&enumFlagShort, "enum-short", "e", defaultValue, "test enum short flag", options)
 		if err := cmd.Parse([]string{"-e", "dev"}); err != nil {
 			t.Fatalf("Parse failed: %v", err)
@@ -290,7 +290,7 @@ func TestEnumVarf(t *testing.T) {
 
 	// 测试无效值解析
 	t.Run("invalid input", func(t *testing.T) {
-		cmd := NewCommand("test-invalid", "ti", flag.ContinueOnError)
+		cmd := NewCmd("test-invalid", "ti", flag.ContinueOnError)
 		var enumFlagInvalid flags.EnumFlag
 		cmd.EnumVar(&enumFlagInvalid, "enum-invalid", "ei", defaultValue, "test enum invalid flag", options)
 		if err := cmd.Parse([]string{"--enum-invalid", "invalid"}); err == nil {
@@ -303,7 +303,7 @@ func TestEnumVarf(t *testing.T) {
 func TestSliceVarf(t *testing.T) {
 	// 测试指针为nil的情况
 	t.Run("nil pointer", func(t *testing.T) {
-		cmd := NewCommand("test", "t", flag.ContinueOnError)
+		cmd := NewCmd("test", "t", flag.ContinueOnError)
 		defer func() {
 			if r := recover(); r == nil {
 				t.Error("SliceVar with nil pointer should panic")
@@ -314,7 +314,7 @@ func TestSliceVarf(t *testing.T) {
 
 	// 测试正常功能
 	t.Run("normal case", func(t *testing.T) {
-		cmd := NewCommand("test", "t", flag.ContinueOnError)
+		cmd := NewCmd("test", "t", flag.ContinueOnError)
 		var sliceFlag flags.SliceFlag
 		cmd.SliceVar(&sliceFlag, "slice", "sl", []string{"a", "b"}, "test slice flag")
 
@@ -334,7 +334,7 @@ func TestSliceVarf(t *testing.T) {
 
 	// 测试短标志解析（替换逻辑）
 	t.Run("short flag", func(t *testing.T) {
-		cmd := NewCommand("test-short-slice", "tss", flag.ContinueOnError)
+		cmd := NewCmd("test-short-slice", "tss", flag.ContinueOnError)
 		var sliceFlagShort flags.SliceFlag
 		cmd.SliceVar(&sliceFlagShort, "slice-short", "slss", []string{"a", "b"}, "test slice short flag")
 		if err := cmd.Parse([]string{"-slss", "x,y"}); err != nil {
@@ -350,7 +350,7 @@ func TestSliceVarf(t *testing.T) {
 func TestInt64Varf(t *testing.T) {
 	// 测试指针为nil的情况
 	t.Run("nil pointer", func(t *testing.T) {
-		cmd := NewCommand("test", "t", flag.ContinueOnError)
+		cmd := NewCmd("test", "t", flag.ContinueOnError)
 		defer func() {
 			if r := recover(); r == nil {
 				t.Error("Int64Var with nil pointer should panic")
@@ -361,7 +361,7 @@ func TestInt64Varf(t *testing.T) {
 
 	// 测试正常功能
 	t.Run("normal case", func(t *testing.T) {
-		cmd := NewCommand("test", "t", flag.ContinueOnError)
+		cmd := NewCmd("test", "t", flag.ContinueOnError)
 		var int64Flag flags.Int64Flag
 		cmd.Int64Var(&int64Flag, "int64", "i64", 123456789, "test int64 flag")
 
@@ -380,7 +380,7 @@ func TestInt64Varf(t *testing.T) {
 
 		// 测试短标志解析
 		t.Run("short flag", func(t *testing.T) {
-			cmd := NewCommand("test-short-int64", "tsi", flag.ContinueOnError)
+			cmd := NewCmd("test-short-int64", "tsi", flag.ContinueOnError)
 			var int64FlagShort flags.Int64Flag
 			cmd.Int64Var(&int64FlagShort, "int64-short", "i64s", 123456789, "test int64 short flag")
 			if err := cmd.Parse([]string{"-i64s", "111222333"}); err != nil {
@@ -400,7 +400,7 @@ func TestUint16Varf(t *testing.T) {
 
 	// 测试指针为nil的情况
 	t.Run("nil pointer", func(t *testing.T) {
-		cmd := NewCommand("test", "t", flag.ContinueOnError)
+		cmd := NewCmd("test", "t", flag.ContinueOnError)
 		defer func() {
 			if r := recover(); r == nil {
 				t.Error("Uint16Var with nil pointer should panic")
@@ -411,7 +411,7 @@ func TestUint16Varf(t *testing.T) {
 
 	// 测试正常功能
 	t.Run("normal case", func(t *testing.T) {
-		cmd := NewCommand("test", "t", flag.ContinueOnError)
+		cmd := NewCmd("test", "t", flag.ContinueOnError)
 		cmd.Uint16Var(&uint16Flag, "uint16", "u16", 65535, "test uint16 flag")
 
 		// 测试默认值
@@ -429,7 +429,7 @@ func TestUint16Varf(t *testing.T) {
 
 		// 测试短标志解析
 		t.Run("short flag", func(t *testing.T) {
-			cmdShort := NewCommand("test-short-uint16-new", "tsun", flag.ContinueOnError)
+			cmdShort := NewCmd("test-short-uint16-new", "tsun", flag.ContinueOnError)
 			cmdShort.Uint16Var(&uint16FlagShort, "uint16-short", "u16ss", 65535, "test uint16 short flag")
 			if err := cmdShort.Parse([]string{"-u16ss", "12345"}); err != nil {
 				t.Fatalf("Parse failed: %v", err)
@@ -441,7 +441,7 @@ func TestUint16Varf(t *testing.T) {
 
 		// 测试无效值解析
 		t.Run("invalid input", func(t *testing.T) {
-			cmdInvalid := NewCommand("test-uint16-invalid", "tui", flag.ContinueOnError)
+			cmdInvalid := NewCmd("test-uint16-invalid", "tui", flag.ContinueOnError)
 			var uint16FlagInvalid flags.Uint16Flag
 			cmdInvalid.Uint16Var(&uint16FlagInvalid, "uint16-invalid", "u16i", 65535, "test uint16 invalid flag")
 
@@ -483,7 +483,7 @@ func TestTimeVarf(t *testing.T) {
 	// 测试指针为nil的情况
 	{
 		t.Run("nil pointer", func(t *testing.T) {
-			cmd := NewCommand("test", "t", flag.ContinueOnError)
+			cmd := NewCmd("test", "t", flag.ContinueOnError)
 			defer func() {
 				if r := recover(); r == nil {
 					t.Error("TimeVar with nil pointer should panic")
@@ -496,7 +496,7 @@ func TestTimeVarf(t *testing.T) {
 	// 测试正常功能
 	{
 		t.Run("normal case", func(t *testing.T) {
-			cmd := NewCommand("test", "t", flag.ContinueOnError)
+			cmd := NewCmd("test", "t", flag.ContinueOnError)
 			var timeFlag flags.TimeFlag
 			defaultTime := time.Date(2023, time.January, 1, 0, 0, 0, 0, time.UTC)
 			cmd.TimeVar(&timeFlag, "time", "tm", defaultTime, "test time flag")
@@ -517,7 +517,7 @@ func TestTimeVarf(t *testing.T) {
 			}
 
 			// 测试短标志解析
-			cmd = NewCommand("test-short", "ts", flag.ContinueOnError)
+			cmd = NewCmd("test-short", "ts", flag.ContinueOnError)
 			var timeFlagShort flags.TimeFlag
 			cmd.TimeVar(&timeFlagShort, "time-short", "t", defaultTime, "test time short flag")
 			shortInput := "2024-01-01"
@@ -534,7 +534,7 @@ func TestTimeVarf(t *testing.T) {
 	// 测试无效格式
 	{
 		t.Run("invalid format", func(t *testing.T) {
-			cmd := NewCommand("test", "t", flag.ContinueOnError)
+			cmd := NewCmd("test", "t", flag.ContinueOnError)
 			var timeFlag flags.TimeFlag
 			defaultTime := time.Date(2023, time.January, 1, 0, 0, 0, 0, time.UTC)
 			cmd.TimeVar(&timeFlag, "time", "tm", defaultTime, "test time flag")
@@ -564,7 +564,7 @@ func TestTimeVarf(t *testing.T) {
 
 // TestTimef 测试Time方法的功能
 func TestTimef(t *testing.T) {
-	cmd := NewCommand("test", "t", flag.ContinueOnError)
+	cmd := NewCmd("test", "t", flag.ContinueOnError)
 	defaultTime := time.Date(2023, time.January, 1, 0, 0, 0, 0, time.UTC)
 	flag := cmd.Time("time", "tm", defaultTime, "test time flag")
 
