@@ -110,6 +110,9 @@ type Cmd struct {
 
 	// 控制内置标志是否自动退出
 	exitOnBuiltinFlags bool
+
+	// 控制是否禁用内置标志注册
+	disableBuiltinFlags bool
 }
 
 // CmdInterface 命令接口定义，封装命令行程序的核心功能
@@ -154,6 +157,7 @@ type CmdInterface interface {
 	SetModuleHelps(moduleHelps string)        // 设置自定义模块帮助信息
 	GetModuleHelps() string                   // 获取自定义模块帮助信息
 	SetExitOnBuiltinFlags(exit bool) *Cmd     // 设置是否在添加内置标志时退出
+	SetDisableBuiltinFlags(disable bool) *Cmd // 设置是否禁用内置标志注册
 
 	// 添加标志方法
 	String(longName, shortName, usage, defValue string) *flags.StringFlag                             // 添加字符串类型标志
@@ -235,11 +239,19 @@ func NewCmd(longName string, shortName string, errorHandling flag.ErrorHandling)
 		exitOnBuiltinFlags: true, // 默认保持原有行为，在解析内置标志后退出
 	}
 
+	// 添加默认的注意事项
+	if cmd.GetUseChinese() {
+		cmd.AddNote(ChineseTemplate.DefaultNote)
+	} else {
+		cmd.AddNote(EnglishTemplate.DefaultNote)
+	}
+
 	return cmd
 }
 
 // SetExitOnBuiltinFlags 设置是否在解析内置参数时退出
 // 默认情况下为true，当解析到内置参数时，QFlag将退出程序
+//
 // 参数:
 //   - exit: 是否退出
 //
@@ -251,6 +263,18 @@ func (c *Cmd) SetExitOnBuiltinFlags(exit bool) *Cmd {
 	c.exitOnBuiltinFlags = exit
 
 	// 返回当前Cmd实例
+	return c
+}
+
+// SetDisableBuiltinFlags 设置是否禁用内置标志注册
+//
+// 参数: disable - true表示禁用内置标志注册，false表示启用（默认）
+//
+// 返回值: 当前Cmd实例，支持链式调用
+func (c *Cmd) SetDisableBuiltinFlags(disable bool) *Cmd {
+	c.rwMu.Lock()
+	defer c.rwMu.Unlock()
+	c.disableBuiltinFlags = disable
 	return c
 }
 
@@ -273,7 +297,12 @@ func (c *Cmd) initBuiltinFlags() {
 
 	// 初始化内置标志
 	c.initFlagOnce.Do(func() {
-		// 新增: 确保flagRegistry已初始化
+		// 禁用内置标志
+		if c.disableBuiltinFlags {
+			return
+		}
+
+		// 确保flagRegistry已初始化
 		if c.flagRegistry == nil {
 			// 为空时自动初始化
 			c.flagRegistry = flags.NewFlagRegistry()
@@ -334,13 +363,6 @@ func (c *Cmd) initBuiltinFlags() {
 				c.builtinFlagNameMap.Store(flags.VersionFlagLongName, true)
 				c.builtinFlagNameMap.Store(flags.VersionFlagShortName, true)
 			}
-		}
-
-		// 添加默认的注意事项
-		if c.GetUseChinese() {
-			c.AddNote(ChineseTemplate.DefaultNote)
-		} else {
-			c.AddNote(EnglishTemplate.DefaultNote)
 		}
 
 		// 设置内置标志已绑定
@@ -577,21 +599,11 @@ func (c *Cmd) parseCommon(args []string, parseSubcommands bool) (err error) {
 			return
 		}
 
-		// 检查是否使用-h/--help标志
-		if c.helpFlag.Get() {
-			c.PrintHelp()
-			if c.exitOnBuiltinFlags {
-				// 仅在ExitOnBuiltinFlags时才退出
-				os.Exit(0)
-			}
-			return
-		}
-
-		// 只有在顶级命令中处理-sip/--show-install-path和-v/--version标志
-		if c.parentCmd == nil {
-			// 检查是否使用-sip/--show-install-path标志
-			if c.showInstallPathFlag.Get() {
-				fmt.Println(GetExecutablePath())
+		// 如果禁用内置标志，则跳过内置标志处理
+		if !c.disableBuiltinFlags {
+			// 检查是否使用-h/--help标志
+			if c.helpFlag.Get() {
+				c.PrintHelp()
 				if c.exitOnBuiltinFlags {
 					// 仅在ExitOnBuiltinFlags时才退出
 					os.Exit(0)
@@ -599,14 +611,27 @@ func (c *Cmd) parseCommon(args []string, parseSubcommands bool) (err error) {
 				return
 			}
 
-			// 检查是否使用-v/--version标志
-			if c.versionFlag.Get() {
-				fmt.Println(c.GetVersion())
-				if c.exitOnBuiltinFlags {
-					// 仅在ExitOnBuiltinFlags时才退出
-					os.Exit(0)
+			// 只有在顶级命令中处理-sip/--show-install-path和-v/--version标志
+			if c.parentCmd == nil {
+				// 检查是否使用-sip/--show-install-path标志
+				if c.showInstallPathFlag.Get() {
+					fmt.Println(GetExecutablePath())
+					if c.exitOnBuiltinFlags {
+						// 仅在ExitOnBuiltinFlags时才退出
+						os.Exit(0)
+					}
+					return
 				}
-				return
+
+				// 检查是否使用-v/--version标志
+				if c.versionFlag.Get() {
+					fmt.Println(c.GetVersion())
+					if c.exitOnBuiltinFlags {
+						// 仅在ExitOnBuiltinFlags时才退出
+						os.Exit(0)
+					}
+					return
+				}
 			}
 		}
 

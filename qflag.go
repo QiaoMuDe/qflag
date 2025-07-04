@@ -50,6 +50,7 @@ type QCommandLineInterface interface {
 	SetModuleHelps(moduleHelps string)        // 设置自定义模块帮助信息
 	GetModuleHelps() string                   // 获取自定义模块帮助信息
 	SetExitOnBuiltinFlags(exit bool) *cmd.Cmd // 设置是否在处理内置标志时退出
+	SetDisableBuiltinFlags(disable bool) *Cmd // 设置是否禁用内置标志注册
 
 	// 添加标志方法
 	String(longName, shortName, defValue, usage string) *flags.StringFlag                                // 添加字符串类型标志
@@ -368,5 +369,17 @@ func GetModuleHelps() string {
 //   - *cmd.Cmd: 当前命令对象
 func SetExitOnBuiltinFlags(exit bool) *cmd.Cmd {
 	QCommandLine.SetExitOnBuiltinFlags(exit)
+	return QCommandLine
+}
+
+// SetDisableBuiltinFlags 设置是否禁用内置参数
+// 默认情况下为false，当设置为true时，QFlag将忽略内置参数
+// 参数:
+//   - disable: 是否禁用
+//
+// 返回值:
+//   - *cmd.Cmd: 当前命令对象
+func SetDisableBuiltinFlags(disable bool) *cmd.Cmd {
+	QCommandLine.SetDisableBuiltinFlags(disable)
 	return QCommandLine
 }

@@ -687,6 +687,22 @@ func SetExitOnBuiltinFlags(exit bool) *cmd.Cmd
 
 - `*cmd.Cmd`：当前命令对象。
 
+### SetDisableBuiltinFlags
+
+设置是否禁用内置标志注册
+
+```go
+func SetDisableBuiltinFlags(disable bool) *cmd.Cmd
+```
+
+参数：
+
+- `disable`：是否禁用。
+
+返回值：
+
+- `*cmd.Cmd`：当前命令对象。
+
 ### SetHelp
 
 配置全局默认命令实例 `QCommandLine` 的帮助信息。

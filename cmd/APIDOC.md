@@ -619,6 +619,19 @@ SetExitOnBuiltinFlags 设置是否在解析内置参数时退出。默认情况�
 - **返回值**:
   - `*Cmd`: 当前命令对象
 
+### SetDisableBuiltinFlags
+
+```go
+func (c *Cmd) SetDisableBuiltinFlags(disable bool) *Cmd
+```
+
+SetDisableBuiltinFlags 设置是否禁用内置标志注册。默认情况下为 `false`，当禁用内置参数时，QFlag 将忽略内置参数。
+
+- **参数**:
+  - `disable`: 是否禁用
+- **返回值**:
+  - `*Cmd`: 当前命令对象
+
 ### SetHelp
 
 ```go
@@ -916,6 +929,7 @@ type CmdInterface interface {
 	SetModuleHelps(moduleHelps string)        // 设置自定义模块帮助信息
 	GetModuleHelps() string                   // 获取自定义模块帮助信息
 	SetExitOnBuiltinFlags(exit bool) *Cmd     // 设置是否在添加内置标志时退出
+	SetDisableBuiltinFlags(disable bool) *Cmd // 设置是否禁用内置标志注册
 
 	// 添加标志方法
 	String(longName, shortName, usage, defValue string) *flags.StringFlag                             // 添加字符串类型标志

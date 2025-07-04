@@ -28,11 +28,12 @@ func TestAddNoteAndGetNotes(t *testing.T) {
 	cmd.AddNote(note2)
 
 	notes := cmd.GetNotes()
-	if len(notes) != 2 {
-		t.Fatalf("GetNotes() returned %d notes, want 2", len(notes))
+	if len(notes) != 3 {
+		t.Fatalf("GetNotes() returned %d notes, want 3", len(notes))
 	}
 
-	if notes[0] != note1 || notes[1] != note2 {
+	// 0 是默认的内置备注
+	if notes[1] != note1 || notes[2] != note2 {
 		t.Errorf("GetNotes() = %v, want [%q, %q]", notes, note1, note2)
 	}
 }

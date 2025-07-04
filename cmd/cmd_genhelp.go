@@ -204,7 +204,7 @@ func writeUsageLine(cmd *Cmd, tpl HelpTemplate, buf *bytes.Buffer) {
 
 	// 优先使用用户自定义用法
 	if cmd.userInfo.usageSyntax != "" {
-		usageLine = usageLinePrefix + cmd.userInfo.usageSyntax
+		usageLine = usageLinePrefix + cmd.userInfo.usageSyntax + "\n"
 	} else {
 		// 获取命令的完整路径
 		fullCmdPath := getFullCommandPath(cmd)

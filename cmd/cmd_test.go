@@ -464,7 +464,7 @@ func TestStringFlagWithoutShort(t *testing.T) {
 func TestCmd_CustomUsage(t *testing.T) {
 	// 创建测试命令
 	cmd := NewCmd("testcmd", "tc", flag.ContinueOnError)
-	customUsage := "testcmd [全局选项] <操作> [参数]\n\n"
+	customUsage := "testcmd [全局选项] <操作> [参数]\n"
 
 	// 设置自定义用法
 	cmd.SetUsageSyntax(customUsage)
@@ -1063,5 +1063,87 @@ func TestCmd_Arg(t *testing.T) {
 				t.Errorf("Arg(%d) 返回 %q，期望为 %q", tt.i, got, tt.want)
 			}
 		})
+	}
+}
+
+// TestCmd_SetExitOnBuiltinFlags 测试SetExitOnBuiltinFlags方法的功能
+func TestCmd_SetExitOnBuiltinFlags(t *testing.T) {
+	// 创建测试命令实例
+	cmd := NewCmd("test", "", flag.ContinueOnError)
+	if cmd == nil {
+		t.Fatal("创建Cmd实例失败")
+	}
+
+	// 测试默认值
+	if !cmd.exitOnBuiltinFlags {
+		t.Error("exitOnBuiltinFlags默认值应为true")
+	}
+
+	// 测试设置为false
+	result := cmd.SetExitOnBuiltinFlags(false)
+	if cmd.exitOnBuiltinFlags {
+		t.Error("SetExitOnBuiltinFlags(false)未正确设置字段值")
+	}
+	if result != cmd {
+		t.Error("SetExitOnBuiltinFlags应返回当前Cmd实例以支持链式调用")
+	}
+
+	// 测试设置为true
+	result = cmd.SetExitOnBuiltinFlags(true)
+	if !cmd.exitOnBuiltinFlags {
+		t.Error("SetExitOnBuiltinFlags(true)未正确设置字段值")
+	}
+	if result != cmd {
+		t.Error("SetExitOnBuiltinFlags应返回当前Cmd实例以支持链式调用")
+	}
+}
+
+// TestCmd_SetDisableBuiltinFlags 测试SetDisableBuiltinFlags方法的功能
+func TestCmd_SetDisableBuiltinFlags(t *testing.T) {
+	// 创建测试命令实例
+	cmd := NewCmd("test", "", flag.ContinueOnError)
+	if cmd == nil {
+		t.Fatal("创建Cmd实例失败")
+	}
+
+	// 测试默认值
+	if cmd.disableBuiltinFlags {
+		t.Error("disableBuiltinFlags默认值应为false")
+	}
+
+	// 测试设置为true
+	result := cmd.SetDisableBuiltinFlags(true)
+	if !cmd.disableBuiltinFlags {
+		t.Error("SetDisableBuiltinFlags(true)未正确设置字段值")
+	}
+	if result != cmd {
+		t.Error("SetDisableBuiltinFlags应返回当前Cmd实例以支持链式调用")
+	}
+
+	// 测试设置为false
+	result = cmd.SetDisableBuiltinFlags(false)
+	if cmd.disableBuiltinFlags {
+		t.Error("SetDisableBuiltinFlags(false)未正确设置字段值")
+	}
+	if result != cmd {
+		t.Error("SetDisableBuiltinFlags应返回当前Cmd实例以支持链式调用")
+	}
+}
+
+// TestCmd_ChainedSetters 测试链式调用多个设置方法
+func TestCmd_ChainedSetters(t *testing.T) {
+	cmd := NewCmd("test", "", flag.ContinueOnError)
+	if cmd == nil {
+		t.Fatal("创建Cmd实例失败")
+	}
+
+	// 链式调用测试
+	cmd.SetExitOnBuiltinFlags(false).SetDisableBuiltinFlags(true)
+
+	if cmd.exitOnBuiltinFlags {
+		t.Error("链式调用后exitOnBuiltinFlags设置不正确")
+	}
+	if !cmd.disableBuiltinFlags {
+		t.Error("链式调用后disableBuiltinFlags设置不正确")
 	}
 }
