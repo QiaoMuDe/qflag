@@ -76,7 +76,10 @@ type Cmd struct {
 	parseOnce sync.Once
 
 	// 子命令列表, 用于关联子命令
-	subCmds []*Cmd
+	//subCmds []*Cmd
+
+	// 子命令映射表，用于关联和查找子命令
+	subCmdMaps map[string]*Cmd
 
 	// 父命令指针,用于递归调用, 根命令的父命令为nil
 	parentCmd *Cmd
@@ -222,6 +225,7 @@ func NewCmd(longName string, shortName string, errorHandling flag.ErrorHandling)
 	cmd := &Cmd{
 		fs:                  flag.NewFlagSet(cmdName, errorHandling), // 创建新的flag集
 		args:                []string{},                              // 命令行参数
+		subCmdMaps:          map[string]*Cmd{},                       // 子命令映射
 		flagRegistry:        flagRegistry,                            // 初始化标志注册表
 		helpFlag:            &flags.BoolFlag{},                       // 初始化帮助标志
 		showInstallPathFlag: &flags.BoolFlag{},                       // 初始化显示安装路径标志
@@ -505,6 +509,9 @@ func (c *Cmd) parseCommon(args []string, parseSubcommands bool) (err error, shou
 	if c.flagRegistry == nil {
 		return fmt.Errorf("FlagRegistry instance is not initialized"), false
 	}
+	if c.subCmdMaps == nil {
+		return fmt.Errorf("subCmdMaps cannot be nil"), false
+	}
 
 	// 内置标志校验 (根据启用状态决定是否需要校验)
 	if !c.disableBuiltinFlags {
@@ -649,8 +656,8 @@ func (c *Cmd) parseCommon(args []string, parseSubcommands bool) (err error, shou
 
 		// 如果允许解析子命令, 则进入子命令解析阶段, 否则跳过
 		if parseSubcommands {
-			// 检查是否有子命令
-			if len(c.args) > 0 {
+			// 如果存在子命令并且非标志参数不为0
+			if len(c.args) > 0 && len(c.subCmds) > 0 {
 				for _, subCmd := range c.subCmds {
 					// 第一个非标志参数如果匹配到子命令，则解析子命令
 					if c.args[0] == subCmd.LongName() || c.args[0] == subCmd.ShortName() {
