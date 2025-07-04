@@ -213,7 +213,7 @@ func writeUsageLine(cmd *Cmd, tpl HelpTemplate, buf *bytes.Buffer) {
 		// 如果是主命令(父命令为nil)，使用全局选项模板
 		if cmd.parentCmd == nil {
 			// 添加子命令部分
-			if len(cmd.subCmds) > 0 {
+			if len(cmd.subCmdMap) > 0 {
 				usageLine += tpl.UsageGlobalOptions
 				usageLine += tpl.UsageSubCmd
 			}
@@ -224,7 +224,7 @@ func writeUsageLine(cmd *Cmd, tpl HelpTemplate, buf *bytes.Buffer) {
 		} else {
 			// 子命令，使用子命令选项模板
 			// 如果存在子命令，则添加子命令用法
-			if len(cmd.subCmds) > 0 {
+			if len(cmd.subCmdMap) > 0 {
 				usageLine += tpl.UsageSubCmd
 			}
 
@@ -363,7 +363,7 @@ func sortWithShortNamePriority(aHasShort, bHasShort bool, aName, bName, aShort, 
 // buf: 输出缓冲区
 func writeSubCmds(cmd *Cmd, tpl HelpTemplate, buf *bytes.Buffer) {
 	// 没有子命令则返回
-	if len(cmd.subCmds) == 0 {
+	if len(cmd.subCmdMap) == 0 {
 		return
 	}
 
@@ -374,10 +374,9 @@ func writeSubCmds(cmd *Cmd, tpl HelpTemplate, buf *bytes.Buffer) {
 	// 1. 按长命令名首字母排序
 	// 2. 有短命令名的优先
 	// 3. 只有长命令名的排最后
-	sortedSubCmds := make([]*Cmd, len(cmd.subCmds))
 
-	// 拷贝子命令到临时切片
-	copy(sortedSubCmds, cmd.subCmds)
+	// 获取子命令列表
+	sortedSubCmds := cmd.SubCmds()
 
 	// 排序子命令
 	sort.Slice(sortedSubCmds, func(i, j int) bool {

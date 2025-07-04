@@ -5,6 +5,8 @@ import (
 	"os"
 	"path/filepath"
 	"strings"
+
+	"gitee.com/MM-Q/qflag/flags"
 )
 
 // SetVersion 设置版本信息
@@ -71,6 +73,18 @@ func (c *Cmd) GetNotes() []string {
 	notes := make([]string, len(c.userInfo.notes))
 	copy(notes, c.userInfo.notes)
 	return notes
+}
+
+// Name 获取命令名称
+//
+// 注意:
+// - 优先返回长名称, 如果长名称不存在则返回短名称
+func (c *Cmd) Name() string {
+	if c.LongName() != "" {
+		return c.LongName()
+	}
+
+	return c.ShortName()
 }
 
 // LongName 返回命令长名称
@@ -294,7 +308,7 @@ func (c *Cmd) dfs(current *Cmd, visited map[*Cmd]bool, depth int) bool {
 	}
 
 	// 递归检查所有子命令
-	for _, subCmd := range current.subCmds {
+	for _, subCmd := range current.subCmdMap {
 		if c.dfs(subCmd, visited, depth+1) {
 			return true
 		}
@@ -325,4 +339,101 @@ func GetExecutablePath() string {
 		return exePath
 	}
 	return absPath
+}
+
+// getCmdIdentifier 获取命令的标识字符串，用于错误信息
+//
+// 参数：
+//   - cmd: 命令对象
+//
+// 返回：
+//   - 命令标识字符串, 如果为空则返回 <nil>
+func getCmdIdentifier(cmd *Cmd) string {
+	if cmd == nil {
+		return "<nil>"
+	}
+	return cmd.Name()
+}
+
+// validateFlag 通用标志验证逻辑
+//
+// 参数:
+//   - longName: 长名称
+//   - shortName: 短名称
+//
+// 返回值:
+//   - error: 如果验证失败则返回错误信息,否则返回nil
+func (c *Cmd) validateFlag(longName, shortName string) error {
+	// 检查标志名称和短名称是否同时为空
+	if longName == "" && shortName == "" {
+		return fmt.Errorf("Flag long name and short name cannot both be empty")
+	}
+
+	// 检查长标志相关逻辑
+	if longName != "" {
+		// 检查长名称是否包含非法字符
+		if strings.ContainsAny(longName, flags.InvalidFlagChars) {
+			return fmt.Errorf("The flag long name '%s' contains illegal characters", longName)
+		}
+
+		// 检查长标志是否已存在
+		if _, exists := c.flagRegistry.GetByName(longName); exists {
+			return fmt.Errorf("Flag long name %s already exists", longName)
+		}
+
+		// 检查长标志是否为内置标志
+		if _, ok := c.builtinFlagNameMap.Load(longName); ok {
+			return fmt.Errorf("Flag long name %s is reserved", longName)
+		}
+	}
+
+	// 检查短标志相关逻辑
+	if shortName != "" {
+		// 检查短名称是否包含非法字符
+		if strings.ContainsAny(shortName, flags.InvalidFlagChars) {
+			return fmt.Errorf("The flag short name '%s' contains illegal characters", shortName)
+		}
+
+		// 检查短标志是否已存在
+		if _, exists := c.flagRegistry.GetByName(shortName); exists {
+			return fmt.Errorf("Flag short name %s already exists", shortName)
+		}
+
+		// 检查短标志是否为内置标志
+		if _, ok := c.builtinFlagNameMap.Load(shortName); ok {
+			return fmt.Errorf("Flag short name %s is reserved", shortName)
+		}
+	}
+
+	return nil
+}
+
+// validateSubCmd 验证单个子命令的有效性
+//
+// 参数：
+//   - cmd: 要验证的子命令实例
+//
+// 返回值：
+//   - error: 验证失败时返回的错误信息, 否则返回nil
+func (c *Cmd) validateSubCmd(cmd *Cmd) error {
+	if cmd == nil {
+		return fmt.Errorf("subcmd %s is nil", getCmdIdentifier(cmd))
+	}
+
+	// 检测循环引用
+	if c.hasCycle(cmd) {
+		return fmt.Errorf("cyclic reference detected: Command %s already exists in the command chain", getCmdIdentifier(cmd))
+	}
+
+	// 检查子命令的长名称是否已存在
+	if _, exists := c.subCmdMap[cmd.LongName()]; exists {
+		return fmt.Errorf("long name '%s' already exists", cmd.LongName())
+	}
+
+	// 检查子命令的短名称是否已存在
+	if _, exists := c.subCmdMap[cmd.ShortName()]; exists {
+		return fmt.Errorf("short name '%s' already exists", cmd.ShortName())
+	}
+
+	return nil
 }

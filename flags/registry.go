@@ -29,6 +29,7 @@ func (m *FlagMeta) GetLongName() string { return m.Flag.LongName() }
 func (m *FlagMeta) GetShortName() string { return m.Flag.ShortName() }
 
 // GetName 获取标志的名称
+//
 // 优先返回长名称, 如果长名称为空, 则返回短名称
 func (m *FlagMeta) GetName() string {
 	if m.GetLongName() != "" {
@@ -79,11 +80,17 @@ func NewFlagRegistry() *FlagRegistry {
 }
 
 // RegisterFlag 注册一个新的标志元数据到注册表中
+//
+// 参数:
+//   - meta: 要注册的标志元数据
+//
 // 该方法会执行以下操作:
-// 1. 检查长名称和短名称是否已存在
-// 2. 将标志添加到长名称索引
-// 3. 将标志添加到短名称索引
-// 4. 将标志添加到所有标志列表
+//
+//	1.检查长名称和短名称是否已存在
+//	2.将标志添加到长名称索引
+//	3.将标志添加到短名称索引
+//	4.将标志添加到所有标志列表
+//
 // 注意: 该方法线程安全, 但发现重复标志时会panic
 func (r *FlagRegistry) RegisterFlag(meta *FlagMeta) error {
 	r.mu.Lock()         // 获取写锁, 保证并发安全
@@ -126,6 +133,7 @@ func (r *FlagRegistry) RegisterFlag(meta *FlagMeta) error {
 }
 
 // GetByLong 通过长标志名称查找对应的标志元数据
+//
 // 参数:
 //   - longName: 标志的长名称(如"help")
 //
@@ -140,6 +148,7 @@ func (r *FlagRegistry) GetByLong(longName string) (*FlagMeta, bool) {
 }
 
 // GetByShort 通过短标志名称查找对应的标志元数据
+//
 // 参数:
 //   - shortName: 标志的短名称(如"h"对应"help")
 //
@@ -154,7 +163,10 @@ func (r *FlagRegistry) GetByShort(shortName string) (*FlagMeta, bool) {
 }
 
 // GetByName 通过标志名称查找标志元数据
-// 参数name可以是长名称(如"help")或短名称(如"h")
+//
+// 参数:
+//   - name可以是长名称(如"help")或短名称(如"h")
+//
 // 返回值:
 //   - *FlagMeta: 找到的标志元数据指针, 未找到时为nil
 //   - bool: 是否找到标志, true表示找到
@@ -174,6 +186,7 @@ func (r *FlagRegistry) GetByName(name string) (*FlagMeta, bool) {
 }
 
 // GetAllFlags 获取所有标志元数据列表
+//
 // 返回值:
 //   - []*FlagMeta: 所有标志元数据的切片
 func (r *FlagRegistry) GetAllFlags() []*FlagMeta {
@@ -183,6 +196,7 @@ func (r *FlagRegistry) GetAllFlags() []*FlagMeta {
 }
 
 // GetLongFlags 获取长标志映射
+//
 // 返回值:
 //   - map[string]*FlagMeta: 长标志名称到标志元数据的映射
 func (r *FlagRegistry) GetLongFlags() map[string]*FlagMeta {
@@ -192,6 +206,7 @@ func (r *FlagRegistry) GetLongFlags() map[string]*FlagMeta {
 }
 
 // GetShortFlags 获取短标志映射
+//
 // 返回值:
 //   - map[string]*FlagMeta: 短标志名称到标志元数据的映射
 func (r *FlagRegistry) GetShortFlags() map[string]*FlagMeta {
