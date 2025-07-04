@@ -488,14 +488,35 @@ func (c *Cmd) parseCommon(args []string, parseSubcommands bool) (err error, shou
 	defer func() {
 		// 添加panic捕获
 		if r := recover(); r != nil {
-			// 使用预定义的恐慌错误常量
-			err = fmt.Errorf("%s: %v", qerr.ErrPanicRecovered, r)
+			// 使用预定义的恐慌错误变量
+			err = fmt.Errorf("%w: %v", qerr.ErrPanicRecovered, r)
 		}
 	}()
 
 	// 如果命令为空，则返回错误
 	if c == nil {
 		return fmt.Errorf("cmd cannot be nil"), false
+	}
+
+	// 核心功能组件校验 (必须初始化)
+	if c.fs == nil {
+		return fmt.Errorf("flag.FlagSet instance is not initialized"), false
+	}
+	if c.flagRegistry == nil {
+		return fmt.Errorf("FlagRegistry instance is not initialized"), false
+	}
+
+	// 内置标志校验 (根据启用状态决定是否需要校验)
+	if !c.disableBuiltinFlags {
+		if c.helpFlag == nil {
+			return fmt.Errorf("help flag is not initialized"), false
+		}
+		if c.versionFlag == nil {
+			return fmt.Errorf("version flag is not initialized"), false
+		}
+		if c.showInstallPathFlag == nil {
+			return fmt.Errorf("showInstallPath flag is not initialized"), false
+		}
 	}
 
 	// 确保只解析一次
@@ -561,7 +582,7 @@ func (c *Cmd) parseCommon(args []string, parseSubcommands bool) (err error, shou
 
 		// 调用flag库解析参数
 		if parseErr := c.fs.Parse(args); parseErr != nil {
-			err = fmt.Errorf("%s: %w", qerr.ErrFlagParseFailed, parseErr)
+			err = fmt.Errorf("%w: %w", qerr.ErrFlagParseFailed, parseErr)
 			return
 		}
 
