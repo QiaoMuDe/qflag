@@ -656,7 +656,12 @@ func (c *Cmd) loadEnvVars() error {
 	c.rwMu.RLock()
 	defer c.rwMu.RUnlock()
 
+	// 存储读取错误
 	var loadErr error
+
+	// 跟踪已处理的环境变量，避免重复处理
+	processedEnvs := make(map[string]bool)
+
 	// 遍历所有已注册的标志
 	c.fs.VisitAll(func(f *flag.Flag) {
 		// 如果已存在错误，则提前返回
@@ -677,11 +682,19 @@ func (c *Cmd) loadEnvVars() error {
 			return
 		}
 
+		// 检查是否已处理过该环境变量（避免长短标志重复处理）
+		if processedEnvs[envVar] {
+			return
+		}
+
 		// 读取环境变量值
 		envValue := os.Getenv(envVar)
 		if envValue == "" {
 			return // 环境变量未设置，提前返回
 		}
+
+		// 标记该环境变量为已处理
+		processedEnvs[envVar] = true
 
 		// 设置标志值(使用现有Set方法进行类型转换)
 		if err := f.Value.Set(envValue); err != nil {
