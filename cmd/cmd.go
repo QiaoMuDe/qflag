@@ -126,6 +126,7 @@ type CmdInterface interface {
 	Name() string                             // 获取命令名称
 	LongName() string                         // 获取命令名称(长名称), 如"app"
 	ShortName() string                        // 获取命令短名称, 如"a"
+	FlagRegistry() *flags.FlagRegistry        // 获取标志注册表
 	GetDescription() string                   // 获取命令描述信息
 	SetDescription(desc string)               // 设置命令描述信息, 用于帮助输出
 	GetHelp() string                          // 获取自定义帮助信息

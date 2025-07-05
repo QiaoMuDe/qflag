@@ -21,6 +21,7 @@ type QCommandLineInterface interface {
 	Name() string                             // 获取命令名称
 	LongName() string                         // 获取命令长名称
 	ShortName() string                        // 获取命令短名称
+	FlagRegistry() *flags.FlagRegistry        // 获取命令标志注册表
 	GetDescription() string                   // 获取命令描述信息
 	SetDescription(desc string)               // 设置命令描述信息
 	GetHelp() string                          // 获取命令帮助信息
@@ -438,4 +439,12 @@ func CmdExists(cmdName string) bool {
 //   - bool: 是否已解析
 func IsParsed() bool {
 	return QCommandLine.IsParsed()
+}
+
+// FlagRegistry 获取标志注册表
+//
+// 返回值:
+//   - *flags.FlagRegistry: 标志注册表
+func FlagRegistry() *flags.FlagRegistry {
+	return QCommandLine.FlagRegistry()
 }

@@ -9,6 +9,16 @@ import (
 	"gitee.com/MM-Q/qflag/flags"
 )
 
+// FlagRegistry 获取标志注册表的只读访问
+//
+// 返回值:
+// - *flags.FlagRegistry: 标志注册表的只读访问
+func (c *Cmd) FlagRegistry() *flags.FlagRegistry {
+	c.rwMu.RLock()
+	defer c.rwMu.RUnlock()
+	return c.flagRegistry
+}
+
 // SetVersion 设置版本信息
 func (c *Cmd) SetVersion(version string) {
 	c.rwMu.Lock()
