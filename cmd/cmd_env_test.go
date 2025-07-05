@@ -261,6 +261,54 @@ func TestLoadEnvVars(t *testing.T) {
 		}
 	})
 
+	// 测试IP6类型环境变量
+	t.Run("ip6 type environment variable", func(t *testing.T) {
+		cmd := NewCmd("test", "", flag.ContinueOnError)
+		ip6Val := cmd.IP6("ip6-flag", "", "2001:db8::1", "测试IP6标志").BindEnv("TEST_IP6_ENV")
+
+		// 设置环境变量
+		if err := os.Setenv("TEST_IP6_ENV", "2001:0db8:85a3:0000:0000:8a2e:0370:7334"); err != nil {
+			t.Fatalf("设置环境变量失败: %v", err)
+		}
+		defer os.Unsetenv("TEST_IP6_ENV")
+
+		// 加载环境变量
+		err := cmd.loadEnvVars()
+		if err != nil {
+			t.Fatalf("加载环境变量失败: %v", err)
+		}
+
+		if ip6Val.Get() != "2001:db8:85a3::8a2e:370:7334" {
+			t.Errorf("期望IP6值 '2001:db8:85a3::8a2e:370:7334', 实际获取 '%s'", ip6Val.Get())
+		}
+	})
+
+	// 测试Time类型环境变量
+	t.Run("time type environment variable", func(t *testing.T) {
+		cmd := NewCmd("test", "", flag.ContinueOnError)
+		defaultTime := time.Date(2023, time.January, 1, 0, 0, 0, 0, time.UTC)
+		timeVal := cmd.Time("time-flag", "", defaultTime, "测试Time标志").BindEnv("TEST_TIME_ENV")
+
+		// 设置环境变量 (RFC3339格式)
+		envTime := "2024-05-20T15:30:45Z"
+		if err := os.Setenv("TEST_TIME_ENV", envTime); err != nil {
+			t.Fatalf("设置环境变量失败: %v", err)
+		}
+		defer os.Unsetenv("TEST_TIME_ENV")
+
+		// 加载环境变量
+		err := cmd.loadEnvVars()
+		if err != nil {
+			t.Fatalf("加载环境变量失败: %v", err)
+		}
+
+		parsedTime := timeVal.Get()
+		expectedTime, _ := time.Parse(time.RFC3339, envTime)
+		if !parsedTime.Equal(expectedTime) {
+			t.Errorf("期望Time值 '%s', 实际获取 '%s'", expectedTime.Format(time.RFC3339), parsedTime.Format(time.RFC3339))
+		}
+	})
+
 	// 测试环境变量解析错误
 	t.Run("environment variable parsing error", func(t *testing.T) {
 		cmd := NewCmd("test", "", flag.ContinueOnError)

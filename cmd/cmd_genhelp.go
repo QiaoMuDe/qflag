@@ -293,7 +293,7 @@ func collectFlags(cmd *Cmd) []flagInfo {
 	var flagInfos []flagInfo
 
 	// 遍历所有标志, 收集标志信息
-	for _, f := range cmd.flagRegistry.GetAllFlags() {
+	for _, f := range cmd.flagRegistry.GetAllFlagMetas() {
 		flag := f // 获取标志类型
 
 		// 收集默认值

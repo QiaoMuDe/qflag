@@ -594,7 +594,7 @@ func (c *Cmd) parseCommon(args []string, parseSubcommands bool) (err error, shou
 		}
 
 		// 检查枚举类型标志是否有效
-		for _, meta := range c.flagRegistry.GetAllFlags() {
+		for _, meta := range c.flagRegistry.GetAllFlagMetas() {
 			if meta.GetFlagType() == flags.FlagTypeEnum {
 				if enumFlag, ok := meta.GetFlag().(*flags.EnumFlag); ok {
 					// 调用IsCheck方法进行验证
@@ -659,8 +659,9 @@ func (c *Cmd) loadEnvVars() error {
 	// 存储读取错误
 	var loadErr error
 
-	// 跟踪已处理的环境变量，避免重复处理
-	processedEnvs := make(map[string]bool)
+	// 预分配map容量以提高性能,初始容量为已注册标志数量
+	// 使用所有标志总数作为容量最大基准, 确保独立长/短标志场景下容量充足
+	processedEnvs := make(map[string]bool, c.flagRegistry.GetALLFlagsCount()) // 跟踪已处理的环境变量，避免重复处理
 
 	// 遍历所有已注册的标志
 	c.fs.VisitAll(func(f *flag.Flag) {
