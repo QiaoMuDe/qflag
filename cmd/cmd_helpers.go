@@ -452,3 +452,12 @@ func (c *Cmd) CmdExists(cmdName string) bool {
 	_, ok := c.subCmdMap[cmdName]
 	return ok
 }
+
+// IsParsed 检查命令是否已完成解析
+//
+// 返回值:
+//
+//   - bool: 解析状态,true表示已解析(无论成功失败), false表示未解析
+func (c *Cmd) IsParsed() bool {
+	return c.parsed.Load()
+}

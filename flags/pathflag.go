@@ -13,7 +13,7 @@ import (
 // 继承BaseFlag[string]泛型结构体,实现Flag接口
 type PathFlag struct {
 	BaseFlag[string]
-	mu sync.RWMutex // 保护validator并发访问
+	mu sync.Mutex // 保护validator并发访问
 }
 
 // Type 返回标志类型
@@ -24,8 +24,8 @@ func (f *PathFlag) String() string { return f.Get() }
 
 // Set 实现flag.Value接口,解析并验证路径
 func (f *PathFlag) Set(value string) error {
-	f.mu.RLock()
-	defer f.mu.RUnlock()
+	f.mu.Lock()
+	defer f.mu.Unlock()
 
 	if value == "" {
 		return fmt.Errorf("path cannot be empty")

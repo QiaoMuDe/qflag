@@ -6,6 +6,7 @@ import (
 	"os"
 	"path/filepath"
 	"sync"
+	"sync/atomic"
 	"time"
 
 	"gitee.com/MM-Q/qflag/flags"
@@ -73,6 +74,7 @@ type Cmd struct {
 
 	// 用于确保命令只被解析一次
 	parseOnce sync.Once
+	parsed    atomic.Bool // 标记是否已完成解析
 
 	// 子命令映射表, 用于关联和查找子命令
 	subCmdMap map[string]*Cmd
@@ -136,8 +138,6 @@ type CmdInterface interface {
 	AddSubCmd(subCmd *Cmd)                    // 添加子命令, 子命令会继承父命令的上下文
 	SubCmds() []*Cmd                          // 获取所有已注册的子命令列表
 	SubCmdMap() map[string]*Cmd               // 获取所有已注册的子命令映射表
-	Parse(args []string) error                // 解析命令行参数, 自动处理标志和子命令
-	ParseFlagsOnly(args []string) (err error) // 仅解析标志参数, 不处理子命令
 	Args() []string                           // 获取所有非标志参数(未绑定到任何标志的参数)
 	Arg(i int) string                         // 获取指定索引的非标志参数, 索引越界返回空字符串
 	NArg() int                                // 获取非标志参数的数量
@@ -157,6 +157,11 @@ type CmdInterface interface {
 	SetExitOnBuiltinFlags(exit bool) *Cmd     // 设置是否在添加内置标志时退出
 	SetDisableBuiltinFlags(disable bool) *Cmd // 设置是否禁用内置标志注册
 	CmdExists(cmdName string) bool            // 判断命令行参数中是否存在指定标志
+
+	// 标志解析方法
+	Parse(args []string) error                // 解析命令行参数, 自动处理标志和子命令
+	ParseFlagsOnly(args []string) (err error) // 仅解析标志参数, 不处理子命令
+	IsParsed() bool                           // 检查是否已解析命令行参数
 
 	// 添加标志方法
 	String(longName, shortName, usage, defValue string) *flags.StringFlag                             // 添加字符串类型标志
@@ -476,6 +481,7 @@ func (c *Cmd) parseCommon(args []string, parseSubcommands bool) (err error, shou
 
 	// 确保只解析一次
 	c.parseOnce.Do(func() {
+		defer c.parsed.Store(true) // 无论成功失败均标记为已解析
 		// 只有在没有禁用内置标志时才注册内置标志
 		if !c.disableBuiltinFlags {
 			// 定义帮助标志提示信息

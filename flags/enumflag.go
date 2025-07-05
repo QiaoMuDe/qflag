@@ -11,7 +11,7 @@ import (
 type EnumFlag struct {
 	BaseFlag[string]
 	optionMap map[string]bool // 枚举值映射
-	rwMu      sync.RWMutex    // 读写锁
+	mu        sync.RWMutex    // 读写锁
 }
 
 // 实现Flag接口
@@ -20,8 +20,8 @@ func (f *EnumFlag) Type() FlagType { return FlagTypeEnum }
 // IsCheck 检查枚举值是否有效
 // 返回值: 为nil, 说明值有效,否则返回错误信息
 func (f *EnumFlag) IsCheck(value string) error {
-	f.rwMu.RLock()
-	defer f.rwMu.RUnlock()
+	f.mu.RLock()
+	defer f.mu.RUnlock()
 
 	// 如果枚举map为空,则不需要检查
 	if len(f.optionMap) == 0 {
@@ -68,8 +68,8 @@ func (f *EnumFlag) String() string { return f.Get() }
 // 返回值:
 //   - error: 初始化错误信息
 func (f *EnumFlag) Init(longName, shortName string, defValue string, usage string, options []string) error {
-	f.rwMu.Lock()
-	defer f.rwMu.Unlock()
+	f.mu.Lock()
+	defer f.mu.Unlock()
 
 	// 初始化枚举值
 	if options == nil {

@@ -32,8 +32,6 @@ type QCommandLineInterface interface {
 	SetUseChinese(useChinese bool)            // 设置是否使用中文帮助信息
 	AddSubCmd(subCmd *cmd.Cmd)                // 添加子命令，子命令会继承父命令的上下文
 	SubCmds() []*cmd.Cmd                      // 获取所有已注册的子命令列表
-	Parse() error                             // 解析命令行参数，自动处理标志和子命令
-	ParseFlagsOnly() error                    // 解析命令行参数，仅处理标志，不处理子命令
 	Args() []string                           // 获取所有非标志参数(未绑定到任何标志的参数)
 	Arg(i int) string                         // 获取指定索引的非标志参数，索引越界返回空字符串
 	NArg() int                                // 获取非标志参数的数量
@@ -53,6 +51,11 @@ type QCommandLineInterface interface {
 	SetExitOnBuiltinFlags(exit bool) *cmd.Cmd // 设置是否在处理内置标志时退出
 	SetDisableBuiltinFlags(disable bool) *Cmd // 设置是否禁用内置标志注册
 	CmdExists(cmdName string) bool            // 检查指定名称的命令是否存在
+
+	// 标志解析方法
+	Parse() error          // 解析命令行参数，自动处理标志和子命令
+	ParseFlagsOnly() error // 解析命令行参数，仅处理标志，不处理子命令
+	IsParsed() bool        // 检查是否已解析命令行参数
 
 	// 添加标志方法
 	String(longName, shortName, defValue, usage string) *flags.StringFlag                                // 添加字符串类型标志
@@ -427,4 +430,12 @@ func SetDisableBuiltinFlags(disable bool) *cmd.Cmd {
 //   - bool: 子命令是否存在
 func CmdExists(cmdName string) bool {
 	return QCommandLine.CmdExists(cmdName)
+}
+
+// IsParsed 检查命令行参数是否已解析
+//
+// 返回:
+//   - bool: 是否已解析
+func IsParsed() bool {
+	return QCommandLine.IsParsed()
 }
