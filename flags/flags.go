@@ -81,16 +81,18 @@ type Flag interface {
 	String() string     // 获取标志的字符串表示
 	IsSet() bool        // 判断标志是否已设置值
 	Reset()             // 重置标志值为默认值
+	GetEnvVar() string  // 获取标志绑定的环境变量名称
 }
 
 // TypedFlag 所有标志类型的通用接口,定义了标志的元数据访问方法和默认值访问方法
 type TypedFlag[T any] interface {
-	Flag                    // 继承标志接口
-	GetDefault() T          // 获取标志的具体类型默认值
-	Get() T                 // 获取标志的具体类型值
-	GetPointer() *T         // 获取标志值的指针
-	Set(T) error            // 设置标志的具体类型值
-	SetValidator(Validator) // 设置标志的验证器
+	Flag                                 // 继承标志接口
+	GetDefault() T                       // 获取标志的具体类型默认值
+	Get() T                              // 获取标志的具体类型值
+	GetPointer() *T                      // 获取标志值的指针
+	Set(T) error                         // 设置标志的具体类型值
+	SetValidator(Validator)              // 设置标志的验证器
+	BindEnv(envName string) *BaseFlag[T] // 绑定环境变量
 }
 
 // FlagTypeToString 将FlagType转换为字符串

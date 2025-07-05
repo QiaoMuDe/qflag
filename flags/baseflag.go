@@ -16,6 +16,28 @@ type BaseFlag[T any] struct {
 	validator    Validator    // 验证器接口
 	initialized  bool         // 标志是否已初始化
 	isSet        bool         // 标志是否已被设置值
+	envVar       string       // 存储标志关联的环境变量名称
+}
+
+// BindEnv 绑定环境变量到标志
+//
+// 参数:
+//   - envName 环境变量名
+//
+// 返回:
+//   - 标志对象本身,支持链式调用
+func (f *BaseFlag[T]) BindEnv(envName string) *BaseFlag[T] {
+	f.baseMu.Lock()
+	defer f.baseMu.Unlock()
+	f.envVar = envName
+	return f
+}
+
+// GetEnvVar 获取绑定的环境变量名
+func (f *BaseFlag[T]) GetEnvVar() string {
+	f.baseMu.RLock()
+	defer f.baseMu.RUnlock()
+	return f.envVar
 }
 
 // Init 初始化标志的元数据和值指针, 无需显式调用, 仅在创建标志对象时自动调用

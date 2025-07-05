@@ -481,7 +481,8 @@ func (c *Cmd) parseCommon(args []string, parseSubcommands bool) (err error, shou
 
 	// 确保只解析一次
 	c.parseOnce.Do(func() {
-		defer c.parsed.Store(true) // 无论成功失败均标记为已解析
+		defer c.parsed.Store(true) // 在返回时, 无论成功失败均标记为已解析
+
 		// 只有在没有禁用内置标志时才注册内置标志
 		if !c.disableBuiltinFlags {
 			// 定义帮助标志提示信息
@@ -541,7 +542,13 @@ func (c *Cmd) parseCommon(args []string, parseSubcommands bool) (err error, shou
 			c.PrintHelp()
 		}
 
-		// 调用flag库解析参数
+		// 解析前加载环境变量
+		if err = c.loadEnvVars(); err != nil {
+			err = fmt.Errorf("%w: %v", qerr.ErrEnvLoadFailed, err)
+			return
+		}
+
+		// 调用底层flag库解析参数
 		if parseErr := c.fs.Parse(args); parseErr != nil {
 			err = fmt.Errorf("%w: %w", qerr.ErrFlagParseFailed, parseErr)
 			return
@@ -634,4 +641,53 @@ func (c *Cmd) parseCommon(args []string, parseSubcommands bool) (err error, shou
 
 	// 根据内置标志处理结果决定是否退出
 	return nil, shouldExit
+}
+
+// loadEnvVars 从环境变量加载参数值
+//
+// 优先级：命令行参数 > 环境变量 > 默认值
+//
+// 参数：无
+//
+// 返回值：
+//
+//	error - 加载过程中的错误（如有）
+func (c *Cmd) loadEnvVars() error {
+	c.rwMu.RLock()
+	defer c.rwMu.RUnlock()
+
+	var loadErr error
+	// 遍历所有已注册的标志
+	c.fs.VisitAll(func(f *flag.Flag) {
+		// 如果已存在错误，则提前返回
+		if loadErr != nil {
+			return
+		}
+
+		// 获取标志实例
+		flagInstance, ok := f.Value.(flags.Flag)
+		if !ok {
+			return
+		}
+
+		// 获取环境变量名称
+		envVar := flagInstance.GetEnvVar()
+		if envVar == "" {
+			// 环境变量未设置，提前返回
+			return
+		}
+
+		// 读取环境变量值
+		envValue := os.Getenv(envVar)
+		if envValue == "" {
+			return // 环境变量未设置，提前返回
+		}
+
+		// 设置标志值(使用现有Set方法进行类型转换)
+		if err := f.Value.Set(envValue); err != nil {
+			loadErr = fmt.Errorf("Failed to parse environment variable %s: %w", envVar, err)
+		}
+	})
+
+	return loadErr
 }
