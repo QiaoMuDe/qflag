@@ -1,9 +1,10 @@
 package flags
 
 import (
-	"fmt"
 	"net"
 	"sync"
+
+	"gitee.com/MM-Q/qflag/qerr"
 )
 
 // IP4Flag IPv4地址类型标志结构体
@@ -25,13 +26,13 @@ func (f *IP4Flag) Set(value string) error {
 	defer f.mu.Unlock()
 
 	if value == "" {
-		return fmt.Errorf("ipv4 address cannot be empty")
+		return qerr.NewValidationError("ipv4 address cannot be empty")
 	}
 
 	// 解析IPv4地址
 	ip := net.ParseIP(value)
 	if ip == nil || ip.To4() == nil {
-		return fmt.Errorf("invalid ipv4 address: %s", value)
+		return qerr.NewValidationErrorf("invalid ipv4 address: %s", value)
 	}
 
 	return f.BaseFlag.Set(ip.String())

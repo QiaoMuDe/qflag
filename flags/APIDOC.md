@@ -338,6 +338,13 @@ func (f *EnumFlag) Type() FlagType
 
 Type 返回标志类型
 
+```go
+func (f *EnumFlag) SetCaseSensitive(sensitive bool) *EnumFlag
+```
+
+SetCaseSensitive 设置枚举是否区分大小写
+**参数**: sensitive - true表示区分大小写，false表示不区分（默认）
+
 ### Flag
 
 ```go

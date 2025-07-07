@@ -1,6 +1,7 @@
 package qerr
 
 import (
+	"errors"
 	"testing"
 )
 
@@ -61,6 +62,37 @@ func TestJoinErrors(t *testing.T) {
 			NewValidationError("error1"),
 		},
 		expected: "Merged error message:\nA total of 1 unique errors:\n  1. Validation failed: error1\n",
+	}, {
+		name: "with nil errors",
+		errors: []error{
+			nil,
+			NewValidationError("error1"),
+			nil,
+		},
+		expected: "Validation failed: error1",
+	}, {
+		name: "mixed error types",
+		errors: []error{
+			ErrFlagParseFailed,
+			NewValidationError("invalid value"),
+			ErrEnvLoadFailed,
+		},
+		expected: "Merged error message:\nA total of 3 unique errors:\n  1. Parameter parsing error\n  2. Validation failed: invalid value\n  3. Environment variable loading failed\n",
+	}, {
+		name: "with nil errors",
+		errors: []error{
+			nil,
+			NewValidationError("error1"),
+			nil,
+		},
+		expected: "Validation failed: error1",
+	}, {
+		name: "empty error messages",
+		errors: []error{
+			errors.New(""),
+			errors.New(""),
+		},
+		expected: "Merged error message:\nA total of 1 unique errors:\n  1. \n",
 	}}
 
 	for _, tt := range tests {

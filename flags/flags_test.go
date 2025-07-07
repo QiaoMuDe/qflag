@@ -62,7 +62,7 @@ func TestIntFlag_Validator(t *testing.T) {
 	// 测试用例：无效负值
 	if err := flag.Set("-5"); err == nil {
 		t.Error("expected error for negative value, got nil")
-	} else if err.Error() != "invalid value for : value must be positive" {
+	} else if err.Error() != "Validation failed: invalid value for : value must be positive" {
 		t.Errorf("unexpected error message: %v", err)
 	}
 }

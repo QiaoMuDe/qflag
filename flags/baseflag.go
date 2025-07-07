@@ -3,6 +3,8 @@ package flags
 import (
 	"fmt"
 	"sync"
+
+	"gitee.com/MM-Q/qflag/qerr"
 )
 
 // BaseFlag 泛型基础标志结构体,封装所有标志的通用字段和方法
@@ -56,17 +58,17 @@ func (f *BaseFlag[T]) Init(longName, shortName string, usage string, value *T) e
 
 	// 检查是否已初始化
 	if f.initialized {
-		return fmt.Errorf("flag %s/%s already initialized", f.shortName, f.longName)
+		return qerr.NewValidationErrorf("flag %s/%s already initialized", f.shortName, f.longName)
 	}
 
 	// 检查长短标志是否同时为空
 	if longName == "" && shortName == "" {
-		return fmt.Errorf("longName and shortName cannot both be empty")
+		return qerr.NewValidationError("longName and shortName cannot both be empty")
 	}
 
 	// 验证值指针（避免后续空指针异常）
 	if value == nil {
-		return fmt.Errorf("value pointer cannot be nil")
+		return qerr.NewValidationError("value pointer cannot be nil")
 	}
 
 	f.longName = longName   // 初始化长标志名
@@ -143,7 +145,7 @@ func (f *BaseFlag[T]) Set(value T) error {
 	// 设置标志值前先进行验证
 	if f.validator != nil {
 		if err := f.validator.Validate(v); err != nil {
-			return fmt.Errorf("invalid value for %s: %w", f.longName, err)
+			return qerr.NewValidationErrorf("invalid value for %s: %v", f.longName, err)
 		}
 	}
 

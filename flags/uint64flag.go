@@ -4,6 +4,8 @@ import (
 	"fmt"
 	"strconv"
 	"sync"
+
+	"gitee.com/MM-Q/qflag/qerr"
 )
 
 // Uint64Flag 64位无符号整数类型标志结构体
@@ -29,13 +31,13 @@ func (f *Uint64Flag) Set(value string) error {
 
 	// 检查是否为空
 	if value == "" {
-		return fmt.Errorf("empty value")
+		return qerr.NewValidationError("empty value")
 	}
 
 	// 将字符串解析为无符号整型
 	num, err := strconv.ParseUint(value, 10, 64)
 	if err != nil {
-		return fmt.Errorf("invalid uint64 value: %v", err)
+		return qerr.NewValidationErrorf("invalid uint64 value: %v", err)
 	}
 
 	val := uint64(num)

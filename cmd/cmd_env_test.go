@@ -324,7 +324,7 @@ func TestLoadEnvVars(t *testing.T) {
 		err := cmd.loadEnvVars()
 		if err == nil {
 			t.Error("期望解析环境变量时返回错误, 但未返回错误")
-		} else if err.Error() != "Failed to parse environment variable TEST_FLOAT_ENV: strconv.ParseFloat: parsing \"not_a_float\": invalid syntax" {
+		} else if err.Error() != "Validation failed: Failed to parse environment variable TEST_FLOAT_ENV for flag float-flag: Validation failed: failed to parse float64 value: strconv.ParseFloat: parsing \"not_a_float\": invalid syntax" {
 			t.Errorf("期望特定错误信息, 实际获取: %v", err)
 		}
 	})

@@ -4,6 +4,8 @@ import (
 	"fmt"
 	"strconv"
 	"sync"
+
+	"gitee.com/MM-Q/qflag/qerr"
 )
 
 // Uint32Flag 32位无符号整数类型标志结构体
@@ -29,13 +31,13 @@ func (f *Uint32Flag) Set(value string) error {
 
 	// 检查是否为空
 	if value == "" {
-		return fmt.Errorf("empty value")
+		return qerr.NewValidationError("empty value")
 	}
 
 	// 将字符串解析为无符号整型
 	num, err := strconv.ParseUint(value, 10, 32)
 	if err != nil {
-		return fmt.Errorf("invalid uint32 value: %v", err)
+		return qerr.NewValidationErrorf("invalid uint32 value: %v", err)
 	}
 
 	val := uint32(num)

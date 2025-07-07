@@ -700,7 +700,8 @@ func (c *Cmd) loadEnvVars() error {
 
 		// 设置标志值(使用现有Set方法进行类型转换)
 		if err := f.Value.Set(envValue); err != nil {
-			loadErr = fmt.Errorf("Failed to parse environment variable %s: %w", envVar, err)
+			//loadErr = fmt.Errorf("Failed to parse environment variable %s: %w", envVar, err)
+			loadErr = qerr.NewValidationErrorf("Failed to parse environment variable %s for flag %s: %v", envVar, f.Name, err)
 		}
 	})
 

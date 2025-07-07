@@ -4,6 +4,8 @@ import (
 	"fmt"
 	"strconv"
 	"sync"
+
+	"gitee.com/MM-Q/qflag/qerr"
 )
 
 // Uint16Flag 16位无符号整数类型标志结构体
@@ -37,13 +39,13 @@ func (f *Uint16Flag) Set(value string) error {
 
 	// 检查是否为空
 	if value == "" {
-		return fmt.Errorf("empty value")
+		return qerr.NewValidationError("empty value")
 	}
 
 	// 解析字符串为uint64
 	num, err := strconv.ParseUint(value, 10, 16)
 	if err != nil {
-		return fmt.Errorf("invalid uint16 value: %v", err)
+		return qerr.NewValidationErrorf("invalid uint16 value: %v", err)
 	}
 
 	// 转换为uint16

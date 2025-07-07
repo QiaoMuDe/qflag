@@ -30,14 +30,24 @@ func JoinErrors(errors []error) error {
 	if len(errors) == 0 {
 		return nil
 	}
-	if len(errors) == 1 {
-		return errors[0]
+	// 过滤nil错误
+	nonNilErrors := make([]error, 0, len(errors))
+	for _, err := range errors {
+		if err != nil {
+			nonNilErrors = append(nonNilErrors, err)
+		}
+	}
+	if len(nonNilErrors) == 0 {
+		return nil
+	}
+	if len(nonNilErrors) == 1 {
+		return nonNilErrors[0]
 	}
 
 	// 使用切片和map保持插入顺序并去重
 	seen := make(map[string]bool)
-	uniqueErrors := make([]error, 0, len(errors))
-	for _, err := range errors {
+	uniqueErrors := make([]error, 0, len(nonNilErrors))
+	for _, err := range nonNilErrors {
 		errStr := err.Error()
 		if !seen[errStr] {
 			seen[errStr] = true

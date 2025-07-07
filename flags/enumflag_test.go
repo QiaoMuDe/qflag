@@ -87,3 +87,72 @@ func TestEnumFlag_Type(t *testing.T) {
 		t.Errorf("Type()应返回%d, 实际返回%d", FlagTypeEnum, flag.Type())
 	}
 }
+
+// TestEnumFlag_CaseInsensitive 测试不区分大小写模式下的枚举行为
+func TestEnumFlag_CaseInsensitive(t *testing.T) {
+	flag := &EnumFlag{}
+	options := []string{"Apple", "Banana", "Cherry"}
+
+	// 初始化枚举标志（默认不区分大小写）
+	if err := flag.Init("fruit", "f", "Apple", "水果枚举测试", options); err != nil {
+		t.Fatalf("初始化失败: %v", err)
+	}
+
+	// 测试不同大小写的有效值
+	validInputs := []struct {
+		input    string
+		expected string
+	}{{
+		input:    "apple",
+		expected: "apple",
+	}, {
+		input:    "BANANA",
+		expected: "BANANA",
+	}, {
+		input:    "cHeRrY",
+		expected: "cHeRrY",
+	}}
+
+	for _, test := range validInputs {
+		t.Run(test.input, func(t *testing.T) {
+			if err := flag.Set(test.input); err != nil {
+				t.Errorf("设置值 '%s' 应该成功, 错误: %v", test.input, err)
+			}
+			if flag.Get() != test.expected {
+				t.Errorf("获取值应为 '%s', 实际为 '%s'", test.expected, flag.Get())
+			}
+		})
+	}
+}
+
+// TestEnumFlag_CaseSensitive 测试区分大小写模式下的枚举行为
+func TestEnumFlag_CaseSensitive(t *testing.T) {
+	flag := &EnumFlag{}
+	options := []string{"Apple", "Banana", "Cherry"}
+
+	// 初始化并设置为区分大小写
+	if err := flag.Init("fruit", "f", "Apple", "水果枚举测试", options); err != nil {
+		t.Fatalf("初始化失败: %v", err)
+	}
+	flag.SetCaseSensitive(true)
+
+	// 测试大小写敏感的有效值
+	validInputs := []string{"Apple", "Banana", "Cherry"}
+	for _, input := range validInputs {
+		t.Run(input, func(t *testing.T) {
+			if err := flag.Set(input); err != nil {
+				t.Errorf("设置值 '%s' 应该成功, 错误: %v", input, err)
+			}
+		})
+	}
+
+	// 测试大小写不匹配的无效值
+	invalidInputs := []string{"apple", "BANANA", "cHeRrY", "grape"}
+	for _, input := range invalidInputs {
+		t.Run(input, func(t *testing.T) {
+			if err := flag.Set(input); err == nil {
+				t.Errorf("设置值 '%s' 应该失败", input)
+			}
+		})
+	}
+}

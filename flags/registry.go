@@ -1,8 +1,9 @@
 package flags
 
 import (
-	"fmt"
 	"sync"
+
+	"gitee.com/MM-Q/qflag/qerr"
 )
 
 // FlagMeta 统一存储标志的完整元数据
@@ -102,13 +103,13 @@ func (r *FlagRegistry) RegisterFlag(meta *FlagMeta) error {
 
 	// 检查长短标志是否都为空
 	if meta.GetLongName() == "" && meta.GetShortName() == "" {
-		return fmt.Errorf("flag must have at least one name")
+		return qerr.NewValidationError("flag must have at least one name")
 	}
 
 	// 检查长标志是否已存在
 	if meta.GetLongName() != "" {
 		if _, exists := r.byLong[meta.GetLongName()]; exists {
-			return fmt.Errorf("long flag %s already exists", meta.GetLongName())
+			return qerr.NewValidationErrorf("long flag %s already exists", meta.GetLongName())
 		}
 	}
 
@@ -116,7 +117,7 @@ func (r *FlagRegistry) RegisterFlag(meta *FlagMeta) error {
 	// 只在短标志不为空时检查重复
 	if meta.GetShortName() != "" {
 		if _, exists := r.byShort[meta.GetShortName()]; exists {
-			return fmt.Errorf("short flag %s already exists", meta.GetShortName())
+			return qerr.NewValidationErrorf("short flag %s already exists", meta.GetShortName())
 		}
 	}
 

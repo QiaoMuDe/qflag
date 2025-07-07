@@ -4,6 +4,7 @@ import (
 	"strconv"
 	"sync"
 
+	"gitee.com/MM-Q/qflag/qerr"
 	"gitee.com/MM-Q/qflag/validator"
 )
 
@@ -34,7 +35,7 @@ func (f *Int64Flag) Set(value string) error {
 	defer f.mu.Unlock()
 	int64Val, err := strconv.ParseInt(value, 10, 64)
 	if err != nil {
-		return err
+		return qerr.NewValidationErrorf("failed to parse int64 value: %v", err)
 	}
 	return f.BaseFlag.Set(int64Val)
 }

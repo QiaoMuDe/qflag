@@ -28,7 +28,7 @@ func (f *IntFlag) SetRange(min, max int) {
 	f.SetValidator(validator)
 }
 
-// Set 实现flag.Value接口,解析并设置整数值
+// Set 实现flag.Value接口,解析并验证整数值
 func (f *IntFlag) Set(value string) error {
 	f.mu.RLock()
 	defer f.mu.RUnlock()
