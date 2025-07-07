@@ -57,6 +57,23 @@ var (
 	}
 )
 
+// BashCompletionTemplate 定义Bash自动补全脚本的模块化模板结构
+// 用于统一管理补全脚本的各个组成部分
+type BashCompletionTemplate struct {
+	FunctionHeader string // 补全函数头部模板
+	RootCommand    string // 根命令补全模板
+	SubCommand     string // 子命令补全模板
+	ShortOption    string // 短选项补全模板
+	LongOption     string // 长选项补全模板
+	BindingCommand string // 命令绑定模板
+}
+
+// bashCompletionTemplateString 定义Bash自动补全脚本的模块化模板字符串
+var bashCompletionTemplate = BashCompletionTemplate{
+	// 补全函数头部模板
+	FunctionHeader: ``,
+}
+
 // generateBashCompletion 生成Bash自动补全脚本
 //
 // 返回值：
