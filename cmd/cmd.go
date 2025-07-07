@@ -106,6 +106,9 @@ type Cmd struct {
 	// 版本标志指针,用于绑定和检查
 	versionFlag *flags.BoolFlag
 
+	// 自动补全标志指针,用于绑定和检查
+	completionShell *flags.EnumFlag
+
 	// 控制内置标志是否自动退出
 	exitOnBuiltinFlags bool
 
@@ -538,9 +541,8 @@ func (c *Cmd) parseCommon(args []string, parseSubcommands bool) (err error, shou
 				// 创建自动补全子命令
 				completionCmd := NewCmd(CompletionShellLongName, CompletionShellShortName, flag.ExitOnError)
 
-				// 绑定自动补全标志
-				var completionShell flags.EnumFlag
-				completionCmd.EnumVar(&completionShell, "shell", "s", ShellNone, fmt.Sprintf("指定要生成的shell补全脚本类型, 可选值: %v", ShellSlice), ShellSlice)
+				// 为子命令定义并绑定自动补全标志
+				completionCmd.EnumVar(completionCmd.completionShell, "shell", "s", ShellNone, fmt.Sprintf("指定要生成的shell补全脚本类型, 可选值: %v", ShellSlice), ShellSlice)
 
 				// 根据父命令的语言设置自动设置子命令的语言
 				if c.GetUseChinese() {
@@ -551,13 +553,14 @@ func (c *Cmd) parseCommon(args []string, parseSubcommands bool) (err error, shou
 					completionCmd.SetUseChinese(false)
 				}
 
-				// 添加Linux环境下的示例
-				c.AddExample(linuxTempExample)
-				c.AddExample(linuxPermanentExample)
-
-				// 添加Windows环境下的示例
-				c.AddExample(windowsTempExample)
-				c.AddExample(windowsPermanentExample)
+				// 添加自动补全子命令的示例
+				cmdName := os.Args[0]
+				for _, ex := range completionExamples {
+					c.AddExample(ExampleInfo{
+						Description: ex.Description,
+						Usage:       fmt.Sprintf(ex.Usage, cmdName),
+					})
+				}
 
 				// 添加子命令
 				if addErr := c.AddSubCmd(completionCmd); addErr != nil {
@@ -605,6 +608,39 @@ func (c *Cmd) parseCommon(args []string, parseSubcommands bool) (err error, shou
 				return
 			}
 
+			// 检查是否启用自动补全子命令
+			fmt.Println("completion", c.enableCompletion)
+			if c.enableCompletion {
+
+				if s, ok := c.SubCmdMap()[CompletionShellLongName]; ok {
+					shell := s.completionShell.Get()
+					fmt.Println("shell", 11, shell)
+					// 显式判断非默认shell类型(默认为ShellNone, 不做处理)
+					switch shell {
+					case ShellBash: // 生成 Bash 补全脚本
+						fmt.Println(11)
+						fmt.Println(c.generateBashCompletion())
+						fmt.Println(22)
+						if c.exitOnBuiltinFlags {
+							shouldExit = true
+							return
+						}
+						return
+					case ShellZsh: // 生成 Zsh 补全脚本
+					// 	_ = completionCmd.GenerateZshCompletion()
+					case ShellFish: // 生成 Fish 补全脚本
+					// 	_ = completionCmd.GenerateFishCompletion()
+					case ShellPowershell: // 生成 PowerShell 补全脚本
+					// 	_ = completionCmd.GeneratePowerShellCompletion()
+					case ShellPwsh: // 生成 Pwsh7 补全脚本
+						// 	_ = completionCmd.GeneratePowerShellCompletion()
+					default: // 其他shell类型
+						fmt.Println("Unsupported shell type:", shell)
+					}
+				}
+
+			}
+
 			// 只有在顶级命令中处理-sip/--show-install-path和-v/--version标志
 			if c.parentCmd == nil {
 				// 检查是否使用-sip/--show-install-path标志
@@ -628,45 +664,46 @@ func (c *Cmd) parseCommon(args []string, parseSubcommands bool) (err error, shou
 					}
 					return
 				}
-			}
-		}
 
-		// 检查枚举类型标志是否有效
-		for _, meta := range c.flagRegistry.GetAllFlagMetas() {
-			if meta.GetFlagType() == flags.FlagTypeEnum {
-				if enumFlag, ok := meta.GetFlag().(*flags.EnumFlag); ok {
-					// 调用IsCheck方法进行验证
-					if checkErr := enumFlag.IsCheck(enumFlag.Get()); checkErr != nil {
-						// 添加标志名称到错误信息, 便于定位问题
-						err = fmt.Errorf("flag %s: %w", meta.GetName(), checkErr)
-						break // 发现第一个错误后立即退出循环
+			}
+
+			// 检查枚举类型标志是否有效
+			for _, meta := range c.flagRegistry.GetAllFlagMetas() {
+				if meta.GetFlagType() == flags.FlagTypeEnum {
+					if enumFlag, ok := meta.GetFlag().(*flags.EnumFlag); ok {
+						// 调用IsCheck方法进行验证
+						if checkErr := enumFlag.IsCheck(enumFlag.Get()); checkErr != nil {
+							// 添加标志名称到错误信息, 便于定位问题
+							err = fmt.Errorf("flag %s: %w", meta.GetName(), checkErr)
+							break // 发现第一个错误后立即退出循环
+						}
 					}
 				}
 			}
-		}
 
-		// 枚举标志检查失败立即返回
-		if err != nil {
-			return
-		}
+			// 枚举标志检查失败立即返回
+			if err != nil {
+				return
+			}
 
-		// 设置非标志参数
-		c.args = append(c.args, c.fs.Args()...)
+			// 设置非标志参数
+			c.args = append(c.args, c.fs.Args()...)
 
-		// 如果允许解析子命令, 则进入子命令解析阶段, 否则跳过子命令解析
-		if parseSubcommands {
-			// 如果存在子命令并且非标志参数不为0
-			if len(c.args) > 0 && (len(c.subCmdMap) > 0 && len(c.subCmds) > 0) {
-				// 获取参数的第一个值
-				arg := c.args[0]
+			// 如果允许解析子命令, 则进入子命令解析阶段, 否则跳过子命令解析
+			if parseSubcommands {
+				// 如果存在子命令并且非标志参数不为0
+				if len(c.args) > 0 && (len(c.subCmdMap) > 0 && len(c.subCmds) > 0) {
+					// 获取参数的第一个值
+					arg := c.args[0]
 
-				// 直接通过参数查找(map键已包含长名称和短名称)
-				if subCmd, ok := c.subCmdMap[arg]; ok {
-					// 将剩余参数传递给子命令解析
-					if parseErr := subCmd.Parse(c.args[1:]); parseErr != nil {
-						err = fmt.Errorf("%w for '%s': %v", qerr.ErrSubCommandParseFailed, arg, parseErr)
+					// 直接通过参数查找(map键已包含长名称和短名称)
+					if subCmd, ok := c.subCmdMap[arg]; ok {
+						// 将剩余参数传递给子命令解析
+						if parseErr := subCmd.Parse(c.args[1:]); parseErr != nil {
+							err = fmt.Errorf("%w for '%s': %v", qerr.ErrSubCommandParseFailed, arg, parseErr)
+						}
+						return
 					}
-					return
 				}
 			}
 		}
