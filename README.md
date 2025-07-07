@@ -36,25 +36,150 @@ go get -u gitee.com/MM-Q/qflag
 
 以下是qflag支持的所有标志类型及其说明：
 
-| 标志类型 | 描述 | 示例 |
-|----------|------|------|
-| String | 字符串类型标志 | `--name "example"` |
-| Int | 整数类型标志 | `--port 8080` |
-| Int64 | 64位整数类型标志 | `--size 1073741824` |
-| Uint16 | 无符号16位整数类型标志 | `--timeout 300` |
-| Bool | 布尔类型标志 | `--debug` |
-| Float64 | 64位浮点数类型标志 | `--threshold 0.95` |
-| Enum | 枚举类型标志 | `--mode "debug"` |
-| Slice | 切片类型标志 | `--files file1.txt,file2.txt` |
-| Duration | 时间间隔类型标志 | `--timeout 30s` |
-| Time | 时间类型标志 | `--start-time "2024-01-01T00:00:00"` |
-| Map | 映射类型标志 | `--config key=value` |
-| Path | 路径类型标志 | `--log-path "./logs"` |
-| IP4 | IPv4地址类型标志 | `--server-ip 192.168.1.1` |
-| IP6 | IPv6地址类型标志 | `--server-ipv6 ::1` |
-| URL | URL类型标志 | `--api-url https://api.example.com` |
+| 标志类型 | 描述 | 示例 | 注意事项 |
+|----------|------|------|--------|
+| String | 字符串类型标志 | `--name "example"` | 无 |
+| Int | 整数类型标志 | `--port 8080` | 无 |
+| Int64 | 64位整数类型标志 | `--size 1073741824` | 无 |
+| Uint16 | 无符号16位整数类型标志 | `--timeout 300` | 无 |
+| Bool | 布尔类型标志 | `--debug` | 无 |
+| Float64 | 64位浮点数类型标志 | `--threshold 0.95` | 无 |
+| Enum | 枚举类型标志 | `--mode "debug"` | 支持大小写敏感设置，通过`SetCaseSensitive(true)`启用 |
+| Slice | 切片类型标志，支持自定义分隔符 | `--files file1.txt,file2.txt` | 默认使用逗号分隔，可通过`SetSeparator`修改 |
+| Duration | 时间间隔类型标志 | `--timeout 30s` | 无 |
+| Time | 时间类型标志 | `--start-time "2024-01-01T00:00:00"` | 无 |
+| Map | 映射类型标志 | `--config key=value,key2=value2` | 支持`=`和`:`作为键值分隔符，可通过`SetDelimiters`修改 |
+| Path | 路径类型标志，支持路径验证 | `--log-path "./logs"` | 可通过`IsDirectory(true)`和`MustExist(true)`设置验证规则 |
+| IP4 | IPv4地址类型标志 | `--server-ip 192.168.1.1` | 无 |
+| IP6 | IPv6地址类型标志 | `--server-ipv6 ::1` | 无 |
+| URL | URL类型标志 | `--api-url https://api.example.com` |	无 |
 
 ## 使用示例
+
+### SliceFlag 示例
+
+展示如何使用切片标志并自定义分隔符：
+
+```go
+package main
+
+import (
+	"fmt"
+	"os"
+
+	"gitee.com/MM-Q/qflag"
+)
+
+func main() {
+	// 创建切片标志，默认使用逗号分隔
+	filesF := qflag.Slice("files", "f", []string{}, "要处理的文件列表")
+	// 设置自定义分隔符为分号
+	filesF.SetSeparator(";")
+
+	if err := qflag.Parse(); err != nil {
+		fmt.Printf("解析参数错误: %v\n", err)
+		os.Exit(1)
+	}
+
+	// 获取切片值
+	files := filesF.Get()
+	fmt.Printf("要处理的文件: %v\n", files)
+}
+```
+
+使用方式：`./app --files file1.txt;file2.txt;file3.txt`
+
+### MapFlag 示例
+
+展示如何使用映射标志并自定义分隔符：
+
+```go
+package main
+
+import (
+	"fmt"
+	"os"
+
+	"gitee.com/MM-Q/qflag"
+)
+
+func main() {
+	// 创建映射标志
+	configF := qflag.Map("config", "c", map[string]string{}, "配置键值对")
+	// 设置键值对分隔符为逗号，键值分隔符为冒号
+	configF.SetDelimiters(",", ":")
+
+	if err := qflag.Parse(); err != nil {
+		fmt.Printf("解析参数错误: %v\n", err)
+		os.Exit(1)
+	}
+
+	// 获取映射值
+	config := configF.Get()
+	fmt.Printf("配置: %v\n", config)
+}
+```
+
+使用方式：`./app --config server:localhost,port:8080,timeout:30s`
+
+### PathFlag 示例
+
+展示路径标志的路径验证功能：
+
+```go
+package main
+
+import (
+	"fmt"
+	"os"
+
+	"gitee.com/MM-Q/qflag"
+)
+
+func main() {
+	// 创建路径标志并设置验证规则
+	logPathF := qflag.Path("log-path", "l", "/var/log/app", "日志目录")
+		.IsDirectory(true)  // 必须是目录
+		.MustExist(false)   // 路径不存在时自动创建
+
+	if err := qflag.Parse(); err != nil {
+		fmt.Printf("解析参数错误: %v\n", err)
+		os.Exit(1)
+	}
+
+	fmt.Printf("日志目录: %s\n", logPathF.Get())
+}
+```
+
+### EnumFlag 大小写敏感示例
+
+展示枚举标志的大小写敏感设置：
+
+```go
+package main
+
+import (
+	"fmt"
+	"os"
+
+	"gitee.com/MM-Q/qflag"
+)
+
+func main() {
+	// 创建枚举标志并启用大小写敏感
+	modeF := qflag.Enum("mode", "m", "debug", []string{"Debug", "Release", "Test"}, "运行模式")
+	modeF.SetCaseSensitive(true)
+
+	if err := qflag.Parse(); err != nil {
+		fmt.Printf("解析参数错误: %v\n", err)
+		os.Exit(1)
+	}
+
+	fmt.Printf("运行模式: %s\n", modeF.Get())
+}
+```
+
+注意：启用大小写敏感后，`--mode debug`会报错，必须使用`--mode Debug`
 
 ### 基本使用示例
 
