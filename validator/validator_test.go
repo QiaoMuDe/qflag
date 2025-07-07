@@ -3,6 +3,7 @@
 package validator
 
 import (
+	"errors"
 	"fmt"
 	"regexp"
 	"testing"
@@ -278,6 +279,67 @@ func TestEnumValidator(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			v := &EnumValidator{AllowedValues: tt.allowed}
+			err := v.Validate(tt.value)
+			if (err == nil && tt.expected != nil) || (err != nil && tt.expected == nil) {
+				t.Errorf("expected error %v, got %v", tt.expected, err)
+				return
+			}
+			if err != nil && err.Error() != tt.expected.Error() {
+				t.Errorf("expected error message '%s', got '%s'", tt.expected.Error(), err.Error())
+			}
+		})
+	}
+}
+
+// TestIntValueValidator 测试整数有效值验证器
+func TestIntValueValidator(t *testing.T) {
+	allowedValues := []int{1, 3, 5}
+
+	tests := []struct {
+		name     string
+		allowed  []int
+		value    any
+		expected error
+	}{{
+		name:     "valid int value",
+		allowed:  allowedValues,
+		value:    3,
+		expected: nil,
+	}, {
+		name:     "valid int8 value",
+		allowed:  allowedValues,
+		value:    int8(5),
+		expected: nil,
+	}, {
+		name:     "valid uint value",
+		allowed:  allowedValues,
+		value:    uint(1),
+		expected: nil,
+	}, {
+		name:     "valid uint64 value",
+		allowed:  allowedValues,
+		value:    uint64(3),
+		expected: nil,
+	}, {
+		name:     "invalid value",
+		allowed:  allowedValues,
+		value:    2,
+		expected: fmt.Errorf("value 2 is not in allowed values [1 3 5]"),
+	}, {
+		name:     "empty allowed list",
+		allowed:  []int{},
+		value:    1,
+		expected: errors.New("no allowed values specified"),
+	}, {
+		name:     "non-integer type",
+		allowed:  allowedValues,
+		value:    "3",
+		expected: errors.New("value is not an integer type"),
+	}}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			v := &IntValueValidator{AllowedValues: tt.allowed}
 			err := v.Validate(tt.value)
 			if (err == nil && tt.expected != nil) || (err != nil && tt.expected == nil) {
 				t.Errorf("expected error %v, got %v", tt.expected, err)
