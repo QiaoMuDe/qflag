@@ -9,6 +9,17 @@ import (
 	"gitee.com/MM-Q/qflag/flags"
 )
 
+// SetEnableCompletion 设置是否启用自动补全,支持链式调用
+//
+// 参数:
+//   - enable: true表示启用补全,false表示禁用
+func (c *Cmd) SetEnableCompletion(enable bool) *Cmd {
+	c.rwMu.Lock()
+	defer c.rwMu.Unlock()
+	c.enableCompletion = enable
+	return c
+}
+
 // FlagRegistry 获取标志注册表的只读访问
 //
 // 返回值:

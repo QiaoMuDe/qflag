@@ -111,6 +111,9 @@ type Cmd struct {
 
 	// 控制是否禁用内置标志注册
 	disableBuiltinFlags bool
+
+	// 控制是否启用自动补全
+	enableCompletion bool
 }
 
 // CmdInterface 命令接口定义, 封装命令行程序的核心功能
@@ -326,7 +329,7 @@ func (c *Cmd) AddSubCmd(subCmds ...*Cmd) error {
 
 	// 检查子命令是否为空
 	if len(subCmds) == 0 {
-		return fmt.Errorf("subcommand list cannot be empty")
+		return qerr.NewValidationError("subcommand list cannot be empty")
 	}
 
 	// 检查子命令map是否为nil
@@ -349,7 +352,7 @@ func (c *Cmd) AddSubCmd(subCmds ...*Cmd) error {
 
 	// 如果有验证错误, 返回所有错误信息
 	if len(errors) > 0 {
-		return fmt.Errorf("failed to add subcommands: %w", qerr.JoinErrors(errors))
+		return qerr.NewValidationErrorf("%s: %v", qerr.ErrAddSubCommandFailed, qerr.JoinErrors(errors))
 	}
 
 	// 预分配临时切片(容量=validCmds长度, 避免多次扩容)
@@ -529,6 +532,40 @@ func (c *Cmd) parseCommon(args []string, parseSubcommands bool) (err error, shou
 					c.builtinFlagNameMap.Store(flags.VersionFlagShortName, true)
 				}
 			}
+
+			// 注册自动补全子命令
+			if c.enableCompletion { // 只有在根命令上注册自动补全子命令
+				// 创建自动补全子命令
+				completionCmd := NewCmd(CompletionShellLongName, CompletionShellShortName, flag.ExitOnError)
+
+				// 绑定自动补全标志
+				var completionShell flags.EnumFlag
+				completionCmd.EnumVar(&completionShell, "shell", "s", ShellNone, fmt.Sprintf("指定要生成的shell补全脚本类型, 可选值: %v", ShellSlice), ShellSlice)
+
+				// 根据父命令的语言设置自动设置子命令的语言
+				if c.GetUseChinese() {
+					completionCmd.SetDescription(CompletionShellUsageZh)
+					completionCmd.SetUseChinese(true)
+				} else {
+					completionCmd.SetDescription(CompletionShellUsageEn)
+					completionCmd.SetUseChinese(false)
+				}
+
+				// 添加Linux环境下的示例
+				c.AddExample(linuxTempExample)
+				c.AddExample(linuxPermanentExample)
+
+				// 添加Windows环境下的示例
+				c.AddExample(windowsTempExample)
+				c.AddExample(windowsPermanentExample)
+
+				// 添加子命令
+				if addErr := c.AddSubCmd(completionCmd); addErr != nil {
+					// 添加错误
+					err = addErr
+					return
+				}
+			}
 		}
 
 		// 添加默认的注意事项
@@ -616,11 +653,11 @@ func (c *Cmd) parseCommon(args []string, parseSubcommands bool) (err error, shou
 		// 设置非标志参数
 		c.args = append(c.args, c.fs.Args()...)
 
-		// 如果允许解析子命令, 则进入子命令解析阶段, 否则跳过
+		// 如果允许解析子命令, 则进入子命令解析阶段, 否则跳过子命令解析
 		if parseSubcommands {
 			// 如果存在子命令并且非标志参数不为0
-			if len(c.args) > 0 && len(c.subCmdMap) > 0 {
-				// 获取参数
+			if len(c.args) > 0 && (len(c.subCmdMap) > 0 && len(c.subCmds) > 0) {
+				// 获取参数的第一个值
 				arg := c.args[0]
 
 				// 直接通过参数查找(map键已包含长名称和短名称)
