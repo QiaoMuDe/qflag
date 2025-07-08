@@ -52,6 +52,10 @@ const (
 	// Bash补全模板
 	BashFunctionHeader   = "#!/usr/bin/env bash\n\n_%s() {\n\tlocal cur prev words cword context opts i arg\n\tCOMPREPLY=()\n\n\t# 使用_get_comp_words_by_ref获取补全参数, 提高健壮性\n\tif [[ -z \"${_get_comp_words_by_ref}\" ]]; then\n\t\t# 兼容旧版本Bash补全环境\n\t\twords=(\"${COMP_WORDS[@]}\")\n\t\tcword=$COMP_CWORD\n\telse\n\t\t_get_comp_words_by_ref -n =: cur prev words cword\n\tfi\n\n\tcur=\"${words[cword]}\"\n\tprev=\"${words[cword-1]}\"\n\n\t# 构建命令树结构\n\tdeclare -A cmd_tree\n\tcmd_tree[/]=\"%s\"\n%s\n\n\t# 查找当前命令上下文\n\tlocal context=\"/\"\n\tlocal i\n\tfor ((i=1; i < cword; i++)); do\n\t\tlocal arg=\"${words[i]}\"\n\t\tif [[ -n \"${cmd_tree[$context$arg/]}\" ]]; then\n\t\t\tcontext=\"$context$arg/\"\n\t\tfi\n\tdone\n\n\t# 获取当前上下文可用选项\n\topts=\"${cmd_tree[$context]}\"\n\tCOMPREPLY=($(compgen -W \"${opts}\" -- ${cur}))\n\treturn 0\n\t}\n\ncomplete -F _%s %s\n" // Bash补全函数头部
 	BashCommandTreeEntry = "\tcmd_tree[/%s/]=\"%s\"\n"                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                  // 命令树条目格式
+
+	// PowerShell补全模板
+	PwshFunctionHeader   = "Register-ArgumentCompleter -CommandName %s -ScriptBlock {\n    param($wordToComplete, $commandAst, $cursorPosition, $commandName, $parameterName)\n\n    # 构建命令树结构\n    $cmdTree = @{\n        '' = '%s'\n%s\n    }\n\n    # 解析命令行参数获取当前上下文\n    $context = ''\n    $args = $commandAst.CommandElements | Select-Object -Skip 1 | ForEach-Object { $_.ToString() }\n    $index = 0\n    $count = $args.Count\n\n    while ($index -lt $count) {\n        $arg = $args[$index]\n        # 跳过选项参数及其值\n        if ($arg -like '-*') {\n            $index++\n            # 如果下一个参数不是选项，则视为当前选项的值并跳过\n            if ($index -lt $count -and $args[$index] -notlike '-*') {\n                $index++\n            }\n            continue\n        }\n\n        $nextContext = if ($context) { \"$context.$arg\" } else { $arg }\n        if ($cmdTree.ContainsKey($nextContext)) {\n            $context = $nextContext\n            $index++\n        } else {\n            break\n        }\n    }\n\n    # 获取当前上下文可用选项并过滤\n    $options = @()\n    if ($cmdTree.ContainsKey($context)) {\n        $options = $cmdTree[$context] -split ' ' | Where-Object { $_ -like \"$wordToComplete*\" }\n    }\n\n    $options | ForEach-Object { [System.Management.Automation.CompletionResult]::new($_, $_, 'ParameterName', $_) }\n}\n"
+	PwshCommandTreeEntry = "        '%s' = '%s'\n"
 )
 
 // addSubCommands 递归添加子命令到命令树
@@ -132,6 +136,94 @@ func (c *Cmd) generateBashCompletion() string {
 	return buf.String()
 }
 
+// generatePwshCompletion 生成PowerShell自动补全脚本
+//
+// 返回值：
+//   - string: PowerShell自动补全脚本
+func (c *Cmd) generatePwshCompletion() string {
+	// 缓冲区
+	var buf bytes.Buffer
+
+	// 父命令为空, 则返回空字符串
+	if c.parentCmd == nil {
+		return ""
+	}
+
+	// 命令树注册表为空, 则返回空字符串
+	if c.flagRegistry == nil {
+		return ""
+	}
+
+	// 程序名称
+	programName := filepath.Base(os.Args[0])
+
+	// 获取根命令的补全选项
+	rootCmdOpts := c.parentCmd.collectCompletionOptions()
+
+	// 构建命令树条目缓冲区
+	var cmdTreeEntries bytes.Buffer
+
+	// 添加根命令选项
+	rootOpts := strings.Join(rootCmdOpts, " ")
+
+	// 从根命令的子命令开始添加
+	addSubCommandsPwsh(&cmdTreeEntries, "", c.parentCmd.subCmds)
+
+	// 写入补全函数头部和命令树
+	fmt.Fprintf(&buf, PwshFunctionHeader, programName, rootOpts, cmdTreeEntries.String())
+
+	return buf.String()
+}
+
+// addSubCommandsPwsh 递归添加子命令到PowerShell命令树
+//
+// 参数:
+//   - cmdTreeEntries - 用于存储命令树条目的缓冲区
+//   - parentPath - 父命令路径(使用.作为分隔符)
+//   - cmds - 子命令列表
+func addSubCommandsPwsh(cmdTreeEntries *bytes.Buffer, parentPath string, cmds []*Cmd) {
+	for _, cmd := range cmds {
+		// 获取子命令补全选项
+		cmdOpts := cmd.collectCompletionOptions()
+
+		// 处理长命令
+		longName := cmd.LongName()
+		if longName != "" {
+			// 构建命令路径(使用.作为分隔符)
+			cmdLongPath := parentPath
+			if cmdLongPath != "" {
+				cmdLongPath += fmt.Sprintf(".%s", longName)
+			} else {
+				cmdLongPath = longName
+			}
+
+			// 写入命令树条目
+			fmt.Fprintf(cmdTreeEntries, PwshCommandTreeEntry, cmdLongPath, strings.Join(cmdOpts, " "))
+
+			// 递归添加子命令
+			addSubCommandsPwsh(cmdTreeEntries, cmdLongPath, cmd.subCmds)
+		}
+
+		// 处理短命令
+		shortName := cmd.ShortName()
+		if shortName != "" {
+			// 构建命令路径(使用.作为分隔符)
+			cmdShortPath := parentPath
+			if cmdShortPath != "" {
+				cmdShortPath += fmt.Sprintf(".%s", shortName)
+			} else {
+				cmdShortPath = shortName
+			}
+
+			// 写入命令树条目
+			fmt.Fprintf(cmdTreeEntries, PwshCommandTreeEntry, cmdShortPath, strings.Join(cmdOpts, " "))
+
+			// 递归添加子命令
+			addSubCommandsPwsh(cmdTreeEntries, cmdShortPath, cmd.subCmds)
+		}
+	}
+}
+
 // collectCompletionOptions 收集命令的补全选项，包括标志和子命令
 //
 // 参数：
@@ -209,16 +301,16 @@ func HandleCompletionHook(c *Cmd) (error, bool) {
 
 	// 生成对应shell的补全脚本
 	switch shell {
-	case ShellBash:
+	case ShellBash: // 生成Bash补全脚本
 		fmt.Println(c.generateBashCompletion())
 	case ShellZsh:
 		// 实现Zsh补全逻辑
 	case ShellFish:
 		// 实现Fish补全逻辑
-	case ShellPowershell, ShellPwsh:
-		//fmt.Println(c.generatePwshCompletion())
+	case ShellPowershell, ShellPwsh: // 兼容Powershell和Pwsh
+		fmt.Println(c.generatePwshCompletion())
 	default:
-		return fmt.Errorf("unsupported shell: %s", shell), false
+		return fmt.Errorf("unsupported shell: %s. Supported shells are: %v", shell, ShellSlice), false
 	}
 
 	// 判断是否需要退出
