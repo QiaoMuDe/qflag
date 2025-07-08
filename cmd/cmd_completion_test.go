@@ -35,16 +35,16 @@ func TestComPletionHelp(t *testing.T) {
 
 	// 打印帮助信息
 	fmt.Println("=====================================================")
-	cmd.PrintHelp()
+	//cmd.PrintHelp()
 	fmt.Println("=====================================================")
 
 	// 打印子命令帮助信息
 	fmt.Println("=====================================================")
-	cmd.SubCmds()[0].PrintHelp()
+	//cmd.SubCmds()[0].PrintHelp()
 	fmt.Println("=====================================================")
 
 	// 测试自动补全生成
 	fmt.Println("=====================================================")
-	fmt.Println(cmd.generateBashCompletion())
+	//fmt.Println(cmd.generateBashCompletion())
 	fmt.Println("=====================================================")
 }

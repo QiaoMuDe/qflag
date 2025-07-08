@@ -50,17 +50,8 @@ var completionExamples = []ExampleInfo{
 // 补全脚本模板常量
 const (
 	// Bash补全模板
-	BashFunctionHeader   = "#!/usr/bin/env bash\n\n_%s() {\n\tlocal cur prev words cword\n\tCOMPREPLY=()\n\t_words=(\"${COMP_WORDS[@]}\")\n\tcword=$COMP_CWORD\n\tcur=\"${_words[cword]}\"\n\tprev=\"${_words[cword-1]}\"\n\n\t# 构建命令树结构\n\tdeclare -A cmd_tree\n\tcmd_tree[/]=\"%s\"\n%s\n\n\t# 查找当前命令上下文\n\tlocal context=\"/\"\n\tlocal i\n\tfor ((i=1; i < cword; i++)); do\n\t\tlocal arg=\"${_words[i]}\"\n\t\tif [[ -n \"${cmd_tree[$context$arg/]}\" ]]; then\n\t\t\tcontext=\"$context$arg/\"\n\t\tfi\n\tdone\n\n\t# 获取当前上下文可用选项\n\topts=\"${cmd_tree[$context]}\"\n\tCOMPREPLY=($(compgen -W \"${opts}\" -- ${cur}))\n\treturn 0\n\t}\n\ncomplete -F _%s %s\n"
+	BashFunctionHeader   = "#!/usr/bin/env bash\n\n_%s() {\n\tlocal cur prev words cword context opts i arg\n\tCOMPREPLY=()\n\n\t# 使用_get_comp_words_by_ref获取补全参数, 提高健壮性\n\tif [[ -z \"${_get_comp_words_by_ref}\" ]]; then\n\t\t# 兼容旧版本Bash补全环境\n\t\twords=(\"${COMP_WORDS[@]}\")\n\t\tcword=$COMP_CWORD\n\telse\n\t\t_get_comp_words_by_ref -n =: cur prev words cword\n\tfi\n\n\tcur=\"${words[cword]}\"\n\tprev=\"${words[cword-1]}\"\n\n\t# 构建命令树结构\n\tdeclare -A cmd_tree\n\tcmd_tree[/]=\"%s\"\n%s\n\n\t# 查找当前命令上下文\n\tlocal context=\"/\"\n\tlocal i\n\tfor ((i=1; i < cword; i++)); do\n\t\tlocal arg=\"${words[i]}\"\n\t\tif [[ -n \"${cmd_tree[$context$arg/]}\" ]]; then\n\t\t\tcontext=\"$context$arg/\"\n\t\tfi\n\tdone\n\n\t# 获取当前上下文可用选项\n\topts=\"${cmd_tree[$context]}\"\n\tCOMPREPLY=($(compgen -W \"${opts}\" -- ${cur}))\n\treturn 0\n\t}\n\ncomplete -F _%s %s\n"
 	BashCommandTreeEntry = "\tcmd_tree[/%s/]=\"%s\"\n"
-	BashCommandTemplate1 = "%s %s"
-	BashCommandTemplate2 = "%s"
-	BashBindingCommand   = ""
-
-	// PowerShell补全模板
-	PwshFunctionHeader       = "<#\n.SYNOPSIS\nProvides argument completion for the %s command.\n#>\nfunction TabExpansion_%s {\n\t[CmdletBinding()]\n\tparam(\n\t\t[string]$commandName,\n\t\t[string]$parameterName,\n\t\t[string]$wordToComplete,\n\t\t[System.Management.Automation.Language.CommandAst]$commandAst,\n\t\t[System.Collections.IDictionary]$fakeBoundParameter\n\t)\n\n\t$commands = @('%s')\n\t$options = @()\n\n\t# 获取命令参数\n\t$args = $commandAst.CommandElements | Select-Object -Skip 1 | ForEach-Object { $_.ToString() }\n\t$currentArg = $args[-1]\n\n\t# 根据上下文提供不同的补全选项\n\tif ($args.Count -eq 0) {\n\t\t$options = @('%s')\n\t} else {\n\t\tswitch -Wildcard ($currentArg) {\n"
-	PwshCommandCase          = "\t\t\t'%s' { $options = @('%s') }\n"
-	PwshCommandCaseWithAlias = "\t\t\t'%s' { $options = @('%s') }\n\t\t\t'%s' { $options = @('%s') }\n"
-	PwshFunctionFooter       = "\t\t\tdefault { $options = @('%s') }\n\t\t}\n\t}\n\n\t# 返回匹配的补全选项\n\treturn $options | Where-Object { $_ -like \"$wordToComplete*\" } | Sort-Object\n}\n\nRegister-ArgumentCompleter -CommandName %s -ScriptBlock $function:TabExpansion_%s\n"
 )
 
 // generateBashCompletion 生成Bash自动补全脚本
@@ -79,10 +70,6 @@ func (c *Cmd) generateBashCompletion() string {
 	// 程序名称
 	programName := filepath.Base(os.Args[0])
 
-	// 补全函数头部
-	// 此注释为占位替换标记，实际修改为移除多余的空写入操作，因为后续会重新写入完整的补全函数和命令树
-	// 故此处删除无效的单行写入
-
 	// 获取根命令的补全选项
 	rootCmdOpts := c.parentCmd.collectCompletionOptions()
 
@@ -92,12 +79,19 @@ func (c *Cmd) generateBashCompletion() string {
 	// 添加根命令选项
 	rootOpts := strings.Join(rootCmdOpts, " ")
 
-	// 递归添加子命令到命令树
+	// addSubCommands 递归添加子命令到命令树类型
 	var addSubCommands func(parentPath string, cmds []*Cmd)
+
+	// 递归添加子命令到命令树
 	addSubCommands = func(parentPath string, cmds []*Cmd) {
 		for _, cmd := range cmds {
+			// 构建命令树条目
 			cmdPath := parentPath + cmd.LongName() + "/"
+
+			// 收集子命令的补全选项
 			cmdOpts := cmd.collectCompletionOptions()
+
+			// 写入命令树条目
 			fmt.Fprintf(&cmdTreeEntries, BashCommandTreeEntry, strings.TrimSuffix(cmdPath, "/"), strings.Join(cmdOpts, " "))
 			addSubCommands(cmdPath, cmd.subCmds)
 		}
@@ -108,59 +102,6 @@ func (c *Cmd) generateBashCompletion() string {
 
 	// 写入补全函数头部和命令树
 	fmt.Fprintf(&buf, BashFunctionHeader, programName, rootOpts, cmdTreeEntries.String(), programName, programName)
-
-	return buf.String()
-}
-
-// generatePwshCompletion 生成PowerShell自动补全脚本
-//
-// 返回值：
-//   - string: PowerShell自动补全脚本
-func (c *Cmd) generatePwshCompletion() string {
-	// 缓冲区
-	var buf bytes.Buffer
-
-	// 父命令为空，则返回空字符串
-	if c.parentCmd == nil {
-		return ""
-	}
-
-	// 程序名称
-	programName := filepath.Base(os.Args[0])
-
-	// 获取父命令的子命令切片
-	parentSubCmds := c.parentCmd.subCmds
-
-	// 获取所有子命令名称
-	var subCmdNames []string
-	for _, cmd := range parentSubCmds {
-		if cmd.LongName() != "" {
-			subCmdNames = append(subCmdNames, cmd.LongName())
-		}
-	}
-
-	// 获取根命令的补全选项
-	rootCmdOpts := c.parentCmd.collectCompletionOptions()
-	rootOptsStr := strings.Join(rootCmdOpts, "', '")
-	allCmdsStr := strings.Join(append(subCmdNames, rootCmdOpts...), "', '")
-
-	// 补全函数头部
-	fmt.Fprintf(&buf, PwshFunctionHeader, programName, programName, allCmdsStr, rootOptsStr)
-
-	// 遍历子命令，生成case语句
-	if len(parentSubCmds) > 0 {
-		for _, cmd := range parentSubCmds {
-			// 获取子命令的补全选项
-			cmdOpts := cmd.collectCompletionOptions()
-			cmdOptsStr := strings.Join(cmdOpts, "', '")
-
-			// 写入子命令的补全选项（带别名）
-			fmt.Fprintf(&buf, PwshCommandCaseWithAlias, cmd.LongName(), cmdOptsStr, cmd.ShortName(), cmdOptsStr)
-		}
-	}
-
-	// 补全函数尾部
-	fmt.Fprintf(&buf, PwshFunctionFooter, rootOptsStr, programName, programName)
 
 	return buf.String()
 }
