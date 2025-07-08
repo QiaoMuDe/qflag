@@ -247,7 +247,7 @@ func HandleCompletionHook(c *Cmd) (error, bool) {
 	case ShellFish:
 		// 实现Fish补全逻辑
 	case ShellPowershell, ShellPwsh:
-		fmt.Println(c.generatePwshCompletion())
+		//fmt.Println(c.generatePwshCompletion())
 	default:
 		return fmt.Errorf("unsupported shell: %s", shell), false
 	}
