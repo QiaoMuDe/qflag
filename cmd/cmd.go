@@ -175,6 +175,7 @@ type CmdInterface interface {
 	SetExitOnBuiltinFlags(exit bool)     // 设置是否在添加内置标志时退出
 	SetDisableBuiltinFlags(disable bool) // 设置是否禁用内置标志注册
 	CmdExists(cmdName string) bool       // 判断命令行参数中是否存在指定标志
+	SetEnableCompletion(enable bool)     // 设置是否启用自动补全
 
 	// 标志解析方法
 	Parse(args []string) error                // 解析命令行参数, 自动处理标志和子命令

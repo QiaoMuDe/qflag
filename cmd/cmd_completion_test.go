@@ -15,7 +15,7 @@ func TestComPletion(t *testing.T) {
 	cmd.SetUseChinese(true)          // 设置使用中文
 
 	// 解析命令行参数
-	if err := cmd.Parse([]string{"completion", "--shell", "pwsh"}); err != nil {
+	if err := cmd.Parse([]string{"completion", "--shell", "bash"}); err != nil {
 		t.Fatal(err)
 	}
 }

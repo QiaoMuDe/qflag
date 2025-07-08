@@ -13,11 +13,10 @@ import (
 //
 // 参数:
 //   - enable: true表示启用补全,false表示禁用
-func (c *Cmd) SetEnableCompletion(enable bool) *Cmd {
+func (c *Cmd) SetEnableCompletion(enable bool) {
 	c.rwMu.Lock()
 	defer c.rwMu.Unlock()
 	c.enableCompletion = enable
-	return c
 }
 
 // FlagRegistry 获取标志注册表的只读访问

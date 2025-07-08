@@ -52,6 +52,7 @@ type QCommandLineInterface interface {
 	SetExitOnBuiltinFlags(exit bool)     // 设置是否在处理内置标志时退出
 	SetDisableBuiltinFlags(disable bool) // 设置是否禁用内置标志注册
 	CmdExists(cmdName string) bool       // 检查指定名称的命令是否存在
+	SetEnableCompletion(enable bool)     // 设置是否启用自动完成功能
 
 	// 标志解析方法
 	Parse() error          // 解析命令行参数，自动处理标志和子命令
@@ -439,4 +440,16 @@ func IsParsed() bool {
 //   - *flags.FlagRegistry: 标志注册表
 func FlagRegistry() *flags.FlagRegistry {
 	return QCommandLine.FlagRegistry()
+}
+
+// SetEnableCompletion 设置是否启用自动完成功能
+//
+// 参数:
+//   - enable: 是否启用自动完成功能
+//
+// 示例:
+//
+//	qflag.SetEnableCompletion(true)
+func SetEnableCompletion(enable bool) {
+	QCommandLine.SetEnableCompletion(enable)
 }

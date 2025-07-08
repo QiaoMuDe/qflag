@@ -70,6 +70,11 @@ func (c *Cmd) generateBashCompletion() string {
 	// 缓冲区
 	var buf bytes.Buffer
 
+	// 父命令为空，则返回空字符串
+	if c.parentCmd == nil {
+		return ""
+	}
+
 	// 程序名称
 	programName := filepath.Base(os.Args[0])
 
@@ -77,14 +82,14 @@ func (c *Cmd) generateBashCompletion() string {
 	fmt.Fprintf(&buf, BashFunctionHeader, programName)
 
 	// 获取根命令的补全选项
-	rootCmdOpts := c.collectCompletionOptions()
+	rootCmdOpts := c.parentCmd.collectCompletionOptions()
 
 	// 写入根命令的补全选项
 	fmt.Fprintf(&buf, BashCommandTemplate2, programName, strings.Join(rootCmdOpts, " "))
 
 	// 遍历子命令
-	if subCmds := c.subCmds; len(subCmds) > 0 {
-		for _, cmd := range subCmds {
+	if parentSubCmds := c.parentCmd.subCmds; len(parentSubCmds) > 0 {
+		for _, cmd := range parentSubCmds {
 			// 获取子命令的补全选项
 			cmdOpts := cmd.collectCompletionOptions()
 
@@ -107,19 +112,27 @@ func (c *Cmd) generatePwshCompletion() string {
 	// 缓冲区
 	var buf bytes.Buffer
 
+	// 父命令为空，则返回空字符串
+	if c.parentCmd == nil {
+		return ""
+	}
+
 	// 程序名称
 	programName := filepath.Base(os.Args[0])
 
+	// 获取父命令的子命令切片
+	parentSubCmds := c.parentCmd.subCmds
+
 	// 获取所有子命令名称
 	var subCmdNames []string
-	for _, cmd := range c.subCmds {
+	for _, cmd := range parentSubCmds {
 		if cmd.LongName() != "" {
 			subCmdNames = append(subCmdNames, cmd.LongName())
 		}
 	}
 
 	// 获取根命令的补全选项
-	rootCmdOpts := c.collectCompletionOptions()
+	rootCmdOpts := c.parentCmd.collectCompletionOptions()
 	rootOptsStr := strings.Join(rootCmdOpts, "', '")
 	allCmdsStr := strings.Join(append(subCmdNames, rootCmdOpts...), "', '")
 
@@ -127,8 +140,8 @@ func (c *Cmd) generatePwshCompletion() string {
 	fmt.Fprintf(&buf, PwshFunctionHeader, programName, programName, allCmdsStr, rootOptsStr)
 
 	// 遍历子命令，生成case语句
-	if subCmds := c.subCmds; len(subCmds) > 0 {
-		for _, cmd := range subCmds {
+	if len(parentSubCmds) > 0 {
+		for _, cmd := range parentSubCmds {
 			// 获取子命令的补全选项
 			cmdOpts := cmd.collectCompletionOptions()
 			cmdOptsStr := strings.Join(cmdOpts, "', '")
