@@ -29,7 +29,7 @@ func TestComPletionHelp(t *testing.T) {
 	cmd.SetUseChinese(true)          // 设置使用中文
 
 	// 解析命令行参数
-	if err := cmd.Parse([]string{}); err != nil {
+	if err := cmd.Parse([]string{"completion"}); err != nil {
 		t.Fatal(err)
 	}
 

@@ -467,28 +467,9 @@ func (c *Cmd) parseCommon(args []string, parseSubcommands bool) (err error, shou
 		return fmt.Errorf("cmd cannot be nil"), false
 	}
 
-	// 核心功能组件校验 (必须初始化)
-	if c.fs == nil {
-		return fmt.Errorf("flag.FlagSet instance is not initialized"), false
-	}
-	if c.flagRegistry == nil {
-		return fmt.Errorf("FlagRegistry instance is not initialized"), false
-	}
-	if c.subCmdMap == nil {
-		return fmt.Errorf("subCmdMap cannot be nil"), false
-	}
-
-	// 内置标志校验 (根据启用状态决定是否需要校验)
-	if !c.disableBuiltinFlags {
-		if c.helpFlag == nil {
-			return fmt.Errorf("help flag is not initialized"), false
-		}
-		if c.versionFlag == nil {
-			return fmt.Errorf("version flag is not initialized"), false
-		}
-		if c.showInstallPathFlag == nil {
-			return fmt.Errorf("showInstallPath flag is not initialized"), false
-		}
+	// 调用提取的组件校验方法
+	if err = c.validateComponents(); err != nil {
+		return err, false
 	}
 
 	// 确保只解析一次
@@ -497,86 +478,20 @@ func (c *Cmd) parseCommon(args []string, parseSubcommands bool) (err error, shou
 
 		// 只有在没有禁用内置标志时才注册内置标志
 		if !c.disableBuiltinFlags {
-			// 定义帮助标志提示信息
-			helpUsage := flags.HelpFlagUsageEn
-			if c.GetUseChinese() {
-				helpUsage = flags.HelpFlagUsageZh
-			}
-
-			// 注册帮助标志
-			c.BoolVar(c.helpFlag, flags.HelpFlagName, flags.HelpFlagShortName, false, helpUsage)
-
-			// 添加到内置标志名称映射
-			c.builtinFlagNameMap.Store(flags.HelpFlagName, true)
-			c.builtinFlagNameMap.Store(flags.HelpFlagShortName, true)
-
-			// 只有在根命令上注册显示程序安装路径标志和版本信息标志
-			if c.parentCmd == nil {
-				// 定义显示安装路径标志提示信息
-				installPathUsage := flags.ShowInstallPathFlagUsageEn
-				if c.GetUseChinese() {
-					installPathUsage = flags.ShowInstallPathFlagUsageZh
-				}
-
-				// 绑定显示安装路径标志
-				c.BoolVar(c.showInstallPathFlag, "", flags.ShowInstallPathFlagName, false, installPathUsage)
-
-				// 添加到内置标志名称映射
-				c.builtinFlagNameMap.Store(flags.ShowInstallPathFlagName, true)
-
-				// 只有在版本信息不为空时才注册版本信息标志
-				if c.GetVersion() != "" {
-					// 定义版本信息标志提示信息
-					versionUsage := flags.VersionFlagUsageEn
-					if c.GetUseChinese() {
-						versionUsage = flags.VersionFlagUsageZh
-					}
-
-					// 注册版本信息标志
-					c.BoolVar(c.versionFlag, flags.VersionFlagLongName, flags.VersionFlagShortName, false, versionUsage)
-
-					// 添加到内置标志名称映射
-					c.builtinFlagNameMap.Store(flags.VersionFlagLongName, true)
-					c.builtinFlagNameMap.Store(flags.VersionFlagShortName, true)
-				}
-			}
+			// 调用提取的内置标志注册方法
+			c.registerBuiltinFlags()
 
 			// 注册自动补全子命令
 			if c.enableCompletion { // 只有在根命令上注册自动补全子命令
-				// 创建自动补全子命令
-				completionCmd := NewCmd(CompletionShellLongName, CompletionShellShortName, flag.ExitOnError)
-				completionCmd.SetEnableCompletion(true) // 启用自动补全
-
-				// 设置自动补全子命令的内置标志退出策略
-				if !c.exitOnBuiltinFlags {
-					completionCmd.SetExitOnBuiltinFlags(false)
+				// 调用提取的自动补全子命令创建方法
+				completionCmd, createErr := c.createCompletionSubcommand()
+				if createErr != nil {
+					err = createErr
+					return
 				}
 
-				// 为子命令定义并绑定自动补全标志
-				completionCmd.EnumVar(completionCmd.completionShell, CompletionShellFlagLongName, CompletionShellFlagShortName, ShellNone, fmt.Sprintf("指定要生成的shell补全脚本类型, 可选值: %v", ShellSlice), ShellSlice)
-
-				// 根据父命令的语言设置自动设置子命令的语言
-				if c.GetUseChinese() {
-					completionCmd.SetDescription(CompletionShellUsageZh)
-					completionCmd.SetUseChinese(true)
-				} else {
-					completionCmd.SetDescription(CompletionShellUsageEn)
-					completionCmd.SetUseChinese(false)
-				}
-
-				// 添加自动补全子命令的示例
-				cmdName := os.Args[0]
-				for _, ex := range completionExamples {
-					completionCmd.AddExample(ExampleInfo{
-						Description: ex.Description,
-						Usage:       fmt.Sprintf(ex.Usage, cmdName),
-					})
-				}
-
-				// 添加子命令
-				if addErr := c.AddSubCmd(completionCmd); addErr != nil {
-					// 添加错误
-					err = addErr
+				// 添加自动补全子命令到当前命令
+				if err = c.AddSubCmd(completionCmd); err != nil {
 					return
 				}
 			}
@@ -608,109 +523,77 @@ func (c *Cmd) parseCommon(args []string, parseSubcommands bool) (err error, shou
 
 		// 只有在没有禁用内置标志时才处理内置标志
 		if !c.disableBuiltinFlags {
-			// 检查是否使用-h/--help标志
-			if c.helpFlag.Get() {
-				c.PrintHelp()
-				if c.exitOnBuiltinFlags {
-					// 仅在ExitOnBuiltinFlags时才退出
-					shouldExit = true // 标记需要退出
-					return            // 退出当前函数, 执行defer清理
-				}
+			// 调用提取的内置标志处理方法
+			exit, handleErr := c.handleBuiltinFlags()
+			if handleErr != nil {
+				// 处理内置标志错误
+				err = handleErr
 				return
 			}
 
-			// 只有在顶级命令中处理-sip/--show-install-path和-v/--version标志
-			if c.parentCmd == nil {
-				// 检查是否使用-sip/--show-install-path标志
-				if c.showInstallPathFlag.Get() {
-					fmt.Println(GetExecutablePath())
-					if c.exitOnBuiltinFlags {
-						// 仅在ExitOnBuiltinFlags时才退出
-						shouldExit = true // 标记需要退出
-						return            // 退出当前函数, 执行defer清理
+			// 内置标志处理是否需要退出程序
+			if exit {
+				shouldExit = true
+				return
+			}
+		}
+
+		// 设置非标志参数
+		c.args = append(c.args, c.fs.Args()...)
+
+		// 如果允许解析子命令, 则进入子命令解析阶段, 否则跳过子命令解析
+		if parseSubcommands {
+			// 如果存在子命令并且非标志参数不为0
+			if len(c.args) > 0 && (len(c.subCmdMap) > 0 && len(c.subCmds) > 0) {
+				// 获取参数的第一个值
+				arg := c.args[0]
+
+				// 保存剩余参数
+				remainingArgs := make([]string, len(c.args)-1)
+				copy(remainingArgs, c.args[1:])
+
+				// 直接通过参数查找(map键已包含长名称和短名称)
+				if subCmd, ok := c.subCmdMap[arg]; ok {
+					// 将剩余参数传递给子命令解析
+					if parseErr := subCmd.Parse(remainingArgs); parseErr != nil {
+						err = fmt.Errorf("%w for '%s': %v", qerr.ErrSubCommandParseFailed, arg, parseErr)
 					}
 					return
 				}
-
-				// 检查是否使用-v/--version标志
-				if c.versionFlag.Get() && c.GetVersion() != "" {
-					fmt.Println(c.GetVersion())
-					if c.exitOnBuiltinFlags {
-						// 仅在ExitOnBuiltinFlags时才退出
-						shouldExit = true // 标记需要退出
-						return            // 退出当前函数, 执行defer清理
-					}
-					return
-				}
-
 			}
+		}
 
-			// 检查枚举类型标志是否有效
-			for _, meta := range c.flagRegistry.GetAllFlagMetas() {
-				if meta.GetFlagType() == flags.FlagTypeEnum {
-					if enumFlag, ok := meta.GetFlag().(*flags.EnumFlag); ok {
-						// 调用IsCheck方法进行验证
-						if checkErr := enumFlag.IsCheck(enumFlag.Get()); checkErr != nil {
-							// 添加标志名称到错误信息, 便于定位问题
-							err = fmt.Errorf("flag %s: %w", meta.GetName(), checkErr)
-							break // 发现第一个错误后立即退出循环
-						}
-					}
-				}
-			}
+		// 执行自动补全钩子（如果启用）
+		if c.enableCompletion {
+			hookErr, hookExit := HandleCompletionHook(c)
 
-			// 枚举标志检查失败立即返回
-			if err != nil {
+			// 处理钩子函数错误
+			if hookErr != nil {
+				err = hookErr
 				return
 			}
 
-			// 设置非标志参数
-			c.args = append(c.args, c.fs.Args()...)
+			// 钩子函数是否需要退出程序
+			if hookExit {
+				shouldExit = true
+				return
+			}
+		}
 
-			// 如果允许解析子命令, 则进入子命令解析阶段, 否则跳过子命令解析
-			if parseSubcommands {
-				// 如果存在子命令并且非标志参数不为0
-				if len(c.args) > 0 && (len(c.subCmdMap) > 0 && len(c.subCmds) > 0) {
-					// 获取参数的第一个值
-					arg := c.args[0]
+		// 调用自定义解析阶段钩子函数
+		if c.ParseHook != nil {
+			hookErr, hookExit := c.ParseHook(c)
 
-					// 保存剩余参数
-					remainingArgs := make([]string, len(c.args)-1)
-					copy(remainingArgs, c.args[1:])
-
-					// 直接通过参数查找(map键已包含长名称和短名称)
-					if subCmd, ok := c.subCmdMap[arg]; ok {
-						// 将剩余参数传递给子命令解析
-						if parseErr := subCmd.Parse(remainingArgs); parseErr != nil {
-							err = fmt.Errorf("%w for '%s': %v", qerr.ErrSubCommandParseFailed, arg, parseErr)
-						}
-						return
-					}
-				}
+			// 处理钩子函数错误
+			if hookErr != nil {
+				err = hookErr
+				return
 			}
 
-			// 执行自动补全钩子（如果启用）
-			if c.enableCompletion {
-				if hookErr, hookExit := HandleCompletionHook(c); hookErr != nil {
-					err = hookErr
-					return
-				} else if hookExit {
-					shouldExit = true
-					return
-				}
-			}
-
-			// 调用解析阶段钩子函数
-			if c.ParseHook != nil {
-				hookErr, hookExit := c.ParseHook(c)
-				if hookErr != nil {
-					err = hookErr
-					return
-				}
-				if hookExit {
-					shouldExit = true
-					return
-				}
+			// 钩子函数是否需要退出程序
+			if hookExit {
+				shouldExit = true
+				return
 			}
 		}
 
@@ -787,4 +670,173 @@ func (c *Cmd) loadEnvVars() error {
 	})
 
 	return loadErr
+}
+
+// validateComponents 校验核心组件和内置标志的初始化状态
+//
+// 返回值：
+//   - 组件校验错误信息
+func (c *Cmd) validateComponents() error {
+	// 核心功能组件校验 (必须初始化)
+	if c.fs == nil {
+		return fmt.Errorf("flag.FlagSet instance is not initialized")
+	}
+	if c.flagRegistry == nil {
+		return fmt.Errorf("FlagRegistry instance is not initialized")
+	}
+	if c.subCmdMap == nil {
+		return fmt.Errorf("subCmdMap cannot be nil")
+	}
+
+	// 内置标志校验 (根据启用状态决定是否需要校验)
+	if !c.disableBuiltinFlags {
+		if c.helpFlag == nil {
+			return fmt.Errorf("help flag is not initialized")
+		}
+		if c.versionFlag == nil {
+			return fmt.Errorf("version flag is not initialized")
+		}
+		if c.showInstallPathFlag == nil {
+			return fmt.Errorf("showInstallPath flag is not initialized")
+		}
+	}
+	return nil
+}
+
+// registerBuiltinFlags 注册内置标志(-h/--help, -v/--version等)
+func (c *Cmd) registerBuiltinFlags() {
+	// 定义帮助标志提示信息
+	helpUsage := flags.HelpFlagUsageEn
+	if c.GetUseChinese() {
+		helpUsage = flags.HelpFlagUsageZh
+	}
+
+	// 注册帮助标志
+	c.BoolVar(c.helpFlag, flags.HelpFlagName, flags.HelpFlagShortName, false, helpUsage)
+
+	// 添加到内置标志名称映射
+	c.builtinFlagNameMap.Store(flags.HelpFlagName, true)
+	c.builtinFlagNameMap.Store(flags.HelpFlagShortName, true)
+
+	// 只有在根命令上注册显示程序安装路径标志和版本信息标志
+	if c.parentCmd == nil {
+		// 定义显示安装路径标志提示信息
+		installPathUsage := flags.ShowInstallPathFlagUsageEn
+		if c.GetUseChinese() {
+			installPathUsage = flags.ShowInstallPathFlagUsageZh
+		}
+
+		// 绑定显示安装路径标志
+		c.BoolVar(c.showInstallPathFlag, "", flags.ShowInstallPathFlagName, false, installPathUsage)
+
+		// 添加到内置标志名称映射
+		c.builtinFlagNameMap.Store(flags.ShowInstallPathFlagName, true)
+
+		// 只有在版本信息不为空时才注册版本信息标志
+		if c.GetVersion() != "" {
+			// 定义版本信息标志提示信息
+			versionUsage := flags.VersionFlagUsageEn
+			if c.GetUseChinese() {
+				versionUsage = flags.VersionFlagUsageZh
+			}
+
+			// 注册版本信息标志
+			c.BoolVar(c.versionFlag, flags.VersionFlagLongName, flags.VersionFlagShortName, false, versionUsage)
+
+			// 添加到内置标志名称映射
+			c.builtinFlagNameMap.Store(flags.VersionFlagLongName, true)
+			c.builtinFlagNameMap.Store(flags.VersionFlagShortName, true)
+		}
+	}
+}
+
+// createCompletionSubcommand 创建自动补全子命令
+//
+// 返回值：
+//   - 自动补全子命令实例
+//   - 错误信息
+func (c *Cmd) createCompletionSubcommand() (*Cmd, error) {
+	// 创建自动补全子命令
+	completionCmd := NewCmd(CompletionShellLongName, CompletionShellShortName, flag.ExitOnError)
+	completionCmd.SetEnableCompletion(true) // 启用自动补全
+
+	// 设置自动补全子命令的内置标志退出策略
+	if !c.exitOnBuiltinFlags {
+		completionCmd.SetExitOnBuiltinFlags(false)
+	}
+
+	// 为子命令定义并绑定自动补全标志
+	completionCmd.EnumVar(completionCmd.completionShell, CompletionShellFlagLongName, CompletionShellFlagShortName, ShellNone, fmt.Sprintf("指定要生成的shell补全脚本类型, 可选值: %v", ShellSlice), ShellSlice)
+
+	// 根据父命令的语言设置自动设置子命令的语言
+	if c.GetUseChinese() {
+		completionCmd.SetDescription(CompletionShellUsageZh)
+		completionCmd.SetUseChinese(true)
+	} else {
+		completionCmd.SetDescription(CompletionShellUsageEn)
+		completionCmd.SetUseChinese(false)
+	}
+
+	// 添加自动补全子命令的示例
+	cmdName := os.Args[0]
+	for _, ex := range completionExamples {
+		completionCmd.AddExample(ExampleInfo{
+			Description: ex.Description,
+			Usage:       fmt.Sprintf(ex.Usage, cmdName),
+		})
+	}
+
+	return completionCmd, nil
+}
+
+// handleBuiltinFlags 处理内置标志(-h/--help, -v/--version等)的逻辑
+//
+// 返回值:
+//   - 是否需要退出程序
+//   - 处理过程中遇到的错误
+func (c *Cmd) handleBuiltinFlags() (bool, error) {
+	// 检查是否使用-h/--help标志
+	if c.helpFlag.Get() {
+		c.PrintHelp()
+		if c.exitOnBuiltinFlags {
+			return true, nil // 标记需要退出
+		}
+		return false, nil
+	}
+
+	// 只有在顶级命令中处理-sip/--show-install-path和-v/--version标志
+	if c.parentCmd == nil {
+		// 检查是否使用-sip/--show-install-path标志
+		if c.showInstallPathFlag.Get() {
+			fmt.Println(GetExecutablePath())
+			if c.exitOnBuiltinFlags {
+				return true, nil // 标记需要退出
+			}
+			return false, nil
+		}
+
+		// 检查是否使用-v/--version标志
+		if c.versionFlag.Get() && c.GetVersion() != "" {
+			fmt.Println(c.GetVersion())
+			if c.exitOnBuiltinFlags {
+				return true, nil // 标记需要退出
+			}
+			return false, nil
+		}
+	}
+
+	// 检查枚举类型标志是否有效
+	for _, meta := range c.flagRegistry.GetAllFlagMetas() {
+		if meta.GetFlagType() == flags.FlagTypeEnum {
+			if enumFlag, ok := meta.GetFlag().(*flags.EnumFlag); ok {
+				// 调用IsCheck方法进行验证
+				if checkErr := enumFlag.IsCheck(enumFlag.Get()); checkErr != nil {
+					// 添加标志名称到错误信息, 便于定位问题
+					return false, fmt.Errorf("flag %s: %w", meta.GetName(), checkErr)
+				}
+			}
+		}
+	}
+
+	return false, nil
 }
