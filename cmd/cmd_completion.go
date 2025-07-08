@@ -50,10 +50,11 @@ var completionExamples = []ExampleInfo{
 // 补全脚本模板常量
 const (
 	// Bash补全模板
-	BashFunctionHeader   = "#!/usr/bin/env bash\n\n_%s() {\n\tlocal cur prev opts\n\tCOMPREPLY=()\n\tcur=\"${COMP_WORDS[COMP_CWORD]}\"\n\tprev=\"${COMP_WORDS[COMP_CWORD - 1]}\"\n\n\tcase \"${prev}\" in\n"
-	BashCommandTemplate1 = "\t\t%s|%s)\n\t\t\topts=\"%s\"\n\t\t\tCOMPREPLY=($(compgen -W \"${opts}\" -- ${cur}))\n\t\t\treturn 0\n\t\t\t;;\n"
-	BashCommandTemplate2 = "\t\t%s)\n\t\t\topts=\"%s\"\n\t\t\tCOMPREPLY=($(compgen -W \"${opts}\" -- ${cur}))\n\t\t\treturn 0\n\t\t\t;;\n"
-	BashBindingCommand   = "\t\t*)\n\t\t\t;;\n\tesac\n\t}\n\ncomplete -F _%s %s\n"
+	BashFunctionHeader   = "#!/usr/bin/env bash\n\n_%s() {\n\tlocal cur prev words cword\n\tCOMPREPLY=()\n\t_words=(\"${COMP_WORDS[@]}\")\n\tcword=$COMP_CWORD\n\tcur=\"${_words[cword]}\"\n\tprev=\"${_words[cword-1]}\"\n\n\t# 构建命令树结构\n\tdeclare -A cmd_tree\n\tcmd_tree[/]=\"%s\"\n%s\n\n\t# 查找当前命令上下文\n\tlocal context=\"/\"\n\tlocal i\n\tfor ((i=1; i < cword; i++)); do\n\t\tlocal arg=\"${_words[i]}\"\n\t\tif [[ -n \"${cmd_tree[$context$arg/]}\" ]]; then\n\t\t\tcontext=\"$context$arg/\"\n\t\tfi\n\tdone\n\n\t# 获取当前上下文可用选项\n\topts=\"${cmd_tree[$context]}\"\n\tCOMPREPLY=($(compgen -W \"${opts}\" -- ${cur}))\n\treturn 0\n\t}\n\ncomplete -F _%s %s\n"
+	BashCommandTreeEntry = "\tcmd_tree[/%s/]=\"%s\"\n"
+	BashCommandTemplate1 = "%s %s"
+	BashCommandTemplate2 = "%s"
+	BashBindingCommand   = ""
 
 	// PowerShell补全模板
 	PwshFunctionHeader       = "<#\n.SYNOPSIS\nProvides argument completion for the %s command.\n#>\nfunction TabExpansion_%s {\n\t[CmdletBinding()]\n\tparam(\n\t\t[string]$commandName,\n\t\t[string]$parameterName,\n\t\t[string]$wordToComplete,\n\t\t[System.Management.Automation.Language.CommandAst]$commandAst,\n\t\t[System.Collections.IDictionary]$fakeBoundParameter\n\t)\n\n\t$commands = @('%s')\n\t$options = @()\n\n\t# 获取命令参数\n\t$args = $commandAst.CommandElements | Select-Object -Skip 1 | ForEach-Object { $_.ToString() }\n\t$currentArg = $args[-1]\n\n\t# 根据上下文提供不同的补全选项\n\tif ($args.Count -eq 0) {\n\t\t$options = @('%s')\n\t} else {\n\t\tswitch -Wildcard ($currentArg) {\n"
@@ -79,27 +80,34 @@ func (c *Cmd) generateBashCompletion() string {
 	programName := filepath.Base(os.Args[0])
 
 	// 补全函数头部
-	fmt.Fprintf(&buf, BashFunctionHeader, programName)
+	// 此注释为占位替换标记，实际修改为移除多余的空写入操作，因为后续会重新写入完整的补全函数和命令树
+	// 故此处删除无效的单行写入
 
 	// 获取根命令的补全选项
 	rootCmdOpts := c.parentCmd.collectCompletionOptions()
 
-	// 写入根命令的补全选项
-	fmt.Fprintf(&buf, BashCommandTemplate2, programName, strings.Join(rootCmdOpts, " "))
+	// 构建命令树条目
+	var cmdTreeEntries bytes.Buffer
 
-	// 遍历子命令
-	if parentSubCmds := c.parentCmd.subCmds; len(parentSubCmds) > 0 {
-		for _, cmd := range parentSubCmds {
-			// 获取子命令的补全选项
+	// 添加根命令选项
+	rootOpts := strings.Join(rootCmdOpts, " ")
+
+	// 递归添加子命令到命令树
+	var addSubCommands func(parentPath string, cmds []*Cmd)
+	addSubCommands = func(parentPath string, cmds []*Cmd) {
+		for _, cmd := range cmds {
+			cmdPath := parentPath + cmd.LongName() + "/"
 			cmdOpts := cmd.collectCompletionOptions()
-
-			// 写入子命令的补全选项
-			fmt.Fprintf(&buf, BashCommandTemplate1, cmd.LongName(), cmd.ShortName(), strings.Join(cmdOpts, " "))
+			fmt.Fprintf(&cmdTreeEntries, BashCommandTreeEntry, strings.TrimSuffix(cmdPath, "/"), strings.Join(cmdOpts, " "))
+			addSubCommands(cmdPath, cmd.subCmds)
 		}
 	}
 
-	// 写入命令绑定模板
-	fmt.Fprintf(&buf, BashBindingCommand, programName, programName)
+	// 从根命令的子命令开始添加
+	addSubCommands("", c.parentCmd.subCmds)
+
+	// 写入补全函数头部和命令树
+	fmt.Fprintf(&buf, BashFunctionHeader, programName, rootOpts, cmdTreeEntries.String(), programName, programName)
 
 	return buf.String()
 }
