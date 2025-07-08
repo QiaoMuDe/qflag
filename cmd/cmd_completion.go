@@ -137,3 +137,66 @@ func (c *Cmd) collectCompletionOptions() []string {
 	// 返回所有选项
 	return opts
 }
+
+// HandleCompletionHook 自动补全钩子实现
+//
+// 功能：处理自动补全子命令逻辑，生成指定shell的补全脚本
+//
+// 参数：
+//   - c: 当前命令实例
+//
+// 返回值：
+//   - error: 处理过程中的错误信息
+//   - bool: 是否需要退出程序
+func HandleCompletionHook(c *Cmd) (error, bool) {
+	fmt.Println("[DEBUG] Completion hook triggered, enableCompletion:", c.enableCompletion) // 添加此行
+
+	// 检查是否启用自动补全
+	if !c.enableCompletion {
+		fmt.Println("[DEBUG] Completion hook triggered, but completion is disabled")
+		return nil, false
+	}
+
+	// 获取补全子命令
+	rootCmd := c
+	for rootCmd.parentCmd != nil { // 追溯到根命令
+		rootCmd = rootCmd.parentCmd
+	}
+
+	s, ok := rootCmd.subCmdMap[CompletionShellLongName]
+	if !ok {
+		fmt.Println("[DEBUG] Completion hook triggered, but completion command not found")
+		return nil, false
+	}
+
+	// 获取shell类型
+	shell := s.completionShell.Get()
+	if shell == ShellNone {
+		fmt.Println("[DEBUG] Completion hook triggered, but completion shell is not specified")
+		return nil, false
+	}
+
+	fmt.Println("shell", 11, shell)
+
+	// 生成对应shell的补全脚本
+	switch shell {
+	case ShellBash:
+		fmt.Println(c.generateBashCompletion())
+	case ShellZsh:
+		// 实现Zsh补全逻辑
+	case ShellFish:
+		// 实现Fish补全逻辑
+	case ShellPowershell, ShellPwsh:
+		// 实现PowerShell补全逻辑
+	default:
+		fmt.Println("Unsupported shell type:", shell)
+		return nil, false
+	}
+
+	// 判断是否需要退出
+	if c.exitOnBuiltinFlags {
+		return nil, true
+	}
+
+	return nil, false
+}

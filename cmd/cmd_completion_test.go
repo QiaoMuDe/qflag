@@ -8,7 +8,9 @@ import (
 
 func TestComPletion(t *testing.T) {
 	// 新建根命令
-	cmd := NewCmd("root", "r", flag.ExitOnError).SetEnableCompletion(true)
+	cmd := NewCmd("root", "r", flag.ExitOnError)
+	cmd.SetEnableCompletion(true)
+	cmd.SetExitOnBuiltinFlags(false)
 	cmd.SetUseChinese(true)
 
 	// 解析命令行参数
@@ -18,23 +20,10 @@ func TestComPletion(t *testing.T) {
 
 	fmt.Println(cmd.Args())
 
-	fmt.Println(cmd.enableCompletion)
-
-	// 获取自动补全子命令
-	completionCmd := cmd.subCmdMap["completion"]
-	if completionCmd == nil {
-		completionCmd = cmd.subCmdMap["comp"]
-	}
-	if completionCmd != nil {
-		fmt.Println(completionCmd.completionShell.Get())
-	} else {
-		fmt.Println("Completion subcommand not found")
-	}
-
 	// 打印帮助信息
-	fmt.Println("=====================================================")
+	//fmt.Println("=====================================================")
 	//cmd.PrintHelp()
-	fmt.Println("=====================================================")
+	//fmt.Println("=====================================================")
 
 	// cmd.SubCmds()[0].Parse([]string{"test"})
 
@@ -44,7 +33,7 @@ func TestComPletion(t *testing.T) {
 	// fmt.Println("=====================================================")
 
 	// 测试自动补全生成
-	fmt.Println("=====================================================")
+	//fmt.Println("=====================================================")
 	//fmt.Println(cmd.generateBashCompletion())
-	fmt.Println("=====================================================")
+	//fmt.Println("=====================================================")
 }

@@ -117,6 +117,17 @@ type Cmd struct {
 
 	// 控制是否启用自动补全
 	enableCompletion bool
+
+	// 解析阶段钩子函数
+	// 在标志解析完成后、子命令处理前执行
+	//
+	// 参数:
+	//   - 当前命令实例
+	//
+	// 返回值:
+	//   - error: 错误信息，非nil时会中断解析流程
+	//   - bool: 是否需要退出程序
+	ParseHook func(*Cmd) (error, bool)
 }
 
 // CmdInterface 命令接口定义, 封装命令行程序的核心功能
@@ -129,41 +140,41 @@ type Cmd struct {
 // cmd.String("config", "c", "配置文件路径", "/etc/app.conf")
 type CmdInterface interface {
 	// 元数据操作方法
-	Name() string                             // 获取命令名称
-	LongName() string                         // 获取命令名称(长名称), 如"app"
-	ShortName() string                        // 获取命令短名称, 如"a"
-	FlagRegistry() *flags.FlagRegistry        // 获取标志注册表
-	GetDescription() string                   // 获取命令描述信息
-	SetDescription(desc string)               // 设置命令描述信息, 用于帮助输出
-	GetHelp() string                          // 获取自定义帮助信息
-	SetHelp(help string)                      // 设置自定义帮助信息, 覆盖自动生成内容
-	LoadHelp(filePath string) error           // 加载自定义帮助信息, 从文件中读取
-	SetUsageSyntax(usageSyntax string)        // 设置自定义用法说明, 覆盖自动生成内容
-	GetUsageSyntax() string                   // 获取自定义用法说明
-	GetUseChinese() bool                      // 获取是否使用中文帮助信息
-	SetUseChinese(useChinese bool)            // 设置是否使用中文帮助信息
-	AddSubCmd(subCmd *Cmd)                    // 添加子命令, 子命令会继承父命令的上下文
-	SubCmds() []*Cmd                          // 获取所有已注册的子命令列表
-	SubCmdMap() map[string]*Cmd               // 获取所有已注册的子命令映射表
-	Args() []string                           // 获取所有非标志参数(未绑定到任何标志的参数)
-	Arg(i int) string                         // 获取指定索引的非标志参数, 索引越界返回空字符串
-	NArg() int                                // 获取非标志参数的数量
-	NFlag() int                               // 获取已解析的标志数量
-	FlagExists(name string) bool              // 检查指定名称的标志是否存在(支持长/短名称)
-	PrintHelp()                               // 打印命令帮助信息
-	AddNote(note string)                      // 添加备注信息
-	GetNotes() []string                       // 获取所有备注信息
-	AddExample(e ExampleInfo)                 // 添加示例信息
-	GetExamples() []ExampleInfo               // 获取所有示例信息
-	SetVersion(version string)                // 设置版本信息
-	GetVersion() string                       // 获取版本信息
-	SetLogoText(logoText string)              // 设置logo文本
-	GetLogoText() string                      // 获取logo文本
-	SetModuleHelps(moduleHelps string)        // 设置自定义模块帮助信息
-	GetModuleHelps() string                   // 获取自定义模块帮助信息
-	SetExitOnBuiltinFlags(exit bool) *Cmd     // 设置是否在添加内置标志时退出
-	SetDisableBuiltinFlags(disable bool) *Cmd // 设置是否禁用内置标志注册
-	CmdExists(cmdName string) bool            // 判断命令行参数中是否存在指定标志
+	Name() string                        // 获取命令名称
+	LongName() string                    // 获取命令名称(长名称), 如"app"
+	ShortName() string                   // 获取命令短名称, 如"a"
+	FlagRegistry() *flags.FlagRegistry   // 获取标志注册表
+	GetDescription() string              // 获取命令描述信息
+	SetDescription(desc string)          // 设置命令描述信息, 用于帮助输出
+	GetHelp() string                     // 获取自定义帮助信息
+	SetHelp(help string)                 // 设置自定义帮助信息, 覆盖自动生成内容
+	LoadHelp(filePath string) error      // 加载自定义帮助信息, 从文件中读取
+	SetUsageSyntax(usageSyntax string)   // 设置自定义用法说明, 覆盖自动生成内容
+	GetUsageSyntax() string              // 获取自定义用法说明
+	GetUseChinese() bool                 // 获取是否使用中文帮助信息
+	SetUseChinese(useChinese bool)       // 设置是否使用中文帮助信息
+	AddSubCmd(subCmd *Cmd)               // 添加子命令, 子命令会继承父命令的上下文
+	SubCmds() []*Cmd                     // 获取所有已注册的子命令列表
+	SubCmdMap() map[string]*Cmd          // 获取所有已注册的子命令映射表
+	Args() []string                      // 获取所有非标志参数(未绑定到任何标志的参数)
+	Arg(i int) string                    // 获取指定索引的非标志参数, 索引越界返回空字符串
+	NArg() int                           // 获取非标志参数的数量
+	NFlag() int                          // 获取已解析的标志数量
+	FlagExists(name string) bool         // 检查指定名称的标志是否存在(支持长/短名称)
+	PrintHelp()                          // 打印命令帮助信息
+	AddNote(note string)                 // 添加备注信息
+	GetNotes() []string                  // 获取所有备注信息
+	AddExample(e ExampleInfo)            // 添加示例信息
+	GetExamples() []ExampleInfo          // 获取所有示例信息
+	SetVersion(version string)           // 设置版本信息
+	GetVersion() string                  // 获取版本信息
+	SetLogoText(logoText string)         // 设置logo文本
+	GetLogoText() string                 // 获取logo文本
+	SetModuleHelps(moduleHelps string)   // 设置自定义模块帮助信息
+	GetModuleHelps() string              // 获取自定义模块帮助信息
+	SetExitOnBuiltinFlags(exit bool)     // 设置是否在添加内置标志时退出
+	SetDisableBuiltinFlags(disable bool) // 设置是否禁用内置标志注册
+	CmdExists(cmdName string) bool       // 判断命令行参数中是否存在指定标志
 
 	// 标志解析方法
 	Parse(args []string) error                // 解析命令行参数, 自动处理标志和子命令
@@ -253,6 +264,8 @@ func NewCmd(longName string, shortName string, errorHandling flag.ErrorHandling)
 		},
 		exitOnBuiltinFlags: true,       // 默认保持原有行为, 在解析内置标志后退出
 		builtinFlagNameMap: sync.Map{}, // 内置标志名称映射
+		// 注册自动补全钩子函数
+		ParseHook: HandleCompletionHook,
 	}
 
 	return cmd
@@ -263,28 +276,20 @@ func NewCmd(longName string, shortName string, errorHandling flag.ErrorHandling)
 //
 // 参数:
 //   - exit: 是否退出
-//
-// 返回值:
-//   - *cmd.Cmd: 当前命令对象
-func (c *Cmd) SetExitOnBuiltinFlags(exit bool) *Cmd {
+func (c *Cmd) SetExitOnBuiltinFlags(exit bool) {
 	c.rwMu.Lock()
 	defer c.rwMu.Unlock()
 	c.exitOnBuiltinFlags = exit
-
-	// 返回当前Cmd实例
-	return c
 }
 
 // SetDisableBuiltinFlags 设置是否禁用内置标志注册
 //
-// 参数: disable - true表示禁用内置标志注册, false表示启用(默认)
-//
-// 返回值: 当前Cmd实例, 支持链式调用
-func (c *Cmd) SetDisableBuiltinFlags(disable bool) *Cmd {
+// 参数:
+//   - disable: true表示禁用内置标志注册, false表示启用(默认)
+func (c *Cmd) SetDisableBuiltinFlags(disable bool) {
 	c.rwMu.Lock()
 	defer c.rwMu.Unlock()
 	c.disableBuiltinFlags = disable
-	return c
 }
 
 // SubCmdMap 返回子命令映射表
@@ -538,10 +543,17 @@ func (c *Cmd) parseCommon(args []string, parseSubcommands bool) (err error, shou
 
 			// 注册自动补全子命令
 			if c.enableCompletion { // 只有在根命令上注册自动补全子命令
-				// 创建自动补全子命令
+				// 根据父命令的退出策略设置自动设置子命令的退出策略
 				completionCmd := NewCmd(CompletionShellLongName, CompletionShellShortName, flag.ExitOnError)
+				completionCmd.SetEnableCompletion(true) // 启用自动补全
+
+				// 设置自动补全子命令的退出策略
+				if !c.exitOnBuiltinFlags {
+					completionCmd.SetExitOnBuiltinFlags(false)
+				}
 
 				// 为子命令定义并绑定自动补全标志
+				completionCmd.completionShell = &flags.EnumFlag{}
 				completionCmd.EnumVar(completionCmd.completionShell, "shell", "s", ShellNone, fmt.Sprintf("指定要生成的shell补全脚本类型, 可选值: %v", ShellSlice), ShellSlice)
 
 				// 根据父命令的语言设置自动设置子命令的语言
@@ -608,39 +620,6 @@ func (c *Cmd) parseCommon(args []string, parseSubcommands bool) (err error, shou
 				return
 			}
 
-			// 检查是否启用自动补全子命令
-			fmt.Println("completion", c.enableCompletion)
-			if c.enableCompletion {
-
-				if s, ok := c.SubCmdMap()[CompletionShellLongName]; ok {
-					shell := s.completionShell.Get()
-					fmt.Println("shell", 11, shell)
-					// 显式判断非默认shell类型(默认为ShellNone, 不做处理)
-					switch shell {
-					case ShellBash: // 生成 Bash 补全脚本
-						fmt.Println(11)
-						fmt.Println(c.generateBashCompletion())
-						fmt.Println(22)
-						if c.exitOnBuiltinFlags {
-							shouldExit = true
-							return
-						}
-						return
-					case ShellZsh: // 生成 Zsh 补全脚本
-					// 	_ = completionCmd.GenerateZshCompletion()
-					case ShellFish: // 生成 Fish 补全脚本
-					// 	_ = completionCmd.GenerateFishCompletion()
-					case ShellPowershell: // 生成 PowerShell 补全脚本
-					// 	_ = completionCmd.GeneratePowerShellCompletion()
-					case ShellPwsh: // 生成 Pwsh7 补全脚本
-						// 	_ = completionCmd.GeneratePowerShellCompletion()
-					default: // 其他shell类型
-						fmt.Println("Unsupported shell type:", shell)
-					}
-				}
-
-			}
-
 			// 只有在顶级命令中处理-sip/--show-install-path和-v/--version标志
 			if c.parentCmd == nil {
 				// 检查是否使用-sip/--show-install-path标志
@@ -696,15 +675,32 @@ func (c *Cmd) parseCommon(args []string, parseSubcommands bool) (err error, shou
 					// 获取参数的第一个值
 					arg := c.args[0]
 
+					// 保存剩余参数
+					remainingArgs := make([]string, len(c.args)-1)
+					copy(remainingArgs, c.args[1:])
+
 					// 直接通过参数查找(map键已包含长名称和短名称)
 					if subCmd, ok := c.subCmdMap[arg]; ok {
 						// 将剩余参数传递给子命令解析
-						if parseErr := subCmd.Parse(c.args[1:]); parseErr != nil {
+						if parseErr := subCmd.Parse(remainingArgs); parseErr != nil {
 							err = fmt.Errorf("%w for '%s': %v", qerr.ErrSubCommandParseFailed, arg, parseErr)
 						}
 						return
 					}
 				}
+			}
+		}
+
+		// 调用解析阶段钩子函数
+		if c.ParseHook != nil {
+			hookErr, hookExit := c.ParseHook(c)
+			if hookErr != nil {
+				err = hookErr
+				return
+			}
+			if hookExit {
+				shouldExit = true
+				return
 			}
 		}
 	})
