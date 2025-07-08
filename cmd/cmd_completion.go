@@ -16,16 +16,16 @@ const (
 
 // 支持的Shell类型
 const (
-	ShellBash       = "bash"       // bash shell
-	ShellZsh        = "zsh"        // zsh shell
-	ShellFish       = "fish"       // fish shell
+	ShellBash = "bash" // bash shell
+	//ShellZsh        = "zsh"        // zsh shell
+	//ShellFish       = "fish"       // fish shell
 	ShellPowershell = "powershell" // powershell shell
 	ShellPwsh       = "pwsh"       // pwsh shell
 	ShellNone       = "none"       // 无shell
 )
 
 // 支持的Shell类型切片
-var ShellSlice = []string{ShellNone, ShellBash, ShellZsh, ShellFish, ShellPowershell, ShellPwsh}
+var ShellSlice = []string{ShellNone, ShellBash, ShellPowershell, ShellPwsh}
 
 // 内置子命令名称
 var (
@@ -54,8 +54,8 @@ const (
 	BashCommandTreeEntry = "\tcmd_tree[/%s/]=\"%s\"\n"                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                  // 命令树条目格式
 
 	// PowerShell补全模板
-	PwshFunctionHeader   = "Register-ArgumentCompleter -CommandName %s -ScriptBlock {\n    param($wordToComplete, $commandAst, $cursorPosition, $commandName, $parameterName)\n\n    # 构建命令树结构\n    $cmdTree = @{\n        '' = '%s'\n%s\n    }\n\n    # 解析命令行参数获取当前上下文\n    $context = ''\n    $args = $commandAst.CommandElements | Select-Object -Skip 1 | ForEach-Object { $_.ToString() }\n    $index = 0\n    $count = $args.Count\n\n    while ($index -lt $count) {\n        $arg = $args[$index]\n        # 跳过选项参数及其值\n        if ($arg -like '-*') {\n            $index++\n            # 如果下一个参数不是选项，则视为当前选项的值并跳过\n            if ($index -lt $count -and $args[$index] -notlike '-*') {\n                $index++\n            }\n            continue\n        }\n\n        $nextContext = if ($context) { \"$context.$arg\" } else { $arg }\n        if ($cmdTree.ContainsKey($nextContext)) {\n            $context = $nextContext\n            $index++\n        } else {\n            break\n        }\n    }\n\n    # 获取当前上下文可用选项并过滤\n    $options = @()\n    if ($cmdTree.ContainsKey($context)) {\n        $options = $cmdTree[$context] -split ' ' | Where-Object { $_ -like \"$wordToComplete*\" }\n    }\n\n    $options | ForEach-Object { [System.Management.Automation.CompletionResult]::new($_, $_, 'ParameterName', $_) }\n}\n"
-	PwshCommandTreeEntry = "        '%s' = '%s'\n"
+	PwshFunctionHeader   = "Register-ArgumentCompleter -CommandName %s -ScriptBlock {\n    param($wordToComplete, $commandAst, $cursorPosition, $commandName, $parameterName)\n\n    # 构建命令树结构\n    $cmdTree = @{\n        '' = '%s'\n%s\n    }\n\n    # 解析命令行参数获取当前上下文\n    $context = ''\n    $args = $commandAst.CommandElements | Select-Object -Skip 1 | ForEach-Object { $_.ToString() }\n    $index = 0\n    $count = $args.Count\n\n    while ($index -lt $count) {\n        $arg = $args[$index]\n        # 跳过选项参数及其值\n        if ($arg -like '-*') {\n            $index++\n            # 如果下一个参数不是选项，则视为当前选项的值并跳过\n            if ($index -lt $count -and $args[$index] -notlike '-*') {\n                $index++\n            }\n            continue\n        }\n\n        $nextContext = if ($context) { \"$context.$arg\" } else { $arg }\n        if ($cmdTree.ContainsKey($nextContext)) {\n            $context = $nextContext\n            $index++\n        } else {\n            break\n        }\n    }\n\n    # 获取当前上下文可用选项并过滤\n    $options = @()\n    if ($cmdTree.ContainsKey($context)) {\n        $options = $cmdTree[$context] -split ' ' | Where-Object { $_ -like \"$wordToComplete*\" }\n    }\n\n    $options | ForEach-Object { [System.Management.Automation.CompletionResult]::new($_, $_, 'ParameterName', $_) }\n}\n" // PowerShell补全函数头部
+	PwshCommandTreeEntry = "        '%s' = '%s'\n"                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                           // 命令树条目格式
 )
 
 // addSubCommands 递归添加子命令到命令树
@@ -303,10 +303,6 @@ func HandleCompletionHook(c *Cmd) (error, bool) {
 	switch shell {
 	case ShellBash: // 生成Bash补全脚本
 		fmt.Println(c.generateBashCompletion())
-	case ShellZsh:
-		// 实现Zsh补全逻辑
-	case ShellFish:
-		// 实现Fish补全逻辑
 	case ShellPowershell, ShellPwsh: // 兼容Powershell和Pwsh
 		fmt.Println(c.generatePwshCompletion())
 	default:
