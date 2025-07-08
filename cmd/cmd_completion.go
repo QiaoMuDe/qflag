@@ -123,6 +123,13 @@ func (c *Cmd) collectCompletionOptions() []string {
 	// 获取所有标志
 	flags := c.flagRegistry.GetAllFlagMetas()
 
+	for i := range flags {
+		fmt.Println("================================")
+		fmt.Println(flags[i].GetLongName())
+		fmt.Println(flags[i].GetShortName())
+		fmt.Println("================================")
+	}
+
 	// 获取所有子命令
 	subCmds := c.subCmds
 
