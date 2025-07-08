@@ -18,41 +18,40 @@ import (
 // 该接口封装了命令行程序的常用操作，包括标志添加、参数解析和帮助信息展示
 type QCommandLineInterface interface {
 	// 元数据操作方法
-	Name() string                        // 获取命令名称
-	LongName() string                    // 获取命令长名称
-	ShortName() string                   // 获取命令短名称
-	FlagRegistry() *flags.FlagRegistry   // 获取命令标志注册表
-	GetDescription() string              // 获取命令描述信息
-	SetDescription(desc string)          // 设置命令描述信息
-	GetHelp() string                     // 获取命令帮助信息
-	SetHelp(help string)                 // 设置命令帮助信息
-	LoadHelp(filepath string) error      // 从指定文件加载帮助信息
-	SetUsageSyntax(usageSyntax string)   // 设置命令用法格式
-	GetUsageSyntax() string              // 获取命令用法格式
-	GetUseChinese() bool                 // 获取是否使用中文帮助信息
-	SetUseChinese(useChinese bool)       // 设置是否使用中文帮助信息
-	AddSubCmd(subCmd *cmd.Cmd)           // 添加子命令，子命令会继承父命令的上下文
-	SubCmds() []*cmd.Cmd                 // 获取所有已注册的子命令列表
-	Args() []string                      // 获取所有非标志参数(未绑定到任何标志的参数)
-	Arg(i int) string                    // 获取指定索引的非标志参数，索引越界返回空字符串
-	NArg() int                           // 获取非标志参数的数量
-	NFlag() int                          // 获取已解析的标志数量
-	PrintHelp()                          // 打印命令帮助信息
-	FlagExists(name string) bool         // 检查指定名称的标志是否存在(支持长/短名称)
-	AddNote(note string)                 // 添加一个注意事项
-	GetNotes() []string                  // 获取所有备注信息
-	AddExample(e cmd.ExampleInfo)        // 添加一个示例信息
-	GetExamples() []cmd.ExampleInfo      // 获取示例信息列表
-	SetVersion(version string)           // 设置版本信息
-	GetVersion() string                  // 获取版本信息
-	SetLogoText(logoText string)         // 设置logo文本
-	GetLogoText() string                 // 获取logo文本
-	SetModuleHelps(moduleHelps string)   // 设置自定义模块帮助信息
-	GetModuleHelps() string              // 获取自定义模块帮助信息
-	SetExitOnBuiltinFlags(exit bool)     // 设置是否在处理内置标志时退出
-	SetDisableBuiltinFlags(disable bool) // 设置是否禁用内置标志注册
-	CmdExists(cmdName string) bool       // 检查指定名称的命令是否存在
-	SetEnableCompletion(enable bool)     // 设置是否启用自动完成功能
+	Name() string                      // 获取命令名称
+	LongName() string                  // 获取命令长名称
+	ShortName() string                 // 获取命令短名称
+	FlagRegistry() *flags.FlagRegistry // 获取命令标志注册表
+	GetDescription() string            // 获取命令描述信息
+	SetDescription(desc string)        // 设置命令描述信息
+	GetHelp() string                   // 获取命令帮助信息
+	SetHelp(help string)               // 设置命令帮助信息
+	LoadHelp(filepath string) error    // 从指定文件加载帮助信息
+	SetUsageSyntax(usageSyntax string) // 设置命令用法格式
+	GetUsageSyntax() string            // 获取命令用法格式
+	GetUseChinese() bool               // 获取是否使用中文帮助信息
+	SetUseChinese(useChinese bool)     // 设置是否使用中文帮助信息
+	AddSubCmd(subCmd *cmd.Cmd)         // 添加子命令，子命令会继承父命令的上下文
+	SubCmds() []*cmd.Cmd               // 获取所有已注册的子命令列表
+	Args() []string                    // 获取所有非标志参数(未绑定到任何标志的参数)
+	Arg(i int) string                  // 获取指定索引的非标志参数，索引越界返回空字符串
+	NArg() int                         // 获取非标志参数的数量
+	NFlag() int                        // 获取已解析的标志数量
+	PrintHelp()                        // 打印命令帮助信息
+	FlagExists(name string) bool       // 检查指定名称的标志是否存在(支持长/短名称)
+	AddNote(note string)               // 添加一个注意事项
+	GetNotes() []string                // 获取所有备注信息
+	AddExample(e cmd.ExampleInfo)      // 添加一个示例信息
+	GetExamples() []cmd.ExampleInfo    // 获取示例信息列表
+	SetVersion(version string)         // 设置版本信息
+	GetVersion() string                // 获取版本信息
+	SetLogoText(logoText string)       // 设置logo文本
+	GetLogoText() string               // 获取logo文本
+	SetModuleHelps(moduleHelps string) // 设置自定义模块帮助信息
+	GetModuleHelps() string            // 获取自定义模块帮助信息
+	SetExitOnBuiltinFlags(exit bool)   // 设置是否在处理内置标志时退出
+	CmdExists(cmdName string) bool     // 检查指定名称的命令是否存在
+	SetEnableCompletion(enable bool)   // 设置是否启用自动完成功能
 
 	// 标志解析方法
 	Parse() error          // 解析命令行参数，自动处理标志和子命令
@@ -404,15 +403,6 @@ func GetModuleHelps() string {
 //   - exit: 是否退出
 func SetExitOnBuiltinFlags(exit bool) {
 	QCommandLine.SetExitOnBuiltinFlags(exit)
-}
-
-// SetDisableBuiltinFlags 设置是否禁用内置参数
-// 默认情况下为false，当设置为true时，QFlag将忽略内置参数
-//
-// 参数:
-//   - disable: 是否禁用
-func SetDisableBuiltinFlags(disable bool) {
-	QCommandLine.SetDisableBuiltinFlags(disable)
 }
 
 // CmdExists 检查子命令是否存在

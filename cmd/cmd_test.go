@@ -652,35 +652,18 @@ func TestBuiltinFlags(t *testing.T) {
 		}
 	})
 
-	// 测试根命令的--show-install-path和-sip标志
-	t.Run("root command install path flags", func(t *testing.T) {
-		// 创建并重置命令以测试-sip短标志
-		installPathCmd := NewCmd("test", "t", flag.ContinueOnError)
-		installPathCmd.SetExitOnBuiltinFlags(false)
-		args := []string{"-sip"}
-		if err := installPathCmd.Parse(args); err != nil {
-			t.Fatalf("解析-sip标志失败: %v", err)
-		}
-		if !installPathCmd.showInstallPathFlag.Get() {
-			t.Error("-sip标志未被正确设置")
-		}
-	})
-
 	// 测试ParseFlagsOnly也能正确处理这些标志
 	t.Run("ParseFlagsOnly handles builtin flags", func(t *testing.T) {
 		parseFlagsCmd := NewCmd("test", "t", flag.ContinueOnError)
 		parseFlagsCmd.SetExitOnBuiltinFlags(false)
 		parseFlagsCmd.SetVersion("1.0.0")
 
-		args := []string{"-v", "-sip"}
+		args := []string{"-v"}
 		if err := parseFlagsCmd.ParseFlagsOnly(args); err != nil {
 			t.Fatalf("ParseFlagsOnly解析标志失败: %v", err)
 		}
 		if !parseFlagsCmd.versionFlag.Get() {
 			t.Error("ParseFlagsOnly未正确设置versionFlag")
-		}
-		if !parseFlagsCmd.showInstallPathFlag.Get() {
-			t.Error("ParseFlagsOnly未正确设置showInstallPathFlag")
 		}
 	})
 }
@@ -1091,50 +1074,5 @@ func TestCmd_SetExitOnBuiltinFlags(t *testing.T) {
 	cmd.SetExitOnBuiltinFlags(true)
 	if !cmd.exitOnBuiltinFlags {
 		t.Error("SetExitOnBuiltinFlags(true)未正确设置字段值")
-	}
-}
-
-// TestCmd_SetDisableBuiltinFlags 测试SetDisableBuiltinFlags方法的功能
-func TestCmd_SetDisableBuiltinFlags(t *testing.T) {
-	// 创建测试命令实例
-	cmd := NewCmd("test", "", flag.ContinueOnError)
-	if cmd == nil {
-		t.Fatal("创建Cmd实例失败")
-	}
-
-	// 测试默认值
-	if cmd.disableBuiltinFlags {
-		t.Error("disableBuiltinFlags默认值应为false")
-	}
-
-	// 测试设置为true
-	cmd.SetDisableBuiltinFlags(true)
-	if !cmd.disableBuiltinFlags {
-		t.Error("SetDisableBuiltinFlags(true)未正确设置字段值")
-	}
-
-	// 测试设置为false
-	cmd.SetDisableBuiltinFlags(false)
-	if cmd.disableBuiltinFlags {
-		t.Error("SetDisableBuiltinFlags(false)未正确设置字段值")
-	}
-}
-
-// TestCmd_ChainedSetters 测试链式调用多个设置方法
-func TestCmd_ChainedSetters(t *testing.T) {
-	cmd := NewCmd("test", "", flag.ContinueOnError)
-	if cmd == nil {
-		t.Fatal("创建Cmd实例失败")
-	}
-
-	// 链式调用测试
-	cmd.SetExitOnBuiltinFlags(false)
-	cmd.SetDisableBuiltinFlags(true)
-
-	if cmd.exitOnBuiltinFlags {
-		t.Error("链式调用后exitOnBuiltinFlags设置不正确")
-	}
-	if !cmd.disableBuiltinFlags {
-		t.Error("链式调用后disableBuiltinFlags设置不正确")
 	}
 }
