@@ -50,9 +50,48 @@ var completionExamples = []ExampleInfo{
 // 补全脚本模板常量
 const (
 	// Bash补全模板
-	BashFunctionHeader   = "#!/usr/bin/env bash\n\n_%s() {\n\tlocal cur prev words cword context opts i arg\n\tCOMPREPLY=()\n\n\t# 使用_get_comp_words_by_ref获取补全参数, 提高健壮性\n\tif [[ -z \"${_get_comp_words_by_ref}\" ]]; then\n\t\t# 兼容旧版本Bash补全环境\n\t\twords=(\"${COMP_WORDS[@]}\")\n\t\tcword=$COMP_CWORD\n\telse\n\t\t_get_comp_words_by_ref -n =: cur prev words cword\n\tfi\n\n\tcur=\"${words[cword]}\"\n\tprev=\"${words[cword-1]}\"\n\n\t# 构建命令树结构\n\tdeclare -A cmd_tree\n\tcmd_tree[/]=\"%s\"\n%s\n\n\t# 查找当前命令上下文\n\tlocal context=\"/\"\n\tlocal i\n\tfor ((i=1; i < cword; i++)); do\n\t\tlocal arg=\"${words[i]}\"\n\t\tif [[ -n \"${cmd_tree[$context$arg/]}\" ]]; then\n\t\t\tcontext=\"$context$arg/\"\n\t\tfi\n\tdone\n\n\t# 获取当前上下文可用选项\n\topts=\"${cmd_tree[$context]}\"\n\tCOMPREPLY=($(compgen -W \"${opts}\" -- ${cur}))\n\treturn 0\n\t}\n\ncomplete -F _%s %s\n"
-	BashCommandTreeEntry = "\tcmd_tree[/%s/]=\"%s\"\n"
+	BashFunctionHeader   = "#!/usr/bin/env bash\n\n_%s() {\n\tlocal cur prev words cword context opts i arg\n\tCOMPREPLY=()\n\n\t# 使用_get_comp_words_by_ref获取补全参数, 提高健壮性\n\tif [[ -z \"${_get_comp_words_by_ref}\" ]]; then\n\t\t# 兼容旧版本Bash补全环境\n\t\twords=(\"${COMP_WORDS[@]}\")\n\t\tcword=$COMP_CWORD\n\telse\n\t\t_get_comp_words_by_ref -n =: cur prev words cword\n\tfi\n\n\tcur=\"${words[cword]}\"\n\tprev=\"${words[cword-1]}\"\n\n\t# 构建命令树结构\n\tdeclare -A cmd_tree\n\tcmd_tree[/]=\"%s\"\n%s\n\n\t# 查找当前命令上下文\n\tlocal context=\"/\"\n\tlocal i\n\tfor ((i=1; i < cword; i++)); do\n\t\tlocal arg=\"${words[i]}\"\n\t\tif [[ -n \"${cmd_tree[$context$arg/]}\" ]]; then\n\t\t\tcontext=\"$context$arg/\"\n\t\tfi\n\tdone\n\n\t# 获取当前上下文可用选项\n\topts=\"${cmd_tree[$context]}\"\n\tCOMPREPLY=($(compgen -W \"${opts}\" -- ${cur}))\n\treturn 0\n\t}\n\ncomplete -F _%s %s\n" // Bash补全函数头部
+	BashCommandTreeEntry = "\tcmd_tree[/%s/]=\"%s\"\n"                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                  // 命令树条目格式
 )
+
+// addSubCommands 递归添加子命令到命令树
+//
+// 参数:
+//   - cmdTreeEntries - 用于存储命令树条目的缓冲区
+//   - parentPath - 父命令路径
+//   - cmds - 子命令列表
+func addSubCommands(cmdTreeEntries *bytes.Buffer, parentPath string, cmds []*Cmd) {
+	for _, cmd := range cmds {
+		// 获取子命令补全选项
+		cmdOpts := cmd.collectCompletionOptions()
+
+		// 处理长命令
+		longName := cmd.LongName()
+		if longName != "" {
+			// 添加命令树条目
+			cmdLongPath := parentPath + longName + "/"
+
+			// 写入命令树条目
+			fmt.Fprintf(cmdTreeEntries, BashCommandTreeEntry, strings.TrimSuffix(cmdLongPath, "/"), strings.Join(cmdOpts, " "))
+
+			// 递归添加子命令
+			addSubCommands(cmdTreeEntries, cmdLongPath, cmd.subCmds)
+		}
+
+		// 处理短命令
+		shortName := cmd.ShortName()
+		if shortName != "" {
+			// 添加命令树条目
+			cmdShortPath := parentPath + shortName + "/"
+
+			// 写入命令树条目
+			fmt.Fprintf(cmdTreeEntries, BashCommandTreeEntry, strings.TrimSuffix(cmdShortPath, "/"), strings.Join(cmdOpts, " "))
+
+			// 递归添加子命令
+			addSubCommands(cmdTreeEntries, cmdShortPath, cmd.subCmds)
+		}
+	}
+}
 
 // generateBashCompletion 生成Bash自动补全脚本
 //
@@ -62,8 +101,13 @@ func (c *Cmd) generateBashCompletion() string {
 	// 缓冲区
 	var buf bytes.Buffer
 
-	// 父命令为空，则返回空字符串
+	// 父命令为空, 则返回空字符串
 	if c.parentCmd == nil {
+		return ""
+	}
+
+	// 命令树注册表为空, 则返回空字符串
+	if c.flagRegistry == nil {
 		return ""
 	}
 
@@ -73,32 +117,14 @@ func (c *Cmd) generateBashCompletion() string {
 	// 获取根命令的补全选项
 	rootCmdOpts := c.parentCmd.collectCompletionOptions()
 
-	// 构建命令树条目
+	// 构建命令树条目缓冲区
 	var cmdTreeEntries bytes.Buffer
 
 	// 添加根命令选项
 	rootOpts := strings.Join(rootCmdOpts, " ")
 
-	// addSubCommands 递归添加子命令到命令树类型
-	var addSubCommands func(parentPath string, cmds []*Cmd)
-
-	// 递归添加子命令到命令树
-	addSubCommands = func(parentPath string, cmds []*Cmd) {
-		for _, cmd := range cmds {
-			// 构建命令树条目
-			cmdPath := parentPath + cmd.LongName() + "/"
-
-			// 收集子命令的补全选项
-			cmdOpts := cmd.collectCompletionOptions()
-
-			// 写入命令树条目
-			fmt.Fprintf(&cmdTreeEntries, BashCommandTreeEntry, strings.TrimSuffix(cmdPath, "/"), strings.Join(cmdOpts, " "))
-			addSubCommands(cmdPath, cmd.subCmds)
-		}
-	}
-
 	// 从根命令的子命令开始添加
-	addSubCommands("", c.parentCmd.subCmds)
+	addSubCommands(&cmdTreeEntries, "", c.parentCmd.subCmds)
 
 	// 写入补全函数头部和命令树
 	fmt.Fprintf(&buf, BashFunctionHeader, programName, rootOpts, cmdTreeEntries.String(), programName, programName)
@@ -107,13 +133,12 @@ func (c *Cmd) generateBashCompletion() string {
 }
 
 // collectCompletionOptions 收集命令的补全选项，包括标志和子命令
-// 参数：
 //
-//	c - 当前命令实例
+// 参数：
+//   - c: 当前命令实例
 //
 // 返回值：
-//
-//	包含所有标志选项和子命令名称的字符串切片
+//   - 包含所有标志选项和子命令名称的字符串切片
 func (c *Cmd) collectCompletionOptions() []string {
 	// 防御性检查
 	if c == nil || c.flagRegistry == nil {

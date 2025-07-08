@@ -7,7 +7,6 @@ import (
 	"path/filepath"
 	"sync"
 	"sync/atomic"
-	"time"
 
 	"gitee.com/MM-Q/qflag/flags"
 	"gitee.com/MM-Q/qflag/qerr"
@@ -122,86 +121,6 @@ type Cmd struct {
 	//   - error: 错误信息，非nil时会中断解析流程
 	//   - bool: 是否需要退出程序
 	ParseHook func(*Cmd) (error, bool)
-}
-
-// CmdInterface 命令接口定义, 封装命令行程序的核心功能
-// 提供统一的命令管理、参数解析和帮助系统
-// 实现类需保证线程安全, 所有方法应支持并发调用
-//
-// 示例用法:
-// cmd := NewCmd("app", "a", flag.ContinueOnError)
-// cmd.SetDescription("示例应用程序")
-// cmd.String("config", "c", "配置文件路径", "/etc/app.conf")
-type CmdInterface interface {
-	// 元数据操作方法
-	Name() string                      // 获取命令名称
-	LongName() string                  // 获取命令名称(长名称), 如"app"
-	ShortName() string                 // 获取命令短名称, 如"a"
-	FlagRegistry() *flags.FlagRegistry // 获取标志注册表
-	GetDescription() string            // 获取命令描述信息
-	SetDescription(desc string)        // 设置命令描述信息, 用于帮助输出
-	GetHelp() string                   // 获取自定义帮助信息
-	SetHelp(help string)               // 设置自定义帮助信息, 覆盖自动生成内容
-	LoadHelp(filePath string) error    // 加载自定义帮助信息, 从文件中读取
-	SetUsageSyntax(usageSyntax string) // 设置自定义用法说明, 覆盖自动生成内容
-	GetUsageSyntax() string            // 获取自定义用法说明
-	GetUseChinese() bool               // 获取是否使用中文帮助信息
-	SetUseChinese(useChinese bool)     // 设置是否使用中文帮助信息
-	AddSubCmd(subCmd *Cmd)             // 添加子命令, 子命令会继承父命令的上下文
-	SubCmds() []*Cmd                   // 获取所有已注册的子命令列表
-	SubCmdMap() map[string]*Cmd        // 获取所有已注册的子命令映射表
-	Args() []string                    // 获取所有非标志参数(未绑定到任何标志的参数)
-	Arg(i int) string                  // 获取指定索引的非标志参数, 索引越界返回空字符串
-	NArg() int                         // 获取非标志参数的数量
-	NFlag() int                        // 获取已解析的标志数量
-	FlagExists(name string) bool       // 检查指定名称的标志是否存在(支持长/短名称)
-	PrintHelp()                        // 打印命令帮助信息
-	AddNote(note string)               // 添加备注信息
-	GetNotes() []string                // 获取所有备注信息
-	AddExample(e ExampleInfo)          // 添加示例信息
-	GetExamples() []ExampleInfo        // 获取所有示例信息
-	SetVersion(version string)         // 设置版本信息
-	GetVersion() string                // 获取版本信息
-	SetLogoText(logoText string)       // 设置logo文本
-	GetLogoText() string               // 获取logo文本
-	SetModuleHelps(moduleHelps string) // 设置自定义模块帮助信息
-	GetModuleHelps() string            // 获取自定义模块帮助信息
-	SetExitOnBuiltinFlags(exit bool)   // 设置是否在添加内置标志时退出
-	CmdExists(cmdName string) bool     // 判断命令行参数中是否存在指定标志
-	SetEnableCompletion(enable bool)   // 设置是否启用自动补全
-
-	// 标志解析方法
-	Parse(args []string) error                // 解析命令行参数, 自动处理标志和子命令
-	ParseFlagsOnly(args []string) (err error) // 仅解析标志参数, 不处理子命令
-	IsParsed() bool                           // 检查是否已解析命令行参数
-
-	// 添加标志方法
-	String(longName, shortName, usage, defValue string) *flags.StringFlag                             // 添加字符串类型标志
-	Int(longName, shortName, usage string, defValue int) *flags.IntFlag                               // 添加整数类型标志
-	Int64(longName, shortName, usage string, defValue int64) *flags.Int64Flag                         // 添加64位整数类型标志
-	Bool(longName, shortName, usage string, defValue bool) *flags.BoolFlag                            // 添加布尔类型标志
-	Float64(longName, shortName, usage string, defValue float64) *flags.Float64Flag                   // 添加浮点数类型标志
-	Duration(longName, shortName, usage string, defValue time.Duration) *flags.DurationFlag           // 添加时间间隔类型标志
-	Enum(longName, shortName string, defValue string, usage string, options []string) *flags.EnumFlag // 添加枚举类型标志
-	Slice(longName, shortName string, defValue []string, usage string) *flags.SliceFlag               // 添加字符串切片类型标志
-	uint16(longName, shortName string, defValue uint16, usage string) *flags.Uint16Flag               // 添加无符号16位整型标志
-	Time(longName, shortName string, defValue time.Time, usage string) *flags.TimeFlag                // 添加时间类型标志
-	Map(longName, shortName string, defValue map[string]string, usage string) *flags.MapFlag          // 添加Map标志
-	Path(longName, shortName string, defValue string, usage string) *flags.PathFlag                   // 添加路径标志
-
-	// 绑定标志方法
-	StringVar(f *flags.StringFlag, longName, shortName, defValue, usage string)                             // 绑定字符串标志到指定变量
-	IntVar(f *flags.IntFlag, longName, shortName string, defValue int, usage string)                        // 绑定整数标志到指定变量
-	Int64Var(f *flags.Int64Flag, longName, shortName string, defValue int64, usage string)                  // 绑定64位整数标志到指定变量
-	BoolVar(f *flags.BoolFlag, longName, shortName string, defValue bool, usage string)                     // 绑定布尔标志到指定变量
-	Float64Var(f *flags.Float64Flag, longName, shortName string, defValue float64, usage string)            // 绑定浮点数标志到指定变量
-	DurationVar(f *flags.DurationFlag, longName, shortName string, defValue time.Duration, usage string)    // 绑定时间间隔类型标志到指定变量
-	EnumVar(f *flags.EnumFlag, longName, shortName string, defValue string, usage string, options []string) // 绑定枚举标志到指定变量
-	SliceVar(f *flags.SliceFlag, longName, shortName string, defValue []string, usage string)               // 绑定字符串切片标志到指定变量
-	Uint16Var(f *flags.Uint16Flag, longName, shortName string, defValue uint16, usage string)               // 绑定无符号16位整型标志到指定变量
-	TimeVar(f *flags.TimeFlag, longName, shortName string, defValue time.Time, usage string)                // 绑定时间类型标志到指定变量
-	MapVar(f *flags.MapFlag, longName, shortName string, defValue map[string]string, usage string)          // 绑定字符串映射标志到指定变量
-	PathVar(f *flags.PathFlag, longName, shortName string, defValue string, usage string)                   // 绑定路径标志到指定变量
 }
 
 // NewCmd 创建新的命令实例
