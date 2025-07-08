@@ -483,7 +483,7 @@ func (c *Cmd) parseCommon(args []string, parseSubcommands bool) (err error, shou
 			c.registerBuiltinFlags()
 
 			// 注册自动补全子命令
-			if c.enableCompletion { // 只有在根命令上注册自动补全子命令
+			if c.enableCompletion && c.parentCmd == nil { // 只有在根命令上注册自动补全子命令
 				// 调用提取的自动补全子命令创建方法
 				completionCmd, createErr := c.createCompletionSubcommand()
 				if createErr != nil {
