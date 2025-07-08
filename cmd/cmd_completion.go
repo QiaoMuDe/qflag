@@ -47,16 +47,19 @@ var completionExamples = []ExampleInfo{
 	{"Windows环境 永久启用(添加到PowerShell配置文件)", "echo \"%s completion --shell powershell | Out-String | Invoke-Expression\" >> $PROFILE"},
 }
 
-// Bash自动补全脚本模板常量
+// 补全脚本模板常量
 const (
-	// 补全函数头部模板
-	FunctionHeader = "#!/usr/bin/env bash\n\n_%s() {\n\tlocal cur prev opts\n\tCOMPREPLY=()\n\tcur=\"${COMP_WORDS[COMP_CWORD]}\"\n\tprev=\"${COMP_WORDS[COMP_CWORD - 1]}\"\n\n\tcase \"${prev}\" in\n"
-	// 带子命令别名的模板
-	CommandTemplate1 = "\t\t%s|%s)\n\t\t\topts=\"%s\"\n\t\t\tCOMPREPLY=($(compgen -W \"${opts}\" -- ${cur}))\n\t\t\treturn 0\n\t\t\t;;\n"
-	// 不带子命令别名的模板
-	CommandTemplate2 = "\t\t%s)\n\t\t\topts=\"%s\"\n\t\t\tCOMPREPLY=($(compgen -W \"${opts}\" -- ${cur}))\n\t\t\treturn 0\n\t\t\t;;\n"
-	// 命令绑定模板
-	BindingCommand = "\t\t*)\n\t\t\t;;\n\tesac\n\t}\n\ncomplete -F _%s %s\n"
+	// Bash补全模板
+	BashFunctionHeader   = "#!/usr/bin/env bash\n\n_%s() {\n\tlocal cur prev opts\n\tCOMPREPLY=()\n\tcur=\"${COMP_WORDS[COMP_CWORD]}\"\n\tprev=\"${COMP_WORDS[COMP_CWORD - 1]}\"\n\n\tcase \"${prev}\" in\n"
+	BashCommandTemplate1 = "\t\t%s|%s)\n\t\t\topts=\"%s\"\n\t\t\tCOMPREPLY=($(compgen -W \"${opts}\" -- ${cur}))\n\t\t\treturn 0\n\t\t\t;;\n"
+	BashCommandTemplate2 = "\t\t%s)\n\t\t\topts=\"%s\"\n\t\t\tCOMPREPLY=($(compgen -W \"${opts}\" -- ${cur}))\n\t\t\treturn 0\n\t\t\t;;\n"
+	BashBindingCommand   = "\t\t*)\n\t\t\t;;\n\tesac\n\t}\n\ncomplete -F _%s %s\n"
+
+	// PowerShell补全模板
+	PwshFunctionHeader       = "<#\n.SYNOPSIS\nProvides argument completion for the %s command.\n#>\nfunction TabExpansion_%s {\n\t[CmdletBinding()]\n\tparam(\n\t\t[string]$commandName,\n\t\t[string]$parameterName,\n\t\t[string]$wordToComplete,\n\t\t[System.Management.Automation.Language.CommandAst]$commandAst,\n\t\t[System.Collections.IDictionary]$fakeBoundParameter\n\t)\n\n\t$commands = @('%s')\n\t$options = @()\n\n\t# 获取命令参数\n\t$args = $commandAst.CommandElements | Select-Object -Skip 1 | ForEach-Object { $_.ToString() }\n\t$currentArg = $args[-1]\n\n\t# 根据上下文提供不同的补全选项\n\tif ($args.Count -eq 0) {\n\t\t$options = @('%s')\n\t} else {\n\t\tswitch -Wildcard ($currentArg) {\n"
+	PwshCommandCase          = "\t\t\t'%s' { $options = @('%s') }\n"
+	PwshCommandCaseWithAlias = "\t\t\t'%s' { $options = @('%s') }\n\t\t\t'%s' { $options = @('%s') }\n"
+	PwshFunctionFooter       = "\t\t\tdefault { $options = @('%s') }\n\t\t}\n\t}\n\n\t# 返回匹配的补全选项\n\treturn $options | Where-Object { $_ -like \"$wordToComplete*\" } | Sort-Object\n}\n\nRegister-ArgumentCompleter -CommandName %s -ScriptBlock $function:TabExpansion_%s\n"
 )
 
 // generateBashCompletion 生成Bash自动补全脚本
@@ -71,13 +74,13 @@ func (c *Cmd) generateBashCompletion() string {
 	programName := filepath.Base(os.Args[0])
 
 	// 补全函数头部
-	fmt.Fprintf(&buf, FunctionHeader, programName)
+	fmt.Fprintf(&buf, BashFunctionHeader, programName)
 
 	// 获取根命令的补全选项
 	rootCmdOpts := c.collectCompletionOptions()
 
 	// 写入根命令的补全选项
-	fmt.Fprintf(&buf, CommandTemplate2, programName, strings.Join(rootCmdOpts, " "))
+	fmt.Fprintf(&buf, BashCommandTemplate2, programName, strings.Join(rootCmdOpts, " "))
 
 	// 遍历子命令
 	if subCmds := c.subCmds; len(subCmds) > 0 {
@@ -86,12 +89,57 @@ func (c *Cmd) generateBashCompletion() string {
 			cmdOpts := cmd.collectCompletionOptions()
 
 			// 写入子命令的补全选项
-			fmt.Fprintf(&buf, CommandTemplate1, cmd.LongName(), cmd.ShortName(), strings.Join(cmdOpts, " "))
+			fmt.Fprintf(&buf, BashCommandTemplate1, cmd.LongName(), cmd.ShortName(), strings.Join(cmdOpts, " "))
 		}
 	}
 
 	// 写入命令绑定模板
-	fmt.Fprintf(&buf, BindingCommand, programName, programName)
+	fmt.Fprintf(&buf, BashBindingCommand, programName, programName)
+
+	return buf.String()
+}
+
+// generatePwshCompletion 生成PowerShell自动补全脚本
+//
+// 返回值：
+//   - string: PowerShell自动补全脚本
+func (c *Cmd) generatePwshCompletion() string {
+	// 缓冲区
+	var buf bytes.Buffer
+
+	// 程序名称
+	programName := filepath.Base(os.Args[0])
+
+	// 获取所有子命令名称
+	var subCmdNames []string
+	for _, cmd := range c.subCmds {
+		if cmd.LongName() != "" {
+			subCmdNames = append(subCmdNames, cmd.LongName())
+		}
+	}
+
+	// 获取根命令的补全选项
+	rootCmdOpts := c.collectCompletionOptions()
+	rootOptsStr := strings.Join(rootCmdOpts, "', '")
+	allCmdsStr := strings.Join(append(subCmdNames, rootCmdOpts...), "', '")
+
+	// 补全函数头部
+	fmt.Fprintf(&buf, PwshFunctionHeader, programName, programName, allCmdsStr, rootOptsStr)
+
+	// 遍历子命令，生成case语句
+	if subCmds := c.subCmds; len(subCmds) > 0 {
+		for _, cmd := range subCmds {
+			// 获取子命令的补全选项
+			cmdOpts := cmd.collectCompletionOptions()
+			cmdOptsStr := strings.Join(cmdOpts, "', '")
+
+			// 写入子命令的补全选项（带别名）
+			fmt.Fprintf(&buf, PwshCommandCaseWithAlias, cmd.LongName(), cmdOptsStr, cmd.ShortName(), cmdOptsStr)
+		}
+	}
+
+	// 补全函数尾部
+	fmt.Fprintf(&buf, PwshFunctionFooter, rootOptsStr, programName, programName)
 
 	return buf.String()
 }
@@ -186,7 +234,7 @@ func HandleCompletionHook(c *Cmd) (error, bool) {
 	case ShellFish:
 		// 实现Fish补全逻辑
 	case ShellPowershell, ShellPwsh:
-		// 实现PowerShell补全逻辑
+		fmt.Println(c.generatePwshCompletion())
 	default:
 		return fmt.Errorf("unsupported shell: %s", shell), false
 	}
