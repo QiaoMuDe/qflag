@@ -118,7 +118,7 @@ type Cmd struct {
 	//   - 当前命令实例
 	//
 	// 返回值:
-	//   - error: 错误信息，非nil时会中断解析流程
+	//   - error: 错误信息, 非nil时会中断解析流程
 	//   - bool: 是否需要退出程序
 	ParseHook func(*Cmd) (error, bool)
 }
@@ -126,7 +126,6 @@ type Cmd struct {
 // NewCmd 创建新的命令实例
 //
 // 参数:
-//
 //   - longName: 命令长名称
 //   - shortName: 命令短名称
 //   - errorHandling: 错误处理方式
