@@ -147,6 +147,26 @@ func (c *Cmd) collectCompletionOptions() []string {
 		}
 	}
 
+	// 检查是否已包含帮助标志
+	hasHelpLong := false
+	hasHelpShort := false
+	for _, m := range flags {
+		if m.GetLongName() == "help" {
+			hasHelpLong = true
+		}
+		if m.GetShortName() == "h" {
+			hasHelpShort = true
+		}
+	}
+
+	// 如果缺少帮助标志，则自动添加
+	if !hasHelpLong {
+		opts = append(opts, "--help")
+	}
+	if !hasHelpShort {
+		opts = append(opts, "-h")
+	}
+
 	// 获取所有子命令(为空时不会循环)
 	for _, cmd := range subCmds {
 		if cmd.LongName() != "" {
