@@ -8,6 +8,12 @@ import (
 	"strings"
 )
 
+// 自动补全命令的标志名称
+const (
+	CompletionShellFlagLongName  = "shell" // shell 标志名称
+	CompletionShellFlagShortName = "s"     // shell 标志名称
+)
+
 // 支持的Shell类型
 const (
 	ShellBash       = "bash"       // bash shell
@@ -35,10 +41,10 @@ var (
 
 // 内置自动补全命令的示例使用
 var completionExamples = []ExampleInfo{
-	{"Linux环境 临时启用", "source <(%s completion bash)"},
-	{"Linux环境 永久启用(添加到~/.bashrc)", "echo \"source <(%s completion bash)\" >> ~/.bashrc"},
-	{"Windows环境 临时启用", "%s completion powershell | Out-String | Invoke-Expression"},
-	{"Windows环境 永久启用(添加到PowerShell配置文件)", "echo \"%s completion powershell | Out-String | Invoke-Expression\" >> $PROFILE"},
+	{"Linux环境 临时启用", "source <(%s completion --shell bash)"},
+	{"Linux环境 永久启用(添加到~/.bashrc)", "echo \"source <(%s completion --shell bash)\" >> ~/.bashrc"},
+	{"Windows环境 临时启用", "%s completion --shell powershell | Out-String | Invoke-Expression"},
+	{"Windows环境 永久启用(添加到PowerShell配置文件)", "echo \"%s completion --shell powershell | Out-String | Invoke-Expression\" >> $PROFILE"},
 }
 
 // Bash自动补全脚本模板常量
@@ -149,11 +155,8 @@ func (c *Cmd) collectCompletionOptions() []string {
 //   - error: 处理过程中的错误信息
 //   - bool: 是否需要退出程序
 func HandleCompletionHook(c *Cmd) (error, bool) {
-	fmt.Println("[DEBUG] Completion hook triggered, enableCompletion:", c.enableCompletion) // 添加此行
-
 	// 检查是否启用自动补全
 	if !c.enableCompletion {
-		fmt.Println("[DEBUG] Completion hook triggered, but completion is disabled")
 		return nil, false
 	}
 
@@ -165,18 +168,14 @@ func HandleCompletionHook(c *Cmd) (error, bool) {
 
 	s, ok := rootCmd.subCmdMap[CompletionShellLongName]
 	if !ok {
-		fmt.Println("[DEBUG] Completion hook triggered, but completion command not found")
 		return nil, false
 	}
 
 	// 获取shell类型
 	shell := s.completionShell.Get()
 	if shell == ShellNone {
-		fmt.Println("[DEBUG] Completion hook triggered, but completion shell is not specified")
 		return nil, false
 	}
-
-	fmt.Println("shell", 11, shell)
 
 	// 生成对应shell的补全脚本
 	switch shell {
@@ -189,8 +188,7 @@ func HandleCompletionHook(c *Cmd) (error, bool) {
 	case ShellPowershell, ShellPwsh:
 		// 实现PowerShell补全逻辑
 	default:
-		fmt.Println("Unsupported shell type:", shell)
-		return nil, false
+		return fmt.Errorf("unsupported shell: %s", shell), false
 	}
 
 	// 判断是否需要退出

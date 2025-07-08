@@ -119,7 +119,7 @@ type Cmd struct {
 	enableCompletion bool
 
 	// 解析阶段钩子函数
-	// 在标志解析完成后、子命令处理前执行
+	// 在标志解析完成后、子命令参数处理后调用
 	//
 	// 参数:
 	//   - 当前命令实例
@@ -256,6 +256,7 @@ func NewCmd(longName string, shortName string, errorHandling flag.ErrorHandling)
 		helpFlag:            &flags.BoolFlag{},                       // 初始化帮助标志
 		showInstallPathFlag: &flags.BoolFlag{},                       // 初始化显示安装路径标志
 		versionFlag:         &flags.BoolFlag{},                       // 初始化版本信息标志
+		completionShell:     &flags.EnumFlag{},                       // 初始化自动完成标志
 		userInfo: UserInfo{
 			longName:  longName,        // 命令长名称
 			shortName: shortName,       // 命令短名称
@@ -264,8 +265,7 @@ func NewCmd(longName string, shortName string, errorHandling flag.ErrorHandling)
 		},
 		exitOnBuiltinFlags: true,       // 默认保持原有行为, 在解析内置标志后退出
 		builtinFlagNameMap: sync.Map{}, // 内置标志名称映射
-		// 注册自动补全钩子函数
-		ParseHook: HandleCompletionHook,
+		enableCompletion:   false,      // 默认关闭自动补全
 	}
 
 	return cmd
@@ -543,18 +543,17 @@ func (c *Cmd) parseCommon(args []string, parseSubcommands bool) (err error, shou
 
 			// 注册自动补全子命令
 			if c.enableCompletion { // 只有在根命令上注册自动补全子命令
-				// 根据父命令的退出策略设置自动设置子命令的退出策略
+				// 创建自动补全子命令
 				completionCmd := NewCmd(CompletionShellLongName, CompletionShellShortName, flag.ExitOnError)
 				completionCmd.SetEnableCompletion(true) // 启用自动补全
 
-				// 设置自动补全子命令的退出策略
+				// 设置自动补全子命令的内置标志退出策略
 				if !c.exitOnBuiltinFlags {
 					completionCmd.SetExitOnBuiltinFlags(false)
 				}
 
 				// 为子命令定义并绑定自动补全标志
-				completionCmd.completionShell = &flags.EnumFlag{}
-				completionCmd.EnumVar(completionCmd.completionShell, "shell", "s", ShellNone, fmt.Sprintf("指定要生成的shell补全脚本类型, 可选值: %v", ShellSlice), ShellSlice)
+				completionCmd.EnumVar(completionCmd.completionShell, CompletionShellFlagLongName, CompletionShellFlagShortName, ShellNone, fmt.Sprintf("指定要生成的shell补全脚本类型, 可选值: %v", ShellSlice), ShellSlice)
 
 				// 根据父命令的语言设置自动设置子命令的语言
 				if c.GetUseChinese() {
@@ -568,7 +567,7 @@ func (c *Cmd) parseCommon(args []string, parseSubcommands bool) (err error, shou
 				// 添加自动补全子命令的示例
 				cmdName := os.Args[0]
 				for _, ex := range completionExamples {
-					c.AddExample(ExampleInfo{
+					completionCmd.AddExample(ExampleInfo{
 						Description: ex.Description,
 						Usage:       fmt.Sprintf(ex.Usage, cmdName),
 					})
@@ -689,20 +688,32 @@ func (c *Cmd) parseCommon(args []string, parseSubcommands bool) (err error, shou
 					}
 				}
 			}
+
+			// 执行自动补全钩子（如果启用）
+			if c.enableCompletion {
+				if hookErr, hookExit := HandleCompletionHook(c); hookErr != nil {
+					err = hookErr
+					return
+				} else if hookExit {
+					shouldExit = true
+					return
+				}
+			}
+
+			// 调用解析阶段钩子函数
+			if c.ParseHook != nil {
+				hookErr, hookExit := c.ParseHook(c)
+				if hookErr != nil {
+					err = hookErr
+					return
+				}
+				if hookExit {
+					shouldExit = true
+					return
+				}
+			}
 		}
 
-		// 调用解析阶段钩子函数
-		if c.ParseHook != nil {
-			hookErr, hookExit := c.ParseHook(c)
-			if hookErr != nil {
-				err = hookErr
-				return
-			}
-			if hookExit {
-				shouldExit = true
-				return
-			}
-		}
 	})
 
 	// 检查是否报错
