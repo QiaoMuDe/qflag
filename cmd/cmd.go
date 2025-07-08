@@ -269,6 +269,19 @@ func NewCmd(longName string, shortName string, errorHandling flag.ErrorHandling)
 		enableCompletion:   false,      // 默认关闭自动补全
 	}
 
+	// 定义帮助标志提示信息
+	helpUsage := flags.HelpFlagUsageEn
+	if cmd.GetUseChinese() {
+		helpUsage = flags.HelpFlagUsageZh
+	}
+
+	// 注册帮助标志
+	cmd.BoolVar(cmd.helpFlag, flags.HelpFlagName, flags.HelpFlagShortName, false, helpUsage)
+
+	// 添加到内置标志名称映射
+	cmd.builtinFlagNameMap.Store(flags.HelpFlagName, true)
+	cmd.builtinFlagNameMap.Store(flags.HelpFlagShortName, true)
+
 	return cmd
 }
 
@@ -546,14 +559,14 @@ func (c *Cmd) parseCommon(args []string, parseSubcommands bool) (err error, shou
 		if parseSubcommands {
 			// 如果存在子命令并且非标志参数不为0
 			if len(c.args) > 0 && (len(c.subCmdMap) > 0 && len(c.subCmds) > 0) {
-				// 获取参数的第一个值
+				// 获取参数的第一个值(子命令名称: 长名或短名)
 				arg := c.args[0]
 
 				// 保存剩余参数
 				remainingArgs := make([]string, len(c.args)-1)
 				copy(remainingArgs, c.args[1:])
 
-				// 直接通过参数查找(map键已包含长名称和短名称)
+				// 直接通过参数0查找子命令, 如果存在则解析子命令
 				if subCmd, ok := c.subCmdMap[arg]; ok {
 					// 将剩余参数传递给子命令解析
 					if parseErr := subCmd.Parse(remainingArgs); parseErr != nil {
@@ -704,50 +717,40 @@ func (c *Cmd) validateComponents() error {
 	return nil
 }
 
-// registerBuiltinFlags 注册内置标志(-h/--help, -v/--version等)
+// registerBuiltinFlags 注册内置标志(-v/--version, -sip等)
+// 仅在顶级命令中注册
 func (c *Cmd) registerBuiltinFlags() {
-	// 定义帮助标志提示信息
-	helpUsage := flags.HelpFlagUsageEn
-	if c.GetUseChinese() {
-		helpUsage = flags.HelpFlagUsageZh
+	// 仅在顶级命令中注册内置标志
+	if c.parentCmd != nil {
+		return
 	}
 
-	// 注册帮助标志
-	c.BoolVar(c.helpFlag, flags.HelpFlagName, flags.HelpFlagShortName, false, helpUsage)
+	// 定义显示安装路径标志提示信息
+	installPathUsage := flags.ShowInstallPathFlagUsageEn
+	if c.GetUseChinese() {
+		installPathUsage = flags.ShowInstallPathFlagUsageZh
+	}
+
+	// 绑定显示安装路径标志
+	c.BoolVar(c.showInstallPathFlag, "", flags.ShowInstallPathFlagName, false, installPathUsage)
 
 	// 添加到内置标志名称映射
-	c.builtinFlagNameMap.Store(flags.HelpFlagName, true)
-	c.builtinFlagNameMap.Store(flags.HelpFlagShortName, true)
+	c.builtinFlagNameMap.Store(flags.ShowInstallPathFlagName, true)
 
-	// 只有在根命令上注册显示程序安装路径标志和版本信息标志
-	if c.parentCmd == nil {
-		// 定义显示安装路径标志提示信息
-		installPathUsage := flags.ShowInstallPathFlagUsageEn
+	// 只有在版本信息不为空时才注册版本信息标志
+	if c.GetVersion() != "" {
+		// 定义版本信息标志提示信息
+		versionUsage := flags.VersionFlagUsageEn
 		if c.GetUseChinese() {
-			installPathUsage = flags.ShowInstallPathFlagUsageZh
+			versionUsage = flags.VersionFlagUsageZh
 		}
 
-		// 绑定显示安装路径标志
-		c.BoolVar(c.showInstallPathFlag, "", flags.ShowInstallPathFlagName, false, installPathUsage)
+		// 注册版本信息标志
+		c.BoolVar(c.versionFlag, flags.VersionFlagLongName, flags.VersionFlagShortName, false, versionUsage)
 
 		// 添加到内置标志名称映射
-		c.builtinFlagNameMap.Store(flags.ShowInstallPathFlagName, true)
-
-		// 只有在版本信息不为空时才注册版本信息标志
-		if c.GetVersion() != "" {
-			// 定义版本信息标志提示信息
-			versionUsage := flags.VersionFlagUsageEn
-			if c.GetUseChinese() {
-				versionUsage = flags.VersionFlagUsageZh
-			}
-
-			// 注册版本信息标志
-			c.BoolVar(c.versionFlag, flags.VersionFlagLongName, flags.VersionFlagShortName, false, versionUsage)
-
-			// 添加到内置标志名称映射
-			c.builtinFlagNameMap.Store(flags.VersionFlagLongName, true)
-			c.builtinFlagNameMap.Store(flags.VersionFlagShortName, true)
-		}
+		c.builtinFlagNameMap.Store(flags.VersionFlagLongName, true)
+		c.builtinFlagNameMap.Store(flags.VersionFlagShortName, true)
 	}
 }
 

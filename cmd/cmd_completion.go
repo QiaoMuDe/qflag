@@ -123,18 +123,11 @@ func (c *Cmd) collectCompletionOptions() []string {
 	// 获取所有标志
 	flags := c.flagRegistry.GetAllFlagMetas()
 
-	for i := range flags {
-		fmt.Println("================================")
-		fmt.Println(flags[i].GetLongName())
-		fmt.Println(flags[i].GetShortName())
-		fmt.Println("================================")
-	}
-
 	// 获取所有子命令
-	subCmds := c.subCmds
+	subCmdMap := c.subCmdMap
 
-	// 预分配切片容量，减少动态扩容
-	capacity := len(flags)*2 + len(subCmds)*2 // 每个标志和子命令最多2个选项
+	// 预分配切片容量，减少动态扩容的开销
+	capacity := len(flags)*2 + len(subCmdMap) // 每个标志和子命令(子命令map已包含长短名)最多2个选项
 	opts := make([]string, 0, capacity)
 
 	// 获取所有长选项和短选项(为空时不会循环)
@@ -147,34 +140,9 @@ func (c *Cmd) collectCompletionOptions() []string {
 		}
 	}
 
-	// 检查是否已包含帮助标志
-	hasHelpLong := false
-	hasHelpShort := false
-	for _, m := range flags {
-		if m.GetLongName() == "help" {
-			hasHelpLong = true
-		}
-		if m.GetShortName() == "h" {
-			hasHelpShort = true
-		}
-	}
-
-	// 如果缺少帮助标志，则自动添加
-	if !hasHelpLong {
-		opts = append(opts, "--help")
-	}
-	if !hasHelpShort {
-		opts = append(opts, "-h")
-	}
-
 	// 获取所有子命令(为空时不会循环)
-	for _, cmd := range subCmds {
-		if cmd.LongName() != "" {
-			opts = append(opts, cmd.LongName())
-		}
-		if cmd.ShortName() != "" {
-			opts = append(opts, cmd.ShortName())
-		}
+	for subCmd := range subCmdMap {
+		opts = append(opts, subCmd)
 	}
 
 	// 返回所有选项
@@ -183,12 +151,12 @@ func (c *Cmd) collectCompletionOptions() []string {
 
 // HandleCompletionHook 自动补全钩子实现
 //
-// 功能：处理自动补全子命令逻辑，生成指定shell的补全脚本
+// 功能: 处理自动补全子命令逻辑, 生成指定shell的补全脚本
 //
-// 参数：
+// 参数:
 //   - c: 当前命令实例
 //
-// 返回值：
+// 返回值:
 //   - error: 处理过程中的错误信息
 //   - bool: 是否需要退出程序
 func HandleCompletionHook(c *Cmd) (error, bool) {
