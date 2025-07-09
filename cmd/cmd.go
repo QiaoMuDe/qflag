@@ -473,7 +473,7 @@ func (c *Cmd) parseCommon(args []string, parseSubcommands bool) (err error, shou
 
 		// 执行自动补全钩子（如果启用）
 		if c.enableCompletion {
-			hookErr, hookExit := HandleCompletionHook(c)
+			hookExit, hookErr := HandleCompletionHook(c)
 
 			// 处理钩子函数错误
 			if hookErr != nil {
@@ -632,45 +632,6 @@ func (c *Cmd) registerBuiltinFlags() {
 	// 添加到内置标志名称映射
 	c.builtinFlagNameMap.Store(flags.VersionFlagLongName, true)
 	c.builtinFlagNameMap.Store(flags.VersionFlagShortName, true)
-}
-
-// createCompletionSubcommand 创建自动补全子命令
-//
-// 返回值：
-//   - 自动补全子命令实例
-//   - 错误信息
-func (c *Cmd) createCompletionSubcommand() (*Cmd, error) {
-	// 创建自动补全子命令
-	completionCmd := NewCmd(CompletionShellLongName, CompletionShellShortName, flag.ExitOnError)
-	completionCmd.SetEnableCompletion(true) // 启用自动补全
-
-	// 设置自动补全子命令的内置标志退出策略
-	if !c.exitOnBuiltinFlags {
-		completionCmd.SetExitOnBuiltinFlags(false)
-	}
-
-	// 为子命令定义并绑定自动补全标志
-	completionCmd.EnumVar(completionCmd.completionShell, CompletionShellFlagLongName, CompletionShellFlagShortName, ShellNone, fmt.Sprintf("指定要生成的shell补全脚本类型, 可选值: %v", ShellSlice), ShellSlice)
-
-	// 根据父命令的语言设置自动设置子命令的语言
-	if c.GetUseChinese() {
-		completionCmd.SetDescription(CompletionShellUsageZh)
-		completionCmd.SetUseChinese(true)
-	} else {
-		completionCmd.SetDescription(CompletionShellUsageEn)
-		completionCmd.SetUseChinese(false)
-	}
-
-	// 添加自动补全子命令的示例
-	cmdName := os.Args[0]
-	for _, ex := range completionExamples {
-		completionCmd.AddExample(ExampleInfo{
-			Description: ex.Description,
-			Usage:       fmt.Sprintf(ex.Usage, cmdName),
-		})
-	}
-
-	return completionCmd, nil
 }
 
 // handleBuiltinFlags 处理内置标志(-h/--help, -v/--version等)的逻辑

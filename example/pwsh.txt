@@ -1,0 +1,57 @@
+Register-ArgumentCompleter -CommandName cmd.test.exe -ScriptBlock {
+    param($wordToComplete, $commandAst, $cursorPosition, $commandName, $parameterName)
+
+    # 标志参数需求映射
+    $flagParams = @{
+        '--help' = 'none'
+        '-h' = 'none'
+        '--shell' = 'required'
+        '-s' = 'required'
+
+    }
+
+    # 构建命令树结构
+    $cmdTree = @{
+        '' = '--help -h comp completion'
+        'completion' = '--help -h --shell -s'
+        'comp' = '--help -h --shell -s'
+
+    }
+
+    # 解析命令行参数获取当前上下文
+    $context = ''
+    $args = $commandAst.CommandElements | Select-Object -Skip 1 | ForEach-Object { $_.ToString() }
+    $index = 0
+    $count = $args.Count
+
+    while ($index -lt $count) {
+        $arg = $args[$index]
+        # 处理选项参数及其值
+        if ($arg -like '-*' -and $flagParams.ContainsKey($arg)) {
+            $paramType = $flagParams[$arg]
+            $index++
+
+            # 根据参数类型决定是否跳过下一个参数
+            if ($paramType -eq 'required' -or ($paramType -eq 'optional' -and $index -lt $count -and $args[$index] -notlike '-*')) {     
+                $index++
+            }
+            continue
+        }
+
+        $nextContext = if ($context) { "$context.$arg" } else { $arg }
+        if ($cmdTree.ContainsKey($nextContext)) {
+            $context = $nextContext
+            $index++
+        } else {
+            break
+        }
+    }
+
+    # 获取当前上下文可用选项并过滤
+    $options = @()
+    if ($cmdTree.ContainsKey($context)) {
+        $options = $cmdTree[$context] -split ' ' | Where-Object { $_ -like "$wordToComplete*" }
+    }
+
+    $options | ForEach-Object { [System.Management.Automation.CompletionResult]::new($_, $_, 'ParameterName', $_) }
+}

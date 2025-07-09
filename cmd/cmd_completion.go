@@ -2,10 +2,13 @@ package cmd
 
 import (
 	"bytes"
+	"flag"
 	"fmt"
 	"os"
 	"path/filepath"
 	"strings"
+
+	"gitee.com/MM-Q/qflag/flags"
 )
 
 // 自动补全命令的标志名称
@@ -16,9 +19,7 @@ const (
 
 // 支持的Shell类型
 const (
-	ShellBash = "bash" // bash shell
-	//ShellZsh        = "zsh"        // zsh shell
-	//ShellFish       = "fish"       // fish shell
+	ShellBash       = "bash"       // bash shell
 	ShellPowershell = "powershell" // powershell shell
 	ShellPwsh       = "pwsh"       // pwsh shell
 	ShellNone       = "none"       // 无shell
@@ -39,6 +40,23 @@ var (
 	CompletionShellUsageZh = "生成指定 shell 的自动补全脚本"                                         // 补全shell命令中文使用说明
 )
 
+// 补全注意事项
+var (
+	// completionNotesCN 中文版本注意事项
+	completionNotesCN = []string{
+		"Windows环境: 需要PowerShell 5.1或更高版本以支持Register-ArgumentCompleter",
+		"Linux环境: 需要bash 4.0或更高版本以支持关联数组特性",
+		"请确保您的环境满足上述版本要求，否则自动补全功能可能无法正常工作",
+	}
+
+	// completionNotesEN 英文版本注意事项
+	completionNotesEN = []string{
+		"Windows environment: Requires PowerShell 5.1 or higher to support Register-ArgumentCompleter",
+		"Linux environment: Requires bash 4.0 or higher to support associative array features",
+		"Please ensure your environment meets the above version requirements, otherwise the auto-completion feature may not work properly",
+	}
+)
+
 // 内置自动补全命令的示例使用
 var completionExamples = []ExampleInfo{
 	{"Linux环境 临时启用", "source <(%s completion --shell bash)"},
@@ -54,8 +72,8 @@ const (
 	BashCommandTreeEntry = "\tcmd_tree[/%s/]=\"%s\"\n"                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                  // 命令树条目格式
 
 	// PowerShell补全模板
-	PwshFunctionHeader   = "Register-ArgumentCompleter -CommandName %s -ScriptBlock {\n    param($wordToComplete, $commandAst, $cursorPosition, $commandName, $parameterName)\n\n    # 构建命令树结构\n    $cmdTree = @{\n        '' = '%s'\n%s\n    }\n\n    # 解析命令行参数获取当前上下文\n    $context = ''\n    $args = $commandAst.CommandElements | Select-Object -Skip 1 | ForEach-Object { $_.ToString() }\n    $index = 0\n    $count = $args.Count\n\n    while ($index -lt $count) {\n        $arg = $args[$index]\n        # 跳过选项参数及其值\n        if ($arg -like '-*') {\n            $index++\n            # 如果下一个参数不是选项，则视为当前选项的值并跳过\n            if ($index -lt $count -and $args[$index] -notlike '-*') {\n                $index++\n            }\n            continue\n        }\n\n        $nextContext = if ($context) { \"$context.$arg\" } else { $arg }\n        if ($cmdTree.ContainsKey($nextContext)) {\n            $context = $nextContext\n            $index++\n        } else {\n            break\n        }\n    }\n\n    # 获取当前上下文可用选项并过滤\n    $options = @()\n    if ($cmdTree.ContainsKey($context)) {\n        $options = $cmdTree[$context] -split ' ' | Where-Object { $_ -like \"$wordToComplete*\" }\n    }\n\n    $options | ForEach-Object { [System.Management.Automation.CompletionResult]::new($_, $_, 'ParameterName', $_) }\n}\n" // PowerShell补全函数头部
-	PwshCommandTreeEntry = "        '%s' = '%s'\n"                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                           // 命令树条目格式
+	PwshFunctionHeader   = "Register-ArgumentCompleter -CommandName %s -ScriptBlock {\n    param($wordToComplete, $commandAst, $cursorPosition, $commandName, $parameterName)\n\n    # 标志参数需求映射\n    $flagParams = @{\n%s\n    }\n\n    # 构建命令树结构\n    $cmdTree = @{\n        '' = '%s'\n%s\n    }\n\n    # 解析命令行参数获取当前上下文\n    $context = ''\n    $args = $commandAst.CommandElements | Select-Object -Skip 1 | ForEach-Object { $_.ToString() }\n    $index = 0\n    $count = $args.Count\n\n    while ($index -lt $count) {\n        $arg = $args[$index]\n        # 处理选项参数及其值\n        if ($arg -like '-*' -and $flagParams.ContainsKey($arg)) {\n            $paramType = $flagParams[$arg]\n            $index++\n            \n            # 根据参数类型决定是否跳过下一个参数\n            if ($paramType -eq 'required' -or ($paramType -eq 'optional' -and $index -lt $count -and $args[$index] -notlike '-*')) {\n                $index++\n            }\n            continue\n        }\n\n        $nextContext = if ($context) { \"$context.$arg\" } else { $arg }\n        if ($cmdTree.ContainsKey($nextContext)) {\n            $context = $nextContext\n            $index++\n        } else {\n            break\n        }\n    }\n\n    # 获取当前上下文可用选项并过滤\n    $options = @()\n    if ($cmdTree.ContainsKey($context)) {\n        $options = $cmdTree[$context] -split ' ' | Where-Object { $_ -like \"$wordToComplete*\" }\n    }\n\n    $options | ForEach-Object { [System.Management.Automation.CompletionResult]::new($_, $_, 'ParameterName', $_) }\n}\n" // PowerShell补全函数头部
+	PwshCommandTreeEntry = "\t'%s' = '%s'\n"                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                         // 命令树条目格式
 )
 
 // addSubCommands 递归添加子命令到命令树
@@ -101,18 +119,13 @@ func addSubCommands(cmdTreeEntries *bytes.Buffer, parentPath string, cmds []*Cmd
 //
 // 返回值：
 //   - string: Bash自动补全脚本
-func (c *Cmd) generateBashCompletion() string {
+func (c *Cmd) generateBashCompletion() (string, error) {
 	// 缓冲区
 	var buf bytes.Buffer
 
-	// 父命令为空, 则返回空字符串
-	if c.parentCmd == nil {
-		return ""
-	}
-
-	// 命令树注册表为空, 则返回空字符串
-	if c.flagRegistry == nil {
-		return ""
+	// 检查父命令和命令树注册表是否为空
+	if c.parentCmd == nil || c.flagRegistry == nil {
+		return "", fmt.Errorf("invalid command state: parent command or flag registry is nil")
 	}
 
 	// 程序名称
@@ -133,25 +146,20 @@ func (c *Cmd) generateBashCompletion() string {
 	// 写入补全函数头部和命令树
 	fmt.Fprintf(&buf, BashFunctionHeader, programName, rootOpts, cmdTreeEntries.String(), programName, programName)
 
-	return buf.String()
+	return buf.String(), nil
 }
 
 // generatePwshCompletion 生成PowerShell自动补全脚本
 //
 // 返回值：
 //   - string: PowerShell自动补全脚本
-func (c *Cmd) generatePwshCompletion() string {
+func (c *Cmd) generatePwshCompletion() (string, error) {
 	// 缓冲区
 	var buf bytes.Buffer
 
-	// 父命令为空, 则返回空字符串
-	if c.parentCmd == nil {
-		return ""
-	}
-
-	// 命令树注册表为空, 则返回空字符串
-	if c.flagRegistry == nil {
-		return ""
+	// 检查父命令和命令树注册表是否为空
+	if c.parentCmd == nil || c.flagRegistry == nil {
+		return "", fmt.Errorf("invalid command state: parent command or flag registry is nil")
 	}
 
 	// 程序名称
@@ -169,10 +177,17 @@ func (c *Cmd) generatePwshCompletion() string {
 	// 从根命令的子命令开始添加
 	addSubCommandsPwsh(&cmdTreeEntries, "", c.parentCmd.subCmds)
 
-	// 写入补全函数头部和命令树
-	fmt.Fprintf(&buf, PwshFunctionHeader, programName, rootOpts, cmdTreeEntries.String())
+	// 构建标志参数需求映射
+	var flagParamsBuf bytes.Buffer
+	flagParams := c.collectFlagParameters()
+	for opt, paramType := range flagParams {
+		fmt.Fprintf(&flagParamsBuf, PwshCommandTreeEntry, opt, paramType)
+	}
 
-	return buf.String()
+	// 写入补全函数头部和命令树
+	fmt.Fprintf(&buf, PwshFunctionHeader, programName, flagParamsBuf.String(), rootOpts, cmdTreeEntries.String())
+
+	return buf.String(), nil
 }
 
 // addSubCommandsPwsh 递归添加子命令到PowerShell命令树
@@ -222,6 +237,41 @@ func addSubCommandsPwsh(cmdTreeEntries *bytes.Buffer, parentPath string, cmds []
 			addSubCommandsPwsh(cmdTreeEntries, cmdShortPath, cmd.subCmds)
 		}
 	}
+}
+
+// collectFlagParameters 收集命令的标志参数需求信息
+//
+// 返回值：
+//   - map[string]string: 标志名称到参数需求类型的映射("required"|"optional"|"none")
+func (c *Cmd) collectFlagParameters() map[string]string {
+	params := make(map[string]string)
+	if c == nil || c.flagRegistry == nil {
+		return params
+	}
+
+	flagLists := c.flagRegistry.GetAllFlagMetas()
+	for _, m := range flagLists {
+		longName := m.GetLongName()
+		shortName := m.GetShortName()
+
+		// 根据标志类型确定参数需求
+		paramType := "required" // 默认为必需参数
+		if m.GetFlagType() == flags.FlagTypeBool {
+			paramType = "none" // 布尔标志不需要参数
+		}
+
+		// 添加长名称选项
+		if longName != "" {
+			params["--"+longName] = paramType
+		}
+
+		// 添加短名称选项
+		if shortName != "" {
+			params["-"+shortName] = paramType
+		}
+	}
+
+	return params
 }
 
 // collectCompletionOptions 收集命令的补全选项，包括标志和子命令
@@ -274,12 +324,17 @@ func (c *Cmd) collectCompletionOptions() []string {
 //   - c: 当前命令实例
 //
 // 返回值:
-//   - error: 处理过程中的错误信息
 //   - bool: 是否需要退出程序
-func HandleCompletionHook(c *Cmd) (error, bool) {
+//   - error: 处理过程中的错误信息
+//
+// 注意事项:
+//   - Linux环境: 需要bash 4.0或更高版本以支持关联数组特性
+//   - Windows环境: 需要PowerShell 5.1或更高版本以支持Register-ArgumentCompleter
+//   - 请确保您的环境满足上述版本要求，否则自动补全功能可能无法正常工作
+func HandleCompletionHook(c *Cmd) (bool, error) {
 	// 检查是否启用自动补全
 	if !c.enableCompletion {
-		return nil, false
+		return false, nil
 	}
 
 	// 获取补全子命令
@@ -290,29 +345,92 @@ func HandleCompletionHook(c *Cmd) (error, bool) {
 
 	s, ok := rootCmd.subCmdMap[CompletionShellLongName]
 	if !ok {
-		return nil, false
+		return false, nil
 	}
 
 	// 获取shell类型
 	shell := s.completionShell.Get()
 	if shell == ShellNone {
-		return nil, false
+		return false, nil
 	}
 
 	// 生成对应shell的补全脚本
 	switch shell {
 	case ShellBash: // 生成Bash补全脚本
-		fmt.Println(c.generateBashCompletion())
+		bashCompletion, err := c.generateBashCompletion()
+		if err != nil {
+			return false, err
+		}
+		fmt.Println(bashCompletion)
 	case ShellPowershell, ShellPwsh: // 兼容Powershell和Pwsh
-		fmt.Println(c.generatePwshCompletion())
+		pwshCompletion, err := c.generatePwshCompletion()
+		if err != nil {
+			return false, err
+		}
+		fmt.Println(pwshCompletion)
 	default:
-		return fmt.Errorf("unsupported shell: %s. Supported shells are: %v", shell, ShellSlice), false
+		return false, fmt.Errorf("unsupported shell: %s. Supported shells are: %v", shell, ShellSlice)
 	}
 
 	// 判断是否需要退出
 	if c.exitOnBuiltinFlags {
-		return nil, true
+		return true, nil
 	}
 
-	return nil, false
+	return false, nil
+}
+
+// createCompletionSubcommand 创建自动补全子命令
+//
+// 返回值：
+//   - 自动补全子命令实例
+//   - 错误信息
+func (c *Cmd) createCompletionSubcommand() (*Cmd, error) {
+	// 创建自动补全子命令
+	completionCmd := NewCmd(CompletionShellLongName, CompletionShellShortName, flag.ExitOnError)
+	completionCmd.SetEnableCompletion(true) // 启用自动补全
+
+	// 根据语言设置自动补全子命令的注意事项
+	var completionNotes []string
+
+	// 根据父命令的语言设置自动补全子命令的语言
+	if c.GetUseChinese() {
+		// 添加中文提示
+		completionNotes = completionNotesCN
+	} else { // 默认为英文提示
+		completionNotes = completionNotesEN
+	}
+
+	// 添加自动补全子命令的注意事项
+	for _, note := range completionNotes {
+		completionCmd.AddNote(note)
+	}
+
+	// 设置自动补全子命令的内置标志退出策略
+	if !c.exitOnBuiltinFlags {
+		completionCmd.SetExitOnBuiltinFlags(false)
+	}
+
+	// 为子命令定义并绑定自动补全标志
+	completionCmd.EnumVar(completionCmd.completionShell, CompletionShellFlagLongName, CompletionShellFlagShortName, ShellNone, fmt.Sprintf("指定要生成的shell补全脚本类型, 可选值: %v", ShellSlice), ShellSlice)
+
+	// 根据父命令的语言设置自动设置子命令的语言
+	if c.GetUseChinese() {
+		completionCmd.SetDescription(CompletionShellUsageZh)
+		completionCmd.SetUseChinese(true)
+	} else {
+		completionCmd.SetDescription(CompletionShellUsageEn)
+		completionCmd.SetUseChinese(false)
+	}
+
+	// 添加自动补全子命令的示例
+	cmdName := os.Args[0]
+	for _, ex := range completionExamples {
+		completionCmd.AddExample(ExampleInfo{
+			Description: ex.Description,
+			Usage:       fmt.Sprintf(ex.Usage, cmdName),
+		})
+	}
+
+	return completionCmd, nil
 }

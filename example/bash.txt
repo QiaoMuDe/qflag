@@ -1,0 +1,42 @@
+#!/usr/bin/env bash
+
+_cmd.test.exe() {
+        local cur prev words cword context opts i arg
+        COMPREPLY=()
+
+        # 使用_get_comp_words_by_ref获取补全参数, 提高健壮性
+        if [[ -z "${_get_comp_words_by_ref}" ]]; then
+                # 兼容旧版本Bash补全环境
+                words=("${COMP_WORDS[@]}")
+                cword=$COMP_CWORD
+        else
+                _get_comp_words_by_ref -n =: cur prev words cword
+        fi
+
+        cur="${words[cword]}"
+        prev="${words[cword-1]}"
+
+        # 构建命令树结构
+        declare -A cmd_tree
+        cmd_tree[/]="--help -h comp completion"
+        cmd_tree[/completion/]="--help -h --shell -s"
+        cmd_tree[/comp/]="--help -h --shell -s"
+
+
+        # 查找当前命令上下文
+        local context="/"
+        local i
+        for ((i=1; i < cword; i++)); do
+                local arg="${words[i]}"
+                if [[ -n "${cmd_tree[$context$arg/]}" ]]; then
+                        context="$context$arg/"
+                fi
+        done
+
+        # 获取当前上下文可用选项
+        opts="${cmd_tree[$context]}"
+        COMPREPLY=($(compgen -W "${opts}" -- ${cur}))
+        return 0
+        }
+
+complete -F _cmd.test.exe cmd.test.exe
