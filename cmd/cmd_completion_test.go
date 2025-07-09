@@ -78,8 +78,8 @@ func TestCompletionPerformance(t *testing.T) {
 	}
 }
 
-// TestComPletion 测试自动补全生成
-func TestComPletion(t *testing.T) {
+// TestCompletionBash 测试自动补全生成
+func TestCompletionBash(t *testing.T) {
 	// 新建根命令
 	cmd := NewCmd("root", "r", flag.ExitOnError)
 	cmd.SetEnableCompletion(true)    // 启用自动补全

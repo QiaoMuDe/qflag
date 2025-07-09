@@ -68,12 +68,118 @@ var completionExamples = []ExampleInfo{
 // 补全脚本模板常量
 const (
 	// Bash补全模板
-	BashFunctionHeader   = "#!/usr/bin/env bash\n\n_%s() {\n\tlocal cur prev words cword context opts i arg\n\tCOMPREPLY=()\n\n\t# 使用_get_comp_words_by_ref获取补全参数, 提高健壮性\n\tif [[ -z \"${_get_comp_words_by_ref}\" ]]; then\n\t\t# 兼容旧版本Bash补全环境\n\t\twords=(\"${COMP_WORDS[@]}\")\n\t\tcword=$COMP_CWORD\n\telse\n\t\t_get_comp_words_by_ref -n =: cur prev words cword\n\tfi\n\n\tcur=\"${words[cword]}\"\n\tprev=\"${words[cword-1]}\"\n\n\t# 构建命令树结构\n\tdeclare -A cmd_tree\n\tcmd_tree[/]=\"%s\"\n%s\n\n\t# 查找当前命令上下文\n\tlocal context=\"/\"\n\tlocal i\n\tfor ((i=1; i < cword; i++)); do\n\t\tlocal arg=\"${words[i]}\"\n\t\tif [[ -n \"${cmd_tree[$context$arg/]}\" ]]; then\n\t\t\tcontext=\"$context$arg/\"\n\t\tfi\n\tdone\n\n\t# 获取当前上下文可用选项\n\topts=\"${cmd_tree[$context]}\"\n\tCOMPREPLY=($(compgen -W \"${opts}\" -- ${cur}))\n\treturn 0\n\t}\n\ncomplete -F _%s %s\n" // Bash补全函数头部
-	BashCommandTreeEntry = "\tcmd_tree[/%s/]=\"%s\"\n"                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                  // 命令树条目格式
+	//BashFunctionHeader   = "#!/usr/bin/env bash\n\n_%s() {\n\tlocal cur prev words cword context opts i arg\n\tCOMPREPLY=()\n\n\t# 使用_get_comp_words_by_ref获取补全参数, 提高健壮性\n\tif [[ -z \"${_get_comp_words_by_ref}\" ]]; then\n\t\t# 兼容旧版本Bash补全环境\n\t\twords=(\"${COMP_WORDS[@]}\")\n\t\tcword=$COMP_CWORD\n\telse\n\t\t_get_comp_words_by_ref -n =: cur prev words cword\n\tfi\n\n\tcur=\"${words[cword]}\"\n\tprev=\"${words[cword-1]}\"\n\n\t# 构建命令树结构\n\tdeclare -A cmd_tree\n\tcmd_tree[/]=\"%s\"\n%s\n\n\t# 查找当前命令上下文\n\tlocal context=\"/\"\n\tlocal i\n\tfor ((i=1; i < cword; i++)); do\n\t\tlocal arg=\"${words[i]}\"\n\t\tif [[ -n \"${cmd_tree[$context$arg/]}\" ]]; then\n\t\t\tcontext=\"$context$arg/\"\n\t\tfi\n\tdone\n\n\t# 获取当前上下文可用选项\n\topts=\"${cmd_tree[$context]}\"\n\tCOMPREPLY=($(compgen -W \"${opts}\" -- ${cur}))\n\treturn 0\n\t}\n\ncomplete -F _%s %s\n" // Bash补全函数头部
+	BashFunctionHeader = `#!/usr/bin/env bash
+
+_%s() {
+	local cur prev words cword context opts i arg
+	COMPREPLY=()
+
+	# 使用_get_comp_words_by_ref获取补全参数, 提高健壮性
+	if [[ -z "${_get_comp_words_by_ref}" ]]; then
+		# 兼容旧版本Bash补全环境
+		words=("${COMP_WORDS[@]}")
+		cword=$COMP_CWORD
+	else
+		_get_comp_words_by_ref -n =: cur prev words cword
+	fi
+
+	cur="${words[cword]}"
+	prev="${words[cword-1]}"
+
+	# 构建命令树结构
+	declare -A cmd_tree
+	cmd_tree[/]="%s"
+%s
+
+	# 查找当前命令上下文
+	local context="/"
+	local i
+	for ((i=1; i < cword; i++)); do
+		local arg="${words[i]}"
+		if [[ -n "${cmd_tree[$context$arg/]}" ]]; then
+			context="$context$arg/"
+		fi
+	done
+
+	# 获取当前上下文可用选项
+	opts="${cmd_tree[$context]}"
+	# 添加-o filenames选项处理特殊字符和空格
+	COMPREPLY=($(compgen -o filenames -W "${opts}" -- ${cur}))
+
+	# 模糊匹配与纠错提示：当无精确匹配时，从所有选项中查找包含关键词的项
+	if [[ ${#COMPREPLY[@]} -eq 0 ]]; then
+		local all_opts
+		all_opts=$(printf "%%s\n" "${cmd_tree[@]}" | tr ' ' '\n' | sort -u | tr '\n' ' ')
+		COMPREPLY=($(compgen -o filenames -W "${all_opts}" -- ${cur}))
+	fi
+
+	return 0
+	}
+
+complete -F _%s %s
+`
+	BashCommandTreeEntry = "\tcmd_tree[/%s/]=\"%s\"\n" // 命令树条目格式
 
 	// PowerShell补全模板
-	PwshFunctionHeader   = "Register-ArgumentCompleter -CommandName %s -ScriptBlock {\n    param($wordToComplete, $commandAst, $cursorPosition, $commandName, $parameterName)\n\n    # 标志参数需求映射\n    $flagParams = @{\n%s\n    }\n\n    # 构建命令树结构\n    $cmdTree = @{\n        '' = '%s'\n%s\n    }\n\n    # 解析命令行参数获取当前上下文\n    $context = ''\n    $args = $commandAst.CommandElements | Select-Object -Skip 1 | ForEach-Object { $_.ToString() }\n    $index = 0\n    $count = $args.Count\n\n    while ($index -lt $count) {\n        $arg = $args[$index]\n        # 处理选项参数及其值\n        if ($arg -like '-*' -and $flagParams.ContainsKey($arg)) {\n            $paramType = $flagParams[$arg]\n            $index++\n            \n            # 根据参数类型决定是否跳过下一个参数\n            if ($paramType -eq 'required' -or ($paramType -eq 'optional' -and $index -lt $count -and $args[$index] -notlike '-*')) {\n                $index++\n            }\n            continue\n        }\n\n        $nextContext = if ($context) { \"$context.$arg\" } else { $arg }\n        if ($cmdTree.ContainsKey($nextContext)) {\n            $context = $nextContext\n            $index++\n        } else {\n            break\n        }\n    }\n\n    # 获取当前上下文可用选项并过滤\n    $options = @()\n    if ($cmdTree.ContainsKey($context)) {\n        $options = $cmdTree[$context] -split ' ' | Where-Object { $_ -like \"$wordToComplete*\" }\n    }\n\n    $options | ForEach-Object { [System.Management.Automation.CompletionResult]::new($_, $_, 'ParameterName', $_) }\n}\n" // PowerShell补全函数头部
-	PwshCommandTreeEntry = "\t'%s' = '%s'\n"                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                         // 命令树条目格式
+	//PwshFunctionHeader   = "Register-ArgumentCompleter -CommandName %s -ScriptBlock {\n    param($wordToComplete, $commandAst, $cursorPosition, $commandName, $parameterName)\n\n    # 标志参数需求映射\n    $flagParams = @{\n%s\n    }\n\n    # 构建命令树结构\n    $cmdTree = @{\n        '' = '%s'\n%s\n    }\n\n    # 解析命令行参数获取当前上下文\n    $context = ''\n    $args = $commandAst.CommandElements | Select-Object -Skip 1 | ForEach-Object { $_.ToString() }\n    $index = 0\n    $count = $args.Count\n\n    while ($index -lt $count) {\n        $arg = $args[$index]\n        # 处理选项参数及其值\n        if ($arg -like '-*' -and $flagParams.ContainsKey($arg)) {\n            $paramType = $flagParams[$arg]\n            $index++\n            \n            # 根据参数类型决定是否跳过下一个参数\n            if ($paramType -eq 'required' -or ($paramType -eq 'optional' -and $index -lt $count -and $args[$index] -notlike '-*')) {\n                $index++\n            }\n            continue\n        }\n\n        $nextContext = if ($context) { \"$context.$arg\" } else { $arg }\n        if ($cmdTree.ContainsKey($nextContext)) {\n            $context = $nextContext\n            $index++\n        } else {\n            break\n        }\n    }\n\n    # 获取当前上下文可用选项并过滤\n    $options = @()\n    if ($cmdTree.ContainsKey($context)) {\n        $options = $cmdTree[$context] -split ' ' | Where-Object { $_ -like \"$wordToComplete*\" }\n    }\n\n    $options | ForEach-Object { [System.Management.Automation.CompletionResult]::new($_, $_, 'ParameterName', $_) }\n}\n" // PowerShell补全函数头部
+	PwshFunctionHeader = `Register-ArgumentCompleter -CommandName %s -ScriptBlock {
+    param($wordToComplete, $commandAst, $cursorPosition, $commandName, $parameterName)
+
+    # 标志参数需求映射
+    $flagParams = @{
+%s }
+
+    # 构建命令树结构
+    $cmdTree = @{
+        '' = '%s'
+%s }
+
+    # 解析命令行参数获取当前上下文
+    $context = ''
+    $args = $commandAst.CommandElements | Select-Object -Skip 1 | ForEach-Object { $_.ToString() }
+    $index = 0
+    $count = $args.Count
+
+    while ($index -lt $count) {
+        $arg = $args[$index]
+        # 处理选项参数及其值
+        if ($arg -like '-*' -and $flagParams.ContainsKey($arg)) {
+            $paramType = $flagParams[$arg]
+            $index++
+            
+            # 根据参数类型决定是否跳过下一个参数
+            if ($paramType -eq 'required' -or ($paramType -eq 'optional' -and $index -lt $count -and $args[$index] -notlike '-*')) {
+                $index++
+            }
+            continue
+        }
+
+        $nextContext = if ($context) { "$context.$arg" } else { $arg }
+        if ($cmdTree.ContainsKey($nextContext)) {
+            $context = $nextContext
+            $index++
+        } else {
+            break
+        }
+    }
+
+    # 获取当前上下文可用选项并过滤
+    $options = @()
+    if ($cmdTree.ContainsKey($context)) {
+        $options = $cmdTree[$context] -split ' ' | Where-Object { $_ -like "$wordToComplete*" }
+    }
+
+    # 模糊匹配与纠错提示：当无精确匹配时，从所有选项中查找包含关键词的项
+    if (-not $options) {
+        $allOptions = $cmdTree.Values -split ' ' | Select-Object -Unique
+        $options = $allOptions | Where-Object { $_ -like "*$wordToComplete*" }
+    }
+
+    $options | ForEach-Object { [System.Management.Automation.CompletionResult]::new($_, $_, 'ParameterName', $_) }
+}
+`
+	PwshCommandTreeEntry = "\t'%s' = '%s'\n" // 命令树条目格式
 )
 
 // addSubCommands 递归添加子命令到命令树
