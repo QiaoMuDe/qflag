@@ -191,41 +191,70 @@ complete -F _%s %s
 	PwshCommandTreeEntry = "\t'%s' = '%s'\n" // 命令树条目格式
 )
 
-// addSubCommands 递归添加子命令到命令树
+// addSubCommands 迭代方式添加子命令到命令树，替代递归实现
 //
 // 参数:
 //   - cmdTreeEntries - 用于存储命令树条目的缓冲区
 //   - parentPath - 父命令路径
 //   - cmds - 子命令列表
 func addSubCommands(cmdTreeEntries *bytes.Buffer, parentPath string, cmds []*Cmd) {
+	// 使用队列实现广度优先遍历
+	type cmdNode struct {
+		cmd        *Cmd
+		parentPath string
+	}
+	queue := make([]cmdNode, 0, len(cmds))
+
+	// 初始化队列
 	for _, cmd := range cmds {
+		queue = append(queue, cmdNode{cmd: cmd, parentPath: parentPath})
+	}
+
+	// 处理队列中的所有命令
+	for len(queue) > 0 {
+		// 出队
+		node := queue[0]
+		queue = queue[1:]
+		cmd := node.cmd
+		currentParentPath := node.parentPath
+
+		if cmd == nil {
+			continue
+		}
+
 		// 获取子命令补全选项
 		cmdOpts := cmd.collectCompletionOptions()
 
 		// 处理长命令
 		longName := cmd.LongName()
 		if longName != "" {
-			// 添加命令树条目
-			cmdLongPath := parentPath + longName + "/"
+			// 构建命令路径
+			cmdLongPath := currentParentPath + longName + "/"
+			trimmedPath := strings.TrimSuffix(cmdLongPath, "/")
 
 			// 写入命令树条目
-			fmt.Fprintf(cmdTreeEntries, BashCommandTreeEntry, strings.TrimSuffix(cmdLongPath, "/"), strings.Join(cmdOpts, " "))
+			fmt.Fprintf(cmdTreeEntries, BashCommandTreeEntry, trimmedPath, strings.Join(cmdOpts, " "))
 
-			// 递归添加子命令
-			addSubCommands(cmdTreeEntries, cmdLongPath, cmd.subCmds)
+			// 将子命令加入队列
+			for _, subCmd := range cmd.subCmds {
+				queue = append(queue, cmdNode{cmd: subCmd, parentPath: cmdLongPath})
+			}
 		}
 
 		// 处理短命令
 		shortName := cmd.ShortName()
 		if shortName != "" {
-			// 添加命令树条目
-			cmdShortPath := parentPath + shortName + "/"
+			// 构建命令路径
+			cmdShortPath := currentParentPath + shortName + "/"
+			trimmedPath := strings.TrimSuffix(cmdShortPath, "/")
 
 			// 写入命令树条目
-			fmt.Fprintf(cmdTreeEntries, BashCommandTreeEntry, strings.TrimSuffix(cmdShortPath, "/"), strings.Join(cmdOpts, " "))
+			fmt.Fprintf(cmdTreeEntries, BashCommandTreeEntry, trimmedPath, strings.Join(cmdOpts, " "))
 
-			// 递归添加子命令
-			addSubCommands(cmdTreeEntries, cmdShortPath, cmd.subCmds)
+			// 将子命令加入队列
+			for _, subCmd := range cmd.subCmds {
+				queue = append(queue, cmdNode{cmd: subCmd, parentPath: cmdShortPath})
+			}
 		}
 	}
 }
@@ -294,10 +323,16 @@ func (c *Cmd) generatePwshCompletion() (string, error) {
 
 	// 构建标志参数需求映射
 	var flagParamsBuf bytes.Buffer
+
+	// 收集当前命令的标志(从根命令开始)
 	flagParams := c.parentCmd.collectFlagParameters()
+
+	// 检查flagParams是否为空
 	if flagParams == nil {
 		flagParams = make(map[string]string)
 	}
+
+	// 写入标志参数需求条目
 	for opt, paramType := range flagParams {
 		fmt.Fprintf(&flagParamsBuf, PwshCommandTreeEntry, opt, paramType)
 	}
@@ -308,14 +343,37 @@ func (c *Cmd) generatePwshCompletion() (string, error) {
 	return buf.String(), nil
 }
 
-// addSubCommandsPwsh 递归添加子命令到PowerShell命令树
+// addSubCommandsPwsh 迭代方式添加子命令到PowerShell命令树，替代递归实现
 //
 // 参数:
 //   - cmdTreeEntries - 用于存储命令树条目的缓冲区
 //   - parentPath - 父命令路径(使用.作为分隔符)
 //   - cmds - 子命令列表
 func addSubCommandsPwsh(cmdTreeEntries *bytes.Buffer, parentPath string, cmds []*Cmd) {
+	// 使用队列实现广度优先遍历
+	type cmdNode struct {
+		cmd        *Cmd
+		parentPath string
+	}
+	queue := make([]cmdNode, 0, len(cmds))
+
+	// 初始化队列
 	for _, cmd := range cmds {
+		queue = append(queue, cmdNode{cmd: cmd, parentPath: parentPath})
+	}
+
+	// 处理队列中的所有命令
+	for len(queue) > 0 {
+		// 出队
+		node := queue[0]
+		queue = queue[1:]
+		cmd := node.cmd
+		currentParentPath := node.parentPath
+
+		if cmd == nil {
+			continue
+		}
+
 		// 获取子命令补全选项
 		cmdOpts := cmd.collectCompletionOptions()
 
@@ -323,7 +381,7 @@ func addSubCommandsPwsh(cmdTreeEntries *bytes.Buffer, parentPath string, cmds []
 		longName := cmd.LongName()
 		if longName != "" {
 			// 构建命令路径(使用.作为分隔符)
-			cmdLongPath := parentPath
+			cmdLongPath := currentParentPath
 			if cmdLongPath != "" {
 				cmdLongPath += fmt.Sprintf(".%s", longName)
 			} else {
@@ -333,15 +391,17 @@ func addSubCommandsPwsh(cmdTreeEntries *bytes.Buffer, parentPath string, cmds []
 			// 写入命令树条目
 			fmt.Fprintf(cmdTreeEntries, PwshCommandTreeEntry, cmdLongPath, strings.Join(cmdOpts, " "))
 
-			// 递归添加子命令
-			addSubCommandsPwsh(cmdTreeEntries, cmdLongPath, cmd.subCmds)
+			// 将子命令加入队列
+			for _, subCmd := range cmd.subCmds {
+				queue = append(queue, cmdNode{cmd: subCmd, parentPath: cmdLongPath})
+			}
 		}
 
 		// 处理短命令
 		shortName := cmd.ShortName()
 		if shortName != "" {
 			// 构建命令路径(使用.作为分隔符)
-			cmdShortPath := parentPath
+			cmdShortPath := currentParentPath
 			if cmdShortPath != "" {
 				cmdShortPath += fmt.Sprintf(".%s", shortName)
 			} else {
@@ -351,8 +411,10 @@ func addSubCommandsPwsh(cmdTreeEntries *bytes.Buffer, parentPath string, cmds []
 			// 写入命令树条目
 			fmt.Fprintf(cmdTreeEntries, PwshCommandTreeEntry, cmdShortPath, strings.Join(cmdOpts, " "))
 
-			// 递归添加子命令
-			addSubCommandsPwsh(cmdTreeEntries, cmdShortPath, cmd.subCmds)
+			// 将子命令加入队列
+			for _, subCmd := range cmd.subCmds {
+				queue = append(queue, cmdNode{cmd: subCmd, parentPath: cmdShortPath})
+			}
 		}
 	}
 }
@@ -390,18 +452,40 @@ func (c *Cmd) collectFlagParameters() map[string]string {
 		}
 	}
 
-	// 递归收集所有子命令的标志参数
-	for _, subCmd := range c.subCmds {
-		if subCmd == nil {
+	// 使用迭代方式收集所有子命令的标志参数，避免递归开销
+	queue := make([]*Cmd, 0, len(c.subCmds))
+	queue = append(queue, c.subCmds...)
+
+	for len(queue) > 0 {
+		cmd := queue[0]
+		queue = queue[1:]
+
+		if cmd == nil || cmd.flagRegistry == nil {
 			continue
 		}
-		subParams := subCmd.collectFlagParameters()
-		for opt, paramType := range subParams {
-			// 仅添加不存在的标志，避免重复定义
-			if _, exists := params[opt]; !exists {
-				params[opt] = paramType
+
+		// 收集当前子命令的标志
+		subFlagLists := cmd.flagRegistry.GetAllFlagMetas()
+		for _, m := range subFlagLists {
+			longName := m.GetLongName()
+			shortName := m.GetShortName()
+
+			paramType := "required"
+			if m.GetFlagType() == flags.FlagTypeBool {
+				paramType = "none"
+			}
+
+			// 子命令标志覆盖父命令同名标志，确保唯一性
+			if longName != "" {
+				params["--"+longName] = paramType
+			}
+			if shortName != "" {
+				params["-"+shortName] = paramType
 			}
 		}
+
+		// 将子命令的子命令加入队列
+		queue = append(queue, cmd.subCmds...)
 	}
 
 	return params
