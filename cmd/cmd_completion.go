@@ -11,6 +11,12 @@ import (
 	"gitee.com/MM-Q/qflag/flags"
 )
 
+// FlagParam 表示标志参数及其需求类型
+type FlagParam struct {
+	Name string // 标志名称(保留原始大小写)
+	Type string // 参数需求类型: "required"|"optional"|"none"
+}
+
 // 自动补全命令的标志名称
 const (
 	CompletionShellFlagLongName  = "shell" // shell 标志名称
@@ -131,64 +137,65 @@ complete -F _%s %s
 	// PowerShell补全模板
 	//PwshFunctionHeader   = "Register-ArgumentCompleter -CommandName %s -ScriptBlock {\n    param($wordToComplete, $commandAst, $cursorPosition, $commandName, $parameterName)\n\n    # 标志参数需求映射\n    $flagParams = @{\n%s\n    }\n\n    # 构建命令树结构\n    $cmdTree = @{\n        '' = '%s'\n%s\n    }\n\n    # 解析命令行参数获取当前上下文\n    $context = ''\n    $args = $commandAst.CommandElements | Select-Object -Skip 1 | ForEach-Object { $_.ToString() }\n    $index = 0\n    $count = $args.Count\n\n    while ($index -lt $count) {\n        $arg = $args[$index]\n        # 处理选项参数及其值\n        if ($arg -like '-*' -and $flagParams.ContainsKey($arg)) {\n            $paramType = $flagParams[$arg]\n            $index++\n            \n            # 根据参数类型决定是否跳过下一个参数\n            if ($paramType -eq 'required' -or ($paramType -eq 'optional' -and $index -lt $count -and $args[$index] -notlike '-*')) {\n                $index++\n            }\n            continue\n        }\n\n        $nextContext = if ($context) { \"$context.$arg\" } else { $arg }\n        if ($cmdTree.ContainsKey($nextContext)) {\n            $context = $nextContext\n            $index++\n        } else {\n            break\n        }\n    }\n\n    # 获取当前上下文可用选项并过滤\n    $options = @()\n    if ($cmdTree.ContainsKey($context)) {\n        $options = $cmdTree[$context] -split ' ' | Where-Object { $_ -like \"$wordToComplete*\" }\n    }\n\n    $options | ForEach-Object { [System.Management.Automation.CompletionResult]::new($_, $_, 'ParameterName', $_) }\n}\n" // PowerShell补全函数头部
 	PwshFunctionHeader = `Register-ArgumentCompleter -CommandName %s -ScriptBlock {
-    param($wordToComplete, $commandAst, $cursorPosition, $commandName, $parameterName)
-
-    # 标志参数需求映射
-    $flagParams = @{
-%s }
-
-    # 构建命令树结构
-    $cmdTree = @{
-        '' = '%s'
-%s }
-
-    # 解析命令行参数获取当前上下文
-    $context = ''
-    $args = $commandAst.CommandElements | Select-Object -Skip 1 | ForEach-Object { $_.ToString() }
-    $index = 0
-    $count = $args.Count
-
-    while ($index -lt $count) {
-        $arg = $args[$index]
-        # 处理选项参数及其值
-        if ($arg -like '-*' -and $flagParams.ContainsKey($arg)) {
-            $paramType = $flagParams[$arg]
-            $index++
-            
-            # 根据参数类型决定是否跳过下一个参数
-            if ($paramType -eq 'required' -or ($paramType -eq 'optional' -and $index -lt $count -and $args[$index] -notlike '-*')) {
-                $index++
-            }
-            continue
-        }
-
-        $nextContext = if ($context) { "$context.$arg" } else { $arg }
-        if ($cmdTree.ContainsKey($nextContext)) {
-            $context = $nextContext
-            $index++
-        } else {
-            break
-        }
-    }
-
-    # 获取当前上下文可用选项并过滤
-    $options = @()
-    if ($cmdTree.ContainsKey($context)) {
-        $options = $cmdTree[$context] -split ' ' | Where-Object { $_ -like "$wordToComplete*" }
-    }
-
-    # 模糊匹配与纠错提示：当无精确匹配时，从所有选项中查找包含关键词的项
-    if (-not $options) {
-        # 递归收集所有层级的选项
-        $allOptions = @()
-        $cmdTree.Values | ForEach-Object { $allOptions += $_ -split ' ' }
-        $options = $allOptions | Select-Object -Unique | Where-Object { $_ -like "*$wordToComplete*" }
-    }
-
-    $options | ForEach-Object { [System.Management.Automation.CompletionResult]::new($_, $_, 'ParameterName', $_) }
-}
-`
-	PwshCommandTreeEntry = "\t'%s' = '%s'\n" // 命令树条目格式
+		param($wordToComplete, $commandAst, $cursorPosition, $commandName, $parameterName)
+	
+		# 标志参数需求数组(保留原始大小写)
+		$flagParams = @(
+%s      )
+	
+		# 构建命令树结构
+		$cmdTree = @{
+%s      }
+	
+		# 解析命令行参数获取当前上下文
+		$context = ''
+		$args = $commandAst.CommandElements | Select-Object -Skip 1 | ForEach-Object { $_.ToString() }
+		$index = 0
+		$count = $args.Count
+	
+		while ($index -lt $count) {
+			$arg = $args[$index]
+			# 使用大小写敏感匹配查找标志
+			$paramInfo = $flagParams | Where-Object { $_.Name -ceq $arg } | Select-Object -First 1
+			if ($paramInfo) {
+				$paramType = $paramInfo.Type
+				$index++
+				
+				# 根据参数类型决定是否跳过下一个参数
+				if ($paramType -eq 'required' -or ($paramType -eq 'optional' -and $index -lt $count -and $args[$index] -notlike '-*')) {
+					$index++
+				}
+				continue
+			}
+	
+			$nextContext = if ($context) { "$context.$arg" } else { $arg }
+			if ($cmdTree.ContainsKey($nextContext)) {
+				$context = $nextContext
+				$index++
+			} else {
+				break
+			}
+		}
+	
+		# 获取当前上下文可用选项并过滤
+		$options = @()
+		if ($cmdTree.ContainsKey($context)) {
+			$options = $cmdTree[$context] -split ' ' | Where-Object { $_ -like "$wordToComplete*" }
+		}
+	
+		# 模糊匹配与纠错提示：当无精确匹配时，从所有选项中查找包含关键词的项
+		if (-not $options) {
+			# 递归收集所有层级的选项
+			$allOptions = @()
+			$cmdTree.Values | ForEach-Object { $allOptions += $_ -split ' ' }
+			$options = $allOptions | Select-Object -Unique | Where-Object { $_ -like "*$wordToComplete*" }
+		}
+	
+		$options | ForEach-Object { [System.Management.Automation.CompletionResult]::new($_, $_, 'ParameterName', $_) }
+	}`
+	PwshCommandTreeEntryRoot = "\t\t'' = '%s'\n"                   // 根命令树条目格式
+	PwshCommandTreeEntry     = "\t\t'%s' = '%s'\n"                 // 命令树条目格式
+	PwshCommandTreeOption    = "\t\t@{ Name = '%s'; Type = '%s'\n" // 选项参数需求条目格式
 )
 
 // addSubCommands 迭代方式添加子命令到命令树，替代递归实现
@@ -309,36 +316,31 @@ func (c *Cmd) generatePwshCompletion() (string, error) {
 	// 程序名称
 	programName := filepath.Base(os.Args[0])
 
-	// 获取根命令的补全选项
-	rootCmdOpts := c.parentCmd.collectCompletionOptions()
-
 	// 构建命令树条目缓冲区
 	var cmdTreeEntries bytes.Buffer
+
+	// 获取根命令的补全选项
+	rootCmdOpts := c.parentCmd.collectCompletionOptions()
 
 	// 添加根命令选项
 	rootOpts := strings.Join(rootCmdOpts, " ")
 
-	// 从根命令的子命令开始添加
-	addSubCommandsPwsh(&cmdTreeEntries, "", c.parentCmd.subCmds)
+	// 从根命令的子命令开始添加条目
+	addSubCommandsPwsh(&cmdTreeEntries, "", c.parentCmd.subCmds, rootOpts)
 
 	// 构建标志参数需求映射
 	var flagParamsBuf bytes.Buffer
 
 	// 收集当前命令的标志(从根命令开始)
-	flagParams := c.parentCmd.collectFlagParameters()
+	flagParams := c.parentCmd.collectFlagParameters() // 现在返回[]FlagParam
 
-	// 检查flagParams是否为空
-	if flagParams == nil {
-		flagParams = make(map[string]string)
-	}
-
-	// 写入标志参数需求条目
-	for opt, paramType := range flagParams {
-		fmt.Fprintf(&flagParamsBuf, PwshCommandTreeEntry, opt, paramType)
+	// 写入标志参数需求条目 - 使用数组而非哈希表
+	for _, param := range flagParams {
+		fmt.Fprintf(&flagParamsBuf, PwshCommandTreeOption, param.Name, param.Type)
 	}
 
 	// 写入补全函数头部和命令树
-	fmt.Fprintf(&buf, PwshFunctionHeader, programName, flagParamsBuf.String(), rootOpts, cmdTreeEntries.String())
+	fmt.Fprintf(&buf, PwshFunctionHeader, programName, flagParamsBuf.String(), cmdTreeEntries.String())
 
 	return buf.String(), nil
 }
@@ -349,7 +351,7 @@ func (c *Cmd) generatePwshCompletion() (string, error) {
 //   - cmdTreeEntries - 用于存储命令树条目的缓冲区
 //   - parentPath - 父命令路径(使用.作为分隔符)
 //   - cmds - 子命令列表
-func addSubCommandsPwsh(cmdTreeEntries *bytes.Buffer, parentPath string, cmds []*Cmd) {
+func addSubCommandsPwsh(cmdTreeEntries *bytes.Buffer, parentPath string, cmds []*Cmd, rootOpts string) {
 	// 使用队列实现广度优先遍历
 	type cmdNode struct {
 		cmd        *Cmd
@@ -361,6 +363,9 @@ func addSubCommandsPwsh(cmdTreeEntries *bytes.Buffer, parentPath string, cmds []
 	for _, cmd := range cmds {
 		queue = append(queue, cmdNode{cmd: cmd, parentPath: parentPath})
 	}
+
+	// 写入根命令条目
+	fmt.Fprintf(cmdTreeEntries, PwshCommandTreeEntryRoot, rootOpts)
 
 	// 处理队列中的所有命令
 	for len(queue) > 0 {
@@ -419,76 +424,57 @@ func addSubCommandsPwsh(cmdTreeEntries *bytes.Buffer, parentPath string, cmds []
 	}
 }
 
-// collectFlagParameters 收集命令的标志参数需求信息
-//
-// 返回值：
-//   - map[string]string: 标志名称到参数需求类型的映射("required"|"optional"|"none")
-func (c *Cmd) collectFlagParameters() map[string]string {
-	params := make(map[string]string)
-	if c == nil || c.flagRegistry == nil {
-		return params
-	}
+// collectFlagParameters 收集所有命令标志参数需求，返回标志名称到参数需求类型的映射
+// 参数需求类型: "required"|"optional"|"none"
+func (c *Cmd) collectFlagParameters() []FlagParam { // 修改返回类型为切片
+	params := make([]FlagParam, 0)
+	lowercaseKeys := make(map[string]bool)
 
-	// 收集当前命令的标志
-	flagLists := c.flagRegistry.GetAllFlagMetas()
-	for _, m := range flagLists {
-		longName := m.GetLongName()
-		shortName := m.GetShortName()
-
-		// 根据标志类型确定参数需求
-		paramType := "required" // 默认为必需参数
-		if m.GetFlagType() == flags.FlagTypeBool {
-			paramType = "none" // 布尔标志不需要参数
-		}
-
-		// 添加长名称选项
-		if longName != "" {
-			params["--"+longName] = paramType
-		}
-
-		// 添加短名称选项
-		if shortName != "" {
-			params["-"+shortName] = paramType
-		}
-	}
-
-	// 使用迭代方式收集所有子命令的标志参数，避免递归开销
-	queue := make([]*Cmd, 0, len(c.subCmds))
-	queue = append(queue, c.subCmds...)
+	// 使用队列实现广度优先遍历替代递归
+	queue := make([]*Cmd, 0, 10) // 预分配队列容量
+	queue = append(queue, c)
 
 	for len(queue) > 0 {
+		// 出队
 		cmd := queue[0]
 		queue = queue[1:]
 
-		if cmd == nil || cmd.flagRegistry == nil {
-			continue
-		}
-
-		// 收集当前子命令的标志
-		subFlagLists := cmd.flagRegistry.GetAllFlagMetas()
-		for _, m := range subFlagLists {
-			longName := m.GetLongName()
-			shortName := m.GetShortName()
-
-			paramType := "required"
-			if m.GetFlagType() == flags.FlagTypeBool {
-				paramType = "none"
+		// 收集当前命令的标志 - 同时处理长短选项
+		for _, flag := range cmd.flagRegistry.GetAllFlagMetas() {
+			// 处理短选项
+			shortOpt := flag.GetShortName()
+			if shortOpt != "" {
+				processFlagOption("-"+shortOpt, flag, &params, lowercaseKeys)
 			}
 
-			// 子命令标志覆盖父命令同名标志，确保唯一性
-			if longName != "" {
-				params["--"+longName] = paramType
-			}
-			if shortName != "" {
-				params["-"+shortName] = paramType
+			// 处理长选项
+			longOpt := flag.GetLongName()
+			if longOpt != "" {
+				processFlagOption("--"+longOpt, flag, &params, lowercaseKeys)
 			}
 		}
 
-		// 将子命令的子命令加入队列
+		// 将子命令加入队列
 		queue = append(queue, cmd.subCmds...)
 	}
 
 	return params
+}
+
+// processFlagOption 处理单个标志选项并添加到参数列表
+func processFlagOption(opt string, flag *flags.FlagMeta, params *[]FlagParam, lowercaseKeys map[string]bool) {
+	// 根据标志类型确定参数需求
+	paramType := "required" // 默认为必需参数
+	if flag.GetFlagType() == flags.FlagTypeBool {
+		paramType = "none" // 布尔标志不需要参数
+	}
+
+	// 检查是否已存在相同小写键
+	lowerKey := strings.ToLower(opt)
+	if !lowercaseKeys[lowerKey] {
+		lowercaseKeys[lowerKey] = true
+		*params = append(*params, FlagParam{Name: opt, Type: paramType})
+	}
 }
 
 // collectCompletionOptions 收集命令的补全选项，包括标志和子命令
