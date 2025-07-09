@@ -179,14 +179,8 @@ func NewCmd(longName string, shortName string, errorHandling flag.ErrorHandling)
 		enableCompletion:   false,      // 默认关闭自动补全
 	}
 
-	// 定义帮助标志提示信息
-	helpUsage := flags.HelpFlagUsageEn
-	if cmd.GetUseChinese() {
-		helpUsage = flags.HelpFlagUsageZh
-	}
-
 	// 注册帮助标志
-	cmd.BoolVar(cmd.helpFlag, flags.HelpFlagName, flags.HelpFlagShortName, false, helpUsage)
+	cmd.BoolVar(cmd.helpFlag, flags.HelpFlagName, flags.HelpFlagShortName, false, flags.HelpFlagUsageEn)
 
 	// 添加到内置标志名称映射
 	cmd.builtinFlagNameMap.Store(flags.HelpFlagName, true)

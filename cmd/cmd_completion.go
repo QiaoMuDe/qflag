@@ -31,6 +31,12 @@ const (
 	ShellNone       = "none"       // 无shell
 )
 
+// 定义中英文描述常量
+const (
+	completionShellDescCN = "指定要生成的shell补全脚本类型, 可选值: %v"
+	completionShellDescEN = "Specify the type of shell completion script to generate, available values: %v"
+)
+
 // 支持的Shell类型切片
 var ShellSlice = []string{ShellNone, ShellBash, ShellPowershell, ShellPwsh}
 
@@ -63,12 +69,24 @@ var (
 	}
 )
 
-// 内置自动补全命令的示例使用
-var completionExamples = []ExampleInfo{
-	{"Linux环境 临时启用", "source <(%s completion --shell bash)"},
-	{"Linux环境 永久启用(添加到~/.bashrc)", "echo \"source <(%s completion --shell bash)\" >> ~/.bashrc"},
-	{"Windows环境 临时启用", "%s completion --shell powershell | Out-String | Invoke-Expression"},
-	{"Windows环境 永久启用(添加到PowerShell配置文件)", "echo \"%s completion --shell powershell | Out-String | Invoke-Expression\" >> $PROFILE"},
+// 内置自动补全命令的示例使用（中文）
+var completionExamplesCN = []ExampleInfo{
+	{Description: "Linux环境 临时启用", Usage: "source <(%s completion --shell bash)"},
+	{Description: "Linux环境 永久启用(添加到~/.bashrc)", Usage: "echo \"source <(%s completion --shell bash)\" >> ~/.bashrc"},
+	{Description: "Linux环境 系统级安装(至/etc/profile.d)", Usage: "sudo %s completion --shell bash > /etc/profile.d/qflag_completion.bash"},
+	{Description: "Windows环境 临时启用", Usage: "%s completion --shell powershell | Out-String | Invoke-Expression"},
+	{Description: "Windows环境 永久启用(添加到PowerShell配置文件)", Usage: "echo \"%s completion --shell powershell | Out-String | Invoke-Expression\" >> $PROFILE"},
+	{Description: "Windows环境 系统级安装(至ProgramFiles)", Usage: "%s completion --shell powershell > $env:ProgramFiles\\qflag\\completion.ps1"},
+}
+
+// 内置自动补全命令的示例使用（英文）
+var completionExamplesEN = []ExampleInfo{
+	{Description: "Linux environment temporary activation", Usage: "source <(%s completion --shell bash)"},
+	{Description: "Linux environment permanent activation (add to ~/.bashrc)", Usage: "echo \"source <(%s completion --shell bash)\" >> ~/.bashrc"},
+	{Description: "Linux system-wide installation (to /etc/profile.d)", Usage: "sudo %s completion --shell bash > /etc/profile.d/qflag_completion.bash"},
+	{Description: "Windows environment temporary activation", Usage: "%s completion --shell powershell | Out-String | Invoke-Expression"},
+	{Description: "Windows environment permanent activation (add to PowerShell profile)", Usage: "echo \"%s completion --shell powershell | Out-String | Invoke-Expression\" >> $PROFILE"},
+	{Description: "Windows system-wide installation (to ProgramFiles)", Usage: "%s completion --shell powershell > $env:ProgramFiles\\qflag\\completion.ps1"},
 }
 
 // 补全脚本模板常量
@@ -198,13 +216,13 @@ complete -F _%s %s
 	PwshCommandTreeOption    = "\t\t@{ Name = '%s'; Type = '%s'}\n" // 选项参数需求条目格式
 )
 
-// addSubCommands 迭代方式添加子命令到命令树，替代递归实现
+// addSubCommandsBash 迭代方式添加子命令到命令树，替代递归实现
 //
 // 参数:
 //   - cmdTreeEntries - 用于存储命令树条目的缓冲区
 //   - parentPath - 父命令路径
 //   - cmds - 子命令列表
-func addSubCommands(cmdTreeEntries *bytes.Buffer, parentPath string, cmds []*Cmd) {
+func addSubCommandsBash(cmdTreeEntries *bytes.Buffer, parentPath string, cmds []*Cmd) {
 	// 使用队列实现广度优先遍历
 	type cmdNode struct {
 		cmd        *Cmd
@@ -217,52 +235,51 @@ func addSubCommands(cmdTreeEntries *bytes.Buffer, parentPath string, cmds []*Cmd
 		queue = append(queue, cmdNode{cmd: cmd, parentPath: parentPath})
 	}
 
+	// 定义处理命令名称的匿名函数 (直接传入cmd对象)
+	processCmdName := func(name string, currentParentPath string, cmd *Cmd, queue *[]cmdNode) {
+		if name == "" || cmd == nil {
+			return
+		}
+		// 使用strings.Builder优化路径拼接
+		var cmdPathBuilder strings.Builder
+		cmdPathBuilder.WriteString(currentParentPath)
+		cmdPathBuilder.WriteString(name)
+		cmdPathBuilder.WriteString("/")
+		cmdPath := cmdPathBuilder.String()
+		cmdPathBuilder.Reset()
+
+		// 去除末尾的斜杠 (通过切片操作避免额外字符串分配)
+		var trimmedPath string
+		if len(cmdPath) > 0 && cmdPath[len(cmdPath)-1] == '/' {
+			// 显式检查斜杠，避免极端情况下的切片越界
+			trimmedPath = cmdPath[:len(cmdPath)-1]
+		} else {
+			trimmedPath = cmdPath // 保留原始路径，避免切片越界
+		}
+
+		// 获取子命令补全选项 (通过cmd对象直接调用方法)
+		cmdOpts := cmd.collectCompletionOptions()
+
+		// 写入命令树条目
+		fmt.Fprintf(cmdTreeEntries, BashCommandTreeEntry, trimmedPath, strings.Join(cmdOpts, " "))
+
+		// 将子命令加入队列 (通过cmd对象访问子命令)
+		for _, subCmd := range cmd.subCmds {
+			*queue = append(*queue, cmdNode{cmd: subCmd, parentPath: cmdPath})
+		}
+	}
+
 	// 处理队列中的所有命令
 	for len(queue) > 0 {
 		// 出队
-		node := queue[0]
-		queue = queue[1:]
-		cmd := node.cmd
-		currentParentPath := node.parentPath
+		node := queue[0]                     // 获取当前命令节点
+		queue = queue[1:]                    // 移除已处理的元素
+		cmd := node.cmd                      // 获取当前命令
+		currentParentPath := node.parentPath // 获取当前命令的父路径
 
-		if cmd == nil {
-			continue
-		}
-
-		// 获取子命令补全选项
-		cmdOpts := cmd.collectCompletionOptions()
-
-		// 处理长命令
-		longName := cmd.LongName()
-		if longName != "" {
-			// 构建命令路径
-			cmdLongPath := currentParentPath + longName + "/"
-			trimmedPath := strings.TrimSuffix(cmdLongPath, "/")
-
-			// 写入命令树条目
-			fmt.Fprintf(cmdTreeEntries, BashCommandTreeEntry, trimmedPath, strings.Join(cmdOpts, " "))
-
-			// 将子命令加入队列
-			for _, subCmd := range cmd.subCmds {
-				queue = append(queue, cmdNode{cmd: subCmd, parentPath: cmdLongPath})
-			}
-		}
-
-		// 处理短命令
-		shortName := cmd.ShortName()
-		if shortName != "" {
-			// 构建命令路径
-			cmdShortPath := currentParentPath + shortName + "/"
-			trimmedPath := strings.TrimSuffix(cmdShortPath, "/")
-
-			// 写入命令树条目
-			fmt.Fprintf(cmdTreeEntries, BashCommandTreeEntry, trimmedPath, strings.Join(cmdOpts, " "))
-
-			// 将子命令加入队列
-			for _, subCmd := range cmd.subCmds {
-				queue = append(queue, cmdNode{cmd: subCmd, parentPath: cmdShortPath})
-			}
-		}
+		// 直接传递cmd对象给匿名函数
+		processCmdName(cmd.LongName(), currentParentPath, cmd, &queue)
+		processCmdName(cmd.ShortName(), currentParentPath, cmd, &queue)
 	}
 }
 
@@ -275,6 +292,9 @@ func (c *Cmd) generateBashCompletion() (string, error) {
 	var buf bytes.Buffer
 
 	// 检查父命令和命令树注册表是否为空
+	if c == nil {
+		return "", fmt.Errorf("command instance is nil")
+	}
 	if c.parentCmd == nil || c.flagRegistry == nil {
 		return "", fmt.Errorf("invalid command state: parent command or flag registry is nil")
 	}
@@ -291,8 +311,8 @@ func (c *Cmd) generateBashCompletion() (string, error) {
 	// 添加根命令选项
 	rootOpts := strings.Join(rootCmdOpts, " ")
 
-	// 从根命令的子命令开始添加
-	addSubCommands(&cmdTreeEntries, "", c.parentCmd.subCmds)
+	// 从根命令的子命令开始添加条目
+	addSubCommandsBash(&cmdTreeEntries, "", c.parentCmd.subCmds)
 
 	// 写入补全函数头部和命令树
 	fmt.Fprintf(&buf, BashFunctionHeader, programName, rootOpts, cmdTreeEntries.String(), programName, programName)
@@ -367,13 +387,35 @@ func addSubCommandsPwsh(cmdTreeEntries *bytes.Buffer, parentPath string, cmds []
 	// 写入根命令条目
 	fmt.Fprintf(cmdTreeEntries, PwshCommandTreeEntryRoot, rootOpts)
 
+	// 定义处理命令名称的匿名函数 (抽取重复逻辑)
+	processCmdName := func(name string, currentParentPath string, cmd *Cmd, cmdOpts []string) {
+		if name == "" {
+			return
+		}
+		// 构建命令路径(使用.作为分隔符)
+		cmdPath := currentParentPath
+		if cmdPath != "" {
+			cmdPath += fmt.Sprintf(".%s", name)
+		} else {
+			cmdPath = name
+		}
+
+		// 写入命令树条目
+		fmt.Fprintf(cmdTreeEntries, PwshCommandTreeEntry, cmdPath, strings.Join(cmdOpts, " "))
+
+		// 将子命令加入队列
+		for _, subCmd := range cmd.subCmds {
+			queue = append(queue, cmdNode{cmd: subCmd, parentPath: cmdPath})
+		}
+	}
+
 	// 处理队列中的所有命令
 	for len(queue) > 0 {
 		// 出队
-		node := queue[0]
-		queue = queue[1:]
-		cmd := node.cmd
-		currentParentPath := node.parentPath
+		node := queue[0]                     // 获取当前命令节点
+		queue = queue[1:]                    // 移除已处理的元素
+		cmd := node.cmd                      // 获取当前命令
+		currentParentPath := node.parentPath // 获取当前命令的父命令路径
 
 		if cmd == nil {
 			continue
@@ -382,45 +424,9 @@ func addSubCommandsPwsh(cmdTreeEntries *bytes.Buffer, parentPath string, cmds []
 		// 获取子命令补全选项
 		cmdOpts := cmd.collectCompletionOptions()
 
-		// 处理长命令
-		longName := cmd.LongName()
-		if longName != "" {
-			// 构建命令路径(使用.作为分隔符)
-			cmdLongPath := currentParentPath
-			if cmdLongPath != "" {
-				cmdLongPath += fmt.Sprintf(".%s", longName)
-			} else {
-				cmdLongPath = longName
-			}
-
-			// 写入命令树条目
-			fmt.Fprintf(cmdTreeEntries, PwshCommandTreeEntry, cmdLongPath, strings.Join(cmdOpts, " "))
-
-			// 将子命令加入队列
-			for _, subCmd := range cmd.subCmds {
-				queue = append(queue, cmdNode{cmd: subCmd, parentPath: cmdLongPath})
-			}
-		}
-
-		// 处理短命令
-		shortName := cmd.ShortName()
-		if shortName != "" {
-			// 构建命令路径(使用.作为分隔符)
-			cmdShortPath := currentParentPath
-			if cmdShortPath != "" {
-				cmdShortPath += fmt.Sprintf(".%s", shortName)
-			} else {
-				cmdShortPath = shortName
-			}
-
-			// 写入命令树条目
-			fmt.Fprintf(cmdTreeEntries, PwshCommandTreeEntry, cmdShortPath, strings.Join(cmdOpts, " "))
-
-			// 将子命令加入队列
-			for _, subCmd := range cmd.subCmds {
-				queue = append(queue, cmdNode{cmd: subCmd, parentPath: cmdShortPath})
-			}
-		}
+		// 处理长命令和短命令 (通过匿名函数消除重复)
+		processCmdName(cmd.LongName(), currentParentPath, cmd, cmdOpts)  // 处理长命令
+		processCmdName(cmd.ShortName(), currentParentPath, cmd, cmdOpts) // 处理短命令
 	}
 }
 
@@ -594,19 +600,36 @@ func (c *Cmd) createCompletionSubcommand() (*Cmd, error) {
 	completionCmd := NewCmd(CompletionShellLongName, CompletionShellShortName, flag.ExitOnError)
 	completionCmd.SetEnableCompletion(true) // 启用自动补全
 
-	// 根据语言设置自动补全子命令的注意事项
-	var completionNotes []string
+	// 语言配置结构体：集中管理所有语言相关资源
+	type languageConfig struct {
+		notes       []string      // 注意事项
+		shellDesc   string        // 用法描述
+		description string        // 子命令描述
+		examples    []ExampleInfo // 示例
+	}
 
-	// 根据父命令的语言设置自动补全子命令的语言
-	if c.GetUseChinese() {
-		// 添加中文提示
-		completionNotes = completionNotesCN
-	} else { // 默认为英文提示
-		completionNotes = completionNotesEN
+	// 一次性判断语言并初始化所有相关资源
+	useChinese := c.GetUseChinese()
+	var langConfig languageConfig
+
+	if useChinese {
+		langConfig = languageConfig{
+			notes:       completionNotesCN,
+			shellDesc:   fmt.Sprintf(completionShellDescCN, ShellSlice),
+			description: CompletionShellUsageZh,
+			examples:    completionExamplesCN,
+		}
+	} else {
+		langConfig = languageConfig{
+			notes:       completionNotesEN,
+			shellDesc:   fmt.Sprintf(completionShellDescEN, ShellSlice),
+			description: CompletionShellUsageEn,
+			examples:    completionExamplesEN,
+		}
 	}
 
 	// 添加自动补全子命令的注意事项
-	for _, note := range completionNotes {
+	for _, note := range langConfig.notes {
 		completionCmd.AddNote(note)
 	}
 
@@ -616,22 +639,15 @@ func (c *Cmd) createCompletionSubcommand() (*Cmd, error) {
 	}
 
 	// 为子命令定义并绑定自动补全标志
-	completionCmd.EnumVar(completionCmd.completionShell, CompletionShellFlagLongName, CompletionShellFlagShortName, ShellNone, fmt.Sprintf("指定要生成的shell补全脚本类型, 可选值: %v", ShellSlice), ShellSlice)
+	completionCmd.EnumVar(completionCmd.completionShell, CompletionShellFlagLongName, CompletionShellFlagShortName, ShellNone, langConfig.shellDesc, ShellSlice)
 
-	// 根据父命令的语言设置自动设置子命令的语言
-	if c.GetUseChinese() {
-		completionCmd.SetDescription(CompletionShellUsageZh)
-		completionCmd.SetUseChinese(true)
-	} else {
-		completionCmd.SetDescription(CompletionShellUsageEn)
-		completionCmd.SetUseChinese(false)
-	}
+	// 设置子命令的描述和语言
+	completionCmd.SetDescription(langConfig.description)
+	completionCmd.SetUseChinese(useChinese)
 
 	// 添加自动补全子命令的示例
 	cmdName := os.Args[0]
-
-	// 遍历示例
-	for _, ex := range completionExamples {
+	for _, ex := range langConfig.examples {
 		completionCmd.AddExample(ExampleInfo{
 			Description: ex.Description,
 			Usage:       fmt.Sprintf(ex.Usage, cmdName),

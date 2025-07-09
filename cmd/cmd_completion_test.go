@@ -114,7 +114,7 @@ func TestCompletionHelp(t *testing.T) {
 	cmd.SetExitOnBuiltinFlags(false) // 禁止在解析命令行参数时退出
 	cmd.SetUseChinese(true)          // 设置使用中文
 
-	// 解析命令行参数，指定PowerShell补全类型
+	// 解析命令行参数, 指定PowerShell补全类型
 	if err := cmd.Parse([]string{"comp", "-h"}); err != nil {
 		t.Fatal(err)
 	}
