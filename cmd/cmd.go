@@ -510,70 +510,6 @@ func (c *Cmd) parseCommon(args []string, parseSubcommands bool) (err error, shou
 	return nil, shouldExit
 }
 
-// loadEnvVars 从环境变量加载参数值
-//
-// 优先级：命令行参数 > 环境变量 > 默认值
-//
-// 参数：无
-//
-// 返回值：
-//
-//	error - 加载过程中的错误（如有）
-func (c *Cmd) loadEnvVars() error {
-	c.rwMu.RLock()
-	defer c.rwMu.RUnlock()
-
-	// 存储读取错误
-	var loadErr error
-
-	// 预分配map容量以提高性能,初始容量为已注册标志数量
-	// 使用所有标志总数作为容量最大基准, 确保独立长/短标志场景下容量充足
-	processedEnvs := make(map[string]bool, c.flagRegistry.GetALLFlagsCount()) // 跟踪已处理的环境变量，避免重复处理
-
-	// 遍历所有已注册的标志
-	c.fs.VisitAll(func(f *flag.Flag) {
-		// 如果已存在错误，则提前返回
-		if loadErr != nil {
-			return
-		}
-
-		// 获取标志实例
-		flagInstance, ok := f.Value.(flags.Flag)
-		if !ok {
-			return
-		}
-
-		// 获取环境变量名称
-		envVar := flagInstance.GetEnvVar()
-		if envVar == "" {
-			// 环境变量未设置，提前返回
-			return
-		}
-
-		// 检查是否已处理过该环境变量（避免长短标志重复处理）
-		if processedEnvs[envVar] {
-			return
-		}
-
-		// 读取环境变量值
-		envValue := os.Getenv(envVar)
-		if envValue == "" {
-			return // 环境变量未设置，提前返回
-		}
-
-		// 标记该环境变量为已处理
-		processedEnvs[envVar] = true
-
-		// 设置标志值(使用现有Set方法进行类型转换)
-		if err := f.Value.Set(envValue); err != nil {
-			//loadErr = fmt.Errorf("Failed to parse environment variable %s: %w", envVar, err)
-			loadErr = qerr.NewValidationErrorf("Failed to parse environment variable %s for flag %s: %v", envVar, f.Name, err)
-		}
-	})
-
-	return loadErr
-}
-
 // validateComponents 校验核心组件和内置标志的初始化状态
 //
 // 返回值：
@@ -676,4 +612,68 @@ func (c *Cmd) handleBuiltinFlags() (bool, error) {
 	}
 
 	return false, nil
+}
+
+// loadEnvVars 从环境变量加载参数值
+//
+// 优先级：命令行参数 > 环境变量 > 默认值
+//
+// 参数：无
+//
+// 返回值：
+//
+//	error - 加载过程中的错误（如有）
+func (c *Cmd) loadEnvVars() error {
+	c.rwMu.RLock()
+	defer c.rwMu.RUnlock()
+
+	// 存储读取错误
+	var loadErr error
+
+	// 预分配map容量以提高性能,初始容量为已注册标志数量
+	// 使用所有标志总数作为容量最大基准, 确保独立长/短标志场景下容量充足
+	processedEnvs := make(map[string]bool, c.flagRegistry.GetALLFlagsCount()) // 跟踪已处理的环境变量，避免重复处理
+
+	// 遍历所有已注册的标志
+	c.fs.VisitAll(func(f *flag.Flag) {
+		// 如果已存在错误，则提前返回
+		if loadErr != nil {
+			return
+		}
+
+		// 获取标志实例
+		flagInstance, ok := f.Value.(flags.Flag)
+		if !ok {
+			return
+		}
+
+		// 获取环境变量名称
+		envVar := flagInstance.GetEnvVar()
+		if envVar == "" {
+			// 环境变量未设置，提前返回
+			return
+		}
+
+		// 检查是否已处理过该环境变量（避免长短标志重复处理）
+		if processedEnvs[envVar] {
+			return
+		}
+
+		// 读取环境变量值
+		envValue := os.Getenv(envVar)
+		if envValue == "" {
+			return // 环境变量未设置，提前返回
+		}
+
+		// 标记该环境变量为已处理
+		processedEnvs[envVar] = true
+
+		// 设置标志值(使用现有Set方法进行类型转换)
+		if err := f.Value.Set(envValue); err != nil {
+			//loadErr = fmt.Errorf("Failed to parse environment variable %s: %w", envVar, err)
+			loadErr = qerr.NewValidationErrorf("Failed to parse environment variable %s for flag %s: %v", envVar, f.Name, err)
+		}
+	})
+
+	return loadErr
 }

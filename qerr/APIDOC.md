@@ -1,6 +1,6 @@
 # Package qerr
 
-Package qerr 提供命令行解析相关的错误定义和处理功能。
+qerr 包提供了命令行解析相关的错误定义和处理函数。
 
 ## VARIABLES
 
@@ -11,9 +11,11 @@ var (
     ErrPanicRecovered        = errors.New("panic recovered")                     // 恐慌捕获错误
     ErrValidationFailed      = errors.New("Validation failed")                   // 参数验证失败错误
     ErrEnvLoadFailed         = errors.New("Environment variable loading failed") // 环境变量加载失败错误
+    ErrAddSubCommandFailed   = errors.New("Add subcommand failed")               // 添加子命令失败错误
 )
 ```
-命令行解析相关错误变量
+
+命令行解析相关错误变量。
 
 ## FUNCTIONS
 
@@ -23,15 +25,15 @@ var (
 func JoinErrors(errors []error) error
 ```
 
-JoinErrors 将错误切片合并为单个错误，并去除重复错误
+JoinErrors 将错误切片合并为单个错误，并去除重复错误。
 
 ### NewValidationError
 
 ```go
-func NewValidationError(message string) error
+func NewValidationError(message) string error
 ```
 
-NewValidationError 创建一个新的验证错误
+NewValidationError 创建一个新的验证错误。
 
 ### NewValidationErrorf
 
@@ -39,4 +41,4 @@ NewValidationError 创建一个新的验证错误
 func NewValidationErrorf(format string, v ...interface{}) error
 ```
 
-NewValidationErrorf 创建一个格式化的验证错误
+NewValidationErrorf 创建一个格式化的验证错误。
