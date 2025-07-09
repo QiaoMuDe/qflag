@@ -294,7 +294,10 @@ func (c *Cmd) generatePwshCompletion() (string, error) {
 
 	// 构建标志参数需求映射
 	var flagParamsBuf bytes.Buffer
-	flagParams := c.collectFlagParameters()
+	flagParams := c.parentCmd.collectFlagParameters()
+	if flagParams == nil {
+		flagParams = make(map[string]string)
+	}
 	for opt, paramType := range flagParams {
 		fmt.Fprintf(&flagParamsBuf, PwshCommandTreeEntry, opt, paramType)
 	}
