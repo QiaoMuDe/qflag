@@ -109,9 +109,16 @@ _%s() {
 
 	# 模糊匹配与纠错提示：当无精确匹配时，从所有选项中查找包含关键词的项
 	if [[ ${#COMPREPLY[@]} -eq 0 ]]; then
-		local all_opts
-		all_opts=$(printf "%%s\n" "${cmd_tree[@]}" | tr ' ' '\n' | sort -u | tr '\n' ' ')
-		COMPREPLY=($(compgen -o filenames -W "${all_opts}" -- ${cur}))
+		local all_opts=()
+		# 使用循环安全收集所有选项，避免空格分割问题
+		for path in "${!cmd_tree[@]}"; do
+			for opt in ${cmd_tree[$path]}; do
+				all_opts+=($opt)
+			done
+		done
+		# 去重并生成补全结果
+		local unique_opts=($(printf "%%s\n" "${all_opts[@]}" | sort -u))
+		COMPREPLY=($(compgen -o filenames -W "${unique_opts[*]}" -- ${cur}))
 	fi
 
 	return 0
@@ -172,8 +179,10 @@ complete -F _%s %s
 
     # 模糊匹配与纠错提示：当无精确匹配时，从所有选项中查找包含关键词的项
     if (-not $options) {
-        $allOptions = $cmdTree.Values -split ' ' | Select-Object -Unique
-        $options = $allOptions | Where-Object { $_ -like "*$wordToComplete*" }
+        # 递归收集所有层级的选项
+        $allOptions = @()
+        $cmdTree.Values | ForEach-Object { $allOptions += $_ -split ' ' }
+        $options = $allOptions | Select-Object -Unique | Where-Object { $_ -like "*$wordToComplete*" }
     }
 
     $options | ForEach-Object { [System.Management.Automation.CompletionResult]::new($_, $_, 'ParameterName', $_) }
@@ -355,6 +364,7 @@ func (c *Cmd) collectFlagParameters() map[string]string {
 		return params
 	}
 
+	// 收集当前命令的标志
 	flagLists := c.flagRegistry.GetAllFlagMetas()
 	for _, m := range flagLists {
 		longName := m.GetLongName()
@@ -374,6 +384,20 @@ func (c *Cmd) collectFlagParameters() map[string]string {
 		// 添加短名称选项
 		if shortName != "" {
 			params["-"+shortName] = paramType
+		}
+	}
+
+	// 递归收集所有子命令的标志参数
+	for _, subCmd := range c.subCmds {
+		if subCmd == nil {
+			continue
+		}
+		subParams := subCmd.collectFlagParameters()
+		for opt, paramType := range subParams {
+			// 仅添加不存在的标志，避免重复定义
+			if _, exists := params[opt]; !exists {
+				params[opt] = paramType
+			}
 		}
 	}
 
@@ -531,6 +555,8 @@ func (c *Cmd) createCompletionSubcommand() (*Cmd, error) {
 
 	// 添加自动补全子命令的示例
 	cmdName := os.Args[0]
+
+	// 遍历示例
 	for _, ex := range completionExamples {
 		completionCmd.AddExample(ExampleInfo{
 			Description: ex.Description,
