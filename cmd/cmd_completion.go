@@ -426,32 +426,49 @@ func addSubCommandsPwsh(cmdTreeEntries *bytes.Buffer, parentPath string, cmds []
 
 // collectFlagParameters 收集所有命令标志参数需求，返回标志名称到参数需求类型的映射
 // 参数需求类型: "required"|"optional"|"none"
-func (c *Cmd) collectFlagParameters() []FlagParam { // 修改返回类型为切片
-	params := make([]FlagParam, 0)
-	lowercaseKeys := make(map[string]bool)
+func (c *Cmd) collectFlagParameters() []FlagParam {
+	params := make([]FlagParam, 0) // 使用切片存储标志参数需求
+	seen := make(map[string]bool)  // 使用原始标志名称作为键，区分大小写
 
-	// 使用队列实现广度优先遍历替代递归
-	queue := make([]*Cmd, 0, 10) // 预分配队列容量
+	// 定义匿名函数处理标志添加逻辑，包含参数类型判断
+	addFlagParam := func(flag *flags.FlagMeta, prefix, opt string) {
+		if opt == "" {
+			return
+		}
+
+		// 拼接标志名称
+		flagName := prefix + opt
+
+		// 只有在标志名称未被添加过时才添加
+		if !seen[flagName] {
+			seen[flagName] = true // 标记为已添加
+
+			// 根据标志类型设置参数类型
+			paramType := "required"
+			if flag.GetFlagType() == flags.FlagTypeBool {
+				paramType = "none"
+			}
+
+			// 添加标志参数需求
+			params = append(params, FlagParam{Name: flagName, Type: paramType})
+		}
+	}
+
+	// 使用队列实现广度优先遍历
+	queue := make([]*Cmd, 0, 10)
 	queue = append(queue, c)
 
+	// 遍历队列中的所有命令
 	for len(queue) > 0 {
-		// 出队
 		cmd := queue[0]
 		queue = queue[1:]
 
 		// 收集当前命令的标志 - 同时处理长短选项
 		for _, flag := range cmd.flagRegistry.GetAllFlagMetas() {
 			// 处理短选项
-			shortOpt := flag.GetShortName()
-			if shortOpt != "" {
-				processFlagOption("-"+shortOpt, flag, &params, lowercaseKeys)
-			}
-
+			addFlagParam(flag, "-", flag.GetShortName())
 			// 处理长选项
-			longOpt := flag.GetLongName()
-			if longOpt != "" {
-				processFlagOption("--"+longOpt, flag, &params, lowercaseKeys)
-			}
+			addFlagParam(flag, "--", flag.GetLongName())
 		}
 
 		// 将子命令加入队列
@@ -459,22 +476,6 @@ func (c *Cmd) collectFlagParameters() []FlagParam { // 修改返回类型为切�
 	}
 
 	return params
-}
-
-// processFlagOption 处理单个标志选项并添加到参数列表
-func processFlagOption(opt string, flag *flags.FlagMeta, params *[]FlagParam, lowercaseKeys map[string]bool) {
-	// 根据标志类型确定参数需求
-	paramType := "required" // 默认为必需参数
-	if flag.GetFlagType() == flags.FlagTypeBool {
-		paramType = "none" // 布尔标志不需要参数
-	}
-
-	// 检查是否已存在相同小写键
-	lowerKey := strings.ToLower(opt)
-	if !lowercaseKeys[lowerKey] {
-		lowercaseKeys[lowerKey] = true
-		*params = append(*params, FlagParam{Name: opt, Type: paramType})
-	}
 }
 
 // collectCompletionOptions 收集命令的补全选项，包括标志和子命令
