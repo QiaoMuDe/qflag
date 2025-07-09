@@ -193,9 +193,9 @@ complete -F _%s %s
 	
 		$options | ForEach-Object { [System.Management.Automation.CompletionResult]::new($_, $_, 'ParameterName', $_) }
 	}`
-	PwshCommandTreeEntryRoot = "\t\t'' = '%s'\n"                   // 根命令树条目格式
-	PwshCommandTreeEntry     = "\t\t'%s' = '%s'\n"                 // 命令树条目格式
-	PwshCommandTreeOption    = "\t\t@{ Name = '%s'; Type = '%s'\n" // 选项参数需求条目格式
+	PwshCommandTreeEntryRoot = "\t\t'' = '%s'\n"                    // 根命令树条目格式
+	PwshCommandTreeEntry     = "\t\t'%s' = '%s'\n"                  // 命令树条目格式
+	PwshCommandTreeOption    = "\t\t@{ Name = '%s'; Type = '%s'}\n" // 选项参数需求条目格式
 )
 
 // addSubCommands 迭代方式添加子命令到命令树，替代递归实现
