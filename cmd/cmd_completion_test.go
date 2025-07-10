@@ -14,9 +14,7 @@ func TestCompletionPerformance(t *testing.T) {
 	// 创建复杂命令结构
 	rootCmd := NewCmd("root", "r", flag.ExitOnError)
 	rootCmd.SetExitOnBuiltinFlags(false)
-	if err := rootCmd.SetEnableCompletion(true); err != nil {
-		t.Fatal(err)
-	}
+	rootCmd.SetEnableCompletion(true)
 
 	// 添加多层子命令和大量选项
 	for i := 0; i < 10; i++ {
@@ -79,9 +77,7 @@ func TestCompletionBash(t *testing.T) {
 	cmd.SetExitOnBuiltinFlags(false) // 禁止在解析命令行参数时退出
 	cmd.SetUseChinese(true)          // 设置使用中文
 
-	if err := cmd.SetEnableCompletion(true); err != nil {
-		t.Fatal(err)
-	}
+	cmd.SetEnableCompletion(true)
 
 	// 解析命令行参数
 	if err := cmd.Parse([]string{"-gsc", "bash"}); err != nil {
@@ -96,9 +92,7 @@ func TestCompletionPwsh(t *testing.T) {
 	cmd.SetExitOnBuiltinFlags(false) // 禁止在解析命令行参数时退出
 	cmd.SetUseChinese(true)          // 设置使用中文
 
-	if err := cmd.SetEnableCompletion(true); err != nil {
-		t.Fatal(err)
-	}
+	cmd.SetEnableCompletion(true)
 
 	// 解析命令行参数，指定PowerShell补全类型
 	if err := cmd.Parse([]string{"-gsc", "pwsh"}); err != nil {
@@ -113,9 +107,7 @@ func TestCompletionHelp(t *testing.T) {
 	cmd.SetExitOnBuiltinFlags(false) // 禁止在解析命令行参数时退出
 	cmd.SetUseChinese(true)          // 设置使用中文
 
-	if err := cmd.SetEnableCompletion(true); err != nil {
-		t.Fatal(err)
-	}
+	cmd.SetEnableCompletion(true)
 
 	// 解析命令行参数，指定帮助信息
 	if err := cmd.Parse([]string{"-h"}); err != nil {

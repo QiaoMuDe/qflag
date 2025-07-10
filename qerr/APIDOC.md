@@ -1,6 +1,6 @@
 # Package qerr
 
-qerr 包提供了命令行解析相关的错误定义和处理函数。
+qerr 包定义了命令行解析相关的错误变量和辅助函数
 
 ## VARIABLES
 
@@ -15,7 +15,7 @@ var (
 )
 ```
 
-命令行解析相关错误变量。
+命令行解析相关错误变量
 
 ## FUNCTIONS
 
@@ -25,15 +25,15 @@ var (
 func JoinErrors(errors []error) error
 ```
 
-JoinErrors 将错误切片合并为单个错误，并去除重复错误。
+JoinErrors 将错误切片合并为单个错误，并去除重复错误
 
 ### NewValidationError
 
 ```go
-func NewValidationError(message) string error
+func NewValidationError(message string) error
 ```
 
-NewValidationError 创建一个新的验证错误。
+NewValidationError 创建一个新的验证错误
 
 ### NewValidationErrorf
 
@@ -41,4 +41,4 @@ NewValidationError 创建一个新的验证错误。
 func NewValidationErrorf(format string, v ...interface{}) error
 ```
 
-NewValidationErrorf 创建一个格式化的验证错误。
+NewValidationErrorf 创建一个格式化的验证错误

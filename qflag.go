@@ -352,12 +352,6 @@ func FlagRegistry() *flags.FlagRegistry {
 //
 // 参数:
 //   - enable: 是否启用自动完成功能
-//
-// 返回值:
-//   - error: 如果设置失败，则返回错误信息；否则返回 nil。
-//
-// 注意:
-//   - 该函数只能在根命令实例上调用
-func SetEnableCompletion(enable bool) error {
-	return QCommandLine.SetEnableCompletion(enable)
+func SetEnableCompletion(enable bool) {
+	QCommandLine.SetEnableCompletion(enable)
 }

@@ -353,22 +353,17 @@ func (c *Cmd) ParseFlagsOnly(args []string) (err error) {
 //
 // 参数:
 //   - enable: true表示启用补全,false表示禁用
-//
-// 返回值:
-//   - error: 如果不是根命令, 则返回错误信息
-func (c *Cmd) SetEnableCompletion(enable bool) (err error) {
+func (c *Cmd) SetEnableCompletion(enable bool) {
 	c.rwMu.Lock()
 	defer c.rwMu.Unlock()
 
-	// 只有根命令可以启用补全
+	// 只在根命令上启用自动补全
 	if c.parentCmd != nil {
-		return qerr.NewValidationError("completion can only be enabled on root command")
+		return
 	}
 
 	// 设置启用状态
 	c.enableCompletion = enable
-
-	return nil
 }
 
 // FlagRegistry 获取标志注册表的只读访问
