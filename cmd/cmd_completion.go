@@ -1,3 +1,4 @@
+// cmd_completion.go - 自动补全命令的实现
 package cmd
 
 import (
