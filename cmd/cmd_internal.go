@@ -300,6 +300,8 @@ func (c *Cmd) handleBuiltinFlags() (bool, error) {
 				return false, err
 			}
 			fmt.Println(pwshCompletion)
+		case flags.ShellNone: // 默认不生成补全脚本
+			// 无需处理
 		default:
 			return false, fmt.Errorf("unsupported shell: %s. Supported shells are: %v", shell, flags.ShellSlice)
 		}

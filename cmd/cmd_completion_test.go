@@ -1,8 +1,11 @@
 package cmd
 
 import (
+	"bytes"
 	"flag"
 	"fmt"
+	"io"
+	"os"
 	"testing"
 	"time"
 
@@ -113,4 +116,75 @@ func TestCompletionHelp(t *testing.T) {
 	if err := cmd.Parse([]string{"-h"}); err != nil {
 		t.Fatal(err)
 	}
+}
+
+// TestCompletionShellNone 测试ShellNone模式下补全功能的行为
+func TestCompletionShellNone(t *testing.T) {
+	// 测试场景1: ShellNone模式下不应生成任何补全脚本
+	t.Run("no_completion_script_generated", func(t *testing.T) {
+		// 创建命令实例
+		cmd := NewCmd("test", "t", flag.ContinueOnError)
+		cmd.SetExitOnBuiltinFlags(false)
+		cmd.SetEnableCompletion(true)
+
+		// 重定向标准输出以捕获可能的输出
+		oldStdout := os.Stdout
+		r, w, _ := os.Pipe()
+		os.Stdout = w
+
+		// 解析命令行参数，指定shell为none
+		err := cmd.Parse([]string{"-gsc", "none"})
+		if err != nil {
+			t.Fatalf("解析参数失败: %v", err)
+		}
+
+		// 恢复标准输出
+		w.Close()
+		os.Stdout = oldStdout
+
+		// 读取捕获的输出
+		var buf bytes.Buffer
+		// 修复: 检查io.Copy的错误返回值
+		_, err = io.Copy(&buf, r)
+		if err != nil {
+			t.Fatalf("读取输出失败: %v", err)
+		}
+		output := buf.String()
+
+		// 验证没有生成补全脚本
+		if output != "" {
+			t.Errorf("ShellNone模式下不应有输出，实际输出: %q", output)
+		}
+	})
+
+	// 测试场景2: 验证exitOnBuiltinFlags标志的行为
+	t.Run("exit_on_builtin_flags_behavior", func(t *testing.T) {
+		// 创建命令实例
+		cmd := NewCmd("test", "t", flag.ContinueOnError)
+		cmd.SetEnableCompletion(true)
+		// 修复: 检查Set方法的错误返回值
+		if err := cmd.completionShell.Set(flags.ShellNone); err != nil {
+			t.Fatalf("设置Shell类型失败: %v", err)
+		}
+
+		// 测试当exitOnBuiltinFlags为true时应返回退出信号
+		cmd.SetExitOnBuiltinFlags(true)
+		shouldExit, err := cmd.handleBuiltinFlags()
+		if err != nil {
+			t.Fatalf("处理内置标志失败: %v", err)
+		}
+		if !shouldExit {
+			t.Error("当exitOnBuiltinFlags为true时，应返回需要退出")
+		}
+
+		// 测试当exitOnBuiltinFlags为false时不应返回退出信号
+		cmd.SetExitOnBuiltinFlags(false)
+		shouldExit, err = cmd.handleBuiltinFlags()
+		if err != nil {
+			t.Fatalf("处理内置标志失败: %v", err)
+		}
+		if shouldExit {
+			t.Error("当exitOnBuiltinFlags为false时，不应返回需要退出")
+		}
+	})
 }
