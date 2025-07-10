@@ -286,26 +286,30 @@ func (c *Cmd) handleBuiltinFlags() (bool, error) {
 		// 获取shell类型
 		shell := c.completionShell.Get()
 
-		// 生成对应shell的补全脚本
-		switch shell {
-		case flags.ShellBash: // 生成Bash补全脚本
-			bashCompletion, err := c.generateBashCompletion()
-			if err != nil {
-				return false, err
+		// 只有不是默认值时才生成补全脚本
+		if shell != flags.ShellNone {
+			// 生成对应shell的补全脚本
+			switch shell {
+			case flags.ShellBash: // 生成Bash补全脚本
+				bashCompletion, err := c.generateBashCompletion()
+				if err != nil {
+					return false, err
+				}
+				fmt.Println(bashCompletion)
+			case flags.ShellPowershell, flags.ShellPwsh: // 兼容Powershell和Pwsh
+				pwshCompletion, err := c.generatePwshCompletion()
+				if err != nil {
+					return false, err
+				}
+				fmt.Println(pwshCompletion)
+			// case flags.ShellNone: // 默认不生成补全脚本
+			// 	// 无需处理
+			default:
+				return false, fmt.Errorf("unsupported shell: %s. Supported shells are: %v", shell, flags.ShellSlice)
 			}
-			fmt.Println(bashCompletion)
-		case flags.ShellPowershell, flags.ShellPwsh: // 兼容Powershell和Pwsh
-			pwshCompletion, err := c.generatePwshCompletion()
-			if err != nil {
-				return false, err
-			}
-			fmt.Println(pwshCompletion)
-		case flags.ShellNone: // 默认不生成补全脚本
-			// 无需处理
-		default:
-			return false, fmt.Errorf("unsupported shell: %s. Supported shells are: %v", shell, flags.ShellSlice)
 		}
 
+		// 无论是否生成补全脚本, 均检查exitOnBuiltinFlags
 		if c.exitOnBuiltinFlags {
 			return true, nil // 标记需要退出
 		}
