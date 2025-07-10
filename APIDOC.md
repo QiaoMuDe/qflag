@@ -733,7 +733,7 @@ SetDescription 设置命令描述信息。
 ### SetEnableCompletion
 
 ```go
-func SetEnableCompletion(enable bool)
+func SetEnableCompletion(enable bool) error
 ```
 
 SetEnableCompletion 设置是否启用自动完成功能。
@@ -742,11 +742,12 @@ SetEnableCompletion 设置是否启用自动完成功能。
 
 - enable: 是否启用自动完成功能。
 
-**示例:**
+**返回值:**
 
-```go
-qflag.SetEnableCompletion(true)
-```
+- error: 错误信息。
+
+**注意:**
+- 该函数只能在根命令实例上调用
 
 ### SetExitOnBuiltinFlags
 

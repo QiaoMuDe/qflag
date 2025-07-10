@@ -547,12 +547,13 @@ func HandleCompletionHook(c *Cmd) (bool, error) {
 		return false, nil
 	}
 
-	// 获取补全子命令
+	// 获取根命令
 	rootCmd := c
 	for rootCmd.parentCmd != nil { // 追溯到根命令
 		rootCmd = rootCmd.parentCmd
 	}
 
+	// 获取补全子命令
 	s, ok := rootCmd.subCmdMap[CompletionShellLongName]
 	if !ok {
 		return false, nil
@@ -598,7 +599,7 @@ func HandleCompletionHook(c *Cmd) (bool, error) {
 func (c *Cmd) createCompletionSubcommand() (*Cmd, error) {
 	// 创建自动补全子命令
 	completionCmd := NewCmd(CompletionShellLongName, CompletionShellShortName, flag.ExitOnError)
-	completionCmd.SetEnableCompletion(true) // 启用自动补全
+	completionCmd.enableCompletion = true
 
 	// 语言配置结构体：集中管理所有语言相关资源
 	type languageConfig struct {
@@ -629,14 +630,7 @@ func (c *Cmd) createCompletionSubcommand() (*Cmd, error) {
 	}
 
 	// 添加自动补全子命令的注意事项
-	for _, note := range langConfig.notes {
-		completionCmd.AddNote(note)
-	}
-
-	// 设置自动补全子命令的内置标志退出策略
-	if !c.exitOnBuiltinFlags {
-		completionCmd.SetExitOnBuiltinFlags(false)
-	}
+	c.userInfo.notes = append(c.userInfo.notes, langConfig.notes...)
 
 	// 为子命令定义并绑定自动补全标志
 	completionCmd.EnumVar(completionCmd.completionShell, CompletionShellFlagLongName, CompletionShellFlagShortName, ShellNone, langConfig.shellDesc, ShellSlice)
@@ -645,14 +639,19 @@ func (c *Cmd) createCompletionSubcommand() (*Cmd, error) {
 	completionCmd.SetDescription(langConfig.description)
 	completionCmd.SetUseChinese(useChinese)
 
-	// 添加自动补全子命令的示例
+	// 获取运行的程序名
 	cmdName := os.Args[0]
+
+	// 遍历添加示例
+	c.rwMu.RLock()
 	for _, ex := range langConfig.examples {
-		completionCmd.AddExample(ExampleInfo{
+		// 直接添加到底层切片中
+		completionCmd.userInfo.examples = append(completionCmd.userInfo.examples, ExampleInfo{
 			Description: ex.Description,
 			Usage:       fmt.Sprintf(ex.Usage, cmdName),
 		})
 	}
+	c.rwMu.RUnlock()
 
 	return completionCmd, nil
 }

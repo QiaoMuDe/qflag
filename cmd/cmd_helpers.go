@@ -8,16 +8,75 @@ import (
 	"strings"
 
 	"gitee.com/MM-Q/qflag/flags"
+	"gitee.com/MM-Q/qflag/qerr"
 )
 
 // SetEnableCompletion 设置是否启用自动补全,支持链式调用
+// 启用时会自动注册补全子命令
 //
 // 参数:
 //   - enable: true表示启用补全,false表示禁用
-func (c *Cmd) SetEnableCompletion(enable bool) {
+//
+// 返回值:
+//   - error: 注册补全子命令过程中可能出现的错误
+func (c *Cmd) SetEnableCompletion(enable bool) (err error) {
+	fmt.Println("注册补全子命令...")
+
+	// 如果要禁用补全,则直接返回
+	if !enable {
+		c.rwMu.Lock()
+		c.enableCompletion = false
+		c.rwMu.Unlock()
+		return nil
+	}
+
+	// 只有根命令可以启用补全
+	if c.parentCmd != nil {
+		return qerr.NewValidationError("completion can only be enabled on root command")
+	}
+
+	// 仅注册一次
+	c.completionRegisteredOnce.Do(func() {
+		fmt.Println("注册补全子命令，只有根命令可以启用补全")
+		// 创建补全子命令
+		completionCmd, createErr := c.createCompletionSubcommand()
+		if createErr != nil {
+			err = fmt.Errorf("failed to create completion subcommand: %w", createErr)
+			return
+		}
+		fmt.Println("补全子命令创建成功")
+
+		// 添加为内置子命令
+		// if addErr := c.AddSubCmd(completionCmd); addErr != nil {
+		// 	err = fmt.Errorf("failed to add completion subcommand: %w", addErr)
+		// 	return
+		// }
+
+		// 添加自动补全子命令到当前命令
+		if addErr := c.addBuiltinSubCmd(completionCmd); addErr != nil {
+			err = fmt.Errorf("failed to add completion subcommand: %w", addErr)
+			return
+		}
+
+		fmt.Println("补全子命令注册成功")
+
+		// 首次调用时设置状态
+		c.rwMu.Lock()
+		c.enableCompletion = enable
+		c.rwMu.Unlock()
+	})
+
+	// 非首次调用时更新状态
 	c.rwMu.Lock()
-	defer c.rwMu.Unlock()
 	c.enableCompletion = enable
+	c.rwMu.Unlock()
+
+	// 判断是否有错误发生
+	if err != nil {
+		return err
+	}
+
+	return nil
 }
 
 // FlagRegistry 获取标志注册表的只读访问
@@ -329,7 +388,7 @@ func (c *Cmd) dfs(current *Cmd, visited map[*Cmd]bool, depth int) bool {
 	}
 
 	// 递归检查所有子命令
-	for _, subCmd := range current.subCmdMap {
+	for _, subCmd := range current.subCmds {
 		if c.dfs(subCmd, visited, depth+1) {
 			return true
 		}
@@ -481,4 +540,15 @@ func (c *Cmd) CmdExists(cmdName string) bool {
 //   - bool: 解析状态,true表示已解析(无论成功失败), false表示未解析
 func (c *Cmd) IsParsed() bool {
 	return c.parsed.Load()
+}
+
+// SetExitOnBuiltinFlags 设置是否在解析内置参数时退出
+// 默认情况下为true, 当解析到内置参数时, QFlag将退出程序
+//
+// 参数:
+//   - exit: 是否退出
+func (c *Cmd) SetExitOnBuiltinFlags(exit bool) {
+	c.rwMu.Lock()
+	defer c.rwMu.Unlock()
+	c.exitOnBuiltinFlags = exit
 }

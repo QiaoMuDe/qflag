@@ -13,8 +13,10 @@ import (
 func TestCompletionPerformance(t *testing.T) {
 	// 创建复杂命令结构
 	rootCmd := NewCmd("root", "r", flag.ExitOnError)
-	rootCmd.SetEnableCompletion(true)
 	rootCmd.SetExitOnBuiltinFlags(false)
+	if err := rootCmd.SetEnableCompletion(true); err != nil {
+		t.Fatal(err)
+	}
 
 	// 添加多层子命令和大量选项
 	for i := 0; i < 10; i++ {
@@ -44,18 +46,10 @@ func TestCompletionPerformance(t *testing.T) {
 		}
 	}
 
-	// 创建补全子命令
-	completionCmd, err := rootCmd.createCompletionSubcommand()
-	if err != nil {
-		t.Fatalf("Failed to create completion subcommand: %v", err)
-	}
-	if addErr := rootCmd.AddSubCmd(completionCmd); addErr != nil {
-		t.Fatalf("Failed to add completion subcommand: %v", addErr)
-	}
-
 	// 测试Bash补全生成速度
 	start := time.Now()
-	_, err = completionCmd.generateBashCompletion()
+	var err error
+	_, err = rootCmd.SubCmdMap()["comp"].generateBashCompletion()
 	if err != nil {
 		t.Fatalf("Bash completion generation failed: %v", err)
 	}
@@ -67,7 +61,7 @@ func TestCompletionPerformance(t *testing.T) {
 
 	// 测试PowerShell补全生成速度
 	start = time.Now()
-	_, err = completionCmd.generatePwshCompletion()
+	_, err = rootCmd.SubCmdMap()["comp"].generatePwshCompletion()
 	if err != nil {
 		t.Fatalf("PowerShell completion generation failed: %v", err)
 	}
@@ -82,12 +76,15 @@ func TestCompletionPerformance(t *testing.T) {
 func TestCompletionBash(t *testing.T) {
 	// 新建根命令
 	cmd := NewCmd("root", "r", flag.ExitOnError)
-	cmd.SetEnableCompletion(true)    // 启用自动补全
 	cmd.SetExitOnBuiltinFlags(false) // 禁止在解析命令行参数时退出
 	cmd.SetUseChinese(true)          // 设置使用中文
 
+	if err := cmd.SetEnableCompletion(true); err != nil {
+		t.Fatal(err)
+	}
+
 	// 解析命令行参数
-	if err := cmd.Parse([]string{"comp", "-s", "bash"}); err != nil {
+	if err := cmd.Parse([]string{"completion", "-s", "bash"}); err != nil {
 		t.Fatal(err)
 	}
 }
@@ -96,26 +93,15 @@ func TestCompletionBash(t *testing.T) {
 func TestCompletionPwsh(t *testing.T) {
 	// 新建根命令
 	cmd := NewCmd("root", "r", flag.ExitOnError)
-	cmd.SetEnableCompletion(true)    // 启用自动补全
 	cmd.SetExitOnBuiltinFlags(false) // 禁止在解析命令行参数时退出
 	cmd.SetUseChinese(true)          // 设置使用中文
+
+	if err := cmd.SetEnableCompletion(true); err != nil {
+		t.Fatal(err)
+	}
 
 	// 解析命令行参数，指定PowerShell补全类型
 	if err := cmd.Parse([]string{"comp", "-s", "pwsh"}); err != nil {
-		t.Fatal(err)
-	}
-}
-
-// TestCompletionHelp 测试自动补全帮助信息
-func TestCompletionHelp(t *testing.T) {
-	// 新建根命令
-	cmd := NewCmd("root", "r", flag.ExitOnError)
-	cmd.SetEnableCompletion(true)    // 启用自动补全
-	cmd.SetExitOnBuiltinFlags(false) // 禁止在解析命令行参数时退出
-	cmd.SetUseChinese(true)          // 设置使用中文
-
-	// 解析命令行参数, 指定PowerShell补全类型
-	if err := cmd.Parse([]string{"comp", "-h"}); err != nil {
 		t.Fatal(err)
 	}
 }

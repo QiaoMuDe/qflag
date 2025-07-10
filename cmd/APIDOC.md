@@ -705,13 +705,16 @@ func (c *Cmd) SetDescription(desc string)
 SetDescription 设置命令描述。
 
 ```markdown
-func (c *Cmd) SetEnableCompletion(enable bool)
+func (c *Cmd) SetEnableCompletion(enable bool) error
 ```
 
-SetEnableCompletion 设置是否启用自动补全，支持链式调用。
+SetEnableCompletion 设置是否启用自动补全，支持链式调用。该方法只能在根命令调用。
 
 参数:
 - `enable`: `true` 表示启用补全，`false` 表示禁用。
+
+返回值:
+- `error`: 如果发生错误，则返回错误信息；否则返回 `nil`。
 
 ```markdown
 func (c *Cmd) SetExitOnBuiltinFlags(exit bool)

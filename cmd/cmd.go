@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
+	"runtime"
 	"sync"
 	"sync/atomic"
 
@@ -81,6 +82,12 @@ type Cmd struct {
 	// 子命令切片, 用于存储唯一实例(无重复)
 	subCmds []*Cmd
 
+	// 内置子命令映射表, 优先级高于普通子命令
+	builtinSubCmdMap map[string]*Cmd
+
+	// 内置子命令切片, 用于存储唯一实例(无重复)
+	builtinSubCmds []*Cmd
+
 	// 父命令指针,用于递归调用, 根命令的父命令为nil
 	parentCmd *Cmd
 
@@ -108,8 +115,11 @@ type Cmd struct {
 	// 控制内置标志是否自动退出
 	exitOnBuiltinFlags bool
 
-	// 控制是否启用自动补全
+	// 控制是否启用自动补全功能
 	enableCompletion bool
+
+	// 确保自动补全功能只注册一次
+	completionRegisteredOnce sync.Once
 
 	// 解析阶段钩子函数
 	// 在标志解析完成后、子命令参数处理后调用
@@ -160,23 +170,26 @@ func NewCmd(longName string, shortName string, errorHandling flag.ErrorHandling)
 
 	// 创建新的Cmd实例
 	cmd := &Cmd{
-		fs:              flag.NewFlagSet(cmdName, errorHandling), // 创建新的flag集
-		args:            []string{},                              // 命令行参数
-		subCmdMap:       map[string]*Cmd{},                       // 子命令映射
-		subCmds:         []*Cmd{},                                // 子命令切片
-		flagRegistry:    flagRegistry,                            // 初始化标志注册表
-		helpFlag:        &flags.BoolFlag{},                       // 初始化帮助标志
-		versionFlag:     &flags.BoolFlag{},                       // 初始化版本信息标志
-		completionShell: &flags.EnumFlag{},                       // 初始化自动完成标志
+		fs:               flag.NewFlagSet(cmdName, errorHandling), // 创建新的flag集
+		args:             []string{},                              // 命令行参数
+		subCmdMap:        map[string]*Cmd{},                       // 子命令映射
+		subCmds:          []*Cmd{},                                // 子命令切片
+		builtinSubCmdMap: map[string]*Cmd{},                       // 内置子命令映射
+		builtinSubCmds:   []*Cmd{},                                // 内置子命令切片
+		flagRegistry:     flagRegistry,                            // 初始化标志注册表
+		helpFlag:         &flags.BoolFlag{},                       // 初始化帮助标志
+		versionFlag:      &flags.BoolFlag{},                       // 初始化版本信息标志
+		completionShell:  &flags.EnumFlag{},                       // 初始化自动完成标志
 		userInfo: UserInfo{
 			longName:  longName,        // 命令长名称
 			shortName: shortName,       // 命令短名称
 			notes:     []string{},      // 命令备注
 			examples:  []ExampleInfo{}, // 命令示例
 		},
-		exitOnBuiltinFlags: true,       // 默认保持原有行为, 在解析内置标志后退出
-		builtinFlagNameMap: sync.Map{}, // 内置标志名称映射
-		enableCompletion:   false,      // 默认关闭自动补全
+		exitOnBuiltinFlags:       true,        // 默认保持原有行为, 在解析内置标志后退出
+		builtinFlagNameMap:       sync.Map{},  // 内置标志名称映射
+		enableCompletion:         false,       // 默认关闭自动补全
+		completionRegisteredOnce: sync.Once{}, // 确保自动补全功能只注册一次
 	}
 
 	// 注册帮助标志
@@ -187,17 +200,6 @@ func NewCmd(longName string, shortName string, errorHandling flag.ErrorHandling)
 	cmd.builtinFlagNameMap.Store(flags.HelpFlagShortName, true)
 
 	return cmd
-}
-
-// SetExitOnBuiltinFlags 设置是否在解析内置参数时退出
-// 默认情况下为true, 当解析到内置参数时, QFlag将退出程序
-//
-// 参数:
-//   - exit: 是否退出
-func (c *Cmd) SetExitOnBuiltinFlags(exit bool) {
-	c.rwMu.Lock()
-	defer c.rwMu.Unlock()
-	c.exitOnBuiltinFlags = exit
 }
 
 // SubCmdMap 返回子命令映射表
@@ -229,28 +231,60 @@ func (c *Cmd) SubCmds() []*Cmd {
 	return result
 }
 
-// AddSubCmd 关联一个或多个子命令到当前命令
+// AddSubCmd 添加外部子命令到当前命令
 // 支持批量添加多个子命令, 遇到错误时收集所有错误并返回
 //
 // 参数:
-//
 //   - subCmds: 一个或多个子命令实例指针
 //
 // 返回值:
-//
 //   - 错误信息, 如果所有子命令添加成功则返回nil
 func (c *Cmd) AddSubCmd(subCmds ...*Cmd) error {
 	c.rwMu.Lock()
 	defer c.rwMu.Unlock()
 
+	return c.addSubCmdInternal(subCmds, c.subCmdMap, &c.subCmds)
+}
+
+// addBuiltinSubCmd 添加内置子命令到当前命令
+// 内置子命令优先级高于普通子命令, 仅内部使用
+//
+// 参数:
+//   - subCmds: 一个或多个内置子命令实例指针
+//
+// 返回值:
+//   - 错误信息, 如果所有子命令添加成功则返回nil
+func (c *Cmd) addBuiltinSubCmd(subCmds ...*Cmd) error {
+	c.rwMu.Lock()
+	defer c.rwMu.Unlock()
+
+	return c.addSubCmdInternal(subCmds, c.builtinSubCmdMap, &c.builtinSubCmds)
+}
+
+// addSubCmdInternal 基础子命令添加逻辑, 供外部和内置子命令方法调用
+//
+// 参数:
+//   - subCmds: 子命令列表
+//   - targetMap: 目标映射表
+//   - targetSlice: 目标切片
+//
+// 返回值:
+//   - 错误信息
+func (c *Cmd) addSubCmdInternal(subCmds []*Cmd, targetMap map[string]*Cmd, targetSlice *[]*Cmd) error {
+	// 检查参数是否为nil
+	if subCmds == nil {
+		return qerr.NewValidationError("subCmds cannot be nil")
+	}
+	if targetMap == nil {
+		return qerr.NewValidationError("targetMap cannot be nil")
+	}
+	if targetSlice == nil {
+		return qerr.NewValidationError("targetSlice cannot be nil")
+	}
+
 	// 检查子命令是否为空
 	if len(subCmds) == 0 {
 		return qerr.NewValidationError("subcommand list cannot be empty")
-	}
-
-	// 检查子命令map是否为nil
-	if c.subCmdMap == nil {
-		c.subCmdMap = make(map[string]*Cmd)
 	}
 
 	// 验证阶段 - 收集所有错误
@@ -276,19 +310,31 @@ func (c *Cmd) AddSubCmd(subCmds ...*Cmd) error {
 
 	// 添加阶段 - 仅处理通过验证的命令
 	for _, cmd := range validCmds {
-		cmd.parentCmd = c                  // 设置子命令的父命令指针
-		c.subCmdMap[cmd.ShortName()] = cmd // 将子命令的短名称和实例关联
-		c.subCmdMap[cmd.LongName()] = cmd  // 将子命令的长名称和实例关联
-		tempList = append(tempList, cmd)   // 先添加到临时切片
+		// 设置子命令的父命令指针
+		cmd.parentCmd = c
+
+		// 将子命令的长名称和实例关联
+		if cmd.LongName() != "" {
+			targetMap[cmd.LongName()] = cmd
+		}
+
+		// 将子命令的短名称和实例关联
+		if cmd.ShortName() != "" {
+			targetMap[cmd.ShortName()] = cmd
+		}
+
+		// 先添加到临时切片
+		tempList = append(tempList, cmd)
 	}
 
 	// 一次性合并到目标切片
-	c.subCmds = append(c.subCmds, tempList...)
+	*targetSlice = append(*targetSlice, tempList...)
 
 	return nil
 }
 
 // Parse 完整解析命令行参数(含子命令处理)
+//
 // 主要功能：
 //  1. 解析当前命令的长短标志及内置标志
 //  2. 自动检测并解析子命令及其参数(若存在)
@@ -316,6 +362,7 @@ func (c *Cmd) Parse(args []string) (err error) {
 }
 
 // ParseFlagsOnly 仅解析当前命令的标志参数(忽略子命令)
+//
 // 主要功能：
 //  1. 解析当前命令的长短标志及内置标志
 //  2. 验证枚举类型标志的有效性
@@ -342,6 +389,7 @@ func (c *Cmd) ParseFlagsOnly(args []string) (err error) {
 }
 
 // parseCommon 命令行参数解析公共逻辑
+//
 // 主要功能：
 //  1. 通用参数解析流程(标志解析、内置标志处理、错误处理)
 //  2. 枚举类型标志验证
@@ -365,8 +413,10 @@ func (c *Cmd) parseCommon(args []string, parseSubcommands bool) (err error, shou
 	defer func() {
 		// 添加panic捕获
 		if r := recover(); r != nil {
-			// 使用预定义的恐慌错误变量
-			err = fmt.Errorf("%w: %v", qerr.ErrPanicRecovered, r)
+			// 使用预定义的恐慌错误变量，并添加详细的堆栈信息
+			buf := make([]byte, 4096)
+			n := runtime.Stack(buf, false)
+			err = fmt.Errorf("%w: %v\nStack: %s", qerr.ErrPanicRecovered, r, string(buf[:n]))
 		}
 	}()
 
@@ -386,21 +436,6 @@ func (c *Cmd) parseCommon(args []string, parseSubcommands bool) (err error, shou
 
 		// 调用内置标志注册方法
 		c.registerBuiltinFlags()
-
-		// 注册自动补全子命令
-		if c.enableCompletion && c.parentCmd == nil { // 只有在根命令上注册自动补全子命令
-			// 调用提取的自动补全子命令创建方法
-			completionCmd, createErr := c.createCompletionSubcommand()
-			if createErr != nil {
-				err = createErr
-				return
-			}
-
-			// 添加自动补全子命令到当前命令
-			if err = c.AddSubCmd(completionCmd); err != nil {
-				return
-			}
-		}
 
 		// 添加默认的注意事项
 		if c.GetUseChinese() {
@@ -442,9 +477,12 @@ func (c *Cmd) parseCommon(args []string, parseSubcommands bool) (err error, shou
 
 		// 设置非标志参数
 		c.args = append(c.args, c.fs.Args()...)
+		fmt.Println("[DEBUG] Args:")
+		fmt.Println(c.args)
 
 		// 如果允许解析子命令, 则进入子命令解析阶段, 否则跳过子命令解析
 		if parseSubcommands {
+			fmt.Println("[DEBUG] Parse subcommands")
 			// 如果存在子命令并且非标志参数不为0
 			if len(c.args) > 0 && (len(c.subCmdMap) > 0 && len(c.subCmds) > 0) {
 				// 获取参数的第一个值(子命令名称: 长名或短名)
@@ -465,22 +503,38 @@ func (c *Cmd) parseCommon(args []string, parseSubcommands bool) (err error, shou
 			}
 		}
 
-		// 执行自动补全钩子（如果启用）
-		if c.enableCompletion {
-			hookExit, hookErr := HandleCompletionHook(c)
-
-			// 处理钩子函数错误
-			if hookErr != nil {
-				err = hookErr
-				return
-			}
-
-			// 钩子函数是否需要退出程序
-			if hookExit {
-				shouldExit = true
-				return
-			}
+		// 只有在根命令才执行子命令逻辑
+		fmt.Println(c.parentCmd.Name())
+		fmt.Println(c.Name())
+		// if c.parentCmd == nil {
+		// 	fmt.Println("开始处理子命令")
+		// 	// 处理内置补全命令逻辑
+		// 	builtinExit, builtinErr := c.handleBuiltinSubcommands()
+		// 	if builtinErr != nil {
+		// 		err = builtinErr
+		// 		return
+		// 	}
+		// 	// 根据内置标志处理结果决定是否退出
+		// 	if builtinExit {
+		// 		shouldExit = builtinExit
+		// 		return
+		// 	}
+		// }
+		fmt.Println("开始处理子命令")
+		// 处理内置补全命令逻辑
+		builtinExit, builtinErr := c.handleBuiltinSubcommands()
+		if builtinErr != nil {
+			err = builtinErr
+			return
 		}
+		// 根据内置标志处理结果决定是否退出
+		if builtinExit {
+			shouldExit = builtinExit
+			return
+		}
+		fmt.Println("处理子命令完成")
+		fmt.Println(c.subCmds)
+		fmt.Println(c.parentCmd.Name())
 
 		// 调用自定义解析阶段钩子函数
 		if c.ParseHook != nil {
@@ -498,7 +552,6 @@ func (c *Cmd) parseCommon(args []string, parseSubcommands bool) (err error, shou
 				return
 			}
 		}
-
 	})
 
 	// 检查是否报错
@@ -508,6 +561,63 @@ func (c *Cmd) parseCommon(args []string, parseSubcommands bool) (err error, shou
 
 	// 根据内置标志处理结果决定是否退出
 	return nil, shouldExit
+}
+
+// handleBuiltinSubcommands 处理内置特殊子命令逻辑(如补全命令)
+//
+// 返回值:
+//   - bool: 是否需要退出程序
+//   - error: 处理过程中遇到的错误
+func (c *Cmd) handleBuiltinSubcommands() (bool, error) {
+	fmt.Println("进入处理内置特殊子命令逻辑")
+
+	// 获取根命令
+	rootCmd := c
+	if c.parentCmd != nil {
+		rootCmd = c.parentCmd
+	}
+
+	// 如果没有参数, 则无需处理
+	if len(rootCmd.args) == 0 {
+		return false, nil
+	}
+
+	// 获取第一个参数
+	cmdName := rootCmd.args[0]
+
+	fmt.Println("获取到的第一个参数为:", cmdName)
+
+	// 检查第一个参数是否为内置子命令
+	if _, ok := rootCmd.builtinSubCmdMap[cmdName]; !ok {
+		fmt.Println("不是内置子命令")
+
+		fmt.Printf("父命令为: %v\n", rootCmd.parentCmd)
+
+		for key, value := range rootCmd.builtinSubCmdMap {
+			fmt.Println("key:", key)
+			fmt.Println("value:", value)
+		}
+
+		fmt.Println(cmdName)
+
+		// 不是内置子命令, 则无需处理
+		return false, nil
+	}
+
+	fmt.Println("是内置子命令")
+
+	// 检查是否启用补全功能
+	if rootCmd.enableCompletion {
+		// 处理补全钩子函数
+		hookExit, hookErr := HandleCompletionHook(rootCmd)
+		if hookErr != nil {
+			return false, hookErr
+		}
+		return hookExit, nil
+	}
+
+	// 如果没有处理内置子命令, 则无需处理
+	return false, nil
 }
 
 // validateComponents 校验核心组件和内置标志的初始化状态
