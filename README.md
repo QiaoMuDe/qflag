@@ -2,7 +2,7 @@
 
 [![Ask DeepWiki](https://deepwiki.com/badge.svg)](https://deepwiki.com/QiaoMuDe/qflag)
 
-qflag 是一个用于解析命令行参数的 Go 语言库。它提供了丰富的功能，包括多种类型的标志（flag）、子命令支持、帮助信息生成等。
+qflag 是一个用于解析和管理命令行参数的 Go 语言库，支持多种参数类型和高级功能如自动补全、环境变量加载、参数验证等。
 
 ## 项目地址
 
@@ -13,25 +13,31 @@ qflag 是一个用于解析命令行参数的 Go 语言库。它提供了丰富�
 
 ## 安装
 
-要使用 qflag，您需要先安装 Go 环境。然后可以通过以下命令安装：
+使用 `go get` 命令安装：
 
 ```bash
 go get -u gitee.com/MM-Q/qflag
 ```
 
+然后在代码中导入：
+
+```go
+import "gitee.com/MM-Q/qflag/"
+import "gitee.com/MM-Q/qflag/cmd"
+import "gitee.com/MM-Q/qflag/flags"
+import "gitee.com/MM-Q/qflag/qerr"
+```
+
 ## 特性
 
-- 支持多种类型的标志：字符串、整数、布尔值、64位浮点数、枚举、切片、时间间隔、64位整数、无符号16位整数、映射、路径、时间、IPv4地址、IPv6地址和URL。
-- 支持子命令。
-- 提供内置的帮助信息标志和版本信息标志。
-- 支持自定义帮助信息。
-- 支持环境变量自动映射，可从环境变量加载配置并与命令行参数协同工作。
-- 线程安全设计。
-- 循环引用检测。
-- 动态帮助信息生成。
-- 支持Bash和PowerShell自动补全，包括长短命令名称识别和上下文感知补全。
-- 标志命名规则。
-- 内置参数验证器，支持路径存在性、数值范围等验证。
+- **支持多种参数类型**：包括布尔值、整数、浮点数、字符串、时间、IP 地址、URL、枚举、路径等。
+- **子命令支持**：提供对子命令的管理，可以构建复杂的命令树。
+- **自动补全**：支持 Bash 和 PowerShell 的自动补全脚本生成。
+- **参数验证**：提供参数验证接口，确保输入值符合预期。
+- **帮助文档生成**：支持生成中英文帮助文档，可自定义描述、示例、用法等。
+- **环境变量支持**：可从环境变量加载参数值。
+- **错误处理**：提供详细的错误类型和错误信息，便于调试和处理异常情况。
+
 
 ## 标志类型
 
@@ -39,21 +45,23 @@ go get -u gitee.com/MM-Q/qflag
 
 | 标志类型 | 描述 | 示例 | 注意事项 |
 |----------|------|------|--------|
-| String | 字符串类型标志 | `--name "example"` | 无 |
-| Int | 整数类型标志 | `--port 8080` | 无 |
-| Int64 | 64位整数类型标志 | `--size 1073741824` | 无 |
-| Uint16 | 无符号16位整数类型标志 | `--timeout 300` | 无 |
-| Bool | 布尔类型标志 | `--debug` | 无 |
-| Float64 | 64位浮点数类型标志 | `--threshold 0.95` | 无 |
-| Enum | 枚举类型标志 | `--mode "debug"` | 支持大小写敏感设置，通过`SetCaseSensitive(true)`启用 |
-| Slice | 切片类型标志，支持自定义分隔符 | `--files file1.txt,file2.txt` | 默认使用逗号分隔，可通过`SetSeparator`修改 |
-| Duration | 时间间隔类型标志 | `--timeout 30s` | 无 |
-| Time | 时间类型标志 | `--start-time "2024-01-01T00:00:00"` | 无 |
-| Map | 映射类型标志 | `--config key=value,key2=value2` | 支持`=`和`:`作为键值分隔符，可通过`SetDelimiters`修改 |
-| Path | 路径类型标志，支持路径验证 | `--log-path "./logs"` | 可通过`IsDirectory(true)`和`MustExist(true)`设置验证规则 |
-| IP4 | IPv4地址类型标志 | `--server-ip 192.168.1.1` | 无 |
-| IP6 | IPv6地址类型标志 | `--server-ipv6 ::1` | 无 |
-| URL | URL类型标志 | `--api-url https://api.example.com` |	无 |
+| `StringFlag` / `StringVar` | 字符串类型标志 | `--name "example"` | 无 |
+| `IntFlag` / `IntVar` | 整数类型标志 | `--port 8080` | 无 |
+| `Int64Flag` / `Int64Var` | 64位整数类型标志 | `--size 1073741824` | 无 |
+| `Uint16Flag` / `Uint16Var` | 无符号16位整数类型标志 | `--timeout 300` | 无 |
+| `Uint32Flag` / `Uint32Var` | 无符号32位整数类型标志 | `--max-connections 1000` | 无 |
+| `Uint64Flag` / `Uint64Var` | 无符号64位整数类型标志 | `--max-memory 9223372036854775807` | 无 |
+| `BoolFlag` / `BoolVar` | 布尔类型标志 | `--debug` | 无 |
+| `Float64Flag` / `Float64Var` | 64位浮点数类型标志 | `--threshold 0.95` | 无 |
+| `EnumFlag` / `EnumVar` | 枚举类型标志 | `--mode "debug"` | 支持大小写敏感设置，通过`SetCaseSensitive(true)`启用 |
+| `SliceFlag` / `SliceVar` | 切片类型标志，支持自定义分隔符 | `--files file1.txt,file2.txt` | 默认使用逗号分隔，可通过`SetSeparator`修改 |
+| `DurationFlag` / `DurationVar` | 时间间隔类型标志 | `--timeout 30s` | 无 |
+| `TimeFlag` / `TimeVar` | 时间类型标志 | `--start-time "2024-01-01T00:00:00"` | 无 |
+| `MapFlag` / `MapVar` | 映射类型标志 | `--config key=value,key2=value2` | 支持`=`和`:`作为键值分隔符，可通过`SetDelimiters`修改 |
+| `PathFlag` / `PathVar` | 路径类型标志，支持路径验证 | `--log-path "./logs"` | 可通过`IsDirectory(true)`和`MustExist(true)`设置验证规则 |
+| `IP4Flag` / `IP4Var` | IPv4地址类型标志 | `--server-ip 192.168.1.1` | 无 |
+| `IP6Flag` / `IP6Var` | IPv6地址类型标志 | `--server-ipv6 ::1` | 无 |
+| `URLFlag` / `URLVar` | URL类型标志 | `--api-url https://api.example.com` |	无 |
 
 ## 使用示例
 
@@ -283,3 +291,7 @@ qflag提供了完善的API文档，按模块组织如下：
 ## 许可证
 
 本项目采用 MIT 许可证。详情请参阅 [LICENSE](LICENSE) 文件。
+
+## 贡献
+
+欢迎贡献代码或提出问题。请提交 PR 或 Issue 到 [Gitee 仓库](https://gitee.com/MM-Q/qflag)。
