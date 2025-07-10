@@ -307,13 +307,13 @@ func (c *Cmd) handleBuiltinFlags() (bool, error) {
 			default:
 				return false, fmt.Errorf("unsupported shell: %s. Supported shells are: %v", shell, flags.ShellSlice)
 			}
-		}
 
-		// 无论是否生成补全脚本, 均检查exitOnBuiltinFlags
-		if c.exitOnBuiltinFlags {
-			return true, nil // 标记需要退出
+			// 仅在生成补全脚本后检查退出标志
+			if c.exitOnBuiltinFlags {
+				return true, nil // 标记需要退出
+			}
+			return false, nil
 		}
-		return false, nil
 	}
 
 	// 检查枚举类型标志是否有效

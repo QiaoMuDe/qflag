@@ -162,19 +162,18 @@ func TestCompletionShellNone(t *testing.T) {
 		// 创建命令实例
 		cmd := NewCmd("test", "t", flag.ContinueOnError)
 		cmd.SetEnableCompletion(true)
-		// 修复: 检查Set方法的错误返回值
 		if err := cmd.completionShell.Set(flags.ShellNone); err != nil {
 			t.Fatalf("设置Shell类型失败: %v", err)
 		}
 
-		// 测试当exitOnBuiltinFlags为true时应返回退出信号
+		// 测试当exitOnBuiltinFlags为true时不应返回退出信号（ShellNone模式）
 		cmd.SetExitOnBuiltinFlags(true)
 		shouldExit, err := cmd.handleBuiltinFlags()
 		if err != nil {
 			t.Fatalf("处理内置标志失败: %v", err)
 		}
-		if !shouldExit {
-			t.Error("当exitOnBuiltinFlags为true时，应返回需要退出")
+		if shouldExit {
+			t.Error("当shell为ShellNone且exitOnBuiltinFlags为true时，不应返回需要退出")
 		}
 
 		// 测试当exitOnBuiltinFlags为false时不应返回退出信号
