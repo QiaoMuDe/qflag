@@ -1,3 +1,4 @@
+// cmd_genhelp 命令行帮助信息生成器
 package cmd
 
 import (

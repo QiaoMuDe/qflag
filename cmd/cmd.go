@@ -1,3 +1,4 @@
+// cmd 命令行标志管理结构体,封装参数解析、长短标志互斥及帮助系统。
 package cmd
 
 import (
@@ -5,7 +6,7 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
-	"runtime"
+	"strings"
 	"sync"
 	"sync/atomic"
 
@@ -18,18 +19,18 @@ var QCommandLine *Cmd
 
 // 在包初始化时创建全局默认Cmd实例
 func init() {
-	// 处理可能的空os.Args情况
-	if len(os.Args) == 0 {
-		// 如果os.Args为空,则创建一个新的Cmd对象,命令行参数为"myapp",短名字为"",错误处理方式为ExitOnError
-		QCommandLine = NewCmd("myapp", "", flag.ExitOnError)
-	} else {
-		// 如果os.Args不为空,则创建一个新的Cmd对象,命令行参数为filepath.Base(os.Args[0]),错误处理方式为ExitOnError
-		QCommandLine = NewCmd(filepath.Base(os.Args[0]), "", flag.ExitOnError)
+	// 使用一致的命令名生成逻辑
+	cmdName := "myapp"
+	if len(os.Args) > 0 {
+		cmdName = filepath.Base(os.Args[0])
 	}
+
+	// 创建全局默认Cmd实例
+	QCommandLine = NewCmd(cmdName, "", flag.ExitOnError)
 }
 
-// UserInfo 存储用户自定义信息的嵌套结构体
-type UserInfo struct {
+// userInfo 存储用户自定义信息的嵌套结构体
+type userInfo struct {
 	// 命令长名称
 	longName string
 
@@ -95,7 +96,7 @@ type Cmd struct {
 	builtinFlagNameMap sync.Map
 
 	// 用户自定义信息
-	userInfo UserInfo
+	userInfo userInfo
 
 	// 帮助标志指针,用于绑定和检查
 	helpFlag *flags.BoolFlag
@@ -145,11 +146,6 @@ func NewCmd(longName string, shortName string, errorHandling flag.ErrorHandling)
 		panic("cmd long name and short name cannot both be empty")
 	}
 
-	// 设置默认的错误处理方式为ContinueOnError, 避免测试时意外退出
-	if errorHandling == 0 {
-		errorHandling = flag.ContinueOnError
-	}
-
 	// 创建标志注册表
 	flagRegistry := flags.NewFlagRegistry()
 
@@ -169,7 +165,7 @@ func NewCmd(longName string, shortName string, errorHandling flag.ErrorHandling)
 		helpFlag:        &flags.BoolFlag{},                       // 初始化帮助标志
 		versionFlag:     &flags.BoolFlag{},                       // 初始化版本信息标志
 		completionShell: &flags.EnumFlag{},                       // 初始化自动完成标志
-		userInfo: UserInfo{
+		userInfo: userInfo{
 			longName:  longName,        // 命令长名称
 			shortName: shortName,       // 命令短名称
 			notes:     []string{},      // 命令备注
@@ -353,386 +349,316 @@ func (c *Cmd) ParseFlagsOnly(args []string) (err error) {
 	return err
 }
 
-// parseCommon 命令行参数解析公共逻辑
+// SetEnableCompletion 设置是否启用自动补全, 只能在根命令上启用
 //
-// 主要功能：
-//  1. 通用参数解析流程(标志解析、内置标志处理、错误处理)
-//  2. 枚举类型标志验证
-//  3. 可选的子命令解析支持
+// 参数:
+//   - enable: true表示启用补全,false表示禁用
 //
-// 参数：
-//
-//	args: 原始命令行参数切片
-//	parseSubcommands: 是否解析子命令(true: 解析子命令, false: 忽略子命令)
-//
-// 返回值：
-//
-//   - 解析过程中遇到的错误(如标志格式错误、子命令解析失败等)
-//   - 是否需要退出程序, 用于处理内部选项标志的解析处理情况(true: 需要退出, false: 不需要退出)
-//
-// 注意事项：
-//   - 每个Cmd实例仅会被解析一次(线程安全)
-//   - 内置标志(-h/--help, -v/--version等)处理逻辑在此实现
-//   - 子命令解析仅在parseSubcommands=true时执行
-func (c *Cmd) parseCommon(args []string, parseSubcommands bool) (err error, shouldExit bool) {
-	defer func() {
-		// 添加panic捕获逻辑
-		if r := recover(); r != nil {
-			// 使用预定义的恐慌错误变量，并添加详细的堆栈信息
-			buf := make([]byte, 4096)
-			n := runtime.Stack(buf, false)
-			err = fmt.Errorf("%w: %v\nStack: %s", qerr.ErrPanicRecovered, r, string(buf[:n]))
-		}
-	}()
+// 返回值:
+//   - error: 如果不是根命令, 则返回错误信息
+func (c *Cmd) SetEnableCompletion(enable bool) (err error) {
+	c.rwMu.Lock()
+	defer c.rwMu.Unlock()
 
-	// 如果命令为空, 则返回错误
-	if c == nil {
-		return fmt.Errorf("cmd cannot be nil"), false
+	// 只有根命令可以启用补全
+	if c.parentCmd != nil {
+		return qerr.NewValidationError("completion can only be enabled on root command")
 	}
 
-	// 调用提取的组件校验方法
-	if err = c.validateComponents(); err != nil {
-		return err, false
-	}
-
-	// 确保只解析一次
-	c.parseOnce.Do(func() {
-		defer c.parsed.Store(true) // 在返回时, 无论成功失败均标记为已解析
-
-		// 调用内置标志注册方法
-		c.registerBuiltinFlags()
-
-		// 添加默认的注意事项
-		if c.GetUseChinese() {
-			c.AddNote(ChineseTemplate.DefaultNote)
-		} else {
-			c.AddNote(EnglishTemplate.DefaultNote)
-		}
-
-		// 设置底层flag库的Usage函数
-		c.fs.Usage = func() {
-			c.PrintHelp()
-		}
-
-		// 解析前加载环境变量的参数值
-		if err = c.loadEnvVars(); err != nil {
-			err = fmt.Errorf("%w: %v", qerr.ErrEnvLoadFailed, err)
-			return
-		}
-
-		// 调用底层flag库解析参数
-		if parseErr := c.fs.Parse(args); parseErr != nil {
-			err = fmt.Errorf("%w: %w", qerr.ErrFlagParseFailed, parseErr)
-			return
-		}
-
-		// 调用内置标志处理方法
-		exit, handleErr := c.handleBuiltinFlags()
-		if handleErr != nil {
-			// 处理内置标志错误
-			err = handleErr
-			return
-		}
-
-		// 内置标志处理是否需要退出程序
-		if exit {
-			shouldExit = true
-			return
-		}
-
-		// 设置非标志参数
-		c.args = append(c.args, c.fs.Args()...)
-
-		// 如果允许解析子命令, 则进入子命令解析阶段, 否则跳过子命令解析
-		if parseSubcommands {
-			// 如果存在子命令并且非标志参数不为0
-			if len(c.args) > 0 && (len(c.subCmdMap) > 0 && len(c.subCmds) > 0) {
-				// 获取参数的第一个值(子命令名称: 长名或短名)
-				arg := c.args[0]
-
-				// 保存剩余参数
-				remainingArgs := make([]string, len(c.args)-1)
-				copy(remainingArgs, c.args[1:])
-
-				// 直接通过参数0查找子命令, 如果存在则解析子命令
-				if subCmd, ok := c.subCmdMap[arg]; ok {
-					// 将剩余参数传递给子命令解析
-					if parseErr := subCmd.Parse(remainingArgs); parseErr != nil {
-						err = fmt.Errorf("%w for '%s': %v", qerr.ErrSubCommandParseFailed, arg, parseErr)
-					}
-					return
-				}
-			}
-		}
-
-		// 调用自定义解析阶段钩子函数
-		if c.ParseHook != nil {
-			// 执行钩子函数
-			hookErr, hookExit := c.ParseHook(c)
-			// 处理钩子函数错误
-			if hookErr != nil {
-				err = hookErr
-				return
-			}
-			// 钩子函数是否需要退出程序
-			if hookExit {
-				shouldExit = true
-				return
-			}
-		}
-	})
-
-	// 检查是否报错
-	if err != nil {
-		return err, false
-	}
-
-	// 根据内置标志处理结果决定是否退出
-	return nil, shouldExit
-}
-
-// validateComponents 校验核心组件和内置标志的初始化状态
-//
-// 返回值：
-//   - 组件校验错误信息
-func (c *Cmd) validateComponents() error {
-	// 核心功能组件校验 (必须初始化)
-	if c.fs == nil {
-		return fmt.Errorf("flag.FlagSet instance is not initialized")
-	}
-	if c.flagRegistry == nil {
-		return fmt.Errorf("FlagRegistry instance is not initialized")
-	}
-	if c.subCmdMap == nil {
-		return fmt.Errorf("subCmdMap cannot be nil")
-	}
-
-	// 内置标志校验
-	if c.helpFlag == nil {
-		return fmt.Errorf("help flag is not initialized")
-	}
-	if c.versionFlag == nil {
-		return fmt.Errorf("version flag is not initialized")
-	}
+	// 设置启用状态
+	c.enableCompletion = enable
 
 	return nil
 }
 
-// registerBuiltinFlags 注册内置标志
-// 仅在顶级命令中注册
-func (c *Cmd) registerBuiltinFlags() {
-	// 仅在顶级命令中注册内置标志
-	if c.parentCmd != nil {
-		return
-	}
-
-	// 如果启用了自动补全功能
-	if c.enableCompletion {
-		// 语言配置结构体：集中管理所有语言相关资源
-		type languageConfig struct {
-			notes     []string      // 注意事项
-			shellDesc string        // 用法描述
-			examples  []ExampleInfo // 示例
-		}
-
-		// 一次性判断语言并初始化所有相关资源
-		useChinese := c.GetUseChinese()
-		var langConfig languageConfig
-
-		// 根据语言选择对应的资源
-		if useChinese {
-			langConfig = languageConfig{
-				notes:     completionNotesCN,
-				shellDesc: fmt.Sprintf(flags.CompletionShellDescCN, flags.ShellSlice),
-				examples:  completionExamplesCN,
-			}
-		} else {
-			langConfig = languageConfig{
-				notes:     completionNotesEN,
-				shellDesc: fmt.Sprintf(flags.CompletionShellDescEN, flags.ShellSlice),
-				examples:  completionExamplesEN,
-			}
-		}
-
-		// 注册补全标志
-		c.EnumVar(c.completionShell, flags.CompletionShellFlagLongName, flags.CompletionShellFlagShortName, flags.ShellNone, langConfig.shellDesc, flags.ShellSlice)
-
-		// 注册到内置的标志名称映射
-		c.builtinFlagNameMap.Store(flags.CompletionShellFlagLongName, true)
-		c.builtinFlagNameMap.Store(flags.CompletionShellFlagShortName, true)
-
-		// 添加自动补全子命令的注意事项
-		c.userInfo.notes = append(c.userInfo.notes, langConfig.notes...)
-
-		// 获取运行的程序名
-		cmdName := os.Args[0]
-
-		// 添加自动补全子命令的示例
-		for _, ex := range langConfig.examples {
-			// 直接添加到底层切片中
-			c.userInfo.examples = append(c.userInfo.examples, ExampleInfo{
-				Description: ex.Description,
-				Usage:       fmt.Sprintf(ex.Usage, cmdName),
-			})
-		}
-	}
-
-	// 仅在版本信息不为空时注册(-v/--version)
-	if c.GetVersion() != "" {
-		// 定义版本信息标志提示信息
-		versionUsage := flags.VersionFlagUsageEn
-		if c.GetUseChinese() {
-			versionUsage = flags.VersionFlagUsageZh
-		}
-
-		// 注册版本信息标志
-		c.BoolVar(c.versionFlag, flags.VersionFlagLongName, flags.VersionFlagShortName, false, versionUsage)
-
-		// 添加到内置标志名称映射
-		c.builtinFlagNameMap.Store(flags.VersionFlagLongName, true)
-		c.builtinFlagNameMap.Store(flags.VersionFlagShortName, true)
-	}
-}
-
-// handleBuiltinFlags 处理内置标志(-h/--help, -v/--version等)的逻辑
+// FlagRegistry 获取标志注册表的只读访问
 //
 // 返回值:
-//   - 是否需要退出程序
-//   - 处理过程中遇到的错误
-func (c *Cmd) handleBuiltinFlags() (bool, error) {
-	// 检查是否使用-h/--help标志
-	if c.helpFlag.Get() {
-		c.PrintHelp()
-		if c.exitOnBuiltinFlags {
-			return true, nil // 标记需要退出
-		}
-		return false, nil
-	}
-
-	// 只有在顶级命令中处理-v/--version标志
-	if c.parentCmd == nil {
-		// 检查是否使用-v/--version标志
-		if c.versionFlag.Get() && c.GetVersion() != "" {
-			fmt.Println(c.GetVersion())
-			if c.exitOnBuiltinFlags {
-				return true, nil // 标记需要退出
-			}
-			return false, nil
-		}
-	}
-
-	// 检查是否启用补全功能
-	if c.enableCompletion {
-		// 获取shell类型
-		shell := c.completionShell.Get()
-
-		// 生成对应shell的补全脚本
-		switch shell {
-		case flags.ShellBash: // 生成Bash补全脚本
-			bashCompletion, err := c.generateBashCompletion()
-			if err != nil {
-				return false, err
-			}
-			fmt.Println(bashCompletion)
-		case flags.ShellPowershell, flags.ShellPwsh: // 兼容Powershell和Pwsh
-			pwshCompletion, err := c.generatePwshCompletion()
-			if err != nil {
-				return false, err
-			}
-			fmt.Println(pwshCompletion)
-		default:
-			return false, fmt.Errorf("unsupported shell: %s. Supported shells are: %v", shell, flags.ShellSlice)
-		}
-
-		if c.exitOnBuiltinFlags {
-			return true, nil // 标记需要退出
-		}
-		return false, nil
-	}
-
-	// 检查枚举类型标志是否有效
-	for _, meta := range c.flagRegistry.GetAllFlagMetas() {
-		// 不是枚举类型标志，跳过
-		if meta.GetFlagType() != flags.FlagTypeEnum {
-			continue
-		}
-
-		// 获取枚举类型标志失败，跳过
-		enumFlag, ok := meta.GetFlag().(*flags.EnumFlag)
-		if !ok {
-			continue
-		}
-
-		// 调用IsCheck方法进行验证
-		if checkErr := enumFlag.IsCheck(enumFlag.Get()); checkErr != nil {
-			// 添加标志名称到错误信息, 便于定位问题
-			return false, fmt.Errorf("flag %s: %w", meta.GetName(), checkErr)
-		}
-	}
-
-	return false, nil
+// - *flags.FlagRegistry: 标志注册表的只读访问
+func (c *Cmd) FlagRegistry() *flags.FlagRegistry {
+	c.rwMu.RLock()
+	defer c.rwMu.RUnlock()
+	return c.flagRegistry
 }
 
-// loadEnvVars 从环境变量加载参数值
+// SetVersion 设置版本信息
+func (c *Cmd) SetVersion(version string) {
+	c.rwMu.Lock()
+	defer c.rwMu.Unlock()
+	c.userInfo.version = version
+}
+
+// GetVersion 获取版本信息
+func (c *Cmd) GetVersion() string {
+	c.rwMu.RLock()
+	defer c.rwMu.RUnlock()
+	return c.userInfo.version
+}
+
+// SetModuleHelps 设置自定义模块帮助信息
+func (c *Cmd) SetModuleHelps(moduleHelps string) {
+	c.rwMu.Lock()
+	defer c.rwMu.Unlock()
+	c.userInfo.moduleHelps = moduleHelps
+}
+
+// GetModuleHelps 获取自定义模块帮助信息
+func (c *Cmd) GetModuleHelps() string {
+	c.rwMu.RLock()
+	defer c.rwMu.RUnlock()
+	return c.userInfo.moduleHelps
+}
+
+// SetLogoText 设置logo文本
+func (c *Cmd) SetLogoText(logoText string) {
+	c.rwMu.Lock()
+	defer c.rwMu.Unlock()
+	c.userInfo.logoText = logoText
+}
+
+// GetLogoText 获取logo文本
+func (c *Cmd) GetLogoText() string {
+	c.rwMu.RLock()
+	defer c.rwMu.RUnlock()
+	return c.userInfo.logoText
+}
+
+// GetUseChinese 获取是否使用中文帮助信息
+func (c *Cmd) GetUseChinese() bool {
+	c.rwMu.RLock()
+	defer c.rwMu.RUnlock()
+	return c.userInfo.useChinese
+}
+
+// SetUseChinese 设置是否使用中文帮助信息
+func (c *Cmd) SetUseChinese(useChinese bool) {
+	c.rwMu.Lock()
+	defer c.rwMu.Unlock()
+	c.userInfo.useChinese = useChinese
+}
+
+// GetNotes 获取所有备注信息
+func (c *Cmd) GetNotes() []string {
+	c.rwMu.RLock()
+	defer c.rwMu.RUnlock()
+	// 返回切片副本而非原始引用
+	notes := make([]string, len(c.userInfo.notes))
+	copy(notes, c.userInfo.notes)
+	return notes
+}
+
+// Name 获取命令名称
 //
-// 优先级：命令行参数 > 环境变量 > 默认值
-//
-// 参数：无
-//
-// 返回值：
-//
-//	error - 加载过程中的错误（如有）
-func (c *Cmd) loadEnvVars() error {
+// 返回值:
+// - 优先返回长名称, 如果长名称不存在则返回短名称
+func (c *Cmd) Name() string {
+	if c.LongName() != "" {
+		return c.LongName()
+	}
+
+	return c.ShortName()
+}
+
+// LongName 返回命令长名称
+func (c *Cmd) LongName() string { return c.userInfo.longName }
+
+// ShortName 返回命令短名称
+func (c *Cmd) ShortName() string { return c.userInfo.shortName }
+
+// GetDescription 返回命令描述
+func (c *Cmd) GetDescription() string {
+	c.rwMu.RLock()
+	defer c.rwMu.RUnlock()
+	return c.userInfo.description
+}
+
+// SetDescription 设置命令描述
+func (c *Cmd) SetDescription(desc string) {
+	c.rwMu.Lock()
+	defer c.rwMu.Unlock()
+	c.userInfo.description = desc
+}
+
+// GetHelp 返回命令用法帮助信息
+func (c *Cmd) GetHelp() string {
+	// 获取读锁
 	c.rwMu.RLock()
 	defer c.rwMu.RUnlock()
 
-	// 存储读取错误
-	var loadErr error
+	// 生成帮助信息或返回用户设置的帮助信息
+	return generateHelpInfo(c)
+}
 
-	// 预分配map容量以提高性能,初始容量为已注册标志数量
-	// 使用所有标志总数作为容量最大基准, 确保独立长/短标志场景下容量充足
-	processedEnvs := make(map[string]bool, c.flagRegistry.GetALLFlagsCount()) // 跟踪已处理的环境变量，避免重复处理
+// SetUsageSyntax 设置自定义命令用法
+func (c *Cmd) SetUsageSyntax(usageSyntax string) {
+	c.rwMu.Lock()
+	defer c.rwMu.Unlock()
+	c.userInfo.usageSyntax = usageSyntax
+}
 
-	// 遍历所有已注册的标志
-	c.fs.VisitAll(func(f *flag.Flag) {
-		// 如果已存在错误，则提前返回
-		if loadErr != nil {
-			return
+// GetUsageSyntax 获取自定义命令用法
+func (c *Cmd) GetUsageSyntax() string {
+	c.rwMu.RLock()
+	defer c.rwMu.RUnlock()
+	return c.userInfo.usageSyntax
+}
+
+// SetHelp 设置用户自定义命令帮助信息
+func (c *Cmd) SetHelp(help string) {
+	c.rwMu.Lock()
+	defer c.rwMu.Unlock()
+	c.userInfo.help = help
+}
+
+// LoadHelp 从指定文件加载帮助信息
+//
+// 参数:
+// filePath: 帮助信息文件路径
+//
+// 返回值:
+// error: 如果文件不存在或读取文件失败，则返回错误信息
+func (c *Cmd) LoadHelp(filePath string) error {
+	// 检查是否为空
+	if filePath == "" {
+		return fmt.Errorf("file path cannot be empty")
+	}
+
+	// 清理路径并检查有效性
+	cleanPath := filepath.Clean(filePath)
+	if cleanPath == "" || strings.TrimSpace(cleanPath) == "" {
+		return fmt.Errorf("file path cannot be empty or contain only whitespace")
+	}
+
+	// 直接读取文件内容并处理可能的错误（包括文件不存在的情况）
+	content, err := os.ReadFile(cleanPath)
+	if err != nil {
+		if os.IsNotExist(err) {
+			return fmt.Errorf("File %s does not exist", filePath)
 		}
+		return fmt.Errorf("Failed to read file %s: %w", filePath, err)
+	}
 
-		// 获取标志实例
-		flagInstance, ok := f.Value.(flags.Flag)
-		if !ok {
-			return
-		}
+	// 设置帮助信息
+	c.SetHelp(string(content))
+	return nil
+}
 
-		// 获取环境变量名称
-		envVar := flagInstance.GetEnvVar()
-		if envVar == "" {
-			// 环境变量未设置，提前返回
-			return
-		}
+// AddNote 添加备注信息到命令
+func (c *Cmd) AddNote(note string) {
+	c.rwMu.Lock()
+	defer c.rwMu.Unlock()
+	c.userInfo.notes = append(c.userInfo.notes, note)
+}
 
-		// 检查是否已处理过该环境变量（避免长短标志重复处理）
-		if processedEnvs[envVar] {
-			return
-		}
+// AddExample 为命令添加使用示例
+// description: 示例描述
+// usage: 示例使用方式
+func (c *Cmd) AddExample(e ExampleInfo) {
+	c.rwMu.Lock()
+	defer c.rwMu.Unlock()
+	// 添加到使用示例列表中
+	c.userInfo.examples = append(c.userInfo.examples, e)
+}
 
-		// 读取环境变量值
-		envValue := os.Getenv(envVar)
-		if envValue == "" {
-			return // 环境变量未设置，提前返回
-		}
+// GetExamples 获取所有使用示例
+// 返回示例切片的副本，防止外部修改
+func (c *Cmd) GetExamples() []ExampleInfo {
+	c.rwMu.RLock()
+	defer c.rwMu.RUnlock()
+	examples := make([]ExampleInfo, len(c.userInfo.examples))
+	copy(examples, c.userInfo.examples)
+	return examples
+}
 
-		// 标记该环境变量为已处理
-		processedEnvs[envVar] = true
+// Args 获取非标志参数切片
+func (c *Cmd) Args() []string {
+	c.rwMu.RLock()
+	defer c.rwMu.RUnlock()
+	// 返回参数切片副本
+	args := make([]string, len(c.args))
+	copy(args, c.args)
+	return args
+}
 
-		// 设置标志值(使用现有Set方法进行类型转换)
-		if err := f.Value.Set(envValue); err != nil {
-			//loadErr = fmt.Errorf("Failed to parse environment variable %s: %w", envVar, err)
-			loadErr = qerr.NewValidationErrorf("Failed to parse environment variable %s for flag %s: %v", envVar, f.Name, err)
-		}
-	})
+// Arg 获取指定索引的非标志参数
+func (c *Cmd) Arg(i int) string {
+	c.rwMu.RLock()
+	defer c.rwMu.RUnlock()
+	// 返回参数
+	if i >= 0 && i < len(c.args) {
+		return c.args[i]
+	}
+	return ""
+}
 
-	return loadErr
+// NArg 获取非标志参数的数量
+func (c *Cmd) NArg() int {
+	c.rwMu.RLock()
+	defer c.rwMu.RUnlock()
+	return len(c.args)
+}
+
+// NFlag 获取标志的数量
+func (c *Cmd) NFlag() int {
+	c.rwMu.RLock()
+	defer c.rwMu.RUnlock()
+	return c.fs.NFlag()
+}
+
+// FlagExists 检查指定名称的标志是否存在
+func (c *Cmd) FlagExists(name string) bool {
+	c.rwMu.RLock()
+	defer c.rwMu.RUnlock()
+
+	// 检查标志是否存在
+	if _, exists := c.flagRegistry.GetByName(name); exists {
+		return true
+	}
+
+	return false
+}
+
+// PrintHelp 打印命令的帮助信息, 优先打印用户的帮助信息, 否则自动生成帮助信息
+//
+// 注意:
+//
+//	打印帮助信息时, 不会自动退出程序
+func (c *Cmd) PrintHelp() {
+	// 打印帮助信息
+	fmt.Println(c.GetHelp())
+}
+
+// CmdExists 检查子命令是否存在
+//
+// 参数:
+//   - cmdName: 子命令名称
+//
+// 返回:
+//   - bool: 子命令是否存在
+func (c *Cmd) CmdExists(cmdName string) bool {
+	c.rwMu.RLock()
+	defer c.rwMu.RUnlock()
+	// 检查子命令是否存在
+	_, ok := c.subCmdMap[cmdName]
+	return ok
+}
+
+// IsParsed 检查命令是否已完成解析
+//
+// 返回值:
+//
+//   - bool: 解析状态,true表示已解析(无论成功失败), false表示未解析
+func (c *Cmd) IsParsed() bool {
+	return c.parsed.Load()
+}
+
+// SetExitOnBuiltinFlags 设置是否在解析内置参数时退出
+// 默认情况下为true, 当解析到内置参数时, QFlag将退出程序
+//
+// 参数:
+//   - exit: 是否退出
+func (c *Cmd) SetExitOnBuiltinFlags(exit bool) {
+	c.rwMu.Lock()
+	defer c.rwMu.Unlock()
+	c.exitOnBuiltinFlags = exit
 }
