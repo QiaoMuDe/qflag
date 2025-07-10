@@ -2,7 +2,6 @@ package cmd
 
 import (
 	"bytes"
-	"flag"
 	"fmt"
 	"os"
 	"path/filepath"
@@ -17,42 +16,7 @@ type FlagParam struct {
 	Type string // 参数需求类型: "required"|"optional"|"none"
 }
 
-// 自动补全命令的标志名称
-const (
-	CompletionShellFlagLongName  = "shell" // shell 标志名称
-	CompletionShellFlagShortName = "s"     // shell 标志名称
-)
-
-// 支持的Shell类型
-const (
-	ShellBash       = "bash"       // bash shell
-	ShellPowershell = "powershell" // powershell shell
-	ShellPwsh       = "pwsh"       // pwsh shell
-	ShellNone       = "none"       // 无shell
-)
-
-// 定义中英文描述常量
-const (
-	completionShellDescCN = "指定要生成的shell补全脚本类型, 可选值: %v"
-	completionShellDescEN = "Specify the type of shell completion script to generate, available values: %v"
-)
-
-// 支持的Shell类型切片
-var ShellSlice = []string{ShellNone, ShellBash, ShellPowershell, ShellPwsh}
-
-// 内置子命令名称
-var (
-	CompletionShellLongName  = "completion" // 补全shell命令长名称
-	CompletionShellShortName = "comp"       // 补全shell命令短名称
-)
-
-// 内置子命令使用说明
-var (
-	CompletionShellUsageEn = "Generate the autocompletion script for the specified shell" // 补全shell命令英文使用说明
-	CompletionShellUsageZh = "生成指定 shell 的自动补全脚本"                                         // 补全shell命令中文使用说明
-)
-
-// 补全注意事项
+// 生成标志的注意事项
 var (
 	// completionNotesCN 中文版本注意事项
 	completionNotesCN = []string{
@@ -71,22 +35,22 @@ var (
 
 // 内置自动补全命令的示例使用（中文）
 var completionExamplesCN = []ExampleInfo{
-	{Description: "Linux环境 临时启用", Usage: "source <(%s completion --shell bash)"},
-	{Description: "Linux环境 永久启用(添加到~/.bashrc)", Usage: "echo \"source <(%s completion --shell bash)\" >> ~/.bashrc"},
-	{Description: "Linux环境 系统级安装(至/etc/profile.d)", Usage: "sudo %s completion --shell bash > /etc/profile.d/qflag_completion.bash"},
-	{Description: "Windows环境 临时启用", Usage: "%s completion --shell powershell | Out-String | Invoke-Expression"},
-	{Description: "Windows环境 永久启用(添加到PowerShell配置文件)", Usage: "echo \"%s completion --shell powershell | Out-String | Invoke-Expression\" >> $PROFILE"},
-	{Description: "Windows环境 系统级安装(至ProgramFiles)", Usage: "%s completion --shell powershell > $env:ProgramFiles\\qflag\\completion.ps1"},
+	{Description: "Linux环境 临时启用", Usage: "source <(%s --generate-shell-completion bash)"},
+	{Description: "Linux环境 永久启用(添加到~/.bashrc)", Usage: "echo \"source <(%s --generate-shell-completion bash)\" >> ~/.bashrc"},
+	{Description: "Linux环境 系统级安装(至/etc/profile.d)", Usage: "sudo %s --generate-shell-completion bash > /etc/profile.d/qflag_completion.bash"},
+	{Description: "Windows环境 临时启用", Usage: "%s --generate-shell-completion powershell | Out-String | Invoke-Expression"},
+	{Description: "Windows环境 永久启用(添加到PowerShell配置文件)", Usage: "echo \"%s --generate-shell-completion powershell | Out-String | Invoke-Expression\" >> $PROFILE"},
+	{Description: "Windows环境 系统级安装(至ProgramFiles)", Usage: "%s --generate-shell-completion powershell > $env:ProgramFiles\\qflag\\completion.ps1"},
 }
 
 // 内置自动补全命令的示例使用（英文）
 var completionExamplesEN = []ExampleInfo{
-	{Description: "Linux environment temporary activation", Usage: "source <(%s completion --shell bash)"},
-	{Description: "Linux environment permanent activation (add to ~/.bashrc)", Usage: "echo \"source <(%s completion --shell bash)\" >> ~/.bashrc"},
-	{Description: "Linux system-wide installation (to /etc/profile.d)", Usage: "sudo %s completion --shell bash > /etc/profile.d/qflag_completion.bash"},
-	{Description: "Windows environment temporary activation", Usage: "%s completion --shell powershell | Out-String | Invoke-Expression"},
-	{Description: "Windows environment permanent activation (add to PowerShell profile)", Usage: "echo \"%s completion --shell powershell | Out-String | Invoke-Expression\" >> $PROFILE"},
-	{Description: "Windows system-wide installation (to ProgramFiles)", Usage: "%s completion --shell powershell > $env:ProgramFiles\\qflag\\completion.ps1"},
+	{Description: "Linux environment temporary activation", Usage: "source <(%s --generate-shell-completion bash)"},
+	{Description: "Linux environment permanent activation (add to ~/.bashrc)", Usage: "echo \"source <(%s --generate-shell-completion bash)\" >> ~/.bashrc"},
+	{Description: "Linux system-wide installation (to /etc/profile.d)", Usage: "sudo %s --generate-shell-completion bash > /etc/profile.d/qflag_completion.bash"},
+	{Description: "Windows environment temporary activation", Usage: "%s --generate-shell-completion powershell | Out-String | Invoke-Expression"},
+	{Description: "Windows environment permanent activation (add to PowerShell profile)", Usage: "echo \"%s --generate-shell-completion powershell | Out-String | Invoke-Expression\" >> $PROFILE"},
+	{Description: "Windows system-wide installation (to ProgramFiles)", Usage: "%s --generate-shell-completion powershell > $env:ProgramFiles\\qflag\\completion.ps1"},
 }
 
 // 补全脚本模板常量
@@ -291,19 +255,26 @@ func (c *Cmd) generateBashCompletion() (string, error) {
 	// 缓冲区
 	var buf bytes.Buffer
 
-	// 检查父命令和命令树注册表是否为空
+	// 检查命令树注册表是否为空
 	if c == nil {
 		return "", fmt.Errorf("command instance is nil")
 	}
-	if c.parentCmd == nil || c.flagRegistry == nil {
-		return "", fmt.Errorf("invalid command state: parent command or flag registry is nil")
+
+	// 如果不是父命令则返回错误
+	if c.parentCmd != nil {
+		return "", fmt.Errorf("invalid command state: not a root command")
+	}
+
+	// 检查标志注册表是否为空
+	if c.flagRegistry == nil {
+		return "", fmt.Errorf("invalid command state: flag registry is nil")
 	}
 
 	// 程序名称
 	programName := filepath.Base(os.Args[0])
 
 	// 获取根命令的补全选项
-	rootCmdOpts := c.parentCmd.collectCompletionOptions()
+	rootCmdOpts := c.collectCompletionOptions()
 
 	// 构建命令树条目缓冲区
 	var cmdTreeEntries bytes.Buffer
@@ -312,7 +283,7 @@ func (c *Cmd) generateBashCompletion() (string, error) {
 	rootOpts := strings.Join(rootCmdOpts, " ")
 
 	// 从根命令的子命令开始添加条目
-	addSubCommandsBash(&cmdTreeEntries, "", c.parentCmd.subCmds)
+	addSubCommandsBash(&cmdTreeEntries, "", c.subCmds)
 
 	// 写入补全函数头部和命令树
 	fmt.Fprintf(&buf, BashFunctionHeader, programName, rootOpts, cmdTreeEntries.String(), programName, programName)
@@ -328,9 +299,19 @@ func (c *Cmd) generatePwshCompletion() (string, error) {
 	// 缓冲区
 	var buf bytes.Buffer
 
-	// 检查父命令和命令树注册表是否为空
-	if c.parentCmd == nil || c.flagRegistry == nil {
-		return "", fmt.Errorf("invalid command state: parent command or flag registry is nil")
+	// 检查命令树注册表是否为空
+	if c == nil {
+		return "", fmt.Errorf("command instance is nil")
+	}
+
+	// 如果不是父命令则返回错误
+	if c.parentCmd != nil {
+		return "", fmt.Errorf("invalid command state: not a root command")
+	}
+
+	// 检查标志注册表是否为空
+	if c.flagRegistry == nil {
+		return "", fmt.Errorf("invalid command state: flag registry is nil")
 	}
 
 	// 程序名称
@@ -340,19 +321,19 @@ func (c *Cmd) generatePwshCompletion() (string, error) {
 	var cmdTreeEntries bytes.Buffer
 
 	// 获取根命令的补全选项
-	rootCmdOpts := c.parentCmd.collectCompletionOptions()
+	rootCmdOpts := c.collectCompletionOptions()
 
 	// 添加根命令选项
 	rootOpts := strings.Join(rootCmdOpts, " ")
 
 	// 从根命令的子命令开始添加条目
-	addSubCommandsPwsh(&cmdTreeEntries, "", c.parentCmd.subCmds, rootOpts)
+	addSubCommandsPwsh(&cmdTreeEntries, "", c.subCmds, rootOpts)
 
 	// 构建标志参数需求映射
 	var flagParamsBuf bytes.Buffer
 
 	// 收集当前命令的标志(从根命令开始)
-	flagParams := c.parentCmd.collectFlagParameters() // 现在返回[]FlagParam
+	flagParams := c.collectFlagParameters() // 现在返回[]FlagParam
 
 	// 写入标志参数需求条目 - 使用数组而非哈希表
 	for _, param := range flagParams {
@@ -524,134 +505,4 @@ func (c *Cmd) collectCompletionOptions() []string {
 
 	// 返回所有选项
 	return opts
-}
-
-// HandleCompletionHook 自动补全钩子实现
-//
-// 功能: 处理自动补全子命令逻辑, 生成指定shell的补全脚本
-//
-// 参数:
-//   - c: 当前命令实例
-//
-// 返回值:
-//   - bool: 是否需要退出程序
-//   - error: 处理过程中的错误信息
-//
-// 注意事项:
-//   - Linux环境: 需要bash 4.0或更高版本以支持关联数组特性
-//   - Windows环境: 需要PowerShell 5.1或更高版本以支持Register-ArgumentCompleter
-//   - 请确保您的环境满足上述版本要求，否则自动补全功能可能无法正常工作
-func HandleCompletionHook(c *Cmd) (bool, error) {
-	// 检查是否启用自动补全
-	if !c.enableCompletion {
-		return false, nil
-	}
-
-	// 获取根命令
-	rootCmd := c
-	for rootCmd.parentCmd != nil { // 追溯到根命令
-		rootCmd = rootCmd.parentCmd
-	}
-
-	// 获取补全子命令
-	s, ok := rootCmd.subCmdMap[CompletionShellLongName]
-	if !ok {
-		return false, nil
-	}
-
-	// 获取shell类型
-	shell := s.completionShell.Get()
-	if shell == ShellNone {
-		return false, nil
-	}
-
-	// 生成对应shell的补全脚本
-	switch shell {
-	case ShellBash: // 生成Bash补全脚本
-		bashCompletion, err := c.generateBashCompletion()
-		if err != nil {
-			return false, err
-		}
-		fmt.Println(bashCompletion)
-	case ShellPowershell, ShellPwsh: // 兼容Powershell和Pwsh
-		pwshCompletion, err := c.generatePwshCompletion()
-		if err != nil {
-			return false, err
-		}
-		fmt.Println(pwshCompletion)
-	default:
-		return false, fmt.Errorf("unsupported shell: %s. Supported shells are: %v", shell, ShellSlice)
-	}
-
-	// 判断是否需要退出
-	if c.exitOnBuiltinFlags {
-		return true, nil
-	}
-
-	return false, nil
-}
-
-// createCompletionSubcommand 创建自动补全子命令
-//
-// 返回值：
-//   - 自动补全子命令实例
-//   - 错误信息
-func (c *Cmd) createCompletionSubcommand() (*Cmd, error) {
-	// 创建自动补全子命令
-	completionCmd := NewCmd(CompletionShellLongName, CompletionShellShortName, flag.ExitOnError)
-	completionCmd.enableCompletion = true
-
-	// 语言配置结构体：集中管理所有语言相关资源
-	type languageConfig struct {
-		notes       []string      // 注意事项
-		shellDesc   string        // 用法描述
-		description string        // 子命令描述
-		examples    []ExampleInfo // 示例
-	}
-
-	// 一次性判断语言并初始化所有相关资源
-	useChinese := c.GetUseChinese()
-	var langConfig languageConfig
-
-	if useChinese {
-		langConfig = languageConfig{
-			notes:       completionNotesCN,
-			shellDesc:   fmt.Sprintf(completionShellDescCN, ShellSlice),
-			description: CompletionShellUsageZh,
-			examples:    completionExamplesCN,
-		}
-	} else {
-		langConfig = languageConfig{
-			notes:       completionNotesEN,
-			shellDesc:   fmt.Sprintf(completionShellDescEN, ShellSlice),
-			description: CompletionShellUsageEn,
-			examples:    completionExamplesEN,
-		}
-	}
-
-	// 添加自动补全子命令的注意事项
-	c.userInfo.notes = append(c.userInfo.notes, langConfig.notes...)
-
-	// 为子命令定义并绑定自动补全标志
-	completionCmd.EnumVar(completionCmd.completionShell, CompletionShellFlagLongName, CompletionShellFlagShortName, ShellNone, langConfig.shellDesc, ShellSlice)
-
-	// 设置子命令的描述和语言
-	completionCmd.SetDescription(langConfig.description)
-	completionCmd.SetUseChinese(useChinese)
-
-	// 获取运行的程序名
-	cmdName := os.Args[0]
-
-	// 遍历添加示例
-	c.rwMu.RLock()
-	for _, ex := range langConfig.examples {
-		// 直接添加到底层切片中
-		completionCmd.userInfo.examples = append(completionCmd.userInfo.examples, ExampleInfo{
-			Description: ex.Description,
-			Usage:       fmt.Sprintf(ex.Usage, cmdName),
-		})
-	}
-	c.rwMu.RUnlock()
-
-	return completionCmd, nil
 }

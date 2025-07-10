@@ -11,70 +11,24 @@ import (
 	"gitee.com/MM-Q/qflag/qerr"
 )
 
-// SetEnableCompletion 设置是否启用自动补全,支持链式调用
-// 启用时会自动注册补全子命令
+// SetEnableCompletion 设置是否启用自动补全, 只能在根命令上启用
 //
 // 参数:
 //   - enable: true表示启用补全,false表示禁用
 //
 // 返回值:
-//   - error: 注册补全子命令过程中可能出现的错误
+//   - error: 如果不是根命令, 则返回错误信息
 func (c *Cmd) SetEnableCompletion(enable bool) (err error) {
-	fmt.Println("注册补全子命令...")
-
-	// 如果要禁用补全,则直接返回
-	if !enable {
-		c.rwMu.Lock()
-		c.enableCompletion = false
-		c.rwMu.Unlock()
-		return nil
-	}
+	c.rwMu.Lock()
+	defer c.rwMu.Unlock()
 
 	// 只有根命令可以启用补全
 	if c.parentCmd != nil {
 		return qerr.NewValidationError("completion can only be enabled on root command")
 	}
 
-	// 仅注册一次
-	c.completionRegisteredOnce.Do(func() {
-		fmt.Println("注册补全子命令，只有根命令可以启用补全")
-		// 创建补全子命令
-		completionCmd, createErr := c.createCompletionSubcommand()
-		if createErr != nil {
-			err = fmt.Errorf("failed to create completion subcommand: %w", createErr)
-			return
-		}
-		fmt.Println("补全子命令创建成功")
-
-		// 添加为内置子命令
-		// if addErr := c.AddSubCmd(completionCmd); addErr != nil {
-		// 	err = fmt.Errorf("failed to add completion subcommand: %w", addErr)
-		// 	return
-		// }
-
-		// 添加自动补全子命令到当前命令
-		if addErr := c.addBuiltinSubCmd(completionCmd); addErr != nil {
-			err = fmt.Errorf("failed to add completion subcommand: %w", addErr)
-			return
-		}
-
-		fmt.Println("补全子命令注册成功")
-
-		// 首次调用时设置状态
-		c.rwMu.Lock()
-		c.enableCompletion = enable
-		c.rwMu.Unlock()
-	})
-
-	// 非首次调用时更新状态
-	c.rwMu.Lock()
+	// 设置启用状态
 	c.enableCompletion = enable
-	c.rwMu.Unlock()
-
-	// 判断是否有错误发生
-	if err != nil {
-		return err
-	}
 
 	return nil
 }

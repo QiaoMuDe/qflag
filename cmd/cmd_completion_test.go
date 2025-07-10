@@ -49,7 +49,7 @@ func TestCompletionPerformance(t *testing.T) {
 	// 测试Bash补全生成速度
 	start := time.Now()
 	var err error
-	_, err = rootCmd.SubCmdMap()["comp"].generateBashCompletion()
+	_, err = rootCmd.generateBashCompletion()
 	if err != nil {
 		t.Fatalf("Bash completion generation failed: %v", err)
 	}
@@ -61,7 +61,7 @@ func TestCompletionPerformance(t *testing.T) {
 
 	// 测试PowerShell补全生成速度
 	start = time.Now()
-	_, err = rootCmd.SubCmdMap()["comp"].generatePwshCompletion()
+	_, err = rootCmd.generatePwshCompletion()
 	if err != nil {
 		t.Fatalf("PowerShell completion generation failed: %v", err)
 	}
@@ -84,7 +84,7 @@ func TestCompletionBash(t *testing.T) {
 	}
 
 	// 解析命令行参数
-	if err := cmd.Parse([]string{"completion", "-s", "bash"}); err != nil {
+	if err := cmd.Parse([]string{"-gsc", "bash"}); err != nil {
 		t.Fatal(err)
 	}
 }
@@ -101,7 +101,24 @@ func TestCompletionPwsh(t *testing.T) {
 	}
 
 	// 解析命令行参数，指定PowerShell补全类型
-	if err := cmd.Parse([]string{"comp", "-s", "pwsh"}); err != nil {
+	if err := cmd.Parse([]string{"-gsc", "pwsh"}); err != nil {
+		t.Fatal(err)
+	}
+}
+
+// TestCompletionHelp 测试启用自动补全的帮助信息
+func TestCompletionHelp(t *testing.T) {
+	// 新建根命令
+	cmd := NewCmd("root", "r", flag.ExitOnError)
+	cmd.SetExitOnBuiltinFlags(false) // 禁止在解析命令行参数时退出
+	cmd.SetUseChinese(true)          // 设置使用中文
+
+	if err := cmd.SetEnableCompletion(true); err != nil {
+		t.Fatal(err)
+	}
+
+	// 解析命令行参数，指定帮助信息
+	if err := cmd.Parse([]string{"-h"}); err != nil {
 		t.Fatal(err)
 	}
 }

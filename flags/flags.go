@@ -29,10 +29,29 @@ const (
 
 // 内置标志名称
 var (
-	HelpFlagName         = "help"    // 帮助标志名称
-	HelpFlagShortName    = "h"       // 帮助标志短名称
-	VersionFlagLongName  = "version" // 版本标志名称
-	VersionFlagShortName = "v"       // 版本标志短名称
+	HelpFlagName                 = "help"                      // 帮助标志名称
+	HelpFlagShortName            = "h"                         // 帮助标志短名称
+	VersionFlagLongName          = "version"                   // 版本标志名称
+	VersionFlagShortName         = "v"                         // 版本标志短名称
+	CompletionShellFlagLongName  = "generate-shell-completion" // 生成shell补全标志长名称
+	CompletionShellFlagShortName = "gsc"                       // 生成shell补全标志短名称
+)
+
+// 定义中英文的补全标志的使用说明
+const (
+	CompletionShellDescCN = "生成指定的 Shell 补全脚本, 可选类型: %v"
+	CompletionShellDescEN = "Generate the specified Shell completion script, optional types: %v"
+)
+
+// 支持的Shell类型切片
+var ShellSlice = []string{ShellNone, ShellBash, ShellPowershell, ShellPwsh}
+
+// 支持的Shell类型
+const (
+	ShellBash       = "bash"       // bash shell
+	ShellPowershell = "powershell" // powershell shell
+	ShellPwsh       = "pwsh"       // pwsh shell
+	ShellNone       = "none"       // 无shell
 )
 
 // 内置标志使用说明
