@@ -8,23 +8,24 @@ const InvalidFlagChars = " !@#$%^&*(){}[]|\\;:'\"<>,.?/"
 type FlagType int
 
 const (
-	FlagTypeInt      FlagType = iota + 1 // 整数类型
-	FlagTypeInt64                        // 64位整数类型
-	FlagTypeUint16                       // 16位无符号整数类型
-	FlagTypeUint32                       // 32位无符号整数类型
-	FlagTypeUint64                       // 64位无符号整数类型
-	FlagTypeString                       // 字符串类型
-	FlagTypeBool                         // 布尔类型
-	FlagTypeFloat64                      // 64位浮点数类型
-	FlagTypeEnum                         // 枚举类型
-	FlagTypeDuration                     // 时间间隔类型
-	FlagTypeSlice                        // 切片类型
-	FlagTypeTime                         // 时间类型
-	FlagTypeMap                          // 映射类型
-	FlagTypePath                         // 路径类型
-	FlagTypeIP4                          // IPv4地址类型
-	FlagTypeIP6                          // IPv6地址类型
-	FlagTypeURL                          // URL类型
+	FlagTypeUnknown FlagType = iota // 未知类型
+	FlagTypeInt                     // 整数类型
+	FlagTypeInt64                   // 64位整数类型
+	FlagTypeUint16                  // 16位无符号整数类型
+	FlagTypeUint32                  // 32位无符号整数类型
+	FlagTypeUint64                  // 64位无符号整数类型
+	FlagTypeString                  // 字符串类型
+	FlagTypeBool                    // 布尔类型
+	FlagTypeFloat64                 // 64位浮点数类型
+	FlagTypeEnum                    // 枚举类型
+	FlagTypeDuration                // 时间间隔类型
+	FlagTypeSlice                   // 切片类型
+	FlagTypeTime                    // 时间类型
+	FlagTypeMap                     // 映射类型
+	FlagTypePath                    // 路径类型
+	FlagTypeIP4                     // IPv4地址类型
+	FlagTypeIP6                     // IPv6地址类型
+	FlagTypeURL                     // URL类型
 )
 
 // 内置标志名称
