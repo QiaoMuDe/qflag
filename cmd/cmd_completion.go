@@ -57,16 +57,20 @@ var completionExamplesEN = []ExampleInfo{
 // 补全脚本模板常量
 const (
 	// Bash补全模板
-	//BashFunctionHeader   = "#!/usr/bin/env bash\n\n_%s() {\n\tlocal cur prev words cword context opts i arg\n\tCOMPREPLY=()\n\n\t# 使用_get_comp_words_by_ref获取补全参数, 提高健壮性\n\tif [[ -z \"${_get_comp_words_by_ref}\" ]]; then\n\t\t# 兼容旧版本Bash补全环境\n\t\twords=(\"${COMP_WORDS[@]}\")\n\t\tcword=$COMP_CWORD\n\telse\n\t\t_get_comp_words_by_ref -n =: cur prev words cword\n\tfi\n\n\tcur=\"${words[cword]}\"\n\tprev=\"${words[cword-1]}\"\n\n\t# 构建命令树结构\n\tdeclare -A cmd_tree\n\tcmd_tree[/]=\"%s\"\n%s\n\n\t# 查找当前命令上下文\n\tlocal context=\"/\"\n\tlocal i\n\tfor ((i=1; i < cword; i++)); do\n\t\tlocal arg=\"${words[i]}\"\n\t\tif [[ -n \"${cmd_tree[$context$arg/]}\" ]]; then\n\t\t\tcontext=\"$context$arg/\"\n\t\tfi\n\tdone\n\n\t# 获取当前上下文可用选项\n\topts=\"${cmd_tree[$context]}\"\n\tCOMPREPLY=($(compgen -W \"${opts}\" -- ${cur}))\n\treturn 0\n\t}\n\ncomplete -F _%s %s\n" // Bash补全函数头部
 	BashFunctionHeader = `#!/usr/bin/env bash
+
+# Static command tree definition - Pre-initialized outside the function
+declare -A cmd_tree
+cmd_tree[/]="%s"
+%s
 
 _%s() {
 	local cur prev words cword context opts i arg
 	COMPREPLY=()
 
-	# 使用_get_comp_words_by_ref获取补全参数, 提高健壮性
+	# Use _get_comp_words_by_ref to get completion parameters for better robustness
 	if [[ -z "${_get_comp_words_by_ref}" ]]; then
-		# 兼容旧版本Bash补全环境
+		# Compatibility with older versions of Bash completion environment
 		words=("${COMP_WORDS[@]}")
 		cword=$COMP_CWORD
 	else
@@ -76,12 +80,7 @@ _%s() {
 	cur="${words[cword]}"
 	prev="${words[cword-1]}"
 
-	# 构建命令树结构
-	declare -A cmd_tree
-	cmd_tree[/]="%s"
-%s
-
-	# 查找当前命令上下文
+	# Find the current command context
 	local context="/"
 	local i
 	for ((i=1; i < cword; i++)); do
@@ -91,46 +90,37 @@ _%s() {
 		fi
 	done
 
-	# 获取当前上下文可用选项
+	# Get the available options for the current context
 	opts="${cmd_tree[$context]}"
-	# 添加-o filenames选项处理特殊字符和空格
+	# Add -o filenames option to handle special characters and spaces
 	COMPREPLY=($(compgen -o filenames -W "${opts}" -- ${cur}))
-
-	# 模糊匹配与纠错提示：当无精确匹配时，从所有选项中查找包含关键词的项
-	if [[ ${#COMPREPLY[@]} -eq 0 ]]; then
-		local all_opts=()
-		# 使用循环安全收集所有选项，避免空格分割问题
-		for path in "${!cmd_tree[@]}"; do
-			for opt in ${cmd_tree[$path]}; do
-				all_opts+=($opt)
-			done
-		done
-		# 去重并生成补全结果
-		local unique_opts=($(printf "%%s\n" "${all_opts[@]}" | sort -u))
-		COMPREPLY=($(compgen -o filenames -W "${unique_opts[*]}" -- ${cur}))
-	fi
 
 	return 0
 	}
 
 complete -F _%s %s
 `
-	BashCommandTreeEntry = "\tcmd_tree[/%s/]=\"%s\"\n" // 命令树条目格式
+	BashCommandTreeEntry = "cmd_tree[/%s/]=\"%s\"\n" // 命令树条目格式
 
 	// PowerShell补全模板
-	//PwshFunctionHeader   = "Register-ArgumentCompleter -CommandName %s -ScriptBlock {\n    param($wordToComplete, $commandAst, $cursorPosition, $commandName, $parameterName)\n\n    # 标志参数需求映射\n    $flagParams = @{\n%s\n    }\n\n    # 构建命令树结构\n    $cmdTree = @{\n        '' = '%s'\n%s\n    }\n\n    # 解析命令行参数获取当前上下文\n    $context = ''\n    $args = $commandAst.CommandElements | Select-Object -Skip 1 | ForEach-Object { $_.ToString() }\n    $index = 0\n    $count = $args.Count\n\n    while ($index -lt $count) {\n        $arg = $args[$index]\n        # 处理选项参数及其值\n        if ($arg -like '-*' -and $flagParams.ContainsKey($arg)) {\n            $paramType = $flagParams[$arg]\n            $index++\n            \n            # 根据参数类型决定是否跳过下一个参数\n            if ($paramType -eq 'required' -or ($paramType -eq 'optional' -and $index -lt $count -and $args[$index] -notlike '-*')) {\n                $index++\n            }\n            continue\n        }\n\n        $nextContext = if ($context) { \"$context.$arg\" } else { $arg }\n        if ($cmdTree.ContainsKey($nextContext)) {\n            $context = $nextContext\n            $index++\n        } else {\n            break\n        }\n    }\n\n    # 获取当前上下文可用选项并过滤\n    $options = @()\n    if ($cmdTree.ContainsKey($context)) {\n        $options = $cmdTree[$context] -split ' ' | Where-Object { $_ -like \"$wordToComplete*\" }\n    }\n\n    $options | ForEach-Object { [System.Management.Automation.CompletionResult]::new($_, $_, 'ParameterName', $_) }\n}\n" // PowerShell补全函数头部
-	PwshFunctionHeader = `Register-ArgumentCompleter -CommandName %s -ScriptBlock {
-		param($wordToComplete, $commandAst, $cursorPosition, $commandName, $parameterName)
-	
-		# 标志参数需求数组(保留原始大小写)
-		$flagParams = @(
+	PwshFunctionHeader = `# Static flag parameter requirement definition - Pre-initialized outside the function
+$script:flagParams = @(
 %s      )
-	
-		# 构建命令树结构
-		$cmdTree = @{
+
+# Command tree definition - Pre-initialized outside the function
+$script:cmdTree = @{
 %s      }
 	
-		# 解析命令行参数获取当前上下文
+Register-ArgumentCompleter -CommandName %s -ScriptBlock {
+		param($wordToComplete, $commandAst, $cursorPosition, $commandName, $parameterName)
+
+		# Flag parameter requirement array (preserving original case)
+		$flagParams = $script:flagParams
+	
+		# Command tree structure - Pre-initialized outside the function
+		$cmdTree = $script:cmdTree
+	
+		# Parse command line arguments to get the current context
 		$context = ''
 		$args = $commandAst.CommandElements | Select-Object -Skip 1 | ForEach-Object { $_.ToString() }
 		$index = 0
@@ -138,13 +128,13 @@ complete -F _%s %s
 	
 		while ($index -lt $count) {
 			$arg = $args[$index]
-			# 使用大小写敏感匹配查找标志
+			# Use case-sensitive matching to find flags
 			$paramInfo = $flagParams | Where-Object { $_.Name -ceq $arg } | Select-Object -First 1
 			if ($paramInfo) {
 				$paramType = $paramInfo.Type
 				$index++
 				
-				# 根据参数类型决定是否跳过下一个参数
+				# Determine whether to skip the next argument based on the parameter type
 				if ($paramType -eq 'required' -or ($paramType -eq 'optional' -and $index -lt $count -and $args[$index] -notlike '-*')) {
 					$index++
 				}
@@ -160,25 +150,17 @@ complete -F _%s %s
 			}
 		}
 	
-		# 获取当前上下文可用选项并过滤
+		# Get the available options for the current context and filter
 		$options = @()
 		if ($cmdTree.ContainsKey($context)) {
 			$options = $cmdTree[$context] -split ' ' | Where-Object { $_ -like "$wordToComplete*" }
 		}
 	
-		# 模糊匹配与纠错提示：当无精确匹配时，从所有选项中查找包含关键词的项
-		if (-not $options) {
-			# 递归收集所有层级的选项
-			$allOptions = @()
-			$cmdTree.Values | ForEach-Object { $allOptions += $_ -split ' ' }
-			$options = $allOptions | Select-Object -Unique | Where-Object { $_ -like "*$wordToComplete*" }
-		}
-	
 		$options | ForEach-Object { [System.Management.Automation.CompletionResult]::new($_, $_, 'ParameterName', $_) }
 	}`
-	PwshCommandTreeEntryRoot = "\t\t'' = '%s'\n"                    // 根命令树条目格式
-	PwshCommandTreeEntry     = "\t\t'%s' = '%s'\n"                  // 命令树条目格式
-	PwshCommandTreeOption    = "\t\t@{ Name = '%s'; Type = '%s'}\n" // 选项参数需求条目格式
+	PwshCommandTreeEntryRoot = "\t'' = '%s'\n"                    // 根命令树条目格式
+	PwshCommandTreeEntry     = "\t'%s' = '%s'\n"                  // 命令树条目格式
+	PwshCommandTreeOption    = "\t@{ Name = '%s'; Type = '%s'}\n" // 选项参数需求条目格式
 )
 
 // addSubCommandsBash 迭代方式添加子命令到命令树，替代递归实现
@@ -286,8 +268,8 @@ func (c *Cmd) generateBashCompletion() (string, error) {
 	// 从根命令的子命令开始添加条目
 	addSubCommandsBash(&cmdTreeEntries, "", c.subCmds)
 
-	// 写入补全函数头部和命令树
-	fmt.Fprintf(&buf, BashFunctionHeader, programName, rootOpts, cmdTreeEntries.String(), programName, programName)
+	// 写入补全函数头部和命令树, 参数为: 根命令选项, 命令树, 程序名称, 程序名称, 程序名称
+	fmt.Fprintf(&buf, BashFunctionHeader, rootOpts, cmdTreeEntries.String(), programName, programName, programName)
 
 	return buf.String(), nil
 }
@@ -341,8 +323,8 @@ func (c *Cmd) generatePwshCompletion() (string, error) {
 		fmt.Fprintf(&flagParamsBuf, PwshCommandTreeOption, param.Name, param.Type)
 	}
 
-	// 写入补全函数头部和命令树
-	fmt.Fprintf(&buf, PwshFunctionHeader, programName, flagParamsBuf.String(), cmdTreeEntries.String())
+	// 写入补全函数头部和命令树, 参数为: 根命令选项, 命令树, 程序名称
+	fmt.Fprintf(&buf, PwshFunctionHeader, flagParamsBuf.String(), cmdTreeEntries.String(), programName)
 
 	return buf.String(), nil
 }

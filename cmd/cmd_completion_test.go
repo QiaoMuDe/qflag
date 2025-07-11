@@ -79,8 +79,14 @@ func TestCompletionBash(t *testing.T) {
 	cmd := NewCmd("root", "r", flag.ExitOnError)
 	cmd.SetExitOnBuiltinFlags(false) // 禁止在解析命令行参数时退出
 	cmd.SetUseChinese(true)          // 设置使用中文
+	cmd.SetEnableCompletion(true)    // 启用自动补全功能
 
-	cmd.SetEnableCompletion(true)
+	cmd1 := NewCmd("cmd1", "c1", flag.ExitOnError)
+	cmd1.String("str", "s", "", "test string")
+
+	if err := cmd.AddSubCmd(cmd1); err != nil {
+		t.Fatal(err)
+	}
 
 	// 解析命令行参数
 	if err := cmd.Parse([]string{"-gsc", "bash"}); err != nil {
@@ -94,8 +100,14 @@ func TestCompletionPwsh(t *testing.T) {
 	cmd := NewCmd("root", "r", flag.ExitOnError)
 	cmd.SetExitOnBuiltinFlags(false) // 禁止在解析命令行参数时退出
 	cmd.SetUseChinese(true)          // 设置使用中文
-
 	cmd.SetEnableCompletion(true)
+
+	cmd1 := NewCmd("cmd1", "c1", flag.ExitOnError)
+	cmd1.String("str", "s", "", "test string")
+
+	if err := cmd.AddSubCmd(cmd1); err != nil {
+		t.Fatal(err)
+	}
 
 	// 解析命令行参数，指定PowerShell补全类型
 	if err := cmd.Parse([]string{"-gsc", "pwsh"}); err != nil {
