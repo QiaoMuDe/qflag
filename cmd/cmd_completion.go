@@ -242,19 +242,9 @@ func (c *Cmd) generateBashCompletion() (string, error) {
 	// 缓冲区
 	var buf bytes.Buffer
 
-	// 检查命令树注册表是否为空
-	if c == nil {
-		return "", fmt.Errorf("command instance is nil")
-	}
-
-	// 如果不是父命令则返回错误
-	if c.parentCmd != nil {
-		return "", fmt.Errorf("invalid command state: not a root command")
-	}
-
-	// 检查标志注册表是否为空
-	if c.flagRegistry == nil {
-		return "", fmt.Errorf("invalid command state: flag registry is nil")
+	// 检查生成自动补全脚本的必要条件
+	if checkErr := validateCompletionGeneration(c); checkErr != nil {
+		return "", checkErr
 	}
 
 	// 程序名称
@@ -286,19 +276,9 @@ func (c *Cmd) generatePwshCompletion() (string, error) {
 	// 缓冲区
 	var buf bytes.Buffer
 
-	// 检查命令树注册表是否为空
-	if c == nil {
-		return "", fmt.Errorf("command instance is nil")
-	}
-
-	// 如果不是父命令则返回错误
-	if c.parentCmd != nil {
-		return "", fmt.Errorf("invalid command state: not a root command")
-	}
-
-	// 检查标志注册表是否为空
-	if c.flagRegistry == nil {
-		return "", fmt.Errorf("invalid command state: flag registry is nil")
+	// 检查生成自动补全脚本的必要条件
+	if checkErr := validateCompletionGeneration(c); checkErr != nil {
+		return "", checkErr
 	}
 
 	// 程序名称
@@ -494,4 +474,24 @@ func (c *Cmd) collectCompletionOptions() []string {
 
 	// 返回所有选项
 	return opts
+}
+
+// validateCompletionGeneration 验证补全脚本生成所需的命令状态
+//
+// 参数:
+//   - c: 命令实例
+//
+// 返回值:
+//   - error: 如果验证失败, 返回相应的错误信息; 否则返回nil
+func validateCompletionGeneration(c *Cmd) error {
+	if c == nil {
+		return fmt.Errorf("command instance is nil")
+	}
+	if c.parentCmd != nil {
+		return fmt.Errorf("invalid command state: not a root command")
+	}
+	if c.flagRegistry == nil {
+		return fmt.Errorf("invalid command state: flag registry is nil")
+	}
+	return nil
 }
