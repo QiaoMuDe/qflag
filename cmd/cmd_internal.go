@@ -290,20 +290,12 @@ func (c *Cmd) handleBuiltinFlags() (bool, error) {
 		if shell != flags.ShellNone {
 			// 生成对应shell的补全脚本
 			switch shell {
-			case flags.ShellBash: // 生成Bash补全脚本
-				bashCompletion, err := c.generateBashCompletion()
+			case flags.ShellBash, flags.ShellPowershell, flags.ShellPwsh: // 受支持的shell类型
+				shellCompletion, err := c.generateShellCompletion(shell)
 				if err != nil {
 					return false, err
 				}
-				fmt.Println(bashCompletion)
-			case flags.ShellPowershell, flags.ShellPwsh: // 兼容Powershell和Pwsh
-				pwshCompletion, err := c.generatePwshCompletion()
-				if err != nil {
-					return false, err
-				}
-				fmt.Println(pwshCompletion)
-			// case flags.ShellNone: // 默认不生成补全脚本
-			// 	// 无需处理
+				fmt.Println(shellCompletion)
 			default:
 				return false, fmt.Errorf("unsupported shell: %s. Supported shells are: %v", shell, flags.ShellSlice)
 			}

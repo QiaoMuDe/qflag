@@ -50,7 +50,7 @@ func TestCompletionPerformance(t *testing.T) {
 	// 测试Bash补全生成速度
 	start := time.Now()
 	var err error
-	_, err = rootCmd.generateBashCompletion()
+	_, err = rootCmd.generateShellCompletion("bash")
 	if err != nil {
 		t.Fatalf("Bash completion generation failed: %v", err)
 	}
@@ -62,7 +62,7 @@ func TestCompletionPerformance(t *testing.T) {
 
 	// 测试PowerShell补全生成速度
 	start = time.Now()
-	_, err = rootCmd.generatePwshCompletion()
+	_, err = rootCmd.generateShellCompletion("powershell")
 	if err != nil {
 		t.Fatalf("PowerShell completion generation failed: %v", err)
 	}
