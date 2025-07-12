@@ -155,13 +155,12 @@ Register-ArgumentCompleter -CommandName %s -ScriptBlock {
 
         # Parse command line arguments to get the current context
         $context = ''
-        $args = $commandAst.CommandElements | Select-Object -Skip 1 | ForEach-Object { $_.ToString() }
+        $commandArgs = $commandAst.CommandElements | Select-Object -Skip 1 | ForEach-Object { $_.ToString() }
         $index = 0
-        $count = $args.Count
-        $prevArg = if ($index -gt 0) { $args[$index - 1] } else { $null }
+        $count = $commandArgs.Count
 
         while ($index -lt $count) {
-            $arg = $args[$index]
+            $arg = $commandArgs[$index]
             # Use case-sensitive matching to find flags
             $paramInfo = $flagParams | Where-Object { $_.Name -ceq $arg } | Select-Object -First 1
             if ($paramInfo) {
@@ -183,7 +182,7 @@ Register-ArgumentCompleter -CommandName %s -ScriptBlock {
                     return
                 }
                 # Determine whether to skip the next argument based on the parameter type
-                if ($paramType -eq 'required' -or ($paramType -eq 'optional' -and $index -lt $count -and $args[$index] -notlike '-*')) {
+                if ($paramType -eq 'required' -or ($paramType -eq 'optional' -and $index -lt $count -and $commandArgs[$index] -notlike '-*')) {
                     $index++
                 }
                 continue
@@ -206,9 +205,9 @@ Register-ArgumentCompleter -CommandName %s -ScriptBlock {
 
         $options | ForEach-Object { [System.Management.Automation.CompletionResult]::new($_, $_, 'ParameterName', $_) }
         }`
-	PwshCommandTreeEntryRoot = "\t@{ Path = ''; Options = '%s' },\n"   // 根命令树条目格式
-	PwshCommandTreeEntry     = "\t@{ Path = '%s'; Options = '%s' },\n" // 命令树条目格式
-	PwshCommandTreeOption    = "\t@{ Name = '%s'; Type = '%s' },\n"    // 选项参数需求条目格式
+	PwshCommandTreeEntryRoot = "\t@{ Path = ''; Options = '%s' }\n"   // 根命令树条目格式
+	PwshCommandTreeEntry     = "\t@{ Path = '%s'; Options = '%s' }\n" // 命令树条目格式
+	PwshCommandTreeOption    = "\t@{ Name = '%s'; Type = '%s' }\n"    // 选项参数需求条目格式
 )
 
 // addSubCommandsBash 迭代方式添加子命令到命令树，替代递归实现
