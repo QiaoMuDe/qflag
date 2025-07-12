@@ -122,7 +122,10 @@ _%s() {
 
 complete -F _%s %s
 `
-	BashCommandTreeEntry = "cmd_tree[/%s/]=\"%s\"\n" // 命令树条目格式
+	BashCommandTreeEntry = "cmd_tree[/%s/]=\"%s\"\n"   // 命令树条目格式
+	BashFlagTypeEntry    = "flag_types[%s]=\"%s\"\n"   // 标志类型条目格式
+	BashEnumOptionsEntry = "enum_options[%s]=\"%s\"\n" // 枚举选项条目格式
+	BashFunctionFooter   = `_%s`
 
 	// PowerShell补全模板
 	PwshFunctionHeader = `# Static flag parameter requirement definition - Pre-initialized outside the function
@@ -130,16 +133,16 @@ $script:flagParams = @(
 %s      )
 
 # Flag type definition
-$script:flagTypes = @{
-%s      }
+$script:flagTypes = @(
+%s      )
 
 # Enum options definition
-$script:enumOptions = @{
-%s      }
+$script:enumOptions = @(
+%s      )
 
 # Command tree definition - Pre-initialized outside the function
-$script:cmdTree = @{
-%s      }
+$script:cmdTree = @(
+%s      )
 
 Register-ArgumentCompleter -CommandName %s -ScriptBlock {
         param($wordToComplete, $commandAst, $cursorPosition, $commandName, $parameterName)
@@ -163,12 +166,12 @@ Register-ArgumentCompleter -CommandName %s -ScriptBlock {
             $paramInfo = $flagParams | Where-Object { $_.Name -ceq $arg } | Select-Object -First 1
             if ($paramInfo) {
                 $paramType = $paramInfo.Type
-                $flagType = $flagTypes[$arg]
+                $flagType = ($flagTypes | Where-Object { $_.Name -ceq $arg }).Type
                 $index++
 
                 # Handle enum type completion
                 if ($flagType -eq 'enum' -and $index -eq $count) {
-                    $options = $enumOptions[$arg] -split ' ' | Where-Object { $_ -like "$wordToComplete*" }
+                    $options = ($enumOptions | Where-Object { $_.Name -ceq $arg }).Options -split ' ' | Where-Object { $_ -like "$wordToComplete*" }
                     $options | ForEach-Object { [System.Management.Automation.CompletionResult]::new($_, $_, 'ParameterValue', $_) }
                     return
                 }
@@ -187,7 +190,7 @@ Register-ArgumentCompleter -CommandName %s -ScriptBlock {
             }
 
             $nextContext = if ($context) { "$context.$arg" } else { $arg }
-            if ($cmdTree.ContainsKey($nextContext)) {
+            if ($cmdTree | Where-Object { $_.Path -ceq $nextContext }) {
                 $context = $nextContext
                 $index++
             } else {
@@ -198,14 +201,14 @@ Register-ArgumentCompleter -CommandName %s -ScriptBlock {
         # Get the available options for the current context and filter
         $options = @()
         if ($cmdTree.ContainsKey($context)) {
-            $options = $cmdTree[$context] -split ' ' | Where-Object { $_ -like "$wordToComplete*" }
+            $options = ($cmdTree | Where-Object { $_.Path -ceq $context }).Options -split ' ' | Where-Object { $_ -like "$wordToComplete*" }
         }
 
         $options | ForEach-Object { [System.Management.Automation.CompletionResult]::new($_, $_, 'ParameterName', $_) }
         }`
-	PwshCommandTreeEntryRoot = "\t'' = '%s'\n"                    // 根命令树条目格式
-	PwshCommandTreeEntry     = "\t'%s' = '%s'\n"                  // 命令树条目格式
-	PwshCommandTreeOption    = "\t@{ Name = '%s'; Type = '%s'}\n" // 选项参数需求条目格式
+	PwshCommandTreeEntryRoot = "\t@{ Path = ''; Options = '%s' },\n"   // 根命令树条目格式
+	PwshCommandTreeEntry     = "\t@{ Path = '%s'; Options = '%s' },\n" // 命令树条目格式
+	PwshCommandTreeOption    = "\t@{ Name = '%s'; Type = '%s' },\n"    // 选项参数需求条目格式
 )
 
 // addSubCommandsBash 迭代方式添加子命令到命令树，替代递归实现
@@ -318,11 +321,11 @@ func (c *Cmd) generateBashCompletion() (string, error) {
 	flagParams := c.collectFlagParameters()
 	for _, param := range flagParams {
 		if param.FlagType != flags.FlagTypeUnknown {
-			fmt.Fprintf(&flagTypesBuf, "flag_types['%s']='%s'\n", param.Name, flags.FlagTypeToString(param.FlagType, false))
+			fmt.Fprintf(&flagTypesBuf, BashFlagTypeEntry, param.Name, flags.FlagTypeToString(param.FlagType, false))
 		}
 		if param.FlagType == flags.FlagTypeEnum && len(param.EnumOptions) > 0 {
 			opts := strings.Join(param.EnumOptions, " ")
-			fmt.Fprintf(&enumOptionsBuf, "enum_options['%s']='%s'\n", param.Name, opts)
+			fmt.Fprintf(&enumOptionsBuf, BashEnumOptionsEntry, param.Name, opts)
 		}
 	}
 
@@ -376,20 +379,33 @@ func (c *Cmd) generatePwshCompletion() (string, error) {
 	// 收集当前命令的标志(从根命令开始)
 	flagParams := c.collectFlagParameters() // 现在返回[]FlagParam
 
+	var flagTypeEntries []string
+	var enumOptionEntries []string
+
 	// 写入标志参数需求条目 - 使用数组而非哈希表
 	for _, param := range flagParams {
 		fmt.Fprintf(&flagParamsBuf, PwshCommandTreeOption, param.Name, param.Type)
 
 		// 收集标志类型
 		if param.FlagType != flags.FlagTypeUnknown {
-			fmt.Fprintf(&flagTypesBuf, "\t'%s' = '%s'\n", param.Name, flags.FlagTypeToString(param.FlagType, false))
+			entry := fmt.Sprintf(PwshCommandTreeOption, param.Name, flags.FlagTypeToString(param.FlagType, false))
+			flagTypeEntries = append(flagTypeEntries, entry)
 		}
 
 		// 收集枚举选项
 		if param.FlagType == flags.FlagTypeEnum && len(param.EnumOptions) > 0 {
 			opts := strings.Join(param.EnumOptions, " ")
-			fmt.Fprintf(&enumOptionsBuf, "\t'%s' = '%s'\n", param.Name, opts)
+			entry := fmt.Sprintf(PwshCommandTreeEntry, param.Name, opts)
+			enumOptionEntries = append(enumOptionEntries, entry)
 		}
+	}
+
+	// 写入标志类型和枚举选项
+	if len(flagTypeEntries) > 0 {
+		fmt.Fprint(&flagTypesBuf, strings.Join(flagTypeEntries, " "))
+	}
+	if len(enumOptionEntries) > 0 {
+		fmt.Fprint(&enumOptionsBuf, strings.Join(enumOptionEntries, " "))
 	}
 
 	// 写入补全函数头部和命令树, 参数为: 标志参数, 标志类型, 枚举选项, 命令树, 程序名称
@@ -417,8 +433,11 @@ func addSubCommandsPwsh(cmdTreeEntries *bytes.Buffer, parentPath string, cmds []
 		queue = append(queue, cmdNode{cmd: cmd, parentPath: parentPath})
 	}
 
-	// 写入根命令条目
-	fmt.Fprintf(cmdTreeEntries, PwshCommandTreeEntryRoot, rootOpts)
+	// 收集命令树条目
+	var entries []string
+
+	// 添加根命令条目
+	entries = append(entries, fmt.Sprintf(PwshCommandTreeEntryRoot, rootOpts))
 
 	// 定义处理命令名称的匿名函数 (抽取重复逻辑)
 	processCmdName := func(name string, currentParentPath string, cmd *Cmd, cmdOpts []string) {
@@ -433,8 +452,8 @@ func addSubCommandsPwsh(cmdTreeEntries *bytes.Buffer, parentPath string, cmds []
 			cmdPath = name
 		}
 
-		// 写入命令树条目
-		fmt.Fprintf(cmdTreeEntries, PwshCommandTreeEntry, cmdPath, strings.Join(cmdOpts, " "))
+		// 添加命令树条目到切片
+		entries = append(entries, fmt.Sprintf(PwshCommandTreeEntry, cmdPath, strings.Join(cmdOpts, " ")))
 
 		// 将子命令加入队列
 		for _, subCmd := range cmd.subCmds {
@@ -461,6 +480,9 @@ func addSubCommandsPwsh(cmdTreeEntries *bytes.Buffer, parentPath string, cmds []
 		processCmdName(cmd.LongName(), currentParentPath, cmd, cmdOpts)  // 处理长命令
 		processCmdName(cmd.ShortName(), currentParentPath, cmd, cmdOpts) // 处理短命令
 	}
+
+	// 写入所有条目，用逗号分隔以符合对象数组语法
+	cmdTreeEntries.WriteString(strings.Join(entries, " "))
 }
 
 // collectFlagParameters 收集所有命令标志参数需求，返回标志名称到参数需求类型的映射
