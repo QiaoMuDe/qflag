@@ -163,10 +163,10 @@ func (f *EnumFlag) Init(longName, shortName string, defValue string, usage strin
 
 // GetOptions 返回枚举的所有可选值
 func (f *EnumFlag) GetOptions() []string {
-    f.mu.RLock()
-    defer f.mu.RUnlock()
-    // 返回副本以避免外部修改
-    options := make([]string, len(f.originalOptions))
-    copy(options, f.originalOptions)
-    return options
+	f.mu.RLock()
+	defer f.mu.RUnlock()
+	// 返回副本以避免外部修改
+	options := make([]string, len(f.originalOptions))
+	copy(options, f.originalOptions)
+	return options
 }

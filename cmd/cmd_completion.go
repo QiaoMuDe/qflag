@@ -106,18 +106,18 @@ _%s() {
 	# Handle different flag types
 	case "$flag_type" in
 		enum)
-			COMPREPLY=($(compgen -W "$enum_vals" -- ${cur}))
+			COMPREPLY=($(compgen -W "$enum_vals" -- "${cur}"))
 			;;
 		path)
-			COMPREPLY=($(compgen -o filenames -d -f -- ${cur}))
+			COMPREPLY=($(compgen -o filenames -d -f -- "${cur}"))
 			;;
 		*)
 			# Default to standard completion with filenames option
-			COMPREPLY=($(compgen -o filenames -W "${opts}" -- ${cur}))
+			COMPREPLY=($(compgen -o filenames -W "${opts}" -- "${cur}"))
 			;;
 	esac
 
-	return 0
+	return $?
 	}
 
 complete -F _%s %s
@@ -318,7 +318,7 @@ func (c *Cmd) generateBashCompletion() (string, error) {
 	flagParams := c.collectFlagParameters()
 	for _, param := range flagParams {
 		if param.FlagType != flags.FlagTypeUnknown {
-			fmt.Fprintf(&flagTypesBuf, "flag_types['%s']='%v'\n", param.Name, param.FlagType)
+			fmt.Fprintf(&flagTypesBuf, "flag_types['%s']='%s'\n", param.Name, flags.FlagTypeToString(param.FlagType, false))
 		}
 		if param.FlagType == flags.FlagTypeEnum && len(param.EnumOptions) > 0 {
 			opts := strings.Join(param.EnumOptions, " ")
@@ -382,7 +382,7 @@ func (c *Cmd) generatePwshCompletion() (string, error) {
 
 		// 收集标志类型
 		if param.FlagType != flags.FlagTypeUnknown {
-			fmt.Fprintf(&flagTypesBuf, "\t'%s' = '%v'\n", param.Name, param.FlagType)
+			fmt.Fprintf(&flagTypesBuf, "\t'%s' = '%s'\n", param.Name, flags.FlagTypeToString(param.FlagType, false))
 		}
 
 		// 收集枚举选项
@@ -487,9 +487,11 @@ func (c *Cmd) collectFlagParameters() []FlagParam {
 			flagType := flag.GetFlagType()
 			enumOptions := []string{}
 
-			if flagType == flags.FlagTypeBool {
-				paramType = "none"
-			} else if flagType == flags.FlagTypeEnum {
+			// 根据标志类型设置参数类型
+			switch flagType {
+			case flags.FlagTypeBool:
+				paramType = "none" // 布尔类型没有参数类型
+			case flags.FlagTypeEnum:
 				// 尝试将标志转换为EnumFlag以获取选项
 				if enumFlag, ok := flag.GetFlag().(*flags.EnumFlag); ok {
 					enumOptions = enumFlag.GetOptions()
