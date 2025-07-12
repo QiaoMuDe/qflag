@@ -122,7 +122,7 @@ Register-ArgumentCompleter -CommandName %s -ScriptBlock {
 	
 		# Parse command line arguments to get the current context
 		$context = ''
-		$args = $commandAst.CommandElements | Select-Object -Skip 1 | ForEach-Object { $_.ToString() }
+		$args = $commandAst.CommandElements | Select-Object -Skip 1 | ForEach-Object { $_.Extent.Text.Trim('"') }
 		$index = 0
 		$count = $args.Count
 	
@@ -153,7 +153,7 @@ Register-ArgumentCompleter -CommandName %s -ScriptBlock {
 		# Get the available options for the current context and filter
 		$options = @()
 		if ($cmdTree.ContainsKey($context)) {
-			$options = $cmdTree[$context] -split ' ' | Where-Object { $_ -like "$wordToComplete*" }
+			$options = $cmdTree[$context] -split '\|' | Where-Object { $_ -like "$wordToComplete*" }
 		}
 	
 		$options | ForEach-Object { [System.Management.Automation.CompletionResult]::new($_, $_, 'ParameterName', $_) }
@@ -179,7 +179,9 @@ func addSubCommandsBash(cmdTreeEntries *bytes.Buffer, parentPath string, cmds []
 
 	// 初始化队列
 	for _, cmd := range cmds {
-		queue = append(queue, cmdNode{cmd: cmd, parentPath: parentPath})
+		if cmd != nil {
+			queue = append(queue, cmdNode{cmd: cmd, parentPath: parentPath})
+		}
 	}
 
 	// 定义处理命令名称的匿名函数 (直接传入cmd对象)
@@ -212,7 +214,9 @@ func addSubCommandsBash(cmdTreeEntries *bytes.Buffer, parentPath string, cmds []
 
 		// 将子命令加入队列 (通过cmd对象访问子命令)
 		for _, subCmd := range cmd.subCmds {
-			*queue = append(*queue, cmdNode{cmd: subCmd, parentPath: cmdPath})
+			if subCmd != nil {
+				*queue = append(*queue, cmdNode{cmd: subCmd, parentPath: cmdPath})
+			}
 		}
 	}
 
@@ -306,11 +310,8 @@ func (c *Cmd) generatePwshCompletion() (string, error) {
 	// 获取根命令的补全选项
 	rootCmdOpts := c.collectCompletionOptions()
 
-	// 添加根命令选项
-	rootOpts := strings.Join(rootCmdOpts, " ")
-
 	// 从根命令的子命令开始添加条目
-	addSubCommandsPwsh(&cmdTreeEntries, "", c.subCmds, rootOpts)
+	addSubCommandsPwsh(&cmdTreeEntries, "", c.subCmds, rootCmdOpts)
 
 	// 构建标志参数需求映射
 	var flagParamsBuf bytes.Buffer
@@ -335,7 +336,8 @@ func (c *Cmd) generatePwshCompletion() (string, error) {
 //   - cmdTreeEntries - 用于存储命令树条目的缓冲区
 //   - parentPath - 父命令路径(使用.作为分隔符)
 //   - cmds - 子命令列表
-func addSubCommandsPwsh(cmdTreeEntries *bytes.Buffer, parentPath string, cmds []*Cmd, rootOpts string) {
+//   - rootOpts - 根命令补全选项
+func addSubCommandsPwsh(cmdTreeEntries *bytes.Buffer, parentPath string, cmds []*Cmd, rootOpts []string) {
 	// 使用队列实现广度优先遍历
 	type cmdNode struct {
 		cmd        *Cmd
@@ -345,11 +347,13 @@ func addSubCommandsPwsh(cmdTreeEntries *bytes.Buffer, parentPath string, cmds []
 
 	// 初始化队列
 	for _, cmd := range cmds {
-		queue = append(queue, cmdNode{cmd: cmd, parentPath: parentPath})
+		if cmd != nil {
+			queue = append(queue, cmdNode{cmd: cmd, parentPath: parentPath})
+		}
 	}
 
 	// 写入根命令条目
-	fmt.Fprintf(cmdTreeEntries, PwshCommandTreeEntryRoot, rootOpts)
+	fmt.Fprintf(cmdTreeEntries, PwshCommandTreeEntryRoot, strings.Join(rootOpts, "|"))
 
 	// 定义处理命令名称的匿名函数 (抽取重复逻辑)
 	processCmdName := func(name string, currentParentPath string, cmd *Cmd, cmdOpts []string) {
@@ -365,11 +369,13 @@ func addSubCommandsPwsh(cmdTreeEntries *bytes.Buffer, parentPath string, cmds []
 		}
 
 		// 写入命令树条目
-		fmt.Fprintf(cmdTreeEntries, PwshCommandTreeEntry, cmdPath, strings.Join(cmdOpts, " "))
+		fmt.Fprintf(cmdTreeEntries, PwshCommandTreeEntry, cmdPath, strings.Join(cmdOpts, "|"))
 
 		// 将子命令加入队列
 		for _, subCmd := range cmd.subCmds {
-			queue = append(queue, cmdNode{cmd: subCmd, parentPath: cmdPath})
+			if subCmd != nil {
+				queue = append(queue, cmdNode{cmd: subCmd, parentPath: cmdPath})
+			}
 		}
 	}
 
