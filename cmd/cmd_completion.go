@@ -92,10 +92,16 @@ _%s() {
 
 	# Get the available options for the current context
 	opts="${cmd_tree[$context]}"
-	# Add -o filenames option to handle special characters and spaces
-	COMPREPLY=($(compgen -o filenames -W "${opts}" -- "${cur}"))
+	
+	# 根据输入前缀动态决定补全类型
+	if [[ "${cur}" == -* ]]; then
+		# 输入以-开头，只显示标志补全
+		COMPREPLY=($(compgen -W "${opts}" -- "${cur}"))
+	else
+		COMPREPLY=($(compgen -W "${opts}" -f -d -- "${cur}"))
+	fi
 
-	return 0
+	return $?
 	}
 
 complete -F _%s %s
