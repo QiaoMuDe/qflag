@@ -124,7 +124,7 @@ _%s() {
 				;;
 			number)
 				# 数字类型参数，提供基本数字补全
-				COMPREPLY=($(compgen -W "$(seq 1 100)" -- "${cur}"))
+				COMPREPLY=($(compgen -W "$(seq 1 10)" -- "${cur}"))
 				;;
 			ip)
 				# IP地址类型参数，提供基本IP补全
@@ -226,14 +226,15 @@ Register-ArgumentCompleter -CommandName %s -ScriptBlock {
 				switch ($valueType) {
 					'path' {
 						# 路径类型补全
-						Get-ChildItem -Directory -File | Where-Object { $_.Name -like "$($wordToComplete.Trim())*" } | ForEach-Object {
+						// 包含隐藏文件并使用完整路径补全
+Get-ChildItem -Directory -File -Force | Where-Object { $_.Name -like "$($wordToComplete.Trim())*" } | ForEach-Object {
 							[System.Management.Automation.CompletionResult]::new($_.FullName, $_.Name, 'ProviderItem', $_.FullName)
 						}
 						break
 					}
 					'number' {
 						# 数字类型补全
-						1..100 | Where-Object { $_ -like "$($wordToComplete.Trim())*" } | ForEach-Object {
+						1..10 | Where-Object { $_ -like "$($wordToComplete.Trim())*" } | ForEach-Object {
 							[System.Management.Automation.CompletionResult]::new($_, $_, 'Number', $_)
 						}
 						break
@@ -359,7 +360,8 @@ func traverseCommandTree(cmdTreeEntries *bytes.Buffer, parentPath string, cmds [
 		if currentParentPath != "" {
 			switch shellType {
 			case flags.ShellBash: // Bash
-				cmdPath = filepath.Join(currentParentPath, name)
+				// 使用正斜杠确保Bash兼容性
+				cmdPath = currentParentPath + "/" + name
 			case flags.ShellPwsh, flags.ShellPowershell: // Powershell ,和 Pwsh
 				cmdPath = currentParentPath + "." + name
 			}
@@ -451,7 +453,11 @@ func (c *Cmd) generateShellCompletion(shellType string) (string, error) {
 					if i > 0 {
 						optionsBuf.WriteString(" ")
 					}
-					optionsBuf.WriteString(strings.ReplaceAll(opt, "\"", "\\\""))
+					// 增强特殊字符转义处理: 引号、反斜杠和空格
+					escapedOpt := strings.ReplaceAll(opt, "\\", "\\\\")
+					escapedOpt = strings.ReplaceAll(escapedOpt, "\"", "\\\"")
+					escapedOpt = strings.ReplaceAll(escapedOpt, " ", "\\ ")
+					optionsBuf.WriteString(escapedOpt)
 				}
 				options := optionsBuf.String()
 				fmt.Fprintf(&enumOptionsBuf, "enum_options[%q]=%q\n", key, options)
@@ -469,18 +475,22 @@ func (c *Cmd) generateShellCompletion(shellType string) (string, error) {
 			// 使用bytes.Buffer减少内存分配
 			var enumBuf bytes.Buffer
 			first := true
-					for _, opt := range param.EnumOptions {
-						opt = strings.TrimSpace(opt)
-						if opt == "" {
-							continue
-						}
-						opt = strings.TrimSpace(opt) // 再次确保无空格
-						if !first {
-							enumBuf.WriteString("|")
-						}
-						enumBuf.WriteString(strings.TrimSpace(strings.ReplaceAll(opt, "\"", "\\\"")))
-						first = false
-					}
+			for _, opt := range param.EnumOptions {
+				opt = strings.TrimSpace(opt)
+				if opt == "" {
+					continue
+				}
+				opt = strings.TrimSpace(opt) // 再次确保无空格
+				if !first {
+					enumBuf.WriteString("|")
+				}
+				// 增强特殊字符转义处理: 引号、反斜杠和空格
+				escapedOpt := strings.ReplaceAll(opt, "\\", "\\\\")
+				escapedOpt = strings.ReplaceAll(escapedOpt, "\"", "\\\"")
+				escapedOpt = strings.ReplaceAll(escapedOpt, " ", "\\ ")
+				enumBuf.WriteString(strings.TrimSpace(escapedOpt))
+				first = false
+			}
 			enumOptions := enumBuf.String()
 			fmt.Fprintf(&flagParamsBuf, PwshCommandTreeOption, key, param.Type, param.ValueType, enumOptions)
 		}
@@ -526,7 +536,7 @@ func (c *Cmd) collectFlagParameters() []FlagParam {
 			}
 
 			// 添加标志参数需求，包含命令路径
-	params = append(params, FlagParam{CommandPath: cmdPath, Name: flagName, Type: paramType, ValueType: valueType, EnumOptions: enumOptions})
+			params = append(params, FlagParam{CommandPath: cmdPath, Name: flagName, Type: paramType, ValueType: valueType, EnumOptions: enumOptions})
 		}
 	}
 
