@@ -83,8 +83,14 @@ func TestCompletionBash(t *testing.T) {
 
 	cmd1 := NewCmd("cmd1", "c1", flag.ExitOnError)
 	cmd1.String("str", "s", "", "test string")
+	cmd2 := NewCmd("cmd2", "c2", flag.ExitOnError)
+	cmd2.Int("int", "i", 0, "test int")
 
 	if err := cmd.AddSubCmd(cmd1); err != nil {
+		t.Fatal(err)
+	}
+
+	if err := cmd1.AddSubCmd(cmd2); err != nil {
 		t.Fatal(err)
 	}
 

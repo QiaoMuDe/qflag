@@ -5,6 +5,7 @@ import (
 	"bytes"
 	"fmt"
 	"os"
+	"path"
 	"path/filepath"
 	"strings"
 
@@ -102,7 +103,8 @@ _%s() {
 	done
 
 	# Get the available options for the current context
-	opts="${cmd_tree[$context]}"
+	IFS='|' read -ra opts_arr <<< "${cmd_tree[$context]}"
+opts=$(IFS=' '; echo "${opts_arr[*]}")
 	
 	# 检查前一个参数是否需要值并获取其类型
 	prev_param_type=""
@@ -111,8 +113,7 @@ _%s() {
 		prev_arg="${words[cword-1]}"
 		key="${context}|${prev_arg}"
 		prev_param_info=${flag_params[$key]}
-		prev_param_type=$(echo "${prev_param_info}" | cut -d'|' -f1)
-		prev_value_type=$(echo "${prev_param_info}" | cut -d'|' -f2)
+		IFS='|' read -r prev_param_type prev_value_type <<< "${prev_param_info}"
 	fi
 
 	# 根据参数类型动态生成补全
@@ -134,10 +135,7 @@ _%s() {
 				# 枚举类型参数，使用预定义的枚举选项
 				COMPREPLY=($(compgen -W "${enum_options[$key]}" -- "${cur}"))
 				;;
-			time)
-				# 时间类型参数，提供常见时间格式补全
-				COMPREPLY=($(compgen -W "$(date +%%Y-%%m-%%d) $(date +%%Y-%%m-%%dT%%H:%%M:%%S) now today yesterday tomorrow" -- "${cur}"))
-				;;
+
 			url)
 				# URL类型参数，提供常见URL前缀补全
 				COMPREPLY=($(compgen -W "http:// https:// ftp://" -- "${cur}"))
@@ -169,7 +167,7 @@ $script:flagParams = @(
 
 # Command tree definition - Pre-initialized outside the function
 $script:cmdTree = @{
-    '' = '%s'
+    '/' = @(%s)
 %s      }
 	
 Register-ArgumentCompleter -CommandName %s -ScriptBlock {
@@ -182,7 +180,7 @@ Register-ArgumentCompleter -CommandName %s -ScriptBlock {
 		$cmdTree = $script:cmdTree
 	
 		# Parse command line arguments to get the current context
-		$context = ''
+		$context = '/'
 		$args = $commandAst.CommandElements | Select-Object -Skip 1 | ForEach-Object { $_.Extent.Text.Trim('"') }
 		$index = 0
 		$count = $args.Count
@@ -205,7 +203,7 @@ Register-ArgumentCompleter -CommandName %s -ScriptBlock {
 				continue
 			}
 	
-			$nextContext = if ($context) { "$context.$arg" } else { $arg }
+			$nextContext = if ($context) { "$context/$arg" } else { $arg }
 			if ($cmdTree.ContainsKey($nextContext)) {
 				$context = $nextContext
 				$index++
@@ -217,7 +215,7 @@ Register-ArgumentCompleter -CommandName %s -ScriptBlock {
 		# Get the available options for the current context and filter
 		$options = @()
 		if ($cmdTree.ContainsKey($context)) {
-			$options = $cmdTree[$context] -split '\|' | Where-Object { $_ -ilike "$($wordToComplete.Trim())*" }
+			$options = $cmdTree[$context] | Where-Object { $_ -ilike "$($wordToComplete.Trim())*" }
 		}
 	
 		# 根据参数类型提供值层补全
@@ -253,13 +251,7 @@ Get-ChildItem -Directory -File -Force | Where-Object { $_.Name -like "$($wordToC
 			}
 			break
 		}
-		'time' {
-			# 时间类型参数，提供常见时间格式补全
-			@(Get-Date -Format 'yyyy-MM-dd', 'yyyy-MM-ddTHH:mm:ss', 'now', 'today', 'yesterday', 'tomorrow') | Where-Object { $_ -like "$wordToComplete*" } | ForEach-Object {
-				[System.Management.Automation.CompletionResult]::new($_, $_, 'Text', $_)
-			}
-			break
-		}
+
 		'url' {
 			# URL类型参数，提供常见URL前缀补全
 			@('http://', 'https://', 'ftp://') | Where-Object { $_ -like "$wordToComplete*" } | ForEach-Object {
@@ -277,7 +269,8 @@ Get-ChildItem -Directory -File -Force | Where-Object { $_.Name -like "$($wordToC
 				$options | ForEach-Object { [System.Management.Automation.CompletionResult]::new($_, $_, 'ParameterName', $_) }
 			}
 	}`
-	PwshCommandTreeEntry  = "    '%s' = '%s'\n"                                                        // 命令树条目格式
+	PwshCommandTreeEntry = "    '%s' = @(%s)\n"
+	// 命令树条目格式
 	PwshCommandTreeOption = "    @{ Name = '%s'; Type = '%s'; ValueType = '%s'; EnumOptions = '%s'}\n" // 选项参数需求条目格式
 )
 
@@ -355,16 +348,10 @@ func traverseCommandTree(cmdTreeEntries *bytes.Buffer, parentPath string, cmds [
 		// 获取子命令补全选项
 		cmdOpts := cmd.collectCompletionOptions()
 
-		// 根据shell类型构建命令路径
+		// 构建命令路径
 		var cmdPath string
 		if currentParentPath != "" {
-			switch shellType {
-			case flags.ShellBash: // Bash
-				// 使用正斜杠确保Bash兼容性
-				cmdPath = currentParentPath + "/" + name
-			case flags.ShellPwsh, flags.ShellPowershell: // Powershell ,和 Pwsh
-				cmdPath = currentParentPath + "." + name
-			}
+			cmdPath = path.Join(currentParentPath, name, "/")
 		} else {
 			cmdPath = name
 		}
@@ -372,9 +359,13 @@ func traverseCommandTree(cmdTreeEntries *bytes.Buffer, parentPath string, cmds [
 		// 根据shell类型写入命令树条目
 		switch shellType {
 		case flags.ShellBash: // Bash
-			fmt.Fprintf(cmdTreeEntries, BashCommandTreeEntry, cmdPath, strings.Join(cmdOpts, " "))
+			fmt.Fprintf(cmdTreeEntries, BashCommandTreeEntry, cmdPath, strings.Join(cmdOpts, "|"))
 		case flags.ShellPwsh, flags.ShellPowershell: // Powershell,和 Pwsh
-			fmt.Fprintf(cmdTreeEntries, PwshCommandTreeEntry, cmdPath, strings.Join(cmdOpts, "|"))
+			quotedOpts := make([]string, len(cmdOpts))
+			for i, opt := range cmdOpts {
+				quotedOpts[i] = fmt.Sprintf("'%s'", strings.ReplaceAll(opt, "'", "''"))
+			}
+			fmt.Fprintf(cmdTreeEntries, PwshCommandTreeEntry, cmdPath, strings.Join(quotedOpts, ", "))
 		}
 
 		// 将子命令加入队列
@@ -434,7 +425,6 @@ func (c *Cmd) generateShellCompletion(shellType string) (string, error) {
 	// 根据shell类型处理不同的逻辑
 	switch shellType {
 	case flags.ShellBash: // Bash特定处理
-
 		// 构建标志参数映射
 		var flagParamsBuf bytes.Buffer
 		var enumOptionsBuf bytes.Buffer
@@ -465,7 +455,7 @@ func (c *Cmd) generateShellCompletion(shellType string) (string, error) {
 		}
 
 		// 写入Bash自动补全脚本头
-		fmt.Fprintf(&buf, BashFunctionHeader, strings.Join(rootCmdOpts, " "), cmdTreeEntries.String(), flagParamsBuf.String(), enumOptionsBuf.String(), programName, programName, programName)
+		fmt.Fprintf(&buf, BashFunctionHeader, strings.Join(rootCmdOpts, "|"), cmdTreeEntries.String(), flagParamsBuf.String(), enumOptionsBuf.String(), programName, programName, programName)
 
 	case flags.ShellPwsh, flags.ShellPowershell: // PowerShell特定处理
 		var flagParamsBuf bytes.Buffer
@@ -495,7 +485,13 @@ func (c *Cmd) generateShellCompletion(shellType string) (string, error) {
 			fmt.Fprintf(&flagParamsBuf, PwshCommandTreeOption, key, param.Type, param.ValueType, enumOptions)
 		}
 		// 写入PowerShell自动补全脚本头
-		fmt.Fprintf(&buf, PwshFunctionHeader, flagParamsBuf.String(), strings.Join(rootCmdOpts, "|"), cmdTreeEntries.String(), programName)
+		// 根命令选项数组化处理
+		rootCmdOpts = strings.Split(strings.Join(rootCmdOpts, "|"), "|")
+		rootQuotedOpts := make([]string, len(rootCmdOpts))
+		for i, opt := range rootCmdOpts {
+			rootQuotedOpts[i] = fmt.Sprintf("'%s'", strings.ReplaceAll(opt, "'", "''"))
+		}
+		fmt.Fprintf(&buf, PwshFunctionHeader, flagParamsBuf.String(), strings.Join(rootQuotedOpts, ", "), cmdTreeEntries.String(), programName)
 	}
 
 	// 返回自动补全脚本
@@ -547,20 +543,18 @@ func (c *Cmd) collectFlagParameters() []FlagParam {
 	}
 	queue := []cmdNode{{cmd: c, parentPath: ""}}
 
+	// 循环遍历命令树
 	for len(queue) > 0 {
 		node := queue[0]
 		queue = queue[1:]
 		cmd := node.cmd
 		currentParentPath := node.parentPath
 
-		// 构建当前命令路径
-		cmdPath := currentParentPath
-		if cmdPath == "" {
-			cmdPath = "/"
-		} else {
-			cmdPath += "/"
+		// 构建当前命令路径，拼接父路径和当前命令名
+		cmdPath := "/"
+		if currentParentPath != "" {
+			cmdPath = currentParentPath + cmd.Name() + "/"
 		}
-		cmdPath += cmd.Name()
 
 		// 收集当前命令的标志 - 同时处理长短选项
 		for _, flag := range cmd.flagRegistry.GetAllFlagMetas() {
