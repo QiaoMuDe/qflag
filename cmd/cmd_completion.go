@@ -13,6 +13,7 @@ import (
 
 // FlagParam 表示标志参数及其需求类型和值类型
 type FlagParam struct {
+	CommandPath string   // 命令路径，如 "/cmd/subcmd"
 	Name        string   // 标志名称(保留原始大小写)
 	Type        string   // 参数需求类型: "required"|"optional"|"none"
 	ValueType   string   // 参数值类型: "path"|"string"|"number"|"enum"|"bool"等
@@ -108,8 +109,10 @@ _%s() {
 	prev_value_type=""
 	if [[ $cword -gt 1 ]]; then
 		prev_arg="${words[cword-1]}"
-		prev_param_type=$(echo "${flag_params[$prev_arg]}" | cut -d'|' -f1)
-		prev_value_type=$(echo "${flag_params[$prev_arg]}" | cut -d'|' -f2)
+		key="${context}|${prev_arg}"
+		prev_param_info=${flag_params[$key]}
+		prev_param_type=$(echo "${prev_param_info}" | cut -d'|' -f1)
+		prev_value_type=$(echo "${prev_param_info}" | cut -d'|' -f2)
 	fi
 
 	# 根据参数类型动态生成补全
@@ -129,7 +132,7 @@ _%s() {
 				;;
 			enum)
 				# 枚举类型参数，使用预定义的枚举选项
-				COMPREPLY=($(compgen -W "${enum_options[$prev_arg]}" -- "${cur}"))
+				COMPREPLY=($(compgen -W "${enum_options[$key]}" -- "${cur}"))
 				;;
 			time)
 				# 时间类型参数，提供常见时间格式补全
@@ -187,7 +190,8 @@ Register-ArgumentCompleter -CommandName %s -ScriptBlock {
 		while ($index -lt $count) {
 			$arg = $args[$index]
 			# Use case-sensitive matching to find flags
-			$paramInfo = $flagParams | Where-Object { $_.Name -ceq $arg } | Select-Object -First 1
+			$key = "$context|$arg"
+			$paramInfo = $flagParams | Where-Object { $_.Name -eq $key } | Select-Object -First 1
 			if ($paramInfo) {
 				$paramType = $paramInfo.Type
 				$valueType = $paramInfo.ValueType
@@ -213,7 +217,7 @@ Register-ArgumentCompleter -CommandName %s -ScriptBlock {
 		# Get the available options for the current context and filter
 		$options = @()
 		if ($cmdTree.ContainsKey($context)) {
-			$options = $cmdTree[$context] -split '\|' | Where-Object { $_ -like "$wordToComplete*" }
+			$options = $cmdTree[$context] -split '\|' | Where-Object { $_ -ilike "$($wordToComplete.Trim())*" }
 		}
 	
 		# 根据参数类型提供值层补全
@@ -222,14 +226,14 @@ Register-ArgumentCompleter -CommandName %s -ScriptBlock {
 				switch ($valueType) {
 					'path' {
 						# 路径类型补全
-						Get-ChildItem -Directory -File | Where-Object { $_.Name -like "$wordToComplete*" } | ForEach-Object {
+						Get-ChildItem -Directory -File | Where-Object { $_.Name -like "$($wordToComplete.Trim())*" } | ForEach-Object {
 							[System.Management.Automation.CompletionResult]::new($_.FullName, $_.Name, 'ProviderItem', $_.FullName)
 						}
 						break
 					}
 					'number' {
 						# 数字类型补全
-						1..100 | Where-Object { $_ -like "$wordToComplete*" } | ForEach-Object {
+						1..100 | Where-Object { $_ -like "$($wordToComplete.Trim())*" } | ForEach-Object {
 							[System.Management.Automation.CompletionResult]::new($_, $_, 'Number', $_)
 						}
 						break
@@ -243,7 +247,7 @@ Register-ArgumentCompleter -CommandName %s -ScriptBlock {
 					}
 					'enum' {
 			# 枚举类型参数，使用预定义的枚举选项
-			$prevParamInfo.EnumOptions -split '\|' | Where-Object { $_ -like "$wordToComplete*" } | ForEach-Object {
+			$prevParamInfo.EnumOptions -split '\|' | Where-Object { $_ -and ($_.Trim() -ilike "*$($wordToComplete.Trim())*") } | ForEach-Object {
 				[System.Management.Automation.CompletionResult]::new($_, $_, 'Text', $_)
 			}
 			break
@@ -433,7 +437,13 @@ func (c *Cmd) generateShellCompletion(shellType string) (string, error) {
 		var flagParamsBuf bytes.Buffer
 		var enumOptionsBuf bytes.Buffer
 		for _, param := range params {
-			fmt.Fprintf(&flagParamsBuf, "flag_params[%q]=%q\n", param.Name, param.Type+"|"+param.ValueType)
+			var key string
+			if param.CommandPath == "" {
+				key = param.Name
+			} else {
+				key = fmt.Sprintf("%s|%s", param.CommandPath, param.Name)
+			}
+			fmt.Fprintf(&flagParamsBuf, "flag_params[%q]=%q\n", key, param.Type+"|"+param.ValueType)
 			if param.ValueType == "enum" && len(param.EnumOptions) > 0 {
 				// 使用bytes.Buffer减少内存分配
 				var optionsBuf bytes.Buffer
@@ -441,12 +451,10 @@ func (c *Cmd) generateShellCompletion(shellType string) (string, error) {
 					if i > 0 {
 						optionsBuf.WriteString(" ")
 					}
-					optionsBuf.WriteByte('"')
 					optionsBuf.WriteString(strings.ReplaceAll(opt, "\"", "\\\""))
-					optionsBuf.WriteByte('"')
 				}
 				options := optionsBuf.String()
-				fmt.Fprintf(&enumOptionsBuf, "enum_options[%q]=%q\n", param.Name, options)
+				fmt.Fprintf(&enumOptionsBuf, "enum_options[%q]=%q\n", key, options)
 			}
 		}
 
@@ -457,18 +465,24 @@ func (c *Cmd) generateShellCompletion(shellType string) (string, error) {
 		var flagParamsBuf bytes.Buffer
 		// 使用缓存的标志参数
 		for _, param := range params {
+			key := fmt.Sprintf("%s|%s", param.CommandPath, param.Name)
 			// 使用bytes.Buffer减少内存分配
 			var enumBuf bytes.Buffer
-			for i, opt := range param.EnumOptions {
-				if i > 0 {
-					enumBuf.WriteString("|")
-				}
-				enumBuf.WriteByte('"')
-				enumBuf.WriteString(strings.ReplaceAll(opt, "\"", "\\\""))
-				enumBuf.WriteByte('"')
-			}
+			first := true
+					for _, opt := range param.EnumOptions {
+						opt = strings.TrimSpace(opt)
+						if opt == "" {
+							continue
+						}
+						opt = strings.TrimSpace(opt) // 再次确保无空格
+						if !first {
+							enumBuf.WriteString("|")
+						}
+						enumBuf.WriteString(strings.TrimSpace(strings.ReplaceAll(opt, "\"", "\\\"")))
+						first = false
+					}
 			enumOptions := enumBuf.String()
-			fmt.Fprintf(&flagParamsBuf, PwshCommandTreeOption, param.Name, param.Type, param.ValueType, enumOptions)
+			fmt.Fprintf(&flagParamsBuf, PwshCommandTreeOption, key, param.Type, param.ValueType, enumOptions)
 		}
 		// 写入PowerShell自动补全脚本头
 		fmt.Fprintf(&buf, PwshFunctionHeader, flagParamsBuf.String(), strings.Join(rootCmdOpts, "|"), cmdTreeEntries.String(), programName)
@@ -486,8 +500,8 @@ func (c *Cmd) collectFlagParameters() []FlagParam {
 	params := make([]FlagParam, 0, initialCapacity) // 使用切片存储标志参数需求
 	seen := make(map[string]bool)                   // 使用原始标志名称作为键，区分大小写
 
-	// 定义匿名函数处理标志添加逻辑，包含参数类型判断
-	addFlagParam := func(flag *flags.FlagMeta, prefix, opt string) {
+	// 定义匿名函数处理标志添加逻辑，包含参数类型判断和命令路径
+	addFlagParam := func(flag *flags.FlagMeta, prefix, opt string, cmdPath string) {
 		if opt == "" {
 			return
 		}
@@ -511,30 +525,45 @@ func (c *Cmd) collectFlagParameters() []FlagParam {
 				}
 			}
 
-			// 添加标志参数需求
-			params = append(params, FlagParam{Name: flagName, Type: paramType, ValueType: valueType, EnumOptions: enumOptions})
+			// 添加标志参数需求，包含命令路径
+	params = append(params, FlagParam{CommandPath: cmdPath, Name: flagName, Type: paramType, ValueType: valueType, EnumOptions: enumOptions})
 		}
 	}
 
-	// 使用队列实现广度优先遍历
-	queue := make([]*Cmd, 0, 10)
-	queue = append(queue, c)
+	// 使用队列实现广度优先遍历，记录命令路径
+	type cmdNode struct {
+		cmd        *Cmd
+		parentPath string
+	}
+	queue := []cmdNode{{cmd: c, parentPath: ""}}
 
-	// 遍历队列中的所有命令
 	for len(queue) > 0 {
-		cmd := queue[0]
+		node := queue[0]
 		queue = queue[1:]
+		cmd := node.cmd
+		currentParentPath := node.parentPath
+
+		// 构建当前命令路径
+		cmdPath := currentParentPath
+		if cmdPath == "" {
+			cmdPath = "/"
+		} else {
+			cmdPath += "/"
+		}
+		cmdPath += cmd.Name()
 
 		// 收集当前命令的标志 - 同时处理长短选项
 		for _, flag := range cmd.flagRegistry.GetAllFlagMetas() {
 			// 处理短选项
-			addFlagParam(flag, "-", flag.GetShortName())
+			addFlagParam(flag, "-", flag.GetShortName(), cmdPath)
 			// 处理长选项
-			addFlagParam(flag, "--", flag.GetLongName())
+			addFlagParam(flag, "--", flag.GetLongName(), cmdPath)
 		}
 
 		// 将子命令加入队列
-		queue = append(queue, cmd.subCmds...)
+		for _, subCmd := range cmd.subCmds {
+			queue = append(queue, cmdNode{cmd: subCmd, parentPath: cmdPath})
+		}
 	}
 
 	return params
