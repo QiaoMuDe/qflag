@@ -11,10 +11,12 @@ import (
 	"gitee.com/MM-Q/qflag/flags"
 )
 
-// FlagParam 表示标志参数及其需求类型
+// FlagParam 表示标志参数及其需求类型和值类型
 type FlagParam struct {
-	Name string // 标志名称(保留原始大小写)
-	Type string // 参数需求类型: "required"|"optional"|"none"
+	Name        string   // 标志名称(保留原始大小写)
+	Type        string   // 参数需求类型: "required"|"optional"|"none"
+	ValueType   string   // 参数值类型: "path"|"string"|"number"|"enum"|"bool"等
+	EnumOptions []string // 枚举类型的可选值列表
 }
 
 // 生成标志的注意事项
@@ -64,6 +66,14 @@ declare -A cmd_tree
 cmd_tree[/]="%s"
 %s
 
+# Flag parameters definition - stores type and value type (type|valueType)
+declare -A flag_params
+%s
+
+# Enum options definition - stores allowed values for enum flags
+declare -A enum_options
+%s
+
 _%s() {
 	local cur prev words cword context opts i arg
 	COMPREPLY=()
@@ -93,11 +103,52 @@ _%s() {
 	# Get the available options for the current context
 	opts="${cmd_tree[$context]}"
 	
-	# 根据输入前缀动态决定补全类型
-	if [[ "${cur}" == -* ]]; then
+	# 检查前一个参数是否需要值并获取其类型
+	prev_param_type=""
+	prev_value_type=""
+	if [[ $cword -gt 1 ]]; then
+		prev_arg="${words[cword-1]}"
+		prev_param_type=$(echo "${flag_params[$prev_arg]}" | cut -d'|' -f1)
+		prev_value_type=$(echo "${flag_params[$prev_arg]}" | cut -d'|' -f2)
+	fi
+
+	# 根据参数类型动态生成补全
+	if [[ -n "$prev_param_type" && ($prev_param_type == "required" || $prev_param_type == "optional") ]]; then
+		case "$prev_value_type" in
+			path)
+				# 路径类型参数，使用文件和目录补全
+				COMPREPLY=($(compgen -f -d -- "${cur}"))
+				;;
+			number)
+				# 数字类型参数，提供基本数字补全
+				COMPREPLY=($(compgen -W "$(seq 1 100)" -- "${cur}"))
+				;;
+			ip)
+				# IP地址类型参数，提供基本IP补全
+				COMPREPLY=($(compgen -W "192.168. 10.0. 172.16." -- "${cur}"))
+				;;
+			enum)
+				# 枚举类型参数，使用预定义的枚举选项
+				COMPREPLY=($(compgen -W "${enum_options[$prev_arg]}" -- "${cur}"))
+				;;
+			time)
+				# 时间类型参数，提供常见时间格式补全
+				COMPREPLY=($(compgen -W "$(date +%%Y-%%m-%%d) $(date +%%Y-%%m-%%dT%%H:%%M:%%S) now today yesterday tomorrow" -- "${cur}"))
+				;;
+			url)
+				# URL类型参数，提供常见URL前缀补全
+				COMPREPLY=($(compgen -W "http:// https:// ftp://" -- "${cur}"))
+				;;
+			*)
+				# 默认值补全
+				COMPREPLY=($(compgen -W "${opts}" -- "${cur}"))
+				;;
+			esac
+	elif [[ "${cur}" == -* ]]; then
 		# 输入以-开头，只显示标志补全
 		COMPREPLY=($(compgen -W "${opts}" -- "${cur}"))
 	else
+		# 命令补全，包含文件和目录
 		COMPREPLY=($(compgen -W "${opts}" -f -d -- "${cur}"))
 	fi
 
@@ -139,10 +190,12 @@ Register-ArgumentCompleter -CommandName %s -ScriptBlock {
 			$paramInfo = $flagParams | Where-Object { $_.Name -ceq $arg } | Select-Object -First 1
 			if ($paramInfo) {
 				$paramType = $paramInfo.Type
+				$valueType = $paramInfo.ValueType
 				$index++
 				
 				# Determine whether to skip the next argument based on the parameter type
 				if ($paramType -eq 'required' -or ($paramType -eq 'optional' -and $index -lt $count -and $args[$index] -notlike '-*')) {
+					$prevParamInfo = $paramInfo
 					$index++
 				}
 				continue
@@ -163,11 +216,107 @@ Register-ArgumentCompleter -CommandName %s -ScriptBlock {
 			$options = $cmdTree[$context] -split '\|' | Where-Object { $_ -like "$wordToComplete*" }
 		}
 	
-		$options | ForEach-Object { [System.Management.Automation.CompletionResult]::new($_, $_, 'ParameterName', $_) }
+		# 根据参数类型提供值层补全
+			if ($prevParamInfo) {
+				$valueType = $prevParamInfo.ValueType
+				switch ($valueType) {
+					'path' {
+						# 路径类型补全
+						Get-ChildItem -Directory -File | Where-Object { $_.Name -like "$wordToComplete*" } | ForEach-Object {
+							[System.Management.Automation.CompletionResult]::new($_.FullName, $_.Name, 'ProviderItem', $_.FullName)
+						}
+						break
+					}
+					'number' {
+						# 数字类型补全
+						1..100 | Where-Object { $_ -like "$wordToComplete*" } | ForEach-Object {
+							[System.Management.Automation.CompletionResult]::new($_, $_, 'Number', $_)
+						}
+						break
+					}
+					'ip' {
+						# IP地址类型补全
+						@('192.168.', '10.0.', '172.16.', '127.0.0.') | Where-Object { $_ -like "$wordToComplete*" } | ForEach-Object {
+							[System.Management.Automation.CompletionResult]::new($_, $_, 'Text', $_)
+						}
+						break
+					}
+					'enum' {
+			# 枚举类型参数，使用预定义的枚举选项
+			$prevParamInfo.EnumOptions -split '\|' | Where-Object { $_ -like "$wordToComplete*" } | ForEach-Object {
+				[System.Management.Automation.CompletionResult]::new($_, $_, 'Text', $_)
+			}
+			break
+		}
+		'time' {
+			# 时间类型参数，提供常见时间格式补全
+			@(Get-Date -Format 'yyyy-MM-dd', 'yyyy-MM-ddTHH:mm:ss', 'now', 'today', 'yesterday', 'tomorrow') | Where-Object { $_ -like "$wordToComplete*" } | ForEach-Object {
+				[System.Management.Automation.CompletionResult]::new($_, $_, 'Text', $_)
+			}
+			break
+		}
+		'url' {
+			# URL类型参数，提供常见URL前缀补全
+			@('http://', 'https://', 'ftp://') | Where-Object { $_ -like "$wordToComplete*" } | ForEach-Object {
+				[System.Management.Automation.CompletionResult]::new($_, $_, 'Text', $_)
+			}
+			break
+		}
+		default: {
+					# 默认值补全
+					$options | ForEach-Object { [System.Management.Automation.CompletionResult]::new($_, $_, 'ParameterName', $_) }
+				}
+				}
+			} else {
+				# 参数层补全
+				$options | ForEach-Object { [System.Management.Automation.CompletionResult]::new($_, $_, 'ParameterName', $_) }
+			}
 	}`
-	PwshCommandTreeEntry  = "    '%s' = '%s'\n"                  // 命令树条目格式
-	PwshCommandTreeOption = "    @{ Name = '%s'; Type = '%s'}\n" // 选项参数需求条目格式
+	PwshCommandTreeEntry  = "    '%s' = '%s'\n"                                                        // 命令树条目格式
+	PwshCommandTreeOption = "    @{ Name = '%s'; Type = '%s'; ValueType = '%s'; EnumOptions = '%s'}\n" // 选项参数需求条目格式
 )
+
+// getValueTypeByFlagType 根据标志类型获取值类型
+//
+// 参数:
+//   - flagType - 标志类型
+//
+// 返回值:
+//   - string: 值类型
+func getValueTypeByFlagType(flagType flags.FlagType) string {
+	switch flagType {
+	case flags.FlagTypeBool:
+		return "bool"
+	case flags.FlagTypeInt, flags.FlagTypeUint16, flags.FlagTypeUint32, flags.FlagTypeUint64, flags.FlagTypeInt64, flags.FlagTypeFloat64:
+		return "number"
+	case flags.FlagTypePath:
+		return "path"
+	case flags.FlagTypeEnum:
+		return "enum"
+	case flags.FlagTypeDuration, flags.FlagTypeTime:
+		return "time"
+	case flags.FlagTypeIP4, flags.FlagTypeIP6:
+		return "ip"
+	case flags.FlagTypeURL:
+		return "url"
+	default:
+		return "string"
+	}
+}
+
+// getParamTypeByFlagType 根据标志类型获取参数需求类型
+//
+// 参数:
+//   - flagType - 标志类型
+//
+// 返回值:
+//   - string: 参数需求类型
+func getParamTypeByFlagType(flagType flags.FlagType) string {
+	if flagType == flags.FlagTypeBool {
+		return "none"
+	}
+	return "required"
+}
 
 // traverseCommandTree 通用的命令树遍历函数
 //
@@ -208,7 +357,7 @@ func traverseCommandTree(cmdTreeEntries *bytes.Buffer, parentPath string, cmds [
 			case flags.ShellBash: // Bash
 				cmdPath = filepath.Join(currentParentPath, name)
 			case flags.ShellPwsh, flags.ShellPowershell: // Powershell ,和 Pwsh
-				cmdPath = fmt.Sprintf("%s.%s", currentParentPath, name)
+				cmdPath = currentParentPath + "." + name
 			}
 		} else {
 			cmdPath = name
@@ -273,16 +422,53 @@ func (c *Cmd) generateShellCompletion(shellType string) (string, error) {
 	// 从根命令的子命令开始添加条目
 	traverseCommandTree(&cmdTreeEntries, "", c.subCmds, shellType)
 
+	// 缓存标志参数，避免重复计算
+	params := c.collectFlagParameters()
+
 	// 根据shell类型处理不同的逻辑
 	switch shellType {
 	case flags.ShellBash: // Bash特定处理
+
+		// 构建标志参数映射
+		var flagParamsBuf bytes.Buffer
+		var enumOptionsBuf bytes.Buffer
+		for _, param := range params {
+			fmt.Fprintf(&flagParamsBuf, "flag_params[%q]=%q\n", param.Name, param.Type+"|"+param.ValueType)
+			if param.ValueType == "enum" && len(param.EnumOptions) > 0 {
+				// 使用bytes.Buffer减少内存分配
+				var optionsBuf bytes.Buffer
+				for i, opt := range param.EnumOptions {
+					if i > 0 {
+						optionsBuf.WriteString(" ")
+					}
+					optionsBuf.WriteByte('"')
+					optionsBuf.WriteString(strings.ReplaceAll(opt, "\"", "\\\""))
+					optionsBuf.WriteByte('"')
+				}
+				options := optionsBuf.String()
+				fmt.Fprintf(&enumOptionsBuf, "enum_options[%q]=%q\n", param.Name, options)
+			}
+		}
+
 		// 写入Bash自动补全脚本头
-		fmt.Fprintf(&buf, BashFunctionHeader, strings.Join(rootCmdOpts, " "), cmdTreeEntries.String(), programName, programName, programName)
+		fmt.Fprintf(&buf, BashFunctionHeader, strings.Join(rootCmdOpts, " "), cmdTreeEntries.String(), flagParamsBuf.String(), enumOptionsBuf.String(), programName, programName, programName)
+
 	case flags.ShellPwsh, flags.ShellPowershell: // PowerShell特定处理
 		var flagParamsBuf bytes.Buffer
-		// 获取标志参数
-		for _, param := range c.collectFlagParameters() {
-			fmt.Fprintf(&flagParamsBuf, PwshCommandTreeOption, param.Name, param.Type)
+		// 使用缓存的标志参数
+		for _, param := range params {
+			// 使用bytes.Buffer减少内存分配
+			var enumBuf bytes.Buffer
+			for i, opt := range param.EnumOptions {
+				if i > 0 {
+					enumBuf.WriteString("|")
+				}
+				enumBuf.WriteByte('"')
+				enumBuf.WriteString(strings.ReplaceAll(opt, "\"", "\\\""))
+				enumBuf.WriteByte('"')
+			}
+			enumOptions := enumBuf.String()
+			fmt.Fprintf(&flagParamsBuf, PwshCommandTreeOption, param.Name, param.Type, param.ValueType, enumOptions)
 		}
 		// 写入PowerShell自动补全脚本头
 		fmt.Fprintf(&buf, PwshFunctionHeader, flagParamsBuf.String(), strings.Join(rootCmdOpts, "|"), cmdTreeEntries.String(), programName)
@@ -295,8 +481,10 @@ func (c *Cmd) generateShellCompletion(shellType string) (string, error) {
 // collectFlagParameters 收集所有命令标志参数需求，返回标志名称到参数需求类型的映射
 // 参数需求类型: "required"|"optional"|"none"
 func (c *Cmd) collectFlagParameters() []FlagParam {
-	params := make([]FlagParam, 0) // 使用切片存储标志参数需求
-	seen := make(map[string]bool)  // 使用原始标志名称作为键，区分大小写
+	// 基于命令数量和平均标志密度预分配容量 (每个命令约8个标志)
+	initialCapacity := len(c.subCmds)*8 + 16        // 额外+16应对根命令标志
+	params := make([]FlagParam, 0, initialCapacity) // 使用切片存储标志参数需求
+	seen := make(map[string]bool)                   // 使用原始标志名称作为键，区分大小写
 
 	// 定义匿名函数处理标志添加逻辑，包含参数类型判断
 	addFlagParam := func(flag *flags.FlagMeta, prefix, opt string) {
@@ -311,14 +499,20 @@ func (c *Cmd) collectFlagParameters() []FlagParam {
 		if !seen[flagName] {
 			seen[flagName] = true // 标记为已添加
 
-			// 根据标志类型设置参数类型
-			paramType := "required"
-			if flag.GetFlagType() == flags.FlagTypeBool {
-				paramType = "none"
+			// 根据标志类型获取参数类型和值类型
+			flagType := flag.GetFlagType()
+			paramType := getParamTypeByFlagType(flagType)
+			valueType := getValueTypeByFlagType(flagType)
+			var enumOptions []string
+
+			if flagType == flags.FlagTypeEnum {
+				if enumFlag, ok := flag.GetFlag().(*flags.EnumFlag); ok {
+					enumOptions = enumFlag.GetOptions()
+				}
 			}
 
 			// 添加标志参数需求
-			params = append(params, FlagParam{Name: flagName, Type: paramType})
+			params = append(params, FlagParam{Name: flagName, Type: paramType, ValueType: valueType, EnumOptions: enumOptions})
 		}
 	}
 
@@ -354,6 +548,7 @@ func (c *Cmd) collectFlagParameters() []FlagParam {
 // 返回值：
 //   - 包含所有标志选项和子命令名称的字符串切片
 func (c *Cmd) collectCompletionOptions() []string {
+
 	// 防御性检查
 	if c == nil || c.flagRegistry == nil {
 		return []string{}
@@ -372,10 +567,10 @@ func (c *Cmd) collectCompletionOptions() []string {
 	// 获取所有长选项和短选项(为空时不会循环)
 	for _, m := range flags {
 		if m.GetLongName() != "" {
-			opts = append(opts, fmt.Sprint("--", m.GetLongName()))
+			opts = append(opts, "--"+m.GetLongName())
 		}
 		if m.GetShortName() != "" {
-			opts = append(opts, fmt.Sprint("-", m.GetShortName()))
+			opts = append(opts, "-"+m.GetShortName())
 		}
 	}
 
