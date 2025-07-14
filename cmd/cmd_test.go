@@ -154,7 +154,9 @@ func TestErrorHandling(t *testing.T) {
 	}
 
 	// 恢复标准输出和错误输出
-	w.Close()
+	if err := w.Close(); err != nil {
+		t.Errorf("Failed to close writer: %v", err)
+	}
 	os.Stdout = oldStdout
 	os.Stderr = oldStderr
 
@@ -409,8 +411,8 @@ func TestDurationFlag(t *testing.T) {
 		os.Stdout = wOut
 		os.Stderr = wErr
 		defer func() {
-			wOut.Close()
-			wErr.Close()
+			_ = wOut.Close()
+			_ = wErr.Close()
 			os.Stdout = oldStdout
 			os.Stderr = oldStderr
 
@@ -590,7 +592,7 @@ func TestBuiltinFlags(t *testing.T) {
 		if copyErr != nil {
 			t.Logf("从管道复制数据到 stdout 缓冲区失败: %v", copyErr)
 		}
-		r.Close()
+		_ = r.Close()
 	}()
 	// 由于 os.Stderr 类型为 *os.File，不能直接赋值 *bytes.Buffer，使用与处理 stdout 相同的管道方式重定向
 	rErr, wErr, err := os.Pipe()
@@ -606,12 +608,12 @@ func TestBuiltinFlags(t *testing.T) {
 		if err != nil {
 			t.Logf("从标准错误输出管道复制数据到 stderr 缓冲区失败: %v", err)
 		}
-		rErr.Close()
+		_ = rErr.Close()
 	}()
 
 	defer func() {
-		w.Close()
-		wErr.Close()
+		_ = w.Close()
+		_ = wErr.Close()
 		wg.Wait()
 		// 恢复标准输出和标准错误输出
 		os.Stdout = oldStdout

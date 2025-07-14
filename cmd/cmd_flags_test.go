@@ -455,7 +455,9 @@ func TestUint16Varf(t *testing.T) {
 			err := cmdInvalid.Parse([]string{"--uint16-invalid", "65536"})
 
 			// 恢复标准输出和错误
-			w.Close()
+			if closeErr := w.Close(); closeErr != nil {
+				t.Errorf("failed to close writer: %v", closeErr)
+			}
 			os.Stdout = oldStdout
 			os.Stderr = oldStderr
 
@@ -545,7 +547,9 @@ func TestTimeVarf(t *testing.T) {
 			os.Stderr = w
 
 			defer func() {
-				w.Close()
+				if err := w.Close(); err != nil {
+					t.Errorf("failed to close writer: %v", err)
+				}
 				os.Stderr = oldStderr
 			}()
 

@@ -157,7 +157,9 @@ func TestCompletionShellNone(t *testing.T) {
 		}
 
 		// 恢复标准输出
-		w.Close()
+		if err = w.Close(); err != nil {
+			t.Errorf("Failed to close writer: %v", err)
+		}
 		os.Stdout = oldStdout
 
 		// 读取捕获的输出

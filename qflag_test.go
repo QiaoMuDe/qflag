@@ -17,7 +17,7 @@ func TestStringFlagLong(t *testing.T) {
 	r, w, _ := os.Pipe()
 	os.Stdout = w
 	defer func() {
-		w.Close()
+		_ = w.Close()
 		os.Stdout = old
 		// 不输出任何捕获的内容
 		var buf bytes.Buffer
@@ -56,7 +56,9 @@ func TestStringFlagShort(t *testing.T) {
 	r, w, _ := os.Pipe()
 	os.Stdout = w
 	defer func() {
-		w.Close()
+		if err := w.Close(); err != nil {
+			t.Errorf("Failed to close writer: %v", err)
+		}
 		os.Stdout = old
 		// 只在测试失败时输出捕获的内容
 		if t.Failed() {
@@ -67,6 +69,7 @@ func TestStringFlagShort(t *testing.T) {
 				t.Logf("捕获的输出:\n%s", buf.String())
 			}
 		}
+		_ = w.Close()
 	}()
 
 	cmd := NewCmd("test", "t", flag.ContinueOnError)
@@ -99,7 +102,9 @@ func TestIntFlagLong(t *testing.T) {
 	r, w, _ := os.Pipe()
 	os.Stdout = w
 	defer func() {
-		w.Close()
+		if err := w.Close(); err != nil {
+			t.Errorf("Failed to close writer: %v", err)
+		}
 		os.Stdout = old
 		// 只在测试失败时输出捕获的内容
 		if t.Failed() {
@@ -142,7 +147,9 @@ func TestIntFlagShort(t *testing.T) {
 	r, w, _ := os.Pipe()
 	os.Stdout = w
 	defer func() {
-		w.Close()
+		if err := w.Close(); err != nil {
+			t.Errorf("Failed to close writer: %v", err)
+		}
 		os.Stdout = old
 		// 只在测试失败时输出捕获的内容
 		if t.Failed() {
@@ -185,7 +192,9 @@ func TestBoolFlagLong(t *testing.T) {
 	r, w, _ := os.Pipe()
 	os.Stdout = w
 	defer func() {
-		w.Close()
+		if err := w.Close(); err != nil {
+			t.Errorf("Failed to close writer: %v", err)
+		}
 		os.Stdout = old
 		// 只在测试失败时输出捕获的内容
 		if t.Failed() {
@@ -228,7 +237,9 @@ func TestBoolFlagShort(t *testing.T) {
 	r, w, _ := os.Pipe()
 	os.Stdout = w
 	defer func() {
-		w.Close()
+		if err := w.Close(); err != nil {
+			t.Errorf("Failed to close writer: %v", err)
+		}
 		os.Stdout = old
 		// 只在测试失败时输出捕获的内容
 		if t.Failed() {
@@ -271,7 +282,9 @@ func TestFloatFlagLong(t *testing.T) {
 	r, w, _ := os.Pipe()
 	os.Stdout = w
 	defer func() {
-		w.Close()
+		if err := w.Close(); err != nil {
+			t.Errorf("Failed to close writer: %v", err)
+		}
 		os.Stdout = old
 		// 只在测试失败时输出捕获的内容
 		if t.Failed() {
@@ -314,7 +327,9 @@ func TestFloatFlagShort(t *testing.T) {
 	r, w, _ := os.Pipe()
 	os.Stdout = w
 	defer func() {
-		w.Close()
+		if err := w.Close(); err != nil {
+			t.Errorf("Failed to close writer: %v", err)
+		}
 		os.Stdout = old
 		// 只在测试失败时输出捕获的内容
 		if t.Failed() {
@@ -360,8 +375,8 @@ func TestParseError(t *testing.T) {
 	os.Stdout = wOut
 	os.Stderr = wErr
 	defer func() {
-		wOut.Close()
-		wErr.Close()
+		_ = wOut.Close()
+		_ = wErr.Close()
 		os.Stdout = oldStdout
 		os.Stderr = oldStderr
 
@@ -397,7 +412,9 @@ func TestHelpFlag(t *testing.T) {
 	r, w, _ := os.Pipe()
 	os.Stdout = w
 	defer func() {
-		w.Close()
+		if err := w.Close(); err != nil {
+			t.Errorf("Failed to close writer: %v", err)
+		}
 		os.Stdout = old
 		// 只在测试失败时输出捕获的内容
 		if t.Failed() {

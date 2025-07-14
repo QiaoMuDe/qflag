@@ -34,7 +34,7 @@ func TestMain(m *testing.M) {
 	if !testing.Verbose() {
 		os.Stdout = originalStdout
 		os.Stderr = originalStderr
-		nullFile.Close()
+		_ = nullFile.Close()
 	}
 
 	os.Exit(exitCode)

@@ -18,7 +18,9 @@ func TestLoadEnvVars(t *testing.T) {
 		if err := os.Setenv("TEST_STR_ENV", "env_value"); err != nil {
 			t.Fatalf("设置环境变量失败: %v", err)
 		}
-		defer os.Unsetenv("TEST_STR_ENV")
+		defer func() {
+			_ = os.Unsetenv("TEST_STR_ENV")
+		}()
 
 		// 加载环境变量
 		err := cmd.loadEnvVars()
@@ -40,7 +42,9 @@ func TestLoadEnvVars(t *testing.T) {
 		if err := os.Setenv("TEST_ENUM_ENV", "prod"); err != nil {
 			t.Fatalf("设置环境变量失败: %v", err)
 		}
-		defer os.Unsetenv("TEST_ENUM_ENV")
+		defer func() {
+			_ = os.Unsetenv("TEST_ENUM_ENV")
+		}()
 
 		// 加载环境变量
 		err := cmd.loadEnvVars()
@@ -72,7 +76,9 @@ func TestLoadEnvVars(t *testing.T) {
 		if err := os.Setenv("TEST_INT_ENV", "20"); err != nil {
 			t.Fatalf("设置环境变量失败: %v", err)
 		}
-		defer os.Unsetenv("TEST_INT_ENV")
+		defer func() {
+			_ = os.Unsetenv("TEST_INT_ENV")
+		}()
 
 		// 设置命令行参数
 		if err := cmd.Parse([]string{"--int-flag", "30"}); err != nil {
@@ -91,10 +97,13 @@ func TestLoadEnvVars(t *testing.T) {
 		boolVal := cmd.Bool("bool-flag", "", false, "测试布尔标志").BindEnv("TEST_BOOL_ENV")
 
 		// 确保环境变量未设置
-		os.Unsetenv("TEST_BOOL_ENV")
+		err := os.Unsetenv("TEST_BOOL_ENV")
+		if err != nil {
+			t.Fatalf("Failed to unset TEST_BOOL_ENV: %v", err)
+		}
 
 		// 加载环境变量
-		err := cmd.loadEnvVars()
+		err = cmd.loadEnvVars()
 		if err != nil {
 			t.Fatalf("加载环境变量失败: %v", err)
 		}
@@ -113,7 +122,11 @@ func TestLoadEnvVars(t *testing.T) {
 		if err := os.Setenv("TEST_DURATION_ENV", "30s"); err != nil {
 			t.Fatalf("设置环境变量失败: %v", err)
 		}
-		defer os.Unsetenv("TEST_DURATION_ENV")
+		defer func() {
+			if err := os.Unsetenv("TEST_DURATION_ENV"); err != nil {
+				t.Errorf("Failed to unset TEST_DURATION_ENV: %v", err)
+			}
+		}()
 
 		// 加载环境变量
 		err := cmd.loadEnvVars()
@@ -135,7 +148,11 @@ func TestLoadEnvVars(t *testing.T) {
 		if err := os.Setenv("TEST_IP4_ENV", "10.0.0.1"); err != nil {
 			t.Fatalf("设置环境变量失败: %v", err)
 		}
-		defer os.Unsetenv("TEST_IP4_ENV")
+		defer func() {
+			if err := os.Unsetenv("TEST_IP4_ENV"); err != nil {
+				t.Errorf("Failed to unset TEST_IP4_ENV: %v", err)
+			}
+		}()
 
 		// 加载环境变量
 		err := cmd.loadEnvVars()
@@ -157,7 +174,11 @@ func TestLoadEnvVars(t *testing.T) {
 		if err := os.Setenv("TEST_URL_ENV", "https://example.com/path?query=1"); err != nil {
 			t.Fatalf("设置环境变量失败: %v", err)
 		}
-		defer os.Unsetenv("TEST_URL_ENV")
+		defer func() {
+			if err := os.Unsetenv("TEST_URL_ENV"); err != nil {
+				t.Errorf("Failed to unset TEST_URL_ENV: %v", err)
+			}
+		}()
 
 		// 加载环境变量
 		err := cmd.loadEnvVars()
@@ -180,7 +201,11 @@ func TestLoadEnvVars(t *testing.T) {
 		if err := os.Setenv("TEST_PATH_ENV", tempDir); err != nil {
 			t.Fatalf("设置环境变量失败: %v", err)
 		}
-		defer os.Unsetenv("TEST_PATH_ENV")
+		defer func() {
+			if err := os.Unsetenv("TEST_PATH_ENV"); err != nil {
+				t.Errorf("Failed to unset TEST_PATH_ENV: %v", err)
+			}
+		}()
 
 		// 加载环境变量
 		err := cmd.loadEnvVars()
@@ -202,7 +227,11 @@ func TestLoadEnvVars(t *testing.T) {
 		if err := os.Setenv("TEST_MAP_ENV", "key1=val1,key2=val2"); err != nil {
 			t.Fatalf("设置环境变量失败: %v", err)
 		}
-		defer os.Unsetenv("TEST_MAP_ENV")
+		defer func() {
+			if err := os.Unsetenv("TEST_MAP_ENV"); err != nil {
+				t.Errorf("Failed to unset TEST_MAP_ENV: %v", err)
+			}
+		}()
 
 		// 加载环境变量
 		err := cmd.loadEnvVars()
@@ -225,7 +254,11 @@ func TestLoadEnvVars(t *testing.T) {
 		if err := os.Setenv("TEST_SLICE_ENV", "item1,item2,item3"); err != nil {
 			t.Fatalf("设置环境变量失败: %v", err)
 		}
-		defer os.Unsetenv("TEST_SLICE_ENV")
+		defer func() {
+			if err := os.Unsetenv("TEST_SLICE_ENV"); err != nil {
+				t.Errorf("Failed to unset TEST_SLICE_ENV: %v", err)
+			}
+		}()
 
 		// 加载环境变量
 		err := cmd.loadEnvVars()
@@ -248,7 +281,11 @@ func TestLoadEnvVars(t *testing.T) {
 		if err := os.Setenv("TEST_UINT64_ENV", "18446744073709551615"); err != nil {
 			t.Fatalf("设置环境变量失败: %v", err)
 		}
-		defer os.Unsetenv("TEST_UINT64_ENV")
+		defer func() {
+			if err := os.Unsetenv("TEST_UINT64_ENV"); err != nil {
+				t.Errorf("Failed to unset TEST_UINT64_ENV: %v", err)
+			}
+		}()
 
 		// 加载环境变量
 		err := cmd.loadEnvVars()
@@ -270,7 +307,11 @@ func TestLoadEnvVars(t *testing.T) {
 		if err := os.Setenv("TEST_IP6_ENV", "2001:0db8:85a3:0000:0000:8a2e:0370:7334"); err != nil {
 			t.Fatalf("设置环境变量失败: %v", err)
 		}
-		defer os.Unsetenv("TEST_IP6_ENV")
+		defer func() {
+			if err := os.Unsetenv("TEST_IP6_ENV"); err != nil {
+				t.Errorf("Failed to unset TEST_IP6_ENV: %v", err)
+			}
+		}()
 
 		// 加载环境变量
 		err := cmd.loadEnvVars()
@@ -294,7 +335,11 @@ func TestLoadEnvVars(t *testing.T) {
 		if err := os.Setenv("TEST_TIME_ENV", envTime); err != nil {
 			t.Fatalf("设置环境变量失败: %v", err)
 		}
-		defer os.Unsetenv("TEST_TIME_ENV")
+		defer func() {
+			if err := os.Unsetenv("TEST_TIME_ENV"); err != nil {
+				t.Errorf("Failed to unset TEST_TIME_ENV: %v", err)
+			}
+		}()
 
 		// 加载环境变量
 		err := cmd.loadEnvVars()
@@ -318,13 +363,17 @@ func TestLoadEnvVars(t *testing.T) {
 		if err := os.Setenv("TEST_FLOAT_ENV", "not_a_float"); err != nil {
 			t.Fatalf("设置环境变量失败: %v", err)
 		}
-		defer os.Unsetenv("TEST_FLOAT_ENV")
+		defer func() {
+			if err := os.Unsetenv("TEST_FLOAT_ENV"); err != nil {
+				t.Errorf("Failed to unset TEST_FLOAT_ENV: %v", err)
+			}
+		}()
 
 		// 加载环境变量并验证错误
 		err := cmd.loadEnvVars()
 		if err == nil {
 			t.Error("期望解析环境变量时返回错误, 但未返回错误")
-		} else if err.Error() != "Validation failed: Failed to load environment variables: Validation failed: Failed to parse environment variable TEST_FLOAT_ENV for flag float-flag: Validation failed: failed to parse float64 value: strconv.ParseFloat: parsing \"not_a_float\": invalid syntax" {
+		} else if err.Error() != "validation failed: Failed to load environment variables: validation failed: Failed to parse environment variable TEST_FLOAT_ENV for flag float-flag: validation failed: failed to parse float64 value: strconv.ParseFloat: parsing \"not_a_float\": invalid syntax" {
 			t.Errorf("期望特定错误信息, 实际获取: %v", err)
 		}
 	})

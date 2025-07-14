@@ -47,21 +47,21 @@ func TestJoinErrors(t *testing.T) {
 	}, {
 		name:     "single error",
 		errors:   []error{NewValidationError("error1")},
-		expected: "Validation failed: error1",
+		expected: "validation failed: error1",
 	}, {
 		name: "multiple unique errors",
 		errors: []error{
 			NewValidationError("error1"),
 			NewValidationError("error2"),
 		},
-		expected: "Merged error message:\nA total of 2 unique errors:\n  1. Validation failed: error1\n  2. Validation failed: error2\n",
+		expected: "merged error message:\nA total of 2 unique errors:\n  1. validation failed: error1\n  2. validation failed: error2\n",
 	}, {
 		name: "multiple duplicate errors",
 		errors: []error{
 			NewValidationError("error1"),
 			NewValidationError("error1"),
 		},
-		expected: "Merged error message:\nA total of 1 unique errors:\n  1. Validation failed: error1\n",
+		expected: "merged error message:\nA total of 1 unique errors:\n  1. validation failed: error1\n",
 	}, {
 		name: "with nil errors",
 		errors: []error{
@@ -69,7 +69,14 @@ func TestJoinErrors(t *testing.T) {
 			NewValidationError("error1"),
 			nil,
 		},
-		expected: "Validation failed: error1",
+		expected: "validation failed: error1",
+	}, {
+		name: "empty error messages",
+		errors: []error{
+			errors.New(""),
+			errors.New(""),
+		},
+		expected: "merged error message:\nA total of 1 unique errors:\n  1. \n",
 	}, {
 		name: "mixed error types",
 		errors: []error{
@@ -77,7 +84,14 @@ func TestJoinErrors(t *testing.T) {
 			NewValidationError("invalid value"),
 			ErrEnvLoadFailed,
 		},
-		expected: "Merged error message:\nA total of 3 unique errors:\n  1. Parameter parsing error\n  2. Validation failed: invalid value\n  3. Environment variable loading failed\n",
+		expected: "merged error message:\nA total of 3 unique errors:\n  1. parameter parsing error\n  2. validation failed: invalid value\n  3. environment variable loading failed\n",
+	}, {
+		name: "multiple duplicate errors",
+		errors: []error{
+			NewValidationError("error1"),
+			NewValidationError("error1"),
+		},
+		expected: "merged error message:\nA total of 1 unique errors:\n  1. validation failed: error1\n",
 	}, {
 		name: "with nil errors",
 		errors: []error{
@@ -85,14 +99,14 @@ func TestJoinErrors(t *testing.T) {
 			NewValidationError("error1"),
 			nil,
 		},
-		expected: "Validation failed: error1",
+		expected: "validation failed: error1",
 	}, {
 		name: "empty error messages",
 		errors: []error{
 			errors.New(""),
 			errors.New(""),
 		},
-		expected: "Merged error message:\nA total of 1 unique errors:\n  1. \n",
+		expected: "merged error message:\nA total of 1 unique errors:\n  1. \n",
 	}}
 
 	for _, tt := range tests {

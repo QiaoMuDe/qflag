@@ -8,12 +8,12 @@ import (
 
 // 命令行解析相关错误变量
 var (
-	ErrFlagParseFailed       = errors.New("Parameter parsing error")             // 全局实例标志解析错误
-	ErrSubCommandParseFailed = errors.New("Subcommand parsing error")            // 子命令标志解析错误
+	ErrFlagParseFailed       = errors.New("parameter parsing error")             // 全局实例标志解析错误
+	ErrSubCommandParseFailed = errors.New("subcommand parsing error")            // 子命令标志解析错误
 	ErrPanicRecovered        = errors.New("panic recovered")                     // 恐慌捕获错误
-	ErrValidationFailed      = errors.New("Validation failed")                   // 参数验证失败错误
-	ErrEnvLoadFailed         = errors.New("Environment variable loading failed") // 环境变量加载失败错误
-	ErrAddSubCommandFailed   = errors.New("Add subcommand failed")               // 添加子命令失败错误
+	ErrValidationFailed      = errors.New("validation failed")                   // 参数验证失败错误
+	ErrEnvLoadFailed         = errors.New("environment variable loading failed") // 环境变量加载失败错误
+	ErrAddSubCommandFailed   = errors.New("add subcommand failed")               // 添加子命令失败错误
 )
 
 // NewValidationError 创建一个新的验证错误
@@ -66,5 +66,5 @@ func JoinErrors(errors []error) error {
 	}
 
 	// 使用常量格式字符串，将错误信息作为参数传入
-	return fmt.Errorf("Merged error message:\n%s", b.String())
+	return fmt.Errorf("merged error message:\n%s", b.String())
 }

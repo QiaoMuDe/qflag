@@ -528,9 +528,9 @@ func (c *Cmd) LoadHelp(filePath string) error {
 	content, err := os.ReadFile(cleanPath)
 	if err != nil {
 		if os.IsNotExist(err) {
-			return fmt.Errorf("File %s does not exist", filePath)
+			return fmt.Errorf("file %s does not exist", filePath)
 		}
-		return fmt.Errorf("Failed to read file %s: %w", filePath, err)
+		return fmt.Errorf("failed to read file %s: %w", filePath, err)
 	}
 
 	// 设置帮助信息

@@ -61,7 +61,7 @@ func TestPathFlag_ExistingPath(t *testing.T) {
 	if err != nil {
 		t.Fatalf("Failed to create temp file: %v", err)
 	}
-	f.Close()
+	_ = f.Close()
 
 	// 测试存在的文件
 	if err := flag.Set(f.Name()); err != nil {

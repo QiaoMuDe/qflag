@@ -62,7 +62,7 @@ func TestIntFlag_Validator(t *testing.T) {
 	// 测试用例：无效负值
 	if err := flag.Set("-5"); err == nil {
 		t.Error("expected error for negative value, got nil")
-	} else if err.Error() != "Validation failed: invalid value for : value must be positive" {
+	} else if err.Error() != "validation failed: invalid value for : value must be positive" {
 		t.Errorf("unexpected error message: %v", err)
 	}
 }
@@ -538,10 +538,7 @@ func TestIsSetMethods(t *testing.T) {
 			}
 
 			// 根据测试类型判断预期结果
-			shouldBeSet := true
-			if strings.Contains(tc.name, "未设置值") || strings.Contains(tc.name, "重置后") {
-				shouldBeSet = false
-			}
+			shouldBeSet := !strings.Contains(tc.name, "未设置值") && !strings.Contains(tc.name, "重置后")
 
 			// 检查设置后状态
 			if tc.f.IsSet() != shouldBeSet {
