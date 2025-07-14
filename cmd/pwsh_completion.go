@@ -4,8 +4,32 @@ package cmd
 import (
 	"bytes"
 	"fmt"
-	"strings"
 )
+
+// formatOptions 将选项列表格式化为PowerShell数组字符串
+//
+// 参数:
+// - buf: 输出缓冲区
+// - options: 选项列表
+// - escape: 字符串转义函数
+func formatOptions(buf *bytes.Buffer, options []string, escape func(string) string) {
+	for i, opt := range options {
+		// 只有不为空的选项才添加到缓冲区
+		if opt == "" {
+			continue
+		}
+
+		// 如果不是第一个选项，则添加逗号
+		if i > 0 {
+			buf.WriteString(", ")
+		}
+
+		// 添加选项
+		buf.WriteByte('\'')
+		buf.WriteString(escape(opt))
+		buf.WriteByte('\'')
+	}
+}
 
 // generatePwshCommandTreeEntry 生成PowerShell命令树条目
 //
@@ -14,15 +38,13 @@ import (
 // - cmdPath: 命令路径
 // - cmdOpts: 命令选项
 func generatePwshCommandTreeEntry(cmdTreeEntries *bytes.Buffer, cmdPath string, cmdOpts []string) {
-	// 格式化选项为PowerShell数组格式
-	var optsBuf bytes.Buffer
-	for i, opt := range cmdOpts {
-		if i > 0 {
-			// 非首个元素前添加逗号和空格
-			optsBuf.WriteString(", ")
-		}
-		optsBuf.WriteString(fmt.Sprintf("'%s'", escapePwshString(opt)))
-	}
+	// 预分配缓冲区容量，减少内存分配
+	optsBuf := bytes.NewBuffer(make([]byte, 0, len(cmdOpts)*20)) // 假设平均每个选项20字节
+
+	// 格式化命令选项
+	formatOptions(optsBuf, cmdOpts, escapePwshString)
+
+	// 添加命令树条目
 	fmt.Fprintf(cmdTreeEntries, PwshCmdTreeItem+",\n", cmdPath, optsBuf.String())
 }
 
@@ -36,23 +58,22 @@ func generatePwshCommandTreeEntry(cmdTreeEntries *bytes.Buffer, cmdPath string, 
 // - programName: 程序名称
 func generatePwshCompletion(buf *bytes.Buffer, params []FlagParam, rootCmdOpts []string, cmdTreeEntries string, programName string) {
 	// 构建标志参数和枚举选项
-	var flagParamsBuf bytes.Buffer
-	var enumOptionsBuf bytes.Buffer
+	flagParamsBuf := bytes.NewBuffer(make([]byte, 0, len(params)*100)) // 预分配容量
+	enumOptionsBuf := bytes.NewBuffer(make([]byte, 0, len(params)*50)) // 预分配容量
 
 	// 处理根命令选项
-	var rootOptsBuf bytes.Buffer
-	for i, opt := range rootCmdOpts {
-		if i > 0 {
-			// 非首个元素前添加逗号和空格
-			rootOptsBuf.WriteString(", ")
-		}
-		rootOptsBuf.WriteString(fmt.Sprintf("'%s'", escapePwshString(opt)))
-	}
+	rootOptsBuf := bytes.NewBuffer(make([]byte, 0, len(rootCmdOpts)*20))
+	formatOptions(rootOptsBuf, rootCmdOpts, escapePwshString)
 
 	// 处理标志参数
 	for _, param := range params {
+		// 条目之间添加逗号，非首个条目前添加
+		// if i > 0 {
+		// 	flagParamsBuf.WriteString(",\n")
+		// }
+
 		// 生成标志参数条目
-		fmt.Fprintf(&flagParamsBuf, PwshFlagParamItem+",\n",
+		fmt.Fprintf(flagParamsBuf, PwshFlagParamItem+",\n",
 			param.CommandPath,
 			param.Name,
 			param.Type,
@@ -60,37 +81,56 @@ func generatePwshCompletion(buf *bytes.Buffer, params []FlagParam, rootCmdOpts [
 
 		// 处理枚举类型选项
 		if param.ValueType == "enum" && len(param.EnumOptions) > 0 {
-			var optionsBuf bytes.Buffer
-			for i, opt := range param.EnumOptions {
-				if i > 0 {
-					// 非首个元素前添加逗号和空格
-					optionsBuf.WriteString(", ")
-				}
-				optionsBuf.WriteString(fmt.Sprintf("'%s'", escapePwshString(opt)))
-			}
-			fmt.Fprintf(&enumOptionsBuf, PwshEnmuOtpsItem+",\n",
+			// 预分配缓冲区容量，减少内存分配
+			optionsBuf := bytes.NewBuffer(make([]byte, 0, len(param.EnumOptions)*15))
+
+			// 格式化枚举选项
+			formatOptions(optionsBuf, param.EnumOptions, escapePwshString)
+
+			// // 条目之间添加逗号，非首个条目前添加
+			// if enumOptionsBuf.Len() > 0 {
+			// 	enumOptionsBuf.WriteString(",\n")
+			// }
+
+			// 生成枚举选项条目
+			fmt.Fprintf(enumOptionsBuf, PwshEnmuOtpsItem+",\n",
 				param.CommandPath,
 				param.Name,
 				optionsBuf.String())
 		}
 	}
 
+	// 生成根命令条目
+	rootCmdEntry := fmt.Sprintf(PwshCmdTreeItem, "/", rootOptsBuf.String())
+	if cmdTreeEntries != "" {
+		rootCmdEntry += ",\n" + cmdTreeEntries
+	}
+
 	// 写入PowerShell自动补全脚本
 	fmt.Fprintf(buf, PwshFunctionHeader,
 		programName,
-		// 根命令树条目
-		fmt.Sprintf(PwshCmdTreeItem+",\n", "/", rootOptsBuf.String())+cmdTreeEntries,
+		rootCmdEntry,
 		flagParamsBuf.String(),
 		enumOptionsBuf.String())
 }
 
 // escapePwshString 转义PowerShell字符串中的特殊字符
+// 优化：单次循环处理所有转义，减少字符串分配
 func escapePwshString(s string) string {
-	// 替换单引号为'' (PowerShell转义方式)
-	escaped := strings.ReplaceAll(s, "'", "''")
-	// 替换反斜杠为\
-	escaped = strings.ReplaceAll(escaped, "\\", "\\\\")
-	return escaped
+	// 预计算所需容量：最坏情况下每个字符都需要转义
+	buf := make([]byte, 0, len(s)*2)
+	for i := 0; i < len(s); i++ {
+		c := s[i]
+		switch c {
+		case '\'':
+			buf = append(buf, '\'', '\'') // 单引号转义为两个单引号
+		case '\\':
+			buf = append(buf, '\\', '\\') // 反斜杠转义为两个反斜杠
+		default:
+			buf = append(buf, c)
+		}
+	}
+	return string(buf)
 }
 
 const (
@@ -208,8 +248,7 @@ $scriptBlock = {
         $completionItems = $matchingOptions | ForEach-Object {
             if ($_ -match '^-') {  # 参数(如 -force)
                 $_
-            }
-            else {  # 子命令(如 start)
+            } else {  # 子命令(如 start)
                 "$_ "  # 补全后加空格，方便后续输入
             }
         }
@@ -221,7 +260,7 @@ $scriptBlock = {
 # 注册补全函数
 Register-ArgumentCompleter -CommandName $commandName -ScriptBlock $scriptBlock
 `
-	PwshEnmuOtpsItem  = "\t@{ Context = \"%s\"; Parameter = \"%s\"; Options = @(%s) }"                        // 枚举选项条目
-	PwshFlagParamItem = "\t@{ Context = \"%s\"; Parameter = \"%s\"; ParamType = \"%s\"; ValueType = \"%s\" }" // 标志参数条目
-	PwshCmdTreeItem   = "\t@{ Context = \"%s\"; Options = @(%s) }"                                            // 命令树条目
+	PwshEnmuOtpsItem  = "	@{ Context = \"%s\"; Parameter = \"%s\"; Options = @(%s) }"                        // 枚举选项条目
+	PwshFlagParamItem = "	@{ Context = \"%s\"; Parameter = \"%s\"; ParamType = \"%s\"; ValueType = \"%s\" }" // 标志参数条目
+	PwshCmdTreeItem   = "	@{ Context = \"%s\"; Options = @(%s) }"                                            // 命令树条目
 )
