@@ -1,4 +1,4 @@
-// pwsh_completion.go - powershell 补全脚本生成器
+// pwsh_completion.go - PowerShell 补全脚本生成器
 package cmd
 
 import (
@@ -10,190 +10,150 @@ import (
 // generatePwshCommandTreeEntry 生成PowerShell命令树条目
 //
 // 参数:
-//   - cmdTreeEntries: 命令树条目字符串
-//   - cmdPath: 命令路径
-//   - cmdOpts: 命令选项数组
+// - cmdTreeEntries: 命令树条目缓冲区
+// - cmdPath: 命令路径
+// - cmdOpts: 命令选项
 func generatePwshCommandTreeEntry(cmdTreeEntries *bytes.Buffer, cmdPath string, cmdOpts []string) {
-	// 使用strings.Builder优化字符串拼接性能
-	var quotedOptsBuilder strings.Builder
-	// 预分配缓冲区减少动态扩容 (假设平均每个选项20字符)
-	quotedOptsBuilder.Grow(len(cmdOpts) * 20)
+	// PowerShell使用数组存储命令选项，避免大小写敏感的映射键
+	escapedOpts := make([]string, len(cmdOpts))
 	for i, opt := range cmdOpts {
-		if i > 0 {
-			quotedOptsBuilder.WriteString(", ")
-		}
-		quotedOptsBuilder.WriteByte('\'')
-		// 高效替换单引号
-		quotedOptsBuilder.WriteString(strings.ReplaceAll(opt, "'", "''"))
-		quotedOptsBuilder.WriteByte('\'')
+		escapedOpt := strings.ReplaceAll(opt, "'", "''")
+		escapedOpts[i] = escapedOpt
 	}
-	fmt.Fprintf(cmdTreeEntries, PwshCommandTreeEntry, cmdPath, quotedOptsBuilder.String())
+	opts := strings.Join(escapedOpts, "', '")
+	fmt.Fprintf(cmdTreeEntries, PwshCommandTreeEntry, cmdPath, opts)
 }
 
 // generatePwshCompletion 生成PowerShell自动补全脚本
 //
 // 参数:
-//   - buf: 存储生成的PowerShell自动补全脚本的缓冲区
-//   - params: 标志参数数组
-//   - rootCmdOpts: 根命令选项数组
-//   - cmdTreeEntries: 命令树条目字符串
-//   - programName: 程序名称
+// - buf: 输出缓冲区
+// - params: 标志参数列表
+// - rootCmdOpts: 根命令选项
+// - cmdTreeEntries: 命令树条目
+// - programName: 程序名称
 func generatePwshCompletion(buf *bytes.Buffer, params []FlagParam, rootCmdOpts []string, cmdTreeEntries string, programName string) {
+	// 构建标志参数和枚举选项（使用字符串数组而非映射）
 	var flagParamsBuf bytes.Buffer
-	// 使用缓存的标志参数
-	for _, param := range params {
-		key := fmt.Sprintf("%s|%s", param.CommandPath, param.Name)
-		// 使用strings.Builder优化枚举选项拼接性能
-		var enumBuf strings.Builder
-		// 预分配缓冲区 (假设平均每个选项20字符)
-		enumBuf.Grow(len(param.EnumOptions) * 20)
-		first := true
-		for _, opt := range param.EnumOptions {
-			opt = strings.TrimSpace(opt)
-			if opt == "" {
-				continue
+	var enumOptionsBuf bytes.Buffer
+
+	for i, param := range params {
+		key := param.CommandPath + "|" + param.Name
+		flagParamsBuf.WriteString(fmt.Sprintf("$flagParams[%d] = @('%s', '%s', '%s')\n", i, key, param.Type, param.ValueType))
+
+		if param.ValueType == "enum" && len(param.EnumOptions) > 0 {
+			escapedOptions := make([]string, len(param.EnumOptions))
+			for j, opt := range param.EnumOptions {
+				escapedOpt := strings.ReplaceAll(opt, "'", "''")
+				escapedOptions[j] = escapedOpt
 			}
-			if !first {
-				enumBuf.WriteString("|")
-			}
-			// 增强特殊字符转义处理: 引号、反斜杠和空格
-			escapedOpt := strings.ReplaceAll(opt, "\\", "\\\\")
-			escapedOpt = strings.ReplaceAll(escapedOpt, "\"", "\\\"")
-			escapedOpt = strings.ReplaceAll(escapedOpt, " ", "\\ ")
-			enumBuf.WriteString(escapedOpt)
-			first = false
+			options := strings.Join(escapedOptions, "', '")
+			enumOptionsBuf.WriteString(fmt.Sprintf("$enumOptions[%d] = @('%s', '%s')\n", i, key, options))
 		}
-		enumOptions := enumBuf.String()
-		fmt.Fprintf(&flagParamsBuf, PwshCommandTreeOption, key, param.Type, param.ValueType, enumOptions)
 	}
-	// 写入PowerShell自动补全脚本头
-	// 根命令选项数组化处理 - 使用strings.Builder优化
-	var rootOptsBuilder strings.Builder
-	rootOptsBuilder.Grow(len(rootCmdOpts) * 20) // 预分配缓冲区
-	firstOpt := true
-	for _, opt := range rootCmdOpts {
-		if !firstOpt {
-			rootOptsBuilder.WriteString(", ")
-		}
-		rootOptsBuilder.WriteByte('\'')
-		rootOptsBuilder.WriteString(strings.ReplaceAll(opt, "'", "''"))
-		rootOptsBuilder.WriteByte('\'')
-		firstOpt = false
-	}
-	fmt.Fprintf(buf, PwshFunctionHeader, flagParamsBuf.String(), rootOptsBuilder.String(), cmdTreeEntries, programName)
+
+	// 根命令选项处理
+	rootOpts := strings.Join(rootCmdOpts, "', '")
+
+	// 写入PowerShell自动补全脚本
+	fmt.Fprintf(buf, PwshFunctionHeader, programName, rootOpts, cmdTreeEntries, flagParamsBuf.String(), enumOptionsBuf.String())
 }
 
 const (
-	// PowerShell补全模板
-	PwshFunctionHeader = `# Static flag parameter requirement definition - Pre-initialized outside the function
-$script:flagParams = @(
-%s      )
+	// PwshCommandTreeEntry 命令树条目格式
+	PwshCommandTreeEntry = "$script:cmdTree['/%s/'] = @('%s')\n"
 
-# Command tree definition - Pre-initialized outside the function
+	// PwshFunctionHeader PowerShell补全函数模板
+	PwshFunctionHeader = `using namespace System.Management.Automation
+using namespace System.Management.Automation.Language
+
+# 全局命令树定义
 $script:cmdTree = @{
-    '/' = @(%s)
-%s      }
-	
-Register-ArgumentCompleter -CommandName %s -ScriptBlock {
-		param($wordToComplete, $commandAst, $cursorPosition, $commandName, $parameterName)
+	'/' = @('%s', %s)	
+}
 
-		# Flag parameter requirement array (preserving original case)
-		$flagParams = $script:flagParams
-	
-		# Command tree structure - Pre-initialized outside the function
-		$cmdTree = $script:cmdTree
-	
-		# Parse command line arguments to get the current context
-		$context = '/'
-		$args = $commandAst.CommandElements | Select-Object -Skip 1 | ForEach-Object { $_.Extent.Text.Trim('"') }
-		$index = 0
-		$count = $args.Count
-	
-		while ($index -lt $count) {
-			$arg = $args[$index]
-			# Use case-sensitive matching to find flags
-			$key = "$context|$arg"
-			$paramInfo = $flagParams | Where-Object { $_.Name -eq $key } | Select-Object -First 1
-			if ($paramInfo) {
-				$paramType = $paramInfo.Type
-				$valueType = $paramInfo.ValueType
-				$index++
-				
-				# Determine whether to skip the next argument based on the parameter type
-				if ($paramType -eq 'required' -or ($paramType -eq 'optional' -and $index -lt $count -and $args[$index] -notlike '-*')) {
-					$prevParamInfo = $paramInfo
-					$index++
-				}
-				continue
-			}
-	
-			$nextContext = if ($context) { "$context/$arg" } else { $arg }
-			if ($cmdTree.ContainsKey($nextContext)) {
-				$context = $nextContext
-				$index++
-			} else {
-				break
-			}
-		}
-	
-		# Get the available options for the current context and filter
-		$options = @()
-		if ($cmdTree.ContainsKey($context)) {
-			$options = $cmdTree[$context] | Where-Object { $_ -ilike "$($wordToComplete.Trim())*" }
-		}
-	
-		# 根据参数类型提供值层补全
-			if ($prevParamInfo) {
-				$valueType = $prevParamInfo.ValueType
-				switch ($valueType) {
-					'path' {
-						# 路径类型补全
-						// 包含隐藏文件并使用完整路径补全
-Get-ChildItem -Directory -File -Force | Where-Object { $_.Name -like "$($wordToComplete.Trim())*" } | ForEach-Object {
-							[System.Management.Automation.CompletionResult]::new($_.FullName, $_.Name, 'ProviderItem', $_.FullName)
-						}
-						break
-					}
-					'number' {
-						# 数字类型补全
-						1..10 | Where-Object { $_ -like "$($wordToComplete.Trim())*" } | ForEach-Object {
-							[System.Management.Automation.CompletionResult]::new($_, $_, 'Number', $_)
-						}
-						break
-					}
-					'ip' {
-						# IP地址类型补全
-						@('192.168.', '10.0.', '172.16.', '127.0.0.') | Where-Object { $_ -like "$wordToComplete*" } | ForEach-Object {
-							[System.Management.Automation.CompletionResult]::new($_, $_, 'Text', $_)
-						}
-						break
-					}
-					'enum' {
-			# 枚举类型参数，使用预定义的枚举选项
-			$prevParamInfo.EnumOptions -split '\|' | Where-Object { $_ -and ($_.Trim() -ilike "*$($wordToComplete.Trim())*") } | ForEach-Object {
-				[System.Management.Automation.CompletionResult]::new($_, $_, 'Text', $_)
-			}
-			break
-		}
+# 全局标志参数定义 (索引 => @(命令路径|标志名, 参数类型, 值类型))
+$script:flagParams = @()
+%s
 
-		'url' {
-			# URL类型参数，提供常见URL前缀补全
-			@('http://', 'https://', 'ftp://') | Where-Object { $_ -like "$wordToComplete*" } | ForEach-Object {
-				[System.Management.Automation.CompletionResult]::new($_, $_, 'Text', $_)
-			}
-			break
+# 全局枚举选项定义 (索引 => @(命令路径|标志名, 选项列表))
+$script:enumOptions = @()
+%s
+
+Register-ArgumentCompleter -CommandName '%s' -ScriptBlock {
+	param($wordToComplete, $commandAst, $cursorPosition)
+
+	# 解析命令上下文
+	$context = '/'
+	$args = $commandAst.CommandElements | Select-Object -Skip 1 | ForEach-Object { $_.ToString() }
+
+	for ($i = 0; $i -lt $args.Count; $i++) {
+		$arg = $args[$i]
+		$potentialContext = $context + $arg + '/'
+		if ($script:cmdTree.ContainsKey($potentialContext)) {
+			$context = $potentialContext
 		}
-		default: {
-					# 默认值补全
-					$options | ForEach-Object { [System.Management.Automation.CompletionResult]::new($_, $_, 'ParameterName', $_) }
+	}
+
+	# 获取当前上下文选项
+	$currentOpts = $script:cmdTree[$context]
+
+	# 处理标志值补全
+	$prevArg = if ($args.Count -gt 0) { $args[-1] } else { $null }
+	$completions = @()
+
+	if ($prevArg -match '^-') {
+		# 查找匹配的标志参数
+		$targetKey = "$context|$prevArg"
+		$paramInfo = $script:flagParams | Where-Object { $_[0] -eq $targetKey } | Select-Object -First 1
+
+		if ($paramInfo) {
+			$paramType, $valueType = $paramInfo[1], $paramInfo[2]
+
+			switch ($valueType) {
+				'path' {
+					$completions = @(Get-ChildItem -Path "$wordToComplete*" | ForEach-Object { $_.FullName })
+					break
 				}
+				'number' {
+					$completions = 1..10 | ForEach-Object { "$_" } | Where-Object { $_ -like "$wordToComplete*" }
+					break
 				}
-			} else {
-				# 参数层补全
-				$options | ForEach-Object { [System.Management.Automation.CompletionResult]::new($_, $_, 'ParameterName', $_) }
+				'ip' {
+					$completions = @('192.168.', '10.0.', '172.16.') | Where-Object { $_ -like "$wordToComplete*" }
+					break
+				}
+				'enum' {
+					$enumEntry = $script:enumOptions | Where-Object { $_[0] -eq $targetKey } | Select-Object -First 1
+					if ($enumEntry) {
+						$completions = $enumEntry[1..($enumEntry.Length-1)] | Where-Object { $_ -like "$wordToComplete*" }
+					}
+					break
+				}
+				'url' {
+					$completions = @('http://', 'https://', 'ftp://') | Where-Object { $_ -like "$wordToComplete*" }
+					break
+				}
 			}
-	}`
-	PwshCommandTreeEntry = "    '/%s/' = @(%s)\n"
-	// 命令树条目格式
-	PwshCommandTreeOption = "    @{ Name = '%s'; Type = '%s'; ValueType = '%s'; EnumOptions = '%s'}\n" // 选项参数需求条目格式
+		}
+	}
+
+	# 处理命令和标志补全
+	if (-not $completions) {
+		if ($wordToComplete -match '^-') {
+			$completions = $currentOpts | Where-Object { $_ -like "$wordToComplete*" }
+		} else {
+			$completions = $currentOpts | Where-Object { $_ -like "$wordToComplete*" }
+			# 添加文件系统补全
+			$fileCompletions = @(Get-ChildItem -Path "$wordToComplete*" | ForEach-Object { $_.Name })
+			$completions = $completions + $fileCompletions | Select-Object -Unique
+		}
+	}
+
+	# 返回补全结果
+	$completions | ForEach-Object {
+		[System.Management.Automation.CompletionResult]::new($_, $_, 'ParameterName', $_)
+	}
+}
+`
 )
