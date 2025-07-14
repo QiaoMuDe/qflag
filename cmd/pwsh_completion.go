@@ -1,159 +1,137 @@
 // pwsh_completion.go - PowerShell 补全脚本生成器
 package cmd
 
-import (
-	"bytes"
-	"fmt"
-	"strings"
+const (
+	// PowerShell补全模板
+	PwshFunctionHeader = `# -------------------------- 配置区域（需根据实际命令修改） --------------------------
+# 命令名称（替换为你的实际命令名，如"mycmd"）
+$commandName = "%s"
+
+# 1. 命令树定义（数组形式，每个元素包含 Context 和 Options）
+# Context: 上下文路径（如"/"、"/init/"）；Options: 该层级可用选项数组（不区分大小写）
+$cmdTree = @(
+%s
 )
 
-// generatePwshCommandTreeEntry 生成PowerShell命令树条目
-//
-// 参数:
-// - cmdTreeEntries: 命令树条目缓冲区
-// - cmdPath: 命令路径
-// - cmdOpts: 命令选项
-func generatePwshCommandTreeEntry(cmdTreeEntries *bytes.Buffer, cmdPath string, cmdOpts []string) {
-	// PowerShell使用数组存储命令选项，避免大小写敏感的映射键
-	escapedOpts := make([]string, len(cmdOpts))
-	for i, opt := range cmdOpts {
-		escapedOpt := strings.ReplaceAll(opt, "'", "''")
-		escapedOpts[i] = escapedOpt
-	}
-	opts := strings.Join(escapedOpts, "', '")
-	fmt.Fprintf(cmdTreeEntries, PwshCommandTreeEntry, cmdPath, opts)
-}
-
-// generatePwshCompletion 生成PowerShell自动补全脚本
-//
-// 参数:
-// - buf: 输出缓冲区
-// - params: 标志参数列表
-// - rootCmdOpts: 根命令选项
-// - cmdTreeEntries: 命令树条目
-// - programName: 程序名称
-func generatePwshCompletion(buf *bytes.Buffer, params []FlagParam, rootCmdOpts []string, cmdTreeEntries string, programName string) {
-	// 构建标志参数和枚举选项（使用字符串数组而非映射）
-	var flagParamsBuf bytes.Buffer
-	var enumOptionsBuf bytes.Buffer
-
-	for i, param := range params {
-		key := param.CommandPath + "|" + param.Name
-		flagParamsBuf.WriteString(fmt.Sprintf("$flagParams[%d] = @('%s', '%s', '%s')\n", i, key, param.Type, param.ValueType))
-
-		if param.ValueType == "enum" && len(param.EnumOptions) > 0 {
-			escapedOptions := make([]string, len(param.EnumOptions))
-			for j, opt := range param.EnumOptions {
-				escapedOpt := strings.ReplaceAll(opt, "'", "''")
-				escapedOptions[j] = escapedOpt
-			}
-			options := strings.Join(escapedOptions, "', '")
-			enumOptionsBuf.WriteString(fmt.Sprintf("$enumOptions[%d] = @('%s', '%s')\n", i, key, options))
-		}
-	}
-
-	// 根命令选项处理
-	rootOpts := strings.Join(rootCmdOpts, "', '")
-
-	// 写入PowerShell自动补全脚本
-	fmt.Fprintf(buf, PwshFunctionHeader, programName, rootOpts, cmdTreeEntries, flagParamsBuf.String(), enumOptionsBuf.String())
-}
-
-const (
-	// PwshCommandTreeEntry 命令树条目格式
-	PwshCommandTreeEntry = "$script:cmdTree['/%s/'] = @('%s')\n"
-
-	// PwshFunctionHeader PowerShell补全函数模板
-	PwshFunctionHeader = `using namespace System.Management.Automation
-using namespace System.Management.Automation.Language
-
-# 全局命令树定义
-$script:cmdTree = @{
-	'/' = @('%s', %s)	
-}
-
-# 全局标志参数定义 (索引 => @(命令路径|标志名, 参数类型, 值类型))
-$script:flagParams = @()
+# 2. 标志参数定义（数组形式，每个元素包含 Context、Parameter、ParamType、ValueType）
+# ParamType: required（必须带值）、optional（可选值）；ValueType: path|number|ip|enum|url等
+$flagParams = @(
 %s
+)
 
-# 全局枚举选项定义 (索引 => @(命令路径|标志名, 选项列表))
-$script:enumOptions = @()
+# 3. 枚举选项定义（数组形式，每个元素包含 Context、Parameter、Options）
+$enumOptions = @(
 %s
+)
+# -----------------------------------------------------------------------------------
 
-Register-ArgumentCompleter -CommandName '%s' -ScriptBlock {
-	param($wordToComplete, $commandAst, $cursorPosition)
 
-	# 解析命令上下文
-	$context = '/'
-	$args = $commandAst.CommandElements | Select-Object -Skip 1 | ForEach-Object { $_.ToString() }
+# -------------------------- 补全逻辑实现（核心处理大小写不敏感） --------------------------
+$scriptBlock = {
+    param(
+        $wordToComplete,       # 当前输入的待补全文本
+        $commandAst,           # 命令抽象语法树
+        $cursorPosition        # 光标位置
+    )
 
-	for ($i = 0; $i -lt $args.Count; $i++) {
-		$arg = $args[$i]
-		$potentialContext = $context + $arg + '/'
-		if ($script:cmdTree.ContainsKey($potentialContext)) {
-			$context = $potentialContext
-		}
-	}
+    # 1. 解析当前命令参数列表
+    $commandElements = $commandAst.CommandElements | ForEach-Object { $_.Extent.Text }
+    $currentIndex = $commandElements.Count - 1  # 当前补全位置索引
+    $prevElement = if ($currentIndex -ge 1) { $commandElements[$currentIndex - 1] } else { $null }
 
-	# 获取当前上下文选项
-	$currentOpts = $script:cmdTree[$context]
+    # 2. 计算当前命令上下文（不区分大小写匹配）
+    $context = "/"
+    for ($i = 1; $i -lt $currentIndex; $i++) {  # 跳过命令名本身（索引0）
+        $elem = $commandElements[$i]
+        # 遍历命令树数组，查找匹配当前上下文+元素的子上下文（不区分大小写）
+        $match = $cmdTree | Where-Object {
+            $_.Context -eq "$context$elem/" -or $_.Context -eq "$context$($elem.ToLower())/" -or $_.Context -eq "$context$($elem.ToUpper())/"
+        }
+        if ($match) {
+            $context = $match.Context  # 更新上下文为匹配的路径
+        }
+    }
 
-	# 处理标志值补全
-	$prevArg = if ($args.Count -gt 0) { $args[-1] } else { $null }
-	$completions = @()
+    # 3. 获取当前上下文可用的选项（从数组中查找）
+    $currentOptions = @()
+    $contextMatch = $cmdTree | Where-Object { $_.Context -eq $context }
+    if ($contextMatch) {
+        $currentOptions = $contextMatch.Options
+    }
 
-	if ($prevArg -match '^-') {
-		# 查找匹配的标志参数
-		$targetKey = "$context|$prevArg"
-		$paramInfo = $script:flagParams | Where-Object { $_[0] -eq $targetKey } | Select-Object -First 1
+    # 4. 处理前一个参数需要值的情况（不区分大小写匹配参数）
+    $completionItems = @()
+    if ($prevElement) {
+        # 查找前一个参数的定义（上下文+参数名，不区分大小写）
+        $paramDef = $flagParams | Where-Object {
+            $_.Context -eq $context -and 
+            ($_.Parameter -eq $prevElement -or $_.Parameter -eq $prevElement.ToLower() -or $_.Parameter -eq $prevElement.ToUpper())
+        }
+        if ($paramDef) {
+            $paramType = $paramDef.ParamType
+            $valueType = $paramDef.ValueType
+            # 处理需要值的参数
+            if ($paramType -in "required", "optional") {
+                switch ($valueType) {
+                    "path" {
+                        $completionItems = Get-ChildItem -Path "$wordToComplete*" -ErrorAction SilentlyContinue | 
+                            ForEach-Object { $_.FullName }
+                    }
+                    "number" {
+                        $completionItems = 1..10 | Where-Object { $_ -like "$wordToComplete*" } | ForEach-Object { "$_" }
+                    }
+                    "ip" {
+                        $completionItems = @("192.168.", "10.0.", "172.16.", "127.0.0.") | 
+                            Where-Object { $_ -like "$wordToComplete*" }
+                    }
+                    "enum" {
+                        # 查找枚举选项（不区分大小写）
+                        $enumDef = $enumOptions | Where-Object {
+                            $_.Context -eq $context -and
+                            ($_.Parameter -eq $prevElement -or $_.Parameter -eq $prevElement.ToLower() -or $_.Parameter -eq $prevElement.ToUpper())
+                        }
+                        if ($enumDef) {
+                            $completionItems = $enumDef.Options | Where-Object { $_ -like "$wordToComplete*" }
+                        }
+                    }
+                    "url" {
+                        $completionItems = @("http://", "https://", "ftp://") | Where-Object { $_ -like "$wordToComplete*" }
+                    }
+                    default {
+                        $completionItems = @()
+                    }
+                }
+                return $completionItems
+            }
+        }
+    }
 
-		if ($paramInfo) {
-			$paramType, $valueType = $paramInfo[1], $paramInfo[2]
+    # 5. 处理普通选项补全（子命令或参数，不区分大小写匹配）
+    if ($currentOptions) {
+        # 不区分大小写过滤匹配项（支持部分输入）
+        $matchingOptions = $currentOptions | Where-Object {
+            $_ -like "$wordToComplete*" -or 
+            $_.ToLower() -like "$($wordToComplete.ToLower())*"
+        }
 
-			switch ($valueType) {
-				'path' {
-					$completions = @(Get-ChildItem -Path "$wordToComplete*" | ForEach-Object { $_.FullName })
-					break
-				}
-				'number' {
-					$completions = 1..10 | ForEach-Object { "$_" } | Where-Object { $_ -like "$wordToComplete*" }
-					break
-				}
-				'ip' {
-					$completions = @('192.168.', '10.0.', '172.16.') | Where-Object { $_ -like "$wordToComplete*" }
-					break
-				}
-				'enum' {
-					$enumEntry = $script:enumOptions | Where-Object { $_[0] -eq $targetKey } | Select-Object -First 1
-					if ($enumEntry) {
-						$completions = $enumEntry[1..($enumEntry.Length-1)] | Where-Object { $_ -like "$wordToComplete*" }
-					}
-					break
-				}
-				'url' {
-					$completions = @('http://', 'https://', 'ftp://') | Where-Object { $_ -like "$wordToComplete*" }
-					break
-				}
-			}
-		}
-	}
+        # 处理补全项格式（子命令加空格，参数直接返回）
+        $completionItems = $matchingOptions | ForEach-Object {
+            if ($_ -match '^-') {  # 参数（如 -force）
+                $_
+            }
+            else {  # 子命令（如 start）
+                "$_ "  # 补全后加空格，方便后续输入
+            }
+        }
+    }
 
-	# 处理命令和标志补全
-	if (-not $completions) {
-		if ($wordToComplete -match '^-') {
-			$completions = $currentOpts | Where-Object { $_ -like "$wordToComplete*" }
-		} else {
-			$completions = $currentOpts | Where-Object { $_ -like "$wordToComplete*" }
-			# 添加文件系统补全
-			$fileCompletions = @(Get-ChildItem -Path "$wordToComplete*" | ForEach-Object { $_.Name })
-			$completions = $completions + $fileCompletions | Select-Object -Unique
-		}
-	}
-
-	# 返回补全结果
-	$completions | ForEach-Object {
-		[System.Management.Automation.CompletionResult]::new($_, $_, 'ParameterName', $_)
-	}
+    return $completionItems
 }
+
+# 注册补全函数
+Register-ArgumentCompleter -CommandName $commandName -ScriptBlock $scriptBlock
 `
+	PwshEnmuOtpsItem  = `@{ Context = "%s"; Parameter = "%s"; Options = @(%s) }`                    // 枚举选项条目
+	PwshFlagParamItem = `@{ Context = "%s"; Parameter = "%s"; ParamType = "%s"; ValueType = "%s" }` // 标志参数条目
+	PwshCmdTreeItem   = `@{ Context = "%s"; Options = @(%s) }`                                      // 命令树条目
 )
