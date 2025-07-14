@@ -104,7 +104,7 @@ _%s() {
 
 	# Get the available options for the current context
 	IFS='|' read -ra opts_arr <<< "${cmd_tree[$context]}"
-opts=$(IFS=' '; echo "${opts_arr[*]}")
+	opts=$(IFS=' '; echo "${opts_arr[*]}")
 	
 	# 检查前一个参数是否需要值并获取其类型
 	prev_param_type=""
@@ -269,7 +269,7 @@ Get-ChildItem -Directory -File -Force | Where-Object { $_.Name -like "$($wordToC
 				$options | ForEach-Object { [System.Management.Automation.CompletionResult]::new($_, $_, 'ParameterName', $_) }
 			}
 	}`
-	PwshCommandTreeEntry = "    '%s' = @(%s)\n"
+	PwshCommandTreeEntry = "    '/%s/' = @(%s)\n"
 	// 命令树条目格式
 	PwshCommandTreeOption = "    @{ Name = '%s'; Type = '%s'; ValueType = '%s'; EnumOptions = '%s'}\n" // 选项参数需求条目格式
 )
@@ -361,11 +361,20 @@ func traverseCommandTree(cmdTreeEntries *bytes.Buffer, parentPath string, cmds [
 		case flags.ShellBash: // Bash
 			fmt.Fprintf(cmdTreeEntries, BashCommandTreeEntry, cmdPath, strings.Join(cmdOpts, "|"))
 		case flags.ShellPwsh, flags.ShellPowershell: // Powershell,和 Pwsh
-			quotedOpts := make([]string, len(cmdOpts))
+			// 使用strings.Builder优化字符串拼接性能
+			var quotedOptsBuilder strings.Builder
+			// 预分配缓冲区减少动态扩容 (假设平均每个选项20字符)
+			quotedOptsBuilder.Grow(len(cmdOpts) * 20)
 			for i, opt := range cmdOpts {
-				quotedOpts[i] = fmt.Sprintf("'%s'", strings.ReplaceAll(opt, "'", "''"))
+				if i > 0 {
+					quotedOptsBuilder.WriteString(", ")
+				}
+				quotedOptsBuilder.WriteByte('\'')
+				// 高效替换单引号
+				quotedOptsBuilder.WriteString(strings.ReplaceAll(opt, "'", "''"))
+				quotedOptsBuilder.WriteByte('\'')
 			}
-			fmt.Fprintf(cmdTreeEntries, PwshCommandTreeEntry, cmdPath, strings.Join(quotedOpts, ", "))
+			fmt.Fprintf(cmdTreeEntries, PwshCommandTreeEntry, cmdPath, quotedOptsBuilder.String())
 		}
 
 		// 将子命令加入队列
@@ -462,15 +471,16 @@ func (c *Cmd) generateShellCompletion(shellType string) (string, error) {
 		// 使用缓存的标志参数
 		for _, param := range params {
 			key := fmt.Sprintf("%s|%s", param.CommandPath, param.Name)
-			// 使用bytes.Buffer减少内存分配
-			var enumBuf bytes.Buffer
+			// 使用strings.Builder优化枚举选项拼接性能
+			var enumBuf strings.Builder
+			// 预分配缓冲区 (假设平均每个选项20字符)
+			enumBuf.Grow(len(param.EnumOptions) * 20)
 			first := true
 			for _, opt := range param.EnumOptions {
 				opt = strings.TrimSpace(opt)
 				if opt == "" {
 					continue
 				}
-				opt = strings.TrimSpace(opt) // 再次确保无空格
 				if !first {
 					enumBuf.WriteString("|")
 				}
@@ -478,20 +488,27 @@ func (c *Cmd) generateShellCompletion(shellType string) (string, error) {
 				escapedOpt := strings.ReplaceAll(opt, "\\", "\\\\")
 				escapedOpt = strings.ReplaceAll(escapedOpt, "\"", "\\\"")
 				escapedOpt = strings.ReplaceAll(escapedOpt, " ", "\\ ")
-				enumBuf.WriteString(strings.TrimSpace(escapedOpt))
+				enumBuf.WriteString(escapedOpt)
 				first = false
 			}
 			enumOptions := enumBuf.String()
 			fmt.Fprintf(&flagParamsBuf, PwshCommandTreeOption, key, param.Type, param.ValueType, enumOptions)
 		}
 		// 写入PowerShell自动补全脚本头
-		// 根命令选项数组化处理
-		rootCmdOpts = strings.Split(strings.Join(rootCmdOpts, "|"), "|")
-		rootQuotedOpts := make([]string, len(rootCmdOpts))
-		for i, opt := range rootCmdOpts {
-			rootQuotedOpts[i] = fmt.Sprintf("'%s'", strings.ReplaceAll(opt, "'", "''"))
+		// 根命令选项数组化处理 - 使用strings.Builder优化
+		var rootOptsBuilder strings.Builder
+		rootOptsBuilder.Grow(len(rootCmdOpts) * 20) // 预分配缓冲区
+		firstOpt := true
+		for _, opt := range rootCmdOpts {
+			if !firstOpt {
+				rootOptsBuilder.WriteString(", ")
+			}
+			rootOptsBuilder.WriteByte('\'')
+			rootOptsBuilder.WriteString(strings.ReplaceAll(opt, "'", "''"))
+			rootOptsBuilder.WriteByte('\'')
+			firstOpt = false
 		}
-		fmt.Fprintf(&buf, PwshFunctionHeader, flagParamsBuf.String(), strings.Join(rootQuotedOpts, ", "), cmdTreeEntries.String(), programName)
+		fmt.Fprintf(&buf, PwshFunctionHeader, flagParamsBuf.String(), rootOptsBuilder.String(), cmdTreeEntries.String(), programName)
 	}
 
 	// 返回自动补全脚本
