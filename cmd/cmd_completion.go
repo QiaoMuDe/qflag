@@ -112,16 +112,29 @@ func traverseCommandTree(cmdTreeEntries *bytes.Buffer, parentPath string, cmds [
 	}
 	queue := make([]cmdNode, 0, len(cmds))
 
-	// 初始化队列
+	// 初始化队列并计算总节点数
+	totalNodes := new(int)
+	*totalNodes = 0
 	for _, cmd := range cmds {
 		if cmd != nil {
+			// 为长名称和短名称分别计数
+			if cmd.LongName() != "" {
+				*totalNodes++
+			}
+			if cmd.ShortName() != "" {
+				*totalNodes++
+			}
 			queue = append(queue, cmdNode{cmd: cmd, parentPath: parentPath})
 		}
 	}
 
+	// 初始化已处理节点数
+	processedNodes := new(int)
+	*processedNodes = 0
+
 	// 定义处理命令名称的匿名函数
 	processCmdName := func(name string, currentParentPath string, cmd *Cmd, queue *[]cmdNode) {
-		// 检查命令名称和命令是否有效
+		// 检查命令名称和命令是否有效以及计数器是否有效
 		if name == "" || cmd == nil {
 			return
 		}
@@ -142,19 +155,35 @@ func traverseCommandTree(cmdTreeEntries *bytes.Buffer, parentPath string, cmds [
 		case flags.ShellBash: // Bash
 			// 调用generateBashCommandTreeEntry函数生成Bash自动补全条目
 			generateBashCommandTreeEntry(cmdTreeEntries, cmdPath, cmdOpts)
+
 		case flags.ShellPwsh, flags.ShellPowershell: // Powershell和Pwsh
 			// 调用generatePwshCommandTreeEntry函数生成Powershell自动补全条目
 			generatePwshCommandTreeEntry(cmdTreeEntries, cmdPath, cmdOpts)
+
+			// 判断是否为最后一个节点, 如果不是最后一个条目，添加逗号
+			if *processedNodes != *totalNodes {
+				cmdTreeEntries.WriteString(",\n")
+			}
 		}
 
 		// 将子命令加入队列
 		for _, subCmd := range cmd.subCmds {
 			if subCmd != nil {
+				// 添加命令
 				*queue = append(*queue, cmdNode{cmd: subCmd, parentPath: cmdPath})
+
+				// 添加长名称
+				if subCmd.LongName() != "" {
+					*totalNodes++ // 总节点数加1
+				}
+
+				// 添加短名称
+				if subCmd.ShortName() != "" {
+					*totalNodes++ // 总节点数加1
+				}
 			}
 		}
 	}
-
 	// 处理队列中的所有命令
 	for len(queue) > 0 {
 		// 出队
@@ -163,9 +192,17 @@ func traverseCommandTree(cmdTreeEntries *bytes.Buffer, parentPath string, cmds [
 		cmd := node.cmd                      // 获取当前命令
 		currentParentPath := node.parentPath // 获取当前命令的父路径
 
-		// 处理长命令和短命令
-		processCmdName(cmd.LongName(), currentParentPath, cmd, &queue)
-		processCmdName(cmd.ShortName(), currentParentPath, cmd, &queue)
+		// 处理长命名
+		if cmd.LongName() != "" {
+			*processedNodes++ // 已处理节点数加1
+			processCmdName(cmd.LongName(), currentParentPath, cmd, &queue)
+		}
+
+		// 处理短命名
+		if cmd.ShortName() != "" {
+			*processedNodes++ // 已处理节点数加1
+			processCmdName(cmd.ShortName(), currentParentPath, cmd, &queue)
+		}
 	}
 }
 

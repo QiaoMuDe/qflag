@@ -45,7 +45,7 @@ func generatePwshCommandTreeEntry(cmdTreeEntries *bytes.Buffer, cmdPath string, 
 	formatOptions(optsBuf, cmdOpts, escapePwshString)
 
 	// 添加命令树条目
-	fmt.Fprintf(cmdTreeEntries, PwshCmdTreeItem+",\n", cmdPath, optsBuf.String())
+	fmt.Fprintf(cmdTreeEntries, PwshCmdTreeItem, cmdPath, optsBuf.String())
 }
 
 // generatePwshCompletion 生成PowerShell自动补全脚本
@@ -59,44 +59,32 @@ func generatePwshCommandTreeEntry(cmdTreeEntries *bytes.Buffer, cmdPath string, 
 func generatePwshCompletion(buf *bytes.Buffer, params []FlagParam, rootCmdOpts []string, cmdTreeEntries string, programName string) {
 	// 构建标志参数和枚举选项
 	flagParamsBuf := bytes.NewBuffer(make([]byte, 0, len(params)*100)) // 预分配容量
-	enumOptionsBuf := bytes.NewBuffer(make([]byte, 0, len(params)*50)) // 预分配容量
 
 	// 处理根命令选项
 	rootOptsBuf := bytes.NewBuffer(make([]byte, 0, len(rootCmdOpts)*20))
 	formatOptions(rootOptsBuf, rootCmdOpts, escapePwshString)
 
 	// 处理标志参数
-	for _, param := range params {
-		// 条目之间添加逗号，非首个条目前添加
-		// if i > 0 {
-		// 	flagParamsBuf.WriteString(",\n")
-		// }
-
+	for i, param := range params {
 		// 生成标志参数条目
-		fmt.Fprintf(flagParamsBuf, PwshFlagParamItem+",\n",
+		// 生成带枚举选项的标志参数条目
+		enumOptions := ""
+		if param.ValueType == "enum" && len(param.EnumOptions) > 0 {
+			optionsBuf := bytes.NewBuffer(make([]byte, 0, len(param.EnumOptions)*15))
+			formatOptions(optionsBuf, param.EnumOptions, escapePwshString)
+			enumOptions = optionsBuf.String()
+		}
+		fmt.Fprintf(flagParamsBuf, PwshFlagParamItem,
 			param.CommandPath,
 			param.Name,
 			param.Type,
-			param.ValueType)
+			param.ValueType,
+			enumOptions,
+		)
 
-		// 处理枚举类型选项
-		if param.ValueType == "enum" && len(param.EnumOptions) > 0 {
-			// 预分配缓冲区容量，减少内存分配
-			optionsBuf := bytes.NewBuffer(make([]byte, 0, len(param.EnumOptions)*15))
-
-			// 格式化枚举选项
-			formatOptions(optionsBuf, param.EnumOptions, escapePwshString)
-
-			// // 条目之间添加逗号，非首个条目前添加
-			// if enumOptionsBuf.Len() > 0 {
-			// 	enumOptionsBuf.WriteString(",\n")
-			// }
-
-			// 生成枚举选项条目
-			fmt.Fprintf(enumOptionsBuf, PwshEnmuOtpsItem+",\n",
-				param.CommandPath,
-				param.Name,
-				optionsBuf.String())
+		// 条目之间添加逗号，非最后一个条目
+		if i < len(params)-1 {
+			flagParamsBuf.WriteString(",\n")
 		}
 	}
 
@@ -111,7 +99,7 @@ func generatePwshCompletion(buf *bytes.Buffer, params []FlagParam, rootCmdOpts [
 		programName,
 		rootCmdEntry,
 		flagParamsBuf.String(),
-		enumOptionsBuf.String())
+	) // 移除独立的枚举选项数组
 }
 
 // escapePwshString 转义PowerShell字符串中的特殊字符
@@ -142,16 +130,14 @@ $commandName = "%s"
 # 1. 命令树定义(数组形式，每个元素包含 Context 和 Options)
 # Context: 上下文路径(如"/"、"/init/");Options: 该层级可用选项数组(不区分大小写)
 $cmdTree = @(
-%s  )
+%s  
+)
 
 # 2. 标志参数定义(数组形式，每个元素包含 Context、Parameter、ParamType、ValueType)
 # ParamType: required(必须带值)、optional(可选值);ValueType: path|number|ip|enum|url等
 $flagParams = @(
-%s  )
-
-# 3. 枚举选项定义(数组形式，每个元素包含 Context、Parameter、Options)
-$enumOptions = @(
-%s  )
+%s  
+)
 
 # -----------------------------------------------------------------------------------
 
@@ -215,14 +201,8 @@ $scriptBlock = {
                             Where-Object { $_ -like "$wordToComplete*" }
                     }
                     "enum" {
-                        # 查找枚举选项(不区分大小写)
-                        $enumDef = $enumOptions | Where-Object {
-                            $_.Context -eq $context -and
-                            ($_.Parameter -eq $prevElement -or $_.Parameter -eq $prevElement.ToLower() -or $_.Parameter -eq $prevElement.ToUpper())
-                        }
-                        if ($enumDef) {
-                            $completionItems = $enumDef.Options | Where-Object { $_ -like "$wordToComplete*" }
-                        }
+                        # 直接从标志参数获取枚举选项
+                        $completionItems = $paramDef.Options | Where-Object { $_ -like "$wordToComplete*" }
                     }
                     "url" {
                         $completionItems = @("http://", "https://", "ftp://") | Where-Object { $_ -like "$wordToComplete*" }
@@ -260,7 +240,7 @@ $scriptBlock = {
 # 注册补全函数
 Register-ArgumentCompleter -CommandName $commandName -ScriptBlock $scriptBlock
 `
-	PwshEnmuOtpsItem  = "	@{ Context = \"%s\"; Parameter = \"%s\"; Options = @(%s) }"                        // 枚举选项条目
-	PwshFlagParamItem = "	@{ Context = \"%s\"; Parameter = \"%s\"; ParamType = \"%s\"; ValueType = \"%s\" }" // 标志参数条目
-	PwshCmdTreeItem   = "	@{ Context = \"%s\"; Options = @(%s) }"                                            // 命令树条目
+	PwshEnmuOtpsItem  = "	@{ Context = \"%s\"; Parameter = \"%s\"; Options = @(%s) }"                                         // 枚举选项条目
+	PwshFlagParamItem = "	@{ Context = \"%s\"; Parameter = \"%s\"; ParamType = \"%s\"; ValueType = \"%s\"; Options = @(%s) }" // 标志参数条目(含枚举选项)
+	PwshCmdTreeItem   = "	@{ Context = \"%s\"; Options = @(%s) }"                                                             // 命令树条目
 )
