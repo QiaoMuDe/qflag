@@ -158,5 +158,5 @@ _%s() {
 
 complete -F _%s %s
 `
-	BashCommandTreeEntry = "cmd_tree[/%s/]=\"%s\"\n" // 命令树条目格式
+	BashCommandTreeEntry = "cmd_tree[%s]=\"%s\"\n" // 命令树条目格式
 )

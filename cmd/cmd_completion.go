@@ -142,12 +142,14 @@ func traverseCommandTree(cmdTreeEntries *bytes.Buffer, parentPath string, cmds [
 		// 获取子命令补全选项
 		cmdOpts := cmd.collectCompletionOptions()
 
-		// 构建命令路径
+		// 构建命令路径（改进版）
 		var cmdPath string
-		if currentParentPath != "" {
-			cmdPath = path.Join(currentParentPath, name, "/")
+		if currentParentPath != "/" && currentParentPath != "" {
+			cmdPath = path.Join("/", currentParentPath, name) + "/"
+		} else if currentParentPath == "/" {
+			cmdPath = path.Join(currentParentPath, name) + "/"
 		} else {
-			cmdPath = name
+			cmdPath = path.Join("/", name) + "/"
 		}
 
 		// 根据shell类型调用对应的处理函数
