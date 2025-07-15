@@ -43,6 +43,7 @@ func (c *Cmd) PathVar(f *flags.PathFlag, longName, shortName string, defValue st
 // Path 添加路径类型标志, 返回标志对象指针
 //
 // 参数依次为: 长标志名、短标志、默认值、帮助说明
+//
 // 返回值: 路径标志对象指针
 func (c *Cmd) Path(longName, shortName string, defValue string, usage string) *flags.PathFlag {
 	f := &flags.PathFlag{}

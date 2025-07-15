@@ -60,6 +60,12 @@ func generateBashCompletion(buf *bytes.Buffer, params []FlagParam, rootCmdOpts [
 }
 
 const (
+	BashCommandTreeEntry = "cmd_tree[%s]=\"%s\"\n" // 命令树条目格式
+	BashFlagParamItem    = "flag_params[%q]=%q\n"  // 标志参数项格式
+	BashEnumOptions      = "enum_options[%q]=%q\n" // 枚举选项格式
+)
+
+const (
 	// Bash补全模板
 	BashFunctionHeader = `#!/usr/bin/env bash
 
@@ -117,48 +123,56 @@ _%s() {
 	fi
 
 	# Dynamically generate completion based on parameter type
-	if [[ -n "$prev_param_type" && ($prev_param_type == "required" || $prev_param_type == "optional") ]]; then
+	if [[ -n "$prev_param_type" && $prev_param_type == "required" ]]; then
 		case "$prev_value_type" in
 			path)
 				# Path type parameter, use file and directory completion
 				COMPREPLY=($(compgen -f -d -- "${cur}"))
+				return 0
 				;;
 			number)
 				# Number type parameter, provide basic number completion
 				COMPREPLY=($(compgen -W "$(seq 1 100)" -- "${cur}"))
+				return 0
 				;;
 			ip)
 				# IP address type parameter, provide basic IP completion
 				COMPREPLY=($(compgen -W "192.168. 10.0. 172.16." -- "${cur}"))
+				return 0
 				;;
 			enum)
-				# Enum type parameter, use pre-defined enum options
-				COMPREPLY=($(compgen -W "${enum_options[$key]}" -- "${cur}"))
+			    # 当前单词为空且前一个参数是枚举标志 → 直接列出所有枚举值
+                if [[ -z "$cur" && "$prev_value_type" == "enum" ]]; then
+                    COMPREPLY=($(compgen -W "${enum_options[$key]}" -- ""))
+                    return 0
+                fi
+				
+				# 前缀过滤（大小写不敏感）
+                COMPREPLY=($(compgen -W "${enum_options[$key]}" -- "${cur}"))
+                # 只保留以 $cur(忽略大小写)开头的
+                COMPREPLY=($(echo "${COMPREPLY[@]}" | grep -i "^${cur}"))
+				return 0
 				;;
 
 			url)
 				# URL type parameter, provide common URL prefix completion
 				COMPREPLY=($(compgen -W "http:// https:// ftp://" -- "${cur}"))
+				return 0
 				;;
 			*)
                 # Default value completion
 				COMPREPLY=($(compgen -W "${opts}" -- "${cur}"))
+				return 0
 				;;
 			esac
-	elif [[ "${cur}" == -* ]]; then
-		# Input starts with -, only display flag completion
-		COMPREPLY=($(compgen -W "${opts}" -- "${cur}"))
-	else
-		# Command completion, including files and directories
-		COMPREPLY=($(compgen -W "${opts}" -f -d -- "${cur}"))
 	fi
+
+	# Flag parameter completion
+	COMPREPLY=($(compgen -W "${opts}" -- "${cur}"))
 
 	return $?
 	}
 
 complete -F _%s %s
 `
-	BashCommandTreeEntry = "cmd_tree[%s]=\"%s\"\n" // 命令树条目格式
-	BashFlagParamItem    = "flag_params[%q]=%q\n"  // 标志参数项格式
-	BashEnumOptions      = "enum_options[%q]=%q\n" // 枚举选项格式
 )
