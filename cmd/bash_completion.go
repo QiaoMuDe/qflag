@@ -36,7 +36,7 @@ func generateBashCompletion(buf *bytes.Buffer, params []FlagParam, rootCmdOpts [
 		} else {
 			key = fmt.Sprintf("%s|%s", param.CommandPath, param.Name)
 		}
-		fmt.Fprintf(&flagParamsBuf, "flag_params[%q]=%q\n", key, param.Type+"|"+param.ValueType)
+		fmt.Fprintf(&flagParamsBuf, BashFlagParamItem, key, param.Type+"|"+param.ValueType)
 		if param.ValueType == "enum" && len(param.EnumOptions) > 0 {
 			// 使用bytes.Buffer减少内存分配
 			var optionsBuf bytes.Buffer
@@ -51,7 +51,7 @@ func generateBashCompletion(buf *bytes.Buffer, params []FlagParam, rootCmdOpts [
 				optionsBuf.WriteString(escapedOpt)
 			}
 			options := optionsBuf.String()
-			fmt.Fprintf(&enumOptionsBuf, "enum_options[%q]=%q\n", key, options)
+			fmt.Fprintf(&enumOptionsBuf, BashEnumOptions, key, options)
 		}
 	}
 
@@ -106,7 +106,7 @@ _%s() {
 	IFS='|' read -ra opts_arr <<< "${cmd_tree[$context]}"
 	opts=$(IFS=' '; echo "${opts_arr[*]}")
 	
-	# 检查前一个参数是否需要值并获取其类型
+	# Check if the previous parameter needs a value and get its type
 	prev_param_type=""
 	prev_value_type=""
 	if [[ $cword -gt 1 ]]; then
@@ -116,40 +116,40 @@ _%s() {
 		IFS='|' read -r prev_param_type prev_value_type <<< "${prev_param_info}"
 	fi
 
-	# 根据参数类型动态生成补全
+	# Dynamically generate completion based on parameter type
 	if [[ -n "$prev_param_type" && ($prev_param_type == "required" || $prev_param_type == "optional") ]]; then
 		case "$prev_value_type" in
 			path)
-				# 路径类型参数，使用文件和目录补全
+				# Path type parameter, use file and directory completion
 				COMPREPLY=($(compgen -f -d -- "${cur}"))
 				;;
 			number)
-				# 数字类型参数，提供基本数字补全
-				COMPREPLY=($(compgen -W "$(seq 1 10)" -- "${cur}"))
+				# Number type parameter, provide basic number completion
+				COMPREPLY=($(compgen -W "$(seq 1 100)" -- "${cur}"))
 				;;
 			ip)
-				# IP地址类型参数，提供基本IP补全
+				# IP address type parameter, provide basic IP completion
 				COMPREPLY=($(compgen -W "192.168. 10.0. 172.16." -- "${cur}"))
 				;;
 			enum)
-				# 枚举类型参数，使用预定义的枚举选项
+				# Enum type parameter, use pre-defined enum options
 				COMPREPLY=($(compgen -W "${enum_options[$key]}" -- "${cur}"))
 				;;
 
 			url)
-				# URL类型参数，提供常见URL前缀补全
+				# URL type parameter, provide common URL prefix completion
 				COMPREPLY=($(compgen -W "http:// https:// ftp://" -- "${cur}"))
 				;;
 			*)
-				# 默认值补全
+                # Default value completion
 				COMPREPLY=($(compgen -W "${opts}" -- "${cur}"))
 				;;
 			esac
 	elif [[ "${cur}" == -* ]]; then
-		# 输入以-开头，只显示标志补全
+		# Input starts with -, only display flag completion
 		COMPREPLY=($(compgen -W "${opts}" -- "${cur}"))
 	else
-		# 命令补全，包含文件和目录
+		# Command completion, including files and directories
 		COMPREPLY=($(compgen -W "${opts}" -f -d -- "${cur}"))
 	fi
 
@@ -159,4 +159,6 @@ _%s() {
 complete -F _%s %s
 `
 	BashCommandTreeEntry = "cmd_tree[%s]=\"%s\"\n" // 命令树条目格式
+	BashFlagParamItem    = "flag_params[%q]=%q\n"  // 标志参数项格式
+	BashEnumOptions      = "enum_options[%q]=%q\n" // 枚举选项格式
 )

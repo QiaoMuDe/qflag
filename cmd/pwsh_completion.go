@@ -130,23 +130,23 @@ const (
 
 const (
 	// PowerShell自动补全脚本头部
-	PwshFunctionHeader = `# -------------------------- 配置区域(需根据实际命令修改) --------------------------
-# 命令名称
+	PwshFunctionHeader = `# -------------------------- Configuration Area (Need to be modified according to actual commands) --------------------------
+# Command Name
 $commandName = "%s"
 
-# 1. 命令树
+# 1. Command Tree
 $cmdTree = @(
 %s
 )
 
-# 2. 标志参数定义
+# 2. Flag Parameter Definitions
 $flagParams = @(
 %s
 )
 
 # -----------------------------------------------------------------------------------
 
-# -------------------------- 补全逻辑实现 --------------------------
+# -------------------------- Completion Logic Implementation ------------------------
 $scriptBlock = {
     param(
         $wordToComplete,
@@ -154,12 +154,12 @@ $scriptBlock = {
         $cursorPosition
     )
 
-    # 1. 解析 token
+    # 1. Parse tokens
     $tokens = $commandAst.CommandElements | ForEach-Object { $_.Extent.Text }
     $currentIndex = $tokens.Count - 1
     $prevElement = if ($currentIndex -ge 1) { $tokens[$currentIndex - 1] } else { $null }
 
-    # 2. 计算当前命令上下文
+    # 2. Calculate the current command context
     $context = "/"
     for ($i = 1; $i -le $currentIndex; $i++) {
         $elem = $tokens[$i]
@@ -173,10 +173,10 @@ $scriptBlock = {
         }
     }
 
-    # 3. 当前上下文可用的选项
+    # 3. Available options in the current context
     $currentOptions = ($cmdTree | Where-Object { $_.Context -eq $context }).Options
 
-    # 4. 先补全当前层级的所有选项（子命令+标志）
+    # 4. First complete all options (subcommands + flags) at the current level
     if ($currentOptions) {
         $matchingOptions = $currentOptions | Where-Object {
             $_ -like "$wordToComplete*"
@@ -188,7 +188,7 @@ $scriptBlock = {
         }
     }
 
-    # 5. 再补全“-”开头的标志参数本身（如 --ty -> --type）
+    # 5. Complete flags themselves (like --ty -> --type)
     if ($wordToComplete -match '^-') {
         $flagDefs = $flagParams | Where-Object { $_.Context -eq $context }
         $flagMatches = $flagDefs | Where-Object {
@@ -197,8 +197,8 @@ $scriptBlock = {
         return $flagMatches
     }
 
-    # 6. 枚举/预设值补全
-    # 6a 当前 token 为空 → 补全前一个 flag 的全部枚举值
+    # 6. Enum/Preset value completion
+    # 6a Current token is empty → Complete all enum values of the previous flag
     if (-not $wordToComplete -and $prevElement -match '^-') {
         $paramDef = $flagParams | Where-Object {
             $_.Context -eq $context -and $_.Parameter -eq $prevElement
@@ -215,7 +215,7 @@ $scriptBlock = {
         }
     }
 
-    # 6b 当前 token 非空，且前一个 token 是需要值的 flag → 带前缀过滤
+    # 6b The current token is not empty, and the previous token is a flag that requires a value → Filter with prefix
     $flagForValue = $tokens[$currentIndex - 1]
     if ($flagForValue -match '^-' -and $currentIndex -ge 1) {
         $paramDef = $flagParams | Where-Object {
@@ -233,7 +233,7 @@ $scriptBlock = {
         }
     }
 
-    # 7. 无匹配
+    # 7. No match
     return @()
 }
 
