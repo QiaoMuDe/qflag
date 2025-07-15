@@ -17,16 +17,35 @@ var (
 )
 
 // NewValidationError 创建一个新的验证错误
+//
+// 参数值:
+//   - message string: 错误消息
+//
+// 返回值:
+//   - error: 验证错误
 func NewValidationError(message string) error {
 	return fmt.Errorf("%s: %s", ErrValidationFailed, message)
 }
 
 // NewValidationErrorf 创建一个格式化的验证错误
+//
+// 参数值:
+//   - format string: 格式化字符串
+//   - v ...interface{}: 格式化参数
+//
+// 返回值:
+//   - error: 验证错误
 func NewValidationErrorf(format string, v ...interface{}) error {
 	return fmt.Errorf("%s: %s", ErrValidationFailed, fmt.Sprintf(format, v...))
 }
 
 // JoinErrors 将错误切片合并为单个错误，并去除重复错误
+//
+// 参数值:
+//   - errors []error: 错误切片
+//
+// 返回值:
+//   - error: 合并后的错误
 func JoinErrors(errors []error) error {
 	if len(errors) == 0 {
 		return nil
