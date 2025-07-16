@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"io"
 	"os"
+	"runtime"
 	"testing"
 	"time"
 
@@ -14,63 +15,89 @@ import (
 
 // TestCompletionPerformance 测试补全脚本生成性能
 func TestCompletionPerformance(t *testing.T) {
-	// 创建复杂命令结构
+	// ---------- 阶段 1：构建命令树 ----------
+	buildStart := time.Now()
 	rootCmd := NewCmd("root", "r", flag.ExitOnError)
 	rootCmd.SetExitOnBuiltinFlags(false)
 	rootCmd.SetEnableCompletion(true)
 
-	// 添加多层子命令和大量选项
+	// 统计节点、flag 数量
+	var (
+		totalCmds  = 1 // root
+		totalFlags int
+	)
+
 	for i := 0; i < 10; i++ {
 		parentCmd := NewCmd(fmt.Sprintf("sub%d", i), fmt.Sprintf("s%d", i), flag.ExitOnError)
 		if err := rootCmd.AddSubCmd(parentCmd); err != nil {
-			t.Fatalf("Failed to add parent subcommand: %v", err)
+			t.Fatalf("添加父命令失败: %v", err)
 		}
+		totalCmds++
 
-		// 为每个子命令添加选项
+		// 20 个 flag
 		for j := 0; j < 20; j++ {
-			strVar := &flags.StringFlag{}
-			parentCmd.StringVar(strVar, fmt.Sprintf("option%d", j), fmt.Sprintf("o%d", j), "", "test option")
+			parentCmd.String("", fmt.Sprintf("option%d", j), fmt.Sprintf("o%d", j), "")
+			totalFlags++
 		}
 
-		// 添加孙子命令
 		for k := 0; k < 5; k++ {
 			childCmd := NewCmd(fmt.Sprintf("sub%d-grand%d", i, k), fmt.Sprintf("g%d", k), flag.ExitOnError)
 			if err := parentCmd.AddSubCmd(childCmd); err != nil {
-				t.Fatalf("Failed to add child subcommand: %v", err)
+				t.Fatalf("添加子命令失败: %v", err)
 			}
+			totalCmds++
 
-			// 为孙子命令添加选项
+			// 15 个 flag
 			for l := 0; l < 15; l++ {
-				intVar := &flags.IntFlag{}
-				childCmd.IntVar(intVar, fmt.Sprintf("param%d", l), fmt.Sprintf("p%d", l), 0, "test parameter")
+				childCmd.Int("", fmt.Sprintf("param%d", l), 0, fmt.Sprintf("p%d", l))
+				totalFlags++
 			}
 		}
 	}
+	buildDuration := time.Since(buildStart)
+	t.Logf("构建命令树耗时: %v, 命令数量=%d, 标志数量=%d", buildDuration, totalCmds, totalFlags)
 
-	// 测试Bash补全生成速度
-	start := time.Now()
-	var err error
-	_, err = rootCmd.generateShellCompletion("bash")
-	if err != nil {
-		t.Fatalf("Bash completion generation failed: %v", err)
-	}
-	bashDuration := time.Since(start)
-	t.Logf("Bash completion generated in %v", bashDuration)
-	if bashDuration > 100*time.Millisecond {
-		t.Errorf("Bash completion generation took too long: %v", bashDuration)
-	}
+	// ---------- 阶段 2：内存基线 ----------
+	var before runtime.MemStats
+	runtime.ReadMemStats(&before)
 
-	// 测试PowerShell补全生成速度
-	start = time.Now()
-	_, err = rootCmd.generateShellCompletion("powershell")
-	if err != nil {
-		t.Fatalf("PowerShell completion generation failed: %v", err)
-	}
-	pwshDuration := time.Since(start)
-	t.Logf("PowerShell completion generated in %v", pwshDuration)
-	if pwshDuration > 150*time.Millisecond {
-		t.Errorf("PowerShell completion generation took too long: %v", pwshDuration)
-	}
+	// ---------- 阶段 3：Bash 补全 ----------
+	t.Run("bash", func(t *testing.T) {
+		start := time.Now()
+		script, err := rootCmd.generateShellCompletion("bash")
+		if err != nil {
+			t.Fatalf("bash 生成失败: %v", err)
+		}
+		genDuration := time.Since(start)
+		t.Logf("bash 生成 %d 字节耗时: %v", len(script), genDuration)
+
+		// 阈值：50 ms 以内
+		if genDuration > 50*time.Millisecond {
+			t.Errorf("bash 生成耗时: %v", genDuration)
+		}
+	})
+
+	// ---------- 阶段 4：PowerShell 补全 ----------
+	t.Run("pwsh", func(t *testing.T) {
+		start := time.Now()
+		script, err := rootCmd.generateShellCompletion("powershell")
+		if err != nil {
+			t.Fatalf("pwsh 生成失败: %v", err)
+		}
+		genDuration := time.Since(start)
+		t.Logf("pwsh 生成 %d 字节耗时: %v", len(script), genDuration)
+
+		// 阈值：75 ms 以内
+		if genDuration > 75*time.Millisecond {
+			t.Errorf("pwsh 生成耗时: %v", genDuration)
+		}
+	})
+
+	// ---------- 阶段 5：内存增量 ----------
+	var after runtime.MemStats
+	runtime.ReadMemStats(&after)
+	allocKB := (after.Alloc - before.Alloc) / 1024
+	t.Logf("内存增量: %d KB", allocKB)
 }
 
 // TestCompletionBash 测试自动补全生成
@@ -106,16 +133,22 @@ func TestCompletionPwsh(t *testing.T) {
 	cmd := NewCmd("root", "r", flag.ExitOnError)
 	cmd.SetExitOnBuiltinFlags(false) // 禁止在解析命令行参数时退出
 	cmd.SetUseChinese(true)          // 设置使用中文
-	cmd.SetEnableCompletion(true)
+	cmd.SetEnableCompletion(true)    // 启用自动补全功能
 
 	cmd1 := NewCmd("cmd1", "c1", flag.ExitOnError)
 	cmd1.String("str", "s", "", "test string")
+	cmd2 := NewCmd("cmd2", "c2", flag.ExitOnError)
+	cmd2.Int("int", "i", 0, "test int")
 
 	if err := cmd.AddSubCmd(cmd1); err != nil {
 		t.Fatal(err)
 	}
 
-	// 解析命令行参数，指定PowerShell补全类型
+	if err := cmd1.AddSubCmd(cmd2); err != nil {
+		t.Fatal(err)
+	}
+
+	// 解析命令行参数
 	if err := cmd.Parse([]string{"-gsc", "pwsh"}); err != nil {
 		t.Fatal(err)
 	}
