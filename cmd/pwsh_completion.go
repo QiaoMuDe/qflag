@@ -4,6 +4,8 @@ package cmd
 import (
 	"bytes"
 	"fmt"
+	"path/filepath"
+	"strings"
 )
 
 // formatOptions 将选项列表格式化为PowerShell数组字符串
@@ -88,6 +90,9 @@ func generatePwshCompletion(buf *bytes.Buffer, params []FlagParam, rootCmdOpts [
 		}
 	}
 
+	// 清理程序名，去除可能的后缀
+	sanitizedProgramName := strings.TrimSuffix(programName, filepath.Ext(programName))
+
 	// 生成根命令条目
 	rootCmdEntry := fmt.Sprintf(PwshCmdTreeItem, "/", rootOptsBuf.String())
 	if cmdTreeEntries != "" {
@@ -96,10 +101,12 @@ func generatePwshCompletion(buf *bytes.Buffer, params []FlagParam, rootCmdOpts [
 
 	// 写入PowerShell自动补全脚本
 	fmt.Fprintf(buf, PwshFunctionHeader,
-		programName,
-		rootCmdEntry,
-		flagParamsBuf.String(),
-	) // 移除独立的枚举选项数组
+		sanitizedProgramName, programName,
+		sanitizedProgramName, rootCmdEntry,
+		sanitizedProgramName, flagParamsBuf.String(),
+		sanitizedProgramName, sanitizedProgramName, sanitizedProgramName,
+		sanitizedProgramName, sanitizedProgramName, sanitizedProgramName,
+	)
 }
 
 // escapePwshString 转义PowerShell字符串中的特殊字符
@@ -132,15 +139,15 @@ const (
 	// PowerShell自动补全脚本头部
 	PwshFunctionHeader = `# -------------------------- Configuration Area (Need to be modified according to actual commands) --------------------------
 # Command Name
-$commandName = "%s"
+$%s_commandName = "%s"
 
 # 1. Command Tree
-$cmdTree = @(
+$%s_cmdTree = @(
 %s
 )
 
 # 2. Flag Parameter Definitions
-$flagParams = @(
+$%s_flagParams = @(
 %s
 )
 
@@ -165,7 +172,7 @@ $scriptBlock = {
         $elem = $tokens[$i]
         if ($elem -match '^-') { break }
         $nextContext = "$context$elem/"
-        $contextMatch = $cmdTree | Where-Object { $_.Context -eq $nextContext }
+        $contextMatch = ${%s_cmdTree} | Where-Object { $_.Context -eq $nextContext }
         if ($contextMatch) {
             $context = $nextContext
         } else {
@@ -174,7 +181,7 @@ $scriptBlock = {
     }
 
     # 3. Available options in the current context
-    $currentOptions = ($cmdTree | Where-Object { $_.Context -eq $context }).Options
+    $currentOptions = (${%s_cmdTree} | Where-Object { $_.Context -eq $context }).Options
 
     # 4. First complete all options (subcommands + flags) at the current level
     if ($currentOptions) {
@@ -190,7 +197,7 @@ $scriptBlock = {
 
     # 5. Complete flags themselves (like --ty -> --type)
     if ($wordToComplete -match '^-') {
-        $flagDefs = $flagParams | Where-Object { $_.Context -eq $context }
+        $flagDefs = ${%s_flagParams} | Where-Object { $_.Context -eq $context }
         $flagMatches = $flagDefs | Where-Object {
             $_.Parameter -like "$wordToComplete*"
         } | ForEach-Object { $_.Parameter }
@@ -200,7 +207,7 @@ $scriptBlock = {
     # 6. Enum/Preset value completion
     # 6a Current token is empty → Complete all enum values of the previous flag
     if (-not $wordToComplete -and $prevElement -match '^-') {
-        $paramDef = $flagParams | Where-Object {
+        $paramDef = ${%s_flagParams} | Where-Object {
             $_.Context -eq $context -and $_.Parameter -eq $prevElement
         }
         if ($paramDef) {
@@ -218,7 +225,7 @@ $scriptBlock = {
     # 6b The current token is not empty, and the previous token is a flag that requires a value → Filter with prefix
     $flagForValue = $tokens[$currentIndex - 1]
     if ($flagForValue -match '^-' -and $currentIndex -ge 1) {
-        $paramDef = $flagParams | Where-Object {
+        $paramDef = ${%s_flagParams} | Where-Object {
             $_.Context -eq $context -and $_.Parameter -eq $flagForValue
         }
         if ($paramDef) {
@@ -240,6 +247,6 @@ $scriptBlock = {
     return @()
 }
 
-Register-ArgumentCompleter -CommandName $commandName -ScriptBlock $scriptBlock
+Register-ArgumentCompleter -CommandName $%s_commandName -ScriptBlock $scriptBlock
 `
 )
