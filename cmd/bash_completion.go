@@ -29,34 +29,61 @@ func generateBashCompletion(buf *bytes.Buffer, params []FlagParam, rootCmdOpts [
 	// 构建标志参数映射
 	var flagParamsBuf bytes.Buffer
 	var enumOptionsBuf bytes.Buffer
+
+	// 遍历标志参数并生成相应的Bash自动补全脚本
 	for _, param := range params {
 		var key string
+		// 如果命令路径为空，则使用参数名称作为键
 		if param.CommandPath == "" {
 			key = param.Name
 		} else {
 			key = fmt.Sprintf("%s|%s", param.CommandPath, param.Name)
 		}
+
+		// 写入标志参数项
 		fmt.Fprintf(&flagParamsBuf, BashFlagParamItem, key, param.Type+"|"+param.ValueType)
+
+		// 如果参数类型为枚举，则生成枚举选项
 		if param.ValueType == "enum" && len(param.EnumOptions) > 0 {
-			// 使用bytes.Buffer减少内存分配
-			var optionsBuf bytes.Buffer
+			// 预分配切片容量以提高性能
+			escapedOpts := make([]string, len(param.EnumOptions))
 			for i, opt := range param.EnumOptions {
-				if i > 0 {
-					optionsBuf.WriteString(" ")
-				}
-				// 增强特殊字符转义处理: 引号、反斜杠和空格
-				escapedOpt := strings.ReplaceAll(opt, "\\", "\\\\")
-				escapedOpt = strings.ReplaceAll(escapedOpt, "\"", "\\\"")
-				escapedOpt = strings.ReplaceAll(escapedOpt, " ", "\\ ")
-				optionsBuf.WriteString(escapedOpt)
+				escapedOpts[i] = escapeSpecialChars(opt)
 			}
-			options := optionsBuf.String()
+			options := strings.Join(escapedOpts, " ")
 			fmt.Fprintf(&enumOptionsBuf, BashEnumOptions, key, options)
 		}
 	}
 
 	// 写入Bash自动补全脚本头
 	fmt.Fprintf(buf, BashFunctionHeader, strings.Join(rootCmdOpts, "|"), cmdTreeEntries, flagParamsBuf.String(), enumOptionsBuf.String(), programName, programName, programName)
+}
+
+// escapeSpecialChars 处理字符串中的特殊字符转义
+//
+// 参数:
+//   - s: 需要处理的字符串
+//
+// 返回值:
+//   - 转义后的字符串
+func escapeSpecialChars(s string) string {
+	var builder strings.Builder
+	builder.Grow(len(s) * 2) // 预分配容量以减少重新分配
+
+	for _, r := range s {
+		switch r {
+		case '\\':
+			builder.WriteString("\\\\")
+		case '"':
+			builder.WriteString("\\\"")
+		case ' ':
+			builder.WriteString("\\ ")
+		default:
+			builder.WriteRune(r)
+		}
+	}
+
+	return builder.String()
 }
 
 const (
@@ -153,7 +180,6 @@ _%s() {
                 COMPREPLY=($(echo "${COMPREPLY[@]}" | grep -i "^${cur}"))
 				return 0
 				;;
-
 			url)
 				# URL type parameter, provide common URL prefix completion
 				COMPREPLY=($(compgen -W "http:// https:// ftp://" -- "${cur}"))
