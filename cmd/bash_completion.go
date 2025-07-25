@@ -82,7 +82,9 @@ func generateBashCompletion(buf *bytes.Buffer, params []FlagParam, rootCmdOpts [
 		"{{.EnumOptions}}", templateData.EnumOptions,
 		"{{.ProgramName}}", templateData.ProgramName,
 	)
-	tmpl.WriteString(buf, BashFunctionHeader)
+
+	// 写入Bash函数头部
+	_, _ = tmpl.WriteString(buf, BashFunctionHeader)
 }
 
 // escapeSpecialChars 处理字符串中的特殊字符转义
