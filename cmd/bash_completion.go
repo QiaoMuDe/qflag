@@ -50,13 +50,39 @@ func generateBashCompletion(buf *bytes.Buffer, params []FlagParam, rootCmdOpts [
 			for i, opt := range param.EnumOptions {
 				escapedOpts[i] = escapeSpecialChars(opt)
 			}
+
+			// 将枚举选项转换为字符串
 			options := strings.Join(escapedOpts, " ")
+
+			// 写入枚举选项
 			fmt.Fprintf(&enumOptionsBuf, BashEnumOptions, key, options)
 		}
 	}
 
-	// 写入Bash自动补全脚本头
-	fmt.Fprintf(buf, BashFunctionHeader, strings.Join(rootCmdOpts, "|"), cmdTreeEntries, flagParamsBuf.String(), enumOptionsBuf.String(), programName, programName, programName)
+	// 使用命名占位符替换原有位置参数
+	templateData := struct {
+		RootCmdOpts    string // 根命令选项
+		CmdTreeEntries string // 命令树条目
+		FlagParams     string // 标志参数
+		EnumOptions    string // 枚举选项
+		ProgramName    string // 程序名称
+	}{
+		RootCmdOpts:    strings.Join(rootCmdOpts, "|"),
+		CmdTreeEntries: cmdTreeEntries,
+		FlagParams:     flagParamsBuf.String(),
+		EnumOptions:    enumOptionsBuf.String(),
+		ProgramName:    programName,
+	}
+
+	// 使用模板替换占位符
+	tmpl := strings.NewReplacer(
+		"{{.RootCmdOpts}}", templateData.RootCmdOpts,
+		"{{.CmdTreeEntries}}", templateData.CmdTreeEntries,
+		"{{.FlagParams}}", templateData.FlagParams,
+		"{{.EnumOptions}}", templateData.EnumOptions,
+		"{{.ProgramName}}", templateData.ProgramName,
+	)
+	tmpl.WriteString(buf, BashFunctionHeader)
 }
 
 // escapeSpecialChars 处理字符串中的特殊字符转义
@@ -98,18 +124,18 @@ const (
 
 # Static command tree definition - Pre-initialized outside the function
 declare -A cmd_tree
-cmd_tree[/]="%s"
-%s
+cmd_tree[/]="{{.RootCmdOpts}}"
+{{.CmdTreeEntries}}
 
 # Flag parameters definition - stores type and value type (type|valueType)
 declare -A flag_params
-%s
+{{.FlagParams}}
 
 # Enum options definition - stores allowed values for enum flags
 declare -A enum_options
-%s
+{{.EnumOptions}}
 
-_%s() {
+_{{.ProgramName}}() {
 	local cur prev words cword context opts i arg
 	COMPREPLY=()
 
@@ -180,6 +206,7 @@ _%s() {
                 COMPREPLY=($(echo "${COMPREPLY[@]}" | grep -i "^${cur}"))
 				return 0
 				;;
+
 			url)
 				# URL type parameter, provide common URL prefix completion
 				COMPREPLY=($(compgen -W "http:// https:// ftp://" -- "${cur}"))
@@ -199,6 +226,6 @@ _%s() {
 	return 0
 	}
 
-complete -F _%s %s
+complete -F _{{.ProgramName}} {{.ProgramName}}
 `
 )
