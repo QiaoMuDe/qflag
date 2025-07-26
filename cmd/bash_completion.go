@@ -166,12 +166,12 @@ _{{.ProgramName}}() {
 	if [[ -n "$prev_param_type" && $prev_param_type == "required" ]]; then
 		case "$prev_value_type" in
 			path)
-				# Path type parameter, use file and directory completion
+			# Path type parameter, use file and directory completion
 				COMPREPLY=($(compgen -f -d -- "${cur}"))
 				return 0
 				;;
 			number)
-				# Number type parameter, provide basic number completion
+			# Number type parameter, provide basic number completion
 				COMPREPLY=($(compgen -W "$(seq 1 100)" -- "${cur}"))
 				return 0
 				;;
@@ -181,7 +181,7 @@ _{{.ProgramName}}() {
 				return 0
 				;;
 			enum)
-			    # 当前单词为空且前一个参数是枚举标志 → 直接列出所有枚举值
+			# 当前单词为空且前一个参数是枚举标志 → 直接列出所有枚举值
                 if [[ -z "$cur" && "$prev_value_type" == "enum" ]]; then
                     COMPREPLY=($(compgen -W "${enum_options[$key]}" -- ""))
                     return 0
@@ -193,9 +193,8 @@ _{{.ProgramName}}() {
                 COMPREPLY=($(echo "${COMPREPLY[@]}" | grep -i "^${cur}"))
 				return 0
 				;;
-
 			url)
-				# URL type parameter, provide common URL prefix completion
+			# URL type parameter, provide common URL prefix completion
 				COMPREPLY=($(compgen -W "http:// https:// ftp://" -- "${cur}"))
 				return 0
 				;;
