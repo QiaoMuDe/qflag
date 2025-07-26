@@ -32,15 +32,6 @@ func formatOptions(buf *bytes.Buffer, options []string, escape func(string) stri
 	}
 }
 
-// templateData 保存用于模板渲染的数据
-type templateData struct {
-	Context   string
-	Options   string
-	Parameter string
-	ParamType string
-	ValueType string
-}
-
 // generatePwshCommandTreeEntry 生成PowerShell命令树条目
 //
 // 参数:
@@ -54,16 +45,10 @@ func generatePwshCommandTreeEntry(cmdTreeEntries *bytes.Buffer, cmdPath string, 
 	// 格式化命令选项
 	formatOptions(optsBuf, cmdOpts, escapePwshString)
 
-	// 创建模板数据
-	data := templateData{
-		Context: cmdPath,
-		Options: optsBuf.String(),
-	}
-
 	// 使用命名占位符替换位置参数
 	replacer := strings.NewReplacer(
-		"{{.Context}}", data.Context,
-		"{{.Options}}", data.Options,
+		"{{.Context}}", cmdPath,
+		"{{.Options}}", optsBuf.String(),
 	)
 
 	// 添加命令树条目
@@ -97,24 +82,14 @@ func generatePwshCompletion(buf *bytes.Buffer, params []FlagParam, rootCmdOpts [
 			enumOptions = optionsBuf.String()
 		}
 
-		// 创建模板数据
-		flagData := templateData{
-			Context:   param.CommandPath,
-			Parameter: param.Name,
-			ParamType: param.Type,
-			ValueType: param.ValueType,
-			Options:   enumOptions,
-		}
-
 		// 使用命名占位符替换位置参数
 		flagReplacer := strings.NewReplacer(
-			"{{.Context}}", flagData.Context,
-			"{{.Parameter}}", flagData.Parameter,
-			"{{.ParamType}}", flagData.ParamType,
-			"{{.ValueType}}", flagData.ValueType,
-			"{{.Options}}", flagData.Options,
+			"{{.Context}}", param.CommandPath,
+			"{{.Parameter}}", param.Name,
+			"{{.ParamType}}", param.Type,
+			"{{.ValueType}}", param.ValueType,
+			"{{.Options}}", enumOptions,
 		)
-
 		flagParamsBuf.WriteString(flagReplacer.Replace(PwshFlagParamItem))
 
 		// 条目之间添加逗号，非最后一个条目
@@ -127,42 +102,24 @@ func generatePwshCompletion(buf *bytes.Buffer, params []FlagParam, rootCmdOpts [
 	sanitizedProgramName := strings.TrimSuffix(programName, filepath.Ext(programName))
 
 	// 生成根命令条目
-	rootData := templateData{
-		Context: "/",
-		Options: rootOptsBuf.String(),
-	}
-
-	// 根命令条目
 	rootReplacer := strings.NewReplacer(
-		"{{.Context}}", rootData.Context,
-		"{{.Options}}", rootData.Options,
+		"{{.Context}}", "/",
+		"{{.Options}}", rootOptsBuf.String(),
 	)
 	// 生成根命令条目
 	rootCmdEntry := rootReplacer.Replace(PwshCmdTreeItem)
 
+	// 如果命令树条目不为空，则添加逗号
 	if cmdTreeEntries != "" {
 		rootCmdEntry += ",\n" + cmdTreeEntries
 	}
 
-	// 创建模板数据
-	completionData := struct {
-		SanitizedName string
-		ProgramName   string
-		CmdTree       string
-		FlagParams    string
-	}{
-		SanitizedName: sanitizedProgramName,
-		ProgramName:   programName,
-		CmdTree:       rootCmdEntry,
-		FlagParams:    flagParamsBuf.String(),
-	}
-
 	// 使用命名占位符替换位置参数
 	completionReplacer := strings.NewReplacer(
-		"{{.SanitizedName}}", completionData.SanitizedName,
-		"{{.ProgramName}}", completionData.ProgramName,
-		"{{.CmdTree}}", completionData.CmdTree,
-		"{{.FlagParams}}", completionData.FlagParams,
+		"{{.SanitizedName}}", sanitizedProgramName, // 替换程序名称
+		"{{.ProgramName}}", programName, // 替换程序名称
+		"{{.CmdTree}}", rootCmdEntry, // 替换命令树条目
+		"{{.FlagParams}}", flagParamsBuf.String(), // 替换标志参数
 	)
 
 	// 写入PowerShell自动补全脚本

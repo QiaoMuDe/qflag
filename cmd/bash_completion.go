@@ -59,28 +59,13 @@ func generateBashCompletion(buf *bytes.Buffer, params []FlagParam, rootCmdOpts [
 		}
 	}
 
-	// 使用命名占位符替换原有位置参数
-	templateData := struct {
-		RootCmdOpts    string // 根命令选项
-		CmdTreeEntries string // 命令树条目
-		FlagParams     string // 标志参数
-		EnumOptions    string // 枚举选项
-		ProgramName    string // 程序名称
-	}{
-		RootCmdOpts:    strings.Join(rootCmdOpts, "|"),
-		CmdTreeEntries: cmdTreeEntries,
-		FlagParams:     flagParamsBuf.String(),
-		EnumOptions:    enumOptionsBuf.String(),
-		ProgramName:    programName,
-	}
-
-	// 使用模板替换占位符
+	// 使用命名模板生成Bash自动补全脚本
 	tmpl := strings.NewReplacer(
-		"{{.RootCmdOpts}}", templateData.RootCmdOpts,
-		"{{.CmdTreeEntries}}", templateData.CmdTreeEntries,
-		"{{.FlagParams}}", templateData.FlagParams,
-		"{{.EnumOptions}}", templateData.EnumOptions,
-		"{{.ProgramName}}", templateData.ProgramName,
+		"{{.RootCmdOpts}}", strings.Join(rootCmdOpts, "|"), // 根命令选项
+		"{{.CmdTreeEntries}}", cmdTreeEntries, // 命令树条目
+		"{{.FlagParams}}", flagParamsBuf.String(), // 标志参数
+		"{{.EnumOptions}}", enumOptionsBuf.String(), // 枚举选项
+		"{{.ProgramName}}", programName, // 程序名称
 	)
 
 	// 写入Bash函数头部
