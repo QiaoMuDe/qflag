@@ -230,10 +230,6 @@ $scriptBlock = {
         if ($paramDef) {
             switch ($paramDef.ValueType) {
                 'enum'   { return $paramDef.Options }
-                'path'   { return Get-ChildItem  -Name}
-                'number' { return 1..10 | ForEach-Object { "$_" } }
-                'ip'     { return @('192.168.','10.0.','172.16.','127.0.0.') }
-                'url'    { return @('http://','https://','ftp://') }
                 default  { return @() }
             }
         }
@@ -247,14 +243,7 @@ $scriptBlock = {
         }
         if ($paramDef) {
             switch ($paramDef.ValueType) {
-                'path' {
-                    $pattern = if ($wordToComplete) { "$wordToComplete*" } else { '*' }
-                    Get-ChildItem -Name $pattern -ErrorAction SilentlyContinue
-                }
-                'number' { return 1..100 | Where-Object { "$_" -like "$wordToComplete*" } }
-                'ip'     { return @('192.168.','10.0.','172.16.','127.0.0.') | Where-Object { $_ -like "$wordToComplete*" } }
                 'enum'   { return $paramDef.Options | Where-Object { $_ -like "$wordToComplete*" } }
-                'url'    { return @('http://','https://','ftp://') | Where-Object { $_ -like "$wordToComplete*" } }
                 default  { return @() }
             }
         }

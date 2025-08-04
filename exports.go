@@ -68,12 +68,3 @@ type Uint32Flag = flags.Uint32Flag
 
 // Uint64Flag 导出flag包中的Uint64Flag结构体
 type Uint64Flag = flags.Uint64Flag
-
-// IP4Flag 导出flag包中的Ip4Flag结构体
-type IP4Flag = flags.IP4Flag
-
-// IP6Flag 导出flag包中的Ip6Flag结构体
-type IP6Flag = flags.IP6Flag
-
-// URLFlag 导出flag包中的URLFlag结构体
-type URLFlag = flags.URLFlag

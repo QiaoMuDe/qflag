@@ -165,21 +165,6 @@ _{{.ProgramName}}() {
 	# Dynamically generate completion based on parameter type
 	if [[ -n "$prev_param_type" && $prev_param_type == "required" ]]; then
 		case "$prev_value_type" in
-			path)
-			# Path type parameter, use file and directory completion
-				COMPREPLY=($(compgen -f -d -- "${cur}"))
-				return 0
-				;;
-			number)
-			# Number type parameter, provide basic number completion
-				COMPREPLY=($(compgen -W "$(seq 1 100)" -- "${cur}"))
-				return 0
-				;;
-			ip)
-				# IP address type parameter, provide basic IP completion
-				COMPREPLY=($(compgen -W "192.168. 10.0. 172.16." -- "${cur}"))
-				return 0
-				;;
 			enum)
 			# 当前单词为空且前一个参数是枚举标志 → 直接列出所有枚举值
                 if [[ -z "$cur" && "$prev_value_type" == "enum" ]]; then
@@ -191,11 +176,6 @@ _{{.ProgramName}}() {
                 COMPREPLY=($(compgen -W "${enum_options[$key]}" -- "${cur}"))
                 # 只保留以 $cur(忽略大小写)开头的
                 COMPREPLY=($(echo "${COMPREPLY[@]}" | grep -i "^${cur}"))
-				return 0
-				;;
-			url)
-			# URL type parameter, provide common URL prefix completion
-				COMPREPLY=($(compgen -W "http:// https:// ftp://" -- "${cur}"))
 				return 0
 				;;
 			*)

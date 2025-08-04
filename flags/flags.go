@@ -22,9 +22,6 @@ const (
 	FlagTypeSlice                    // 切片类型
 	FlagTypeTime                     // 时间类型
 	FlagTypeMap                      // 映射类型
-	FlagTypeIP4                      // IPv4地址类型
-	FlagTypeIP6                      // IPv6地址类型
-	FlagTypeURL                      // URL类型
 )
 
 // 内置标志名称
@@ -169,12 +166,6 @@ func FlagTypeToString(flagType FlagType, withBrackets bool) string {
 		result = "map"
 	case FlagTypeSlice:
 		result = "slice"
-	case FlagTypeIP4:
-		result = "ip4"
-	case FlagTypeIP6:
-		result = "ip6"
-	case FlagTypeURL:
-		result = "url"
 	default:
 		result = "unknown"
 	}

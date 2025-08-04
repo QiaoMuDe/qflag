@@ -139,58 +139,6 @@ func TestLoadEnvVars(t *testing.T) {
 		}
 	})
 
-	// 测试IP4类型环境变量
-	t.Run("ip4 type environment variable", func(t *testing.T) {
-		cmd := NewCmd("test", "", flag.ContinueOnError)
-		ip4Val := cmd.IP4("ip4-flag", "", "192.168.1.1", "测试IP4标志").BindEnv("TEST_IP4_ENV")
-
-		// 设置环境变量
-		if err := os.Setenv("TEST_IP4_ENV", "10.0.0.1"); err != nil {
-			t.Fatalf("设置环境变量失败: %v", err)
-		}
-		defer func() {
-			if err := os.Unsetenv("TEST_IP4_ENV"); err != nil {
-				t.Errorf("Failed to unset TEST_IP4_ENV: %v", err)
-			}
-		}()
-
-		// 加载环境变量
-		err := cmd.loadEnvVars()
-		if err != nil {
-			t.Fatalf("加载环境变量失败: %v", err)
-		}
-
-		if ip4Val.Get() != "10.0.0.1" {
-			t.Errorf("期望IP4值 '10.0.0.1', 实际获取 '%s'", ip4Val.Get())
-		}
-	})
-
-	// 测试URL类型环境变量
-	t.Run("url type environment variable", func(t *testing.T) {
-		cmd := NewCmd("test", "", flag.ContinueOnError)
-		urlVal := cmd.URL("url-flag", "", "http://default.com", "测试URL标志").BindEnv("TEST_URL_ENV")
-
-		// 设置环境变量
-		if err := os.Setenv("TEST_URL_ENV", "https://example.com/path?query=1"); err != nil {
-			t.Fatalf("设置环境变量失败: %v", err)
-		}
-		defer func() {
-			if err := os.Unsetenv("TEST_URL_ENV"); err != nil {
-				t.Errorf("Failed to unset TEST_URL_ENV: %v", err)
-			}
-		}()
-
-		// 加载环境变量
-		err := cmd.loadEnvVars()
-		if err != nil {
-			t.Fatalf("加载环境变量失败: %v", err)
-		}
-
-		if urlVal.Get() != "https://example.com/path?query=1" {
-			t.Errorf("期望URL值 'https://example.com/path?query=1', 实际获取 '%s'", urlVal.Get())
-		}
-	})
-
 	// 测试映射类型环境变量
 	t.Run("map type environment variable", func(t *testing.T) {
 		cmd := NewCmd("test", "", flag.ContinueOnError)
@@ -268,32 +216,6 @@ func TestLoadEnvVars(t *testing.T) {
 
 		if uint64Val.Get() != 18446744073709551615 {
 			t.Errorf("期望Uint64值 18446744073709551615, 实际获取 %d", uint64Val.Get())
-		}
-	})
-
-	// 测试IP6类型环境变量
-	t.Run("ip6 type environment variable", func(t *testing.T) {
-		cmd := NewCmd("test", "", flag.ContinueOnError)
-		ip6Val := cmd.IP6("ip6-flag", "", "2001:db8::1", "测试IP6标志").BindEnv("TEST_IP6_ENV")
-
-		// 设置环境变量
-		if err := os.Setenv("TEST_IP6_ENV", "2001:0db8:85a3:0000:0000:8a2e:0370:7334"); err != nil {
-			t.Fatalf("设置环境变量失败: %v", err)
-		}
-		defer func() {
-			if err := os.Unsetenv("TEST_IP6_ENV"); err != nil {
-				t.Errorf("Failed to unset TEST_IP6_ENV: %v", err)
-			}
-		}()
-
-		// 加载环境变量
-		err := cmd.loadEnvVars()
-		if err != nil {
-			t.Fatalf("加载环境变量失败: %v", err)
-		}
-
-		if ip6Val.Get() != "2001:db8:85a3::8a2e:370:7334" {
-			t.Errorf("期望IP6值 '2001:db8:85a3::8a2e:370:7334', 实际获取 '%s'", ip6Val.Get())
 		}
 	})
 
