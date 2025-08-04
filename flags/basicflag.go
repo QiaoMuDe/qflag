@@ -1,11 +1,56 @@
 package flags
 
 import (
+	"fmt"
+	"strconv"
 	"strings"
 	"sync"
 
 	"gitee.com/MM-Q/qflag/qerr"
 )
+
+// BoolFlag 布尔类型标志结构体
+// 继承BaseFlag[bool]泛型结构体,实现Flag接口
+type BoolFlag struct {
+	BaseFlag[bool]
+	mu sync.Mutex
+}
+
+// Type 返回标志类型
+//
+// 返回值:
+//   - FlagType: 标志类型枚举值
+func (f *BoolFlag) Type() FlagType { return FlagTypeBool }
+
+// Set 实现flag.Value接口,解析并设置布尔值
+//
+// 参数:
+//   - value: 待设置的值
+//
+// 返回值:
+//   - error: 解析或验证失败时返回错误信息
+func (f *BoolFlag) Set(value string) error {
+	f.mu.Lock()
+	defer f.mu.Unlock()
+
+	// 解析字符串为布尔值
+	boolVal, err := strconv.ParseBool(strings.ToLower(value))
+	if err != nil {
+		return err
+	}
+	return f.BaseFlag.Set(boolVal)
+}
+
+// String 实现flag.Value接口,返回布尔值字符串
+//
+// 返回值:
+//   - string: 布尔值字符串
+func (f *BoolFlag) String() string {
+	return f.BaseFlag.String()
+}
+
+// IsBoolFlag 实现flag.boolFlag接口,返回true
+func (f *BoolFlag) IsBoolFlag() bool { return true }
 
 // EnumFlag 枚举类型标志结构体
 // 继承BaseFlag[string]泛型结构体,增加枚举特有的选项验证
@@ -189,4 +234,65 @@ func (f *EnumFlag) GetOptions() []string {
 	options := make([]string, len(f.originalOptions))
 	copy(options, f.originalOptions)
 	return options
+}
+
+// StringFlag 字符串类型标志结构体
+// 继承BaseFlag[string]泛型结构体,实现Flag接口
+type StringFlag struct {
+	BaseFlag[string]
+}
+
+// Type 返回标志类型
+//
+// 返回值:
+//   - FlagType: 标志类型枚举值
+func (f *StringFlag) Type() FlagType { return FlagTypeString }
+
+// String 返回带引号的字符串值
+//
+// 返回值:
+//   - string: 带引号的字符串值
+func (f *StringFlag) String() string {
+	return fmt.Sprintf("%q", f.Get())
+}
+
+// Len 获取字符串标志的长度
+//
+// 返回值：
+//   - 字符串的字符数(按UTF-8编码计算)
+func (f *StringFlag) Len() int {
+	return len(f.Get())
+}
+
+// ToUpper 将字符串标志值转换为大写
+func (f *StringFlag) ToUpper() string {
+	return strings.ToUpper(f.Get())
+}
+
+// ToLower 将字符串标志值转换为小写
+func (f *StringFlag) ToLower() string {
+	return strings.ToLower(f.Get())
+}
+
+// Contains 检查字符串是否包含指定子串
+//
+// 参数:
+//   - substr 子串
+//
+// 返回值:
+//   - bool: 如果包含子串则返回true,否则返回false
+func (f *StringFlag) Contains(substr string) bool {
+	return strings.Contains(f.Get(), substr)
+}
+
+// Set 实现flag.Value接口的Set方法
+// 将字符串值解析并设置到标志中
+//
+// 参数:
+//   - value: 待设置的字符串值
+//
+// 返回值:
+//   - error: 设置失败时返回错误信息
+func (f *StringFlag) Set(value string) error {
+	return f.BaseFlag.Set(value)
 }
