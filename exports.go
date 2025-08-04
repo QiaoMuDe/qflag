@@ -60,9 +60,6 @@ type MapFlag = flags.MapFlag
 // TimeFlag 导出flag包中的TimeFlag结构体
 type TimeFlag = flags.TimeFlag
 
-// PathFlag 导出flag包中的PathFlag结构体
-type PathFlag = flags.PathFlag
-
 // Uint16Flag 导出flag包中的UintFlag结构体
 type Uint16Flag = flags.Uint16Flag
 

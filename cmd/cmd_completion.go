@@ -71,8 +71,6 @@ func getValueTypeByFlagType(flagType flags.FlagType) string {
 		return "bool"
 	case flags.FlagTypeInt, flags.FlagTypeUint16, flags.FlagTypeUint32, flags.FlagTypeUint64, flags.FlagTypeInt64, flags.FlagTypeFloat64:
 		return "number"
-	case flags.FlagTypePath:
-		return "path"
 	case flags.FlagTypeEnum:
 		return "enum"
 	case flags.FlagTypeIP4, flags.FlagTypeIP6:

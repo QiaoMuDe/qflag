@@ -323,35 +323,6 @@ func MapVar(f *flags.MapFlag, longName, shortName string, defValue map[string]st
 	QCommandLine.MapVar(f, longName, shortName, defValue, usage)
 }
 
-// Path 为全局默认命令创建一个路径类型的命令行标志。
-// 该函数会调用全局默认命令实例的 Path 方法，为命令行添加一个支持长短标志的路径参数。
-//
-// 参数值：
-//   - longName: 标志的长名称，在命令行中以 --longName 的形式使用。
-//   - shortName: 标志的短名称，在命令行中以 -shortName 的形式使用。
-//   - defValue: 标志的默认值，当命令行未指定该标志时使用。
-//   - usage: 标志的帮助说明信息，用于在显示帮助信息时展示。
-//
-// 返回值：
-//   - *flags.PathFlag: 指向新创建的路径标志对象的指针。
-func Path(longName, shortName string, defValue string, usage string) *flags.PathFlag {
-	return QCommandLine.Path(longName, shortName, defValue, usage)
-}
-
-// PathVar 为全局默认命令将一个路径类型的命令行标志绑定到指定的 PathFlag 指针。
-// 该函数会调用全局默认命令实例的 PathVar 方法，为命令行添加支持长短标志的路径参数，
-// 并将该参数与传入的 PathFlag 指针关联，以便后续获取和使用该标志的值。
-//
-// 参数值：
-//   - f: 指向 PathFlag 的指针，用于存储和管理该路径类型命令行标志的相关信息。
-//   - longName: 命令行标志的长名称，在命令行中需以 --longName 的格式使用。
-//   - shortName: 命令行标志的短名称，在命令行中需以 -shortName 的格式使用。
-//   - defValue: 该命令行标志的默认值，当用户在命令行中未指定该标志时，会使用此默认值。
-//   - usage: 该命令行标志的帮助说明信息，会在显示帮助信息时展示给用户。
-func PathVar(f *flags.PathFlag, longName, shortName string, defValue string, usage string) {
-	QCommandLine.PathVar(f, longName, shortName, defValue, usage)
-}
-
 // Uint32 为全局默认命令创建一个无符号32位整数类型的命令行标志。
 // 该函数会调用全局默认命令实例的 Uint32 方法，为命令行添加一个支持长短标志的无符号32位整数类型参数。
 //

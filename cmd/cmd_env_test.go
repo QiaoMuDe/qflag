@@ -191,33 +191,6 @@ func TestLoadEnvVars(t *testing.T) {
 		}
 	})
 
-	// 测试路径类型环境变量
-	t.Run("path type environment variable", func(t *testing.T) {
-		cmd := NewCmd("test", "", flag.ContinueOnError)
-		pathVal := cmd.Path("path-flag", "", "./default", "测试路径标志").BindEnv("TEST_PATH_ENV")
-
-		// 创建临时目录
-		tempDir := t.TempDir()
-		if err := os.Setenv("TEST_PATH_ENV", tempDir); err != nil {
-			t.Fatalf("设置环境变量失败: %v", err)
-		}
-		defer func() {
-			if err := os.Unsetenv("TEST_PATH_ENV"); err != nil {
-				t.Errorf("Failed to unset TEST_PATH_ENV: %v", err)
-			}
-		}()
-
-		// 加载环境变量
-		err := cmd.loadEnvVars()
-		if err != nil {
-			t.Fatalf("加载环境变量失败: %v", err)
-		}
-
-		if pathVal.Get() != tempDir {
-			t.Errorf("期望路径值 '%s', 实际获取 '%s'", tempDir, pathVal.Get())
-		}
-	})
-
 	// 测试映射类型环境变量
 	t.Run("map type environment variable", func(t *testing.T) {
 		cmd := NewCmd("test", "", flag.ContinueOnError)
