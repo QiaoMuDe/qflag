@@ -14,19 +14,27 @@ import (
 	"gitee.com/MM-Q/qflag/qerr"
 )
 
-// QCommandLine 全局默认Command实例
-var QCommandLine *Cmd
+var (
+	// QCommandLine 全局默认Command实例
+	QCommandLine *Cmd
+
+	// initOnce 确保全局默认Cmd实例只被初始化一次
+	initOnce sync.Once
+)
 
 // 在包初始化时创建全局默认Cmd实例
 func init() {
-	// 使用一致的命令名生成逻辑
-	cmdName := "myapp"
-	if len(os.Args) > 0 {
-		cmdName = filepath.Base(os.Args[0])
-	}
+	// 确保全局默认Cmd实例只被初始化一次
+	initOnce.Do(func() {
+		// 使用一致的命令名生成逻辑
+		cmdName := "myapp"
+		if len(os.Args) > 0 {
+			cmdName = filepath.Base(os.Args[0])
+		}
 
-	// 创建全局默认Cmd实例
-	QCommandLine = NewCmd(cmdName, "", flag.ExitOnError)
+		// 创建全局默认Cmd实例
+		QCommandLine = NewCmd(cmdName, "", flag.ExitOnError)
+	})
 }
 
 // userInfo 存储用户自定义信息的嵌套结构体
