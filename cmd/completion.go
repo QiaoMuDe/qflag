@@ -10,6 +10,7 @@ import (
 	"path/filepath"
 
 	"gitee.com/MM-Q/qflag/flags"
+	"gitee.com/MM-Q/qflag/internal/types"
 )
 
 // FlagParam 表示标志参数及其需求类型和值类型
@@ -102,7 +103,7 @@ func traverseCommandTree(buf *bytes.Buffer, rootPath string, cmds []*Cmd, shellT
 	type node struct {
 		name       string // 真正写入的名字（长名或短名）
 		parentPath string
-		cmd        *Cmd // 为了拿到下一级 subCmds
+		cmd        *Cmd // 对应命令对象为了拿到下一级 subCmds
 	}
 
 	if len(cmds) == 0 {
@@ -116,13 +117,13 @@ func traverseCommandTree(buf *bytes.Buffer, rootPath string, cmds []*Cmd, shellT
 			continue
 		}
 
-		// 长名入队
-		if n := c.LongName(); n != "" {
+		// 长名上下文入队
+		if n := c.ctx.LongName; n != "" {
 			q.PushBack(node{name: n, parentPath: rootPath, cmd: c})
 		}
 
-		// 短名入队
-		if n := c.ShortName(); n != "" {
+		// 短名上下文入队
+		if n := c.ctx.ShortName; n != "" {
 			q.PushBack(node{name: n, parentPath: rootPath, cmd: c})
 		}
 	}
@@ -153,18 +154,18 @@ func traverseCommandTree(buf *bytes.Buffer, rootPath string, cmds []*Cmd, shellT
 		}
 
 		// 子节点入队（同样按长短名拆分）
-		for _, sub := range cur.cmd.subCmds {
+		for _, sub := range cur.cmd.ctx.SubCmds {
 			if sub == nil {
 				continue
 			}
 
 			// 长名入队
-			if n := sub.LongName(); n != "" {
+			if n := sub.LongName; n != "" {
 				q.PushBack(node{name: n, parentPath: fullPath, cmd: sub})
 			}
 
 			// 短名入队
-			if n := sub.ShortName(); n != "" {
+			if n := sub.ShortName; n != "" {
 				q.PushBack(node{name: n, parentPath: fullPath, cmd: sub})
 			}
 		}

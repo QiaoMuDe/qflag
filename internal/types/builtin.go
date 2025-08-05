@@ -25,12 +25,26 @@ func NewBuiltinFlags() *BuiltinFlags {
 }
 
 // IsBuiltinFlag 检查是否为内置标志
+//
+// 参数:
+//   - name: 标志名称
+//
+// 返回值:
+//   - bool: 是否为内置标志
 func (bf *BuiltinFlags) IsBuiltinFlag(name string) bool {
+	if name == "" {
+		return false
+	}
+
+	// 从内置标志名称映射中查找
 	_, exists := bf.NameMap.Load(name)
 	return exists
 }
 
 // MarkAsBuiltin 标记为内置标志
+//
+// 参数:
+//   - names: 标志名称列表
 func (bf *BuiltinFlags) MarkAsBuiltin(names ...string) {
 	for _, name := range names {
 		bf.NameMap.Store(name, true)

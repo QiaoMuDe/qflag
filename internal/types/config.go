@@ -40,8 +40,8 @@ type CmdConfig struct {
 // 用于存储命令的使用示例，包括描述和示例内容
 //
 // 字段:
-//  - Description: 示例描述
-//  - Usage: 示例使用方式
+//   - Description: 示例描述
+//   - Usage: 示例使用方式
 type ExampleInfo struct {
 	Description string // 示例描述
 	Usage       string // 示例使用方式

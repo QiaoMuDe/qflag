@@ -1,6 +1,10 @@
 package cmd
 
-import "gitee.com/MM-Q/qflag/flags"
+import (
+	"fmt"
+
+	"gitee.com/MM-Q/qflag/flags"
+)
 
 // =============================================================================
 // 键值对类型标志
@@ -15,17 +19,20 @@ import "gitee.com/MM-Q/qflag/flags"
 //   - defValue: 默认值
 //   - usage: 帮助说明
 func (c *Cmd) MapVar(f *flags.MapFlag, longName, shortName string, defValue map[string]string, usage string) {
-	c.rwMu.Lock()
-	defer c.rwMu.Unlock()
+	c.ctx.Mutex.Lock()
+	defer c.ctx.Mutex.Unlock()
 
 	// 检查指针是否为nil
 	if f == nil {
 		panic("MapFlag pointer cannot be nil")
 	}
 
-	// 参数校验（复用公共函数）
-	if validateErr := c.validateFlag(longName, shortName); validateErr != nil {
-		panic(validateErr)
+	// 检查标志是否为内置标志
+	if ok := c.ctx.BuiltinFlags.IsBuiltinFlag(longName); ok {
+		panic(fmt.Errorf("flag long name %s is reserved", longName))
+	}
+	if ok := c.ctx.BuiltinFlags.IsBuiltinFlag(shortName); ok {
+		panic(fmt.Errorf("flag short name %s is reserved", shortName))
 	}
 
 	// 如果默认值为nil，则初始化为空map
@@ -47,16 +54,16 @@ func (c *Cmd) MapVar(f *flags.MapFlag, longName, shortName string, defValue map[
 
 	// 绑定短标志
 	if shortName != "" {
-		c.fs.Var(f, shortName, usage)
+		c.ctx.FlagSet.Var(f, shortName, usage)
 	}
 
 	// 绑定长标志
 	if longName != "" {
-		c.fs.Var(f, longName, usage)
+		c.ctx.FlagSet.Var(f, longName, usage)
 	}
 
 	// 注册Flag对象
-	if registerErr := c.flagRegistry.RegisterFlag(&flags.FlagMeta{Flag: f}); registerErr != nil {
+	if registerErr := c.ctx.FlagRegistry.RegisterFlag(&flags.FlagMeta{Flag: f}); registerErr != nil {
 		panic(registerErr)
 	}
 }
@@ -106,17 +113,20 @@ func (c *Cmd) Slice(longName, shortName string, defValue []string, usage string)
 //   - defValue: 默认值
 //   - usage: 帮助说明
 func (c *Cmd) SliceVar(f *flags.SliceFlag, longName, shortName string, defValue []string, usage string) {
-	c.rwMu.Lock()
-	defer c.rwMu.Unlock()
+	c.ctx.Mutex.Lock()
+	defer c.ctx.Mutex.Unlock()
 
 	// 检查指针是否为空
 	if f == nil {
 		panic("SliceFlag pointer cannot be nil")
 	}
 
-	// 参数校验（复用公共函数）
-	if validateErr := c.validateFlag(longName, shortName); validateErr != nil {
-		panic(validateErr)
+	// 检查标志是否为内置标志
+	if ok := c.ctx.BuiltinFlags.IsBuiltinFlag(longName); ok {
+		panic(fmt.Errorf("flag long name %s is reserved", longName))
+	}
+	if ok := c.ctx.BuiltinFlags.IsBuiltinFlag(shortName); ok {
+		panic(fmt.Errorf("flag short name %s is reserved", shortName))
 	}
 
 	// 确保默认值不为空
@@ -131,16 +141,16 @@ func (c *Cmd) SliceVar(f *flags.SliceFlag, longName, shortName string, defValue 
 
 	// 绑定短标志
 	if shortName != "" {
-		c.fs.Var(f, shortName, usage)
+		c.ctx.FlagSet.Var(f, shortName, usage)
 	}
 
 	// 绑定长标志
 	if longName != "" {
-		c.fs.Var(f, longName, usage)
+		c.ctx.FlagSet.Var(f, longName, usage)
 	}
 
 	// 注册Flag对象
-	if registerErr := c.flagRegistry.RegisterFlag(&flags.FlagMeta{Flag: f}); registerErr != nil {
+	if registerErr := c.ctx.FlagRegistry.RegisterFlag(&flags.FlagMeta{Flag: f}); registerErr != nil {
 		panic(registerErr)
 	}
 }

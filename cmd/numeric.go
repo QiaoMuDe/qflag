@@ -1,6 +1,10 @@
 package cmd
 
-import "gitee.com/MM-Q/qflag/flags"
+import (
+	"fmt"
+
+	"gitee.com/MM-Q/qflag/flags"
+)
 
 // =============================================================================
 // 64位浮点数类型标志
@@ -31,17 +35,20 @@ func (c *Cmd) Float64(longName, shortName string, defValue float64, usage string
 //   - defValue: float64 - 默认值
 //   - usage: string - 帮助说明
 func (c *Cmd) Float64Var(f *flags.Float64Flag, longName, shortName string, defValue float64, usage string) {
-	c.rwMu.Lock()
-	defer c.rwMu.Unlock()
+	c.ctx.Mutex.Lock()
+	defer c.ctx.Mutex.Unlock()
 
 	// 检查指针是否为空
 	if f == nil {
 		panic("FloatFlag pointer cannot be nil")
 	}
 
-	// 参数校验（复用公共函数）
-	if validateErr := c.validateFlag(longName, shortName); validateErr != nil {
-		panic(validateErr)
+	// 检查标志是否为内置标志
+	if ok := c.ctx.BuiltinFlags.IsBuiltinFlag(longName); ok {
+		panic(fmt.Errorf("flag long name %s is reserved", longName))
+	}
+	if ok := c.ctx.BuiltinFlags.IsBuiltinFlag(shortName); ok {
+		panic(fmt.Errorf("flag short name %s is reserved", shortName))
 	}
 
 	// 显式初始化默认值
@@ -55,14 +62,14 @@ func (c *Cmd) Float64Var(f *flags.Float64Flag, longName, shortName string, defVa
 
 	// 绑定长短标志
 	if shortName != "" {
-		c.fs.Var(f, shortName, usage)
+		c.ctx.FlagSet.Var(f, shortName, usage)
 	}
 	if longName != "" {
-		c.fs.Var(f, longName, usage)
+		c.ctx.FlagSet.Var(f, longName, usage)
 	}
 
 	// 注册Flag对象
-	if registerErr := c.flagRegistry.RegisterFlag(&flags.FlagMeta{Flag: f}); registerErr != nil {
+	if registerErr := c.ctx.FlagRegistry.RegisterFlag(&flags.FlagMeta{Flag: f}); registerErr != nil {
 		panic(registerErr)
 	}
 }
@@ -80,17 +87,20 @@ func (c *Cmd) Float64Var(f *flags.Float64Flag, longName, shortName string, defVa
 //   - defValue: 默认值
 //   - usage: 帮助说明
 func (c *Cmd) IntVar(f *flags.IntFlag, longName, shortName string, defValue int, usage string) {
-	c.rwMu.Lock()
-	defer c.rwMu.Unlock()
+	c.ctx.Mutex.Lock()
+	defer c.ctx.Mutex.Unlock()
 
 	// 检查指针是否为nil
 	if f == nil {
 		panic("IntFlag pointer cannot be nil")
 	}
 
-	// 参数校验（复用公共函数）
-	if validateErr := c.validateFlag(longName, shortName); validateErr != nil {
-		panic(validateErr)
+	// 检查标志是否为内置标志
+	if ok := c.ctx.BuiltinFlags.IsBuiltinFlag(longName); ok {
+		panic(fmt.Errorf("flag long name %s is reserved", longName))
+	}
+	if ok := c.ctx.BuiltinFlags.IsBuiltinFlag(shortName); ok {
+		panic(fmt.Errorf("flag short name %s is reserved", shortName))
 	}
 
 	// 初始化默认值
@@ -104,14 +114,14 @@ func (c *Cmd) IntVar(f *flags.IntFlag, longName, shortName string, defValue int,
 
 	// 绑定长短标志
 	if shortName != "" {
-		c.fs.Var(f, shortName, usage)
+		c.ctx.FlagSet.Var(f, shortName, usage)
 	}
 	if longName != "" {
-		c.fs.Var(f, longName, usage)
+		c.ctx.FlagSet.Var(f, longName, usage)
 	}
 
 	// 注册Flag对象
-	if registerErr := c.flagRegistry.RegisterFlag(&flags.FlagMeta{Flag: f}); registerErr != nil {
+	if registerErr := c.ctx.FlagRegistry.RegisterFlag(&flags.FlagMeta{Flag: f}); registerErr != nil {
 		panic(registerErr)
 	}
 }
@@ -141,17 +151,20 @@ func (c *Cmd) Int(longName, shortName string, defValue int, usage string) *flags
 //   - defValue: 默认值
 //   - usage: 帮助说明
 func (c *Cmd) Int64Var(f *flags.Int64Flag, longName, shortName string, defValue int64, usage string) {
-	c.rwMu.Lock()
-	defer c.rwMu.Unlock()
+	c.ctx.Mutex.Lock()
+	defer c.ctx.Mutex.Unlock()
 
 	// 检查指针是否为nil
 	if f == nil {
 		panic("Int64Flag pointer cannot be nil")
 	}
 
-	// 参数校验（复用公共函数）
-	if validateErr := c.validateFlag(longName, shortName); validateErr != nil {
-		panic(validateErr)
+	// 检查标志是否为内置标志
+	if ok := c.ctx.BuiltinFlags.IsBuiltinFlag(longName); ok {
+		panic(fmt.Errorf("flag long name %s is reserved", longName))
+	}
+	if ok := c.ctx.BuiltinFlags.IsBuiltinFlag(shortName); ok {
+		panic(fmt.Errorf("flag short name %s is reserved", shortName))
 	}
 
 	// 初始化默认值
@@ -165,14 +178,14 @@ func (c *Cmd) Int64Var(f *flags.Int64Flag, longName, shortName string, defValue 
 
 	// 绑定长短标志
 	if shortName != "" {
-		c.fs.Var(f, shortName, usage)
+		c.ctx.FlagSet.Var(f, shortName, usage)
 	}
 	if longName != "" {
-		c.fs.Var(f, longName, usage)
+		c.ctx.FlagSet.Var(f, longName, usage)
 	}
 
 	// 注册Flag对象
-	if registerErr := c.flagRegistry.RegisterFlag(&flags.FlagMeta{Flag: f}); registerErr != nil {
+	if registerErr := c.ctx.FlagRegistry.RegisterFlag(&flags.FlagMeta{Flag: f}); registerErr != nil {
 		panic(registerErr)
 	}
 }
@@ -206,17 +219,20 @@ func (c *Cmd) Int64(longName, shortName string, defValue int64, usage string) *f
 //   - defValue: 默认值
 //   - usage: 帮助说明
 func (c *Cmd) Uint16Var(f *flags.Uint16Flag, longName, shortName string, defValue uint16, usage string) {
-	c.rwMu.Lock()
-	defer c.rwMu.Unlock()
+	c.ctx.Mutex.Lock()
+	defer c.ctx.Mutex.Unlock()
 
 	// 参数校验
 	if f == nil {
 		panic("Uint16Flag pointer cannot be nil")
 	}
 
-	// 通用校验
-	if validateErr := c.validateFlag(longName, shortName); validateErr != nil {
-		panic(validateErr)
+	// 检查标志是否为内置标志
+	if ok := c.ctx.BuiltinFlags.IsBuiltinFlag(longName); ok {
+		panic(fmt.Errorf("flag long name %s is reserved", longName))
+	}
+	if ok := c.ctx.BuiltinFlags.IsBuiltinFlag(shortName); ok {
+		panic(fmt.Errorf("flag short name %s is reserved", shortName))
 	}
 
 	// 显式初始化
@@ -230,14 +246,14 @@ func (c *Cmd) Uint16Var(f *flags.Uint16Flag, longName, shortName string, defValu
 
 	// 注册到flagSet
 	if shortName != "" {
-		c.fs.Var(f, shortName, usage)
+		c.ctx.FlagSet.Var(f, shortName, usage)
 	}
 	if longName != "" {
-		c.fs.Var(f, longName, usage)
+		c.ctx.FlagSet.Var(f, longName, usage)
 	}
 
 	// 注册到flagRegistry
-	if registerErr := c.flagRegistry.RegisterFlag(&flags.FlagMeta{Flag: f}); registerErr != nil {
+	if registerErr := c.ctx.FlagRegistry.RegisterFlag(&flags.FlagMeta{Flag: f}); registerErr != nil {
 		panic(registerErr)
 	}
 }
@@ -267,17 +283,20 @@ func (c *Cmd) Uint16(longName, shortName string, defValue uint16, usage string) 
 //   - defValue: 默认值
 //   - usage: 帮助说明
 func (c *Cmd) Uint32Var(f *flags.Uint32Flag, longName, shortName string, defValue uint32, usage string) {
-	c.rwMu.Lock()
-	defer c.rwMu.Unlock()
+	c.ctx.Mutex.Lock()
+	defer c.ctx.Mutex.Unlock()
 
 	// 校验标志指针
 	if f == nil {
 		panic("Uint32Flag pointer cannot be nil")
 	}
 
-	// 通用标志校验
-	if validateErr := c.validateFlag(longName, shortName); validateErr != nil {
-		panic(validateErr)
+	// 检查标志是否为内置标志
+	if ok := c.ctx.BuiltinFlags.IsBuiltinFlag(longName); ok {
+		panic(fmt.Errorf("flag long name %s is reserved", longName))
+	}
+	if ok := c.ctx.BuiltinFlags.IsBuiltinFlag(shortName); ok {
+		panic(fmt.Errorf("flag short name %s is reserved", shortName))
 	}
 
 	// 设置标志指针
@@ -291,13 +310,13 @@ func (c *Cmd) Uint32Var(f *flags.Uint32Flag, longName, shortName string, defValu
 
 	// 绑定标志到指针
 	if shortName != "" {
-		c.fs.Var(f, shortName, usage)
+		c.ctx.FlagSet.Var(f, shortName, usage)
 	}
 	if longName != "" {
-		c.fs.Var(f, longName, usage)
+		c.ctx.FlagSet.Var(f, longName, usage)
 	}
 
-	if registerErr := c.flagRegistry.RegisterFlag(&flags.FlagMeta{Flag: f}); registerErr != nil {
+	if registerErr := c.ctx.FlagRegistry.RegisterFlag(&flags.FlagMeta{Flag: f}); registerErr != nil {
 		panic(registerErr)
 	}
 }
@@ -327,17 +346,20 @@ func (c *Cmd) Uint32(longName, shortName string, defValue uint32, usage string) 
 //   - defValue: 默认值
 //   - usage: 帮助说明
 func (c *Cmd) Uint64Var(f *flags.Uint64Flag, longName, shortName string, defValue uint64, usage string) {
-	c.rwMu.Lock()
-	defer c.rwMu.Unlock()
+	c.ctx.Mutex.Lock()
+	defer c.ctx.Mutex.Unlock()
 
 	// 检查指针是否为空
 	if f == nil {
 		panic("Uint64Flag pointer cannot be nil")
 	}
 
-	// 参数校验（复用公共函数）
-	if validateErr := c.validateFlag(longName, shortName); validateErr != nil {
-		panic(validateErr)
+	// 检查标志是否为内置标志
+	if ok := c.ctx.BuiltinFlags.IsBuiltinFlag(longName); ok {
+		panic(fmt.Errorf("flag long name %s is reserved", longName))
+	}
+	if ok := c.ctx.BuiltinFlags.IsBuiltinFlag(shortName); ok {
+		panic(fmt.Errorf("flag short name %s is reserved", shortName))
 	}
 
 	// 显式初始化
@@ -351,14 +373,14 @@ func (c *Cmd) Uint64Var(f *flags.Uint64Flag, longName, shortName string, defValu
 
 	// 注册到flagSet
 	if shortName != "" {
-		c.fs.Var(f, shortName, usage)
+		c.ctx.FlagSet.Var(f, shortName, usage)
 	}
 	if longName != "" {
-		c.fs.Var(f, longName, usage)
+		c.ctx.FlagSet.Var(f, longName, usage)
 	}
 
 	// 注册到flagRegistry
-	if registerErr := c.flagRegistry.RegisterFlag(&flags.FlagMeta{Flag: f}); registerErr != nil {
+	if registerErr := c.ctx.FlagRegistry.RegisterFlag(&flags.FlagMeta{Flag: f}); registerErr != nil {
 		panic(registerErr)
 	}
 }

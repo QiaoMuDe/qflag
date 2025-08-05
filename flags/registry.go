@@ -1,6 +1,7 @@
 package flags
 
 import (
+	"strings"
 	"sync"
 
 	"gitee.com/MM-Q/qflag/qerr"
@@ -104,36 +105,39 @@ func (r *FlagRegistry) RegisterFlag(meta *FlagMeta) error {
 	r.mu.Lock()         // 获取写锁, 保证并发安全
 	defer r.mu.Unlock() // 函数返回时释放写锁
 
+	// 获取长标志名称
+	longName := meta.GetLongName()
+	// 获取短标志名称
+	shortName := meta.GetShortName()
+
 	// 检查长短标志是否都为空
-	if meta.GetLongName() == "" && meta.GetShortName() == "" {
+	if longName == "" && shortName == "" {
 		return qerr.NewValidationError("flag must have at least one name")
 	}
 
-	// 检查长标志是否已存在
-	if meta.GetLongName() != "" {
-		if _, exists := r.byLong[meta.GetLongName()]; exists {
-			return qerr.NewValidationErrorf("long flag %s already exists", meta.GetLongName())
+	// 如果长标志名称不为空, 则进行检查和添加索引
+	if longName != "" {
+		// 验证长标志
+		if err := r.validateFlagName(meta.GetLongName(), "long", r.byLong); err != nil {
+			return err
 		}
-	}
 
-	// 检查短标志是否已存在
-	if meta.GetShortName() != "" {
-		if _, exists := r.byShort[meta.GetShortName()]; exists {
-			return qerr.NewValidationErrorf("short flag %s already exists", meta.GetShortName())
-		}
-	}
-
-	// 添加长标志索引
-	if meta.GetLongName() != "" {
+		// 添加长标志索引
 		r.byLong[meta.GetLongName()] = meta
 	}
 
-	// 只在短标志不为空时添加短标志索引
-	if meta.GetShortName() != "" {
+	// 如果短标志名称不为空, 则进行检查和添加索引
+	if shortName != "" {
+		// 验证短标志
+		if err := r.validateFlagName(meta.GetShortName(), "short", r.byShort); err != nil {
+			return err
+		}
+
+		// 添加短标志索引
 		r.byShort[meta.GetShortName()] = meta
 	}
 
-	// 添加到所有标志元数据切片
+	// 添加到标志元数据列表
 	r.allFlagMetas = append(r.allFlagMetas, meta)
 
 	return nil
@@ -291,4 +295,31 @@ func (r *FlagRegistry) GetALLFlagsCount() int {
 	r.mu.RLock()
 	defer r.mu.RUnlock()
 	return len(r.byLong) + len(r.byShort)
+}
+
+// validateFlagName 验证标志名称的通用函数
+//
+// 参数:
+//   - name: 标志名称
+//   - nameType: 标志类型(如"long"或"short")
+//   - existingMap: 已存在的标志映射
+//
+// 返回值:
+//   - error: 验证错误, 验证通过返回nil
+func (r *FlagRegistry) validateFlagName(name, nameType string, existingMap map[string]*FlagMeta) error {
+	if name == "" {
+		return nil // 空名称直接返回，由调用方处理
+	}
+
+	// 检查名称是否包含非法字符
+	if strings.ContainsAny(name, InvalidFlagChars) {
+		return qerr.NewValidationErrorf("%s flag name '%s' contains illegal characters", nameType, name)
+	}
+
+	// 检查标志是否已存在
+	if _, exists := existingMap[name]; exists {
+		return qerr.NewValidationErrorf("%s flag '%s' already exists", nameType, name)
+	}
+
+	return nil
 }

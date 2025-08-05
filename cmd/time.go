@@ -1,6 +1,7 @@
 package cmd
 
 import (
+	"fmt"
 	"time"
 
 	"gitee.com/MM-Q/qflag/flags"
@@ -35,17 +36,20 @@ func (c *Cmd) Time(longName, shortName string, defValue time.Time, usage string)
 //   - defValue: 默认值
 //   - usage: 帮助说明
 func (c *Cmd) TimeVar(f *flags.TimeFlag, longName, shortName string, defValue time.Time, usage string) {
-	c.rwMu.Lock()
-	defer c.rwMu.Unlock()
+	c.ctx.Mutex.Lock()
+	defer c.ctx.Mutex.Unlock()
 
 	// 检查指针是否为nil
 	if f == nil {
 		panic("TimeFlag pointer cannot be nil")
 	}
 
-	// 参数校验（复用公共函数）
-	if validateErr := c.validateFlag(longName, shortName); validateErr != nil {
-		panic(validateErr)
+	// 检查标志是否为内置标志
+	if ok := c.ctx.BuiltinFlags.IsBuiltinFlag(longName); ok {
+		panic(fmt.Errorf("flag long name %s is reserved", longName))
+	}
+	if ok := c.ctx.BuiltinFlags.IsBuiltinFlag(shortName); ok {
+		panic(fmt.Errorf("flag short name %s is reserved", shortName))
 	}
 
 	// 初始化默认值
@@ -59,16 +63,16 @@ func (c *Cmd) TimeVar(f *flags.TimeFlag, longName, shortName string, defValue ti
 
 	// 绑定短标志
 	if shortName != "" {
-		c.fs.Var(f, shortName, usage)
+		c.ctx.FlagSet.Var(f, shortName, usage)
 	}
 
 	// 绑定长标志
 	if longName != "" {
-		c.fs.Var(f, longName, usage)
+		c.ctx.FlagSet.Var(f, longName, usage)
 	}
 
 	// 注册Flag对象
-	if registerErr := c.flagRegistry.RegisterFlag(&flags.FlagMeta{Flag: f}); registerErr != nil {
+	if registerErr := c.ctx.FlagRegistry.RegisterFlag(&flags.FlagMeta{Flag: f}); registerErr != nil {
 		panic(registerErr)
 	}
 }
@@ -82,17 +86,20 @@ func (c *Cmd) TimeVar(f *flags.TimeFlag, longName, shortName string, defValue ti
 //   - defValue: time.Duration - 默认值
 //   - usage: string - 帮助说明
 func (c *Cmd) DurationVar(f *flags.DurationFlag, longName, shortName string, defValue time.Duration, usage string) {
-	c.rwMu.Lock()
-	defer c.rwMu.Unlock()
+	c.ctx.Mutex.Lock()
+	defer c.ctx.Mutex.Unlock()
 
 	// 检查指针是否为空
 	if f == nil {
 		panic("DurationFlag pointer cannot be nil")
 	}
 
-	// 参数校验
-	if validateErr := c.validateFlag(longName, shortName); validateErr != nil {
-		panic(validateErr)
+	// 检查标志是否为内置标志
+	if ok := c.ctx.BuiltinFlags.IsBuiltinFlag(longName); ok {
+		panic(fmt.Errorf("flag long name %s is reserved", longName))
+	}
+	if ok := c.ctx.BuiltinFlags.IsBuiltinFlag(shortName); ok {
+		panic(fmt.Errorf("flag short name %s is reserved", shortName))
 	}
 
 	// 初始化默认值(值类型)
@@ -106,14 +113,14 @@ func (c *Cmd) DurationVar(f *flags.DurationFlag, longName, shortName string, def
 
 	// 绑定长短标志
 	if shortName != "" {
-		c.fs.Var(f, shortName, usage)
+		c.ctx.FlagSet.Var(f, shortName, usage)
 	}
 	if longName != "" {
-		c.fs.Var(f, longName, usage)
+		c.ctx.FlagSet.Var(f, longName, usage)
 	}
 
 	// 注册标志元数据
-	if registerErr := c.flagRegistry.RegisterFlag(&flags.FlagMeta{Flag: f}); registerErr != nil {
+	if registerErr := c.ctx.FlagRegistry.RegisterFlag(&flags.FlagMeta{Flag: f}); registerErr != nil {
 		panic(registerErr)
 	}
 }
