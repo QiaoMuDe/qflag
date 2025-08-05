@@ -6,7 +6,7 @@ import (
 	"flag"
 	"fmt"
 	"os"
-	"runtime"
+	"runtime/debug"
 	"strings"
 
 	"gitee.com/MM-Q/qflag/flags"
@@ -38,10 +38,7 @@ func (c *Cmd) parseCommon(args []string, parseSubcommands bool) (err error, shou
 	defer func() {
 		// 添加panic捕获逻辑
 		if r := recover(); r != nil {
-			// 使用预定义的恐慌错误变量，并添加详细的堆栈信息
-			buf := make([]byte, 4096)
-			n := runtime.Stack(buf, false)
-			err = fmt.Errorf("%w: %v\nStack: %s", qerr.ErrPanicRecovered, r, string(buf[:n]))
+			err = fmt.Errorf("%w: %v\nStack: %s", qerr.ErrPanicRecovered, r, debug.Stack())
 		}
 	}()
 
