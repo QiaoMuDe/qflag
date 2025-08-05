@@ -1,5 +1,4 @@
-// bash_completion.go - bash 补全脚本生成器
-package cmd
+package completion
 
 import (
 	"bytes"

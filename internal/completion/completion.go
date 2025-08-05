@@ -1,10 +1,8 @@
-// cmd_completion.go - 自动补全命令的实现
-package cmd
+package completion
 
 import (
 	"bytes"
 	"container/list"
-	"fmt"
 	"os"
 	"path"
 	"path/filepath"
@@ -25,14 +23,14 @@ type FlagParam struct {
 // 生成标志的注意事项
 var (
 	// completionNotesCN 中文版本注意事项
-	completionNotesCN = []string{
+	CompletionNotesCN = []string{
 		"Windows环境: 需要PowerShell 5.1或更高版本以支持Register-ArgumentCompleter",
 		"Linux环境: 需要bash 4.0或更高版本以支持关联数组特性",
 		"请确保您的环境满足上述版本要求，否则自动补全功能可能无法正常工作",
 	}
 
 	// completionNotesEN 英文版本注意事项
-	completionNotesEN = []string{
+	CompletionNotesEN = []string{
 		"Windows environment: Requires PowerShell 5.1 or higher to support Register-ArgumentCompleter",
 		"Linux environment: Requires bash 4.0 or higher to support associative array features",
 		"Please ensure your environment meets the above version requirements, otherwise the auto-completion feature may not work properly",
@@ -40,7 +38,7 @@ var (
 )
 
 // 内置自动补全命令的示例使用（中文）
-var completionExamplesCN = []ExampleInfo{
+var CompletionExamplesCN = []types.ExampleInfo{
 	{Description: "Linux环境 临时启用", Usage: "source <(%s --generate-shell-completion bash)"},
 	{Description: "Linux环境 永久启用(添加到~/.bashrc)", Usage: "echo \"source <(%s --generate-shell-completion bash)\" >> ~/.bashrc"},
 	//{Description: "Linux环境 系统级安装(至/etc/profile.d)", Usage: "sudo %s --generate-shell-completion bash > /etc/profile.d/qflag_completion.bash"},
@@ -50,7 +48,7 @@ var completionExamplesCN = []ExampleInfo{
 }
 
 // 内置自动补全命令的示例使用（英文）
-var completionExamplesEN = []ExampleInfo{
+var CompletionExamplesEN = []types.ExampleInfo{
 	{Description: "Linux environment temporary activation", Usage: "source <(%s --generate-shell-completion bash)"},
 	{Description: "Linux environment permanent activation (add to ~/.bashrc)", Usage: "echo \"source <(%s --generate-shell-completion bash)\" >> ~/.bashrc"},
 	//{Description: "Linux system-wide installation (to /etc/profile.d)", Usage: "sudo %s --generate-shell-completion bash > /etc/profile.d/qflag_completion.bash"},
@@ -59,36 +57,49 @@ var completionExamplesEN = []ExampleInfo{
 	//{Description: "Windows system-wide installation (to ProgramFiles)", Usage: "%s --generate-shell-completion powershell > $env:ProgramFiles\\qflag\\completion.ps1"},
 }
 
-// getValueTypeByFlagType 根据标志类型获取值类型
+// GenerateShellCompletion 生成shell自动补全脚本
 //
 // 参数:
-//   - flagType - 标志类型
+//   - ctx: 命令上下文
+//   - shellType: shell类型 ("bash", "pwsh", "powershell")
 //
-// 返回值:
-//   - string: 值类型
-func getValueTypeByFlagType(flagType flags.FlagType) string {
-	switch flagType {
-	case flags.FlagTypeBool:
-		return "bool"
-	case flags.FlagTypeEnum:
-		return "enum"
-	default:
-		return "string"
-	}
-}
+// 返回值：
+//   - string: 自动补全脚本
+//   - error: 错误信息
+func GenerateShellCompletion(ctx *types.CmdContext, shellType string) (string, error) {
+	// 缓冲区
+	var buf bytes.Buffer
 
-// getParamTypeByFlagType 根据标志类型获取参数需求类型
-//
-// 参数:
-//   - flagType - 标志类型
-//
-// 返回值:
-//   - string: 参数需求类型
-func getParamTypeByFlagType(flagType flags.FlagType) string {
-	if flagType == flags.FlagTypeBool {
-		return "none"
+	// 检查生成自动补全脚本的必要条件
+	if checkErr := validateCompletionGeneration(ctx); checkErr != nil {
+		return "", checkErr
 	}
-	return "required"
+
+	// 程序名称
+	programName := filepath.Base(os.Args[0])
+
+	// 获取根命令的补全选项
+	rootCmdOpts := collectCompletionOptions(ctx)
+
+	// 构建命令树条目缓冲区
+	var cmdTreeEntries bytes.Buffer
+
+	// 从根命令的子命令开始添加条目
+	traverseCommandTree(&cmdTreeEntries, "", ctx.SubCmds, shellType)
+
+	// 缓存标志参数，避免重复计算
+	params := collectFlagParameters(ctx)
+
+	// 根据shell类型调用对应的处理函数
+	switch shellType {
+	case flags.ShellBash: // Bash特定处理
+		generateBashCompletion(&buf, params, rootCmdOpts, cmdTreeEntries.String(), programName)
+	case flags.ShellPwsh, flags.ShellPowershell: // PowerShell特定处理
+		generatePwshCompletion(&buf, params, rootCmdOpts, cmdTreeEntries.String(), programName)
+	}
+
+	// 返回自动补全脚本
+	return buf.String(), nil
 }
 
 // traverseCommandTree 遍历命令树
@@ -98,33 +109,33 @@ func getParamTypeByFlagType(flagType flags.FlagType) string {
 //   - rootPath: 根路径
 //   - cmds: 命令列表
 //   - shellType: 目标 shell 类型
-func traverseCommandTree(buf *bytes.Buffer, rootPath string, cmds []*Cmd, shellType string) {
+func traverseCommandTree(buf *bytes.Buffer, rootPath string, cmdContexts []*types.CmdContext, shellType string) {
 	// node 代表一个即将写入的“树条目”
 	type node struct {
-		name       string // 真正写入的名字（长名或短名）
-		parentPath string
-		cmd        *Cmd // 对应命令对象为了拿到下一级 subCmds
+		name       string            // 真正写入的名字（长名或短名）
+		parentPath string            // 父路径
+		ctx        *types.CmdContext // 上下文
 	}
 
-	if len(cmds) == 0 {
+	if len(cmdContexts) == 0 {
 		return
 	}
 
 	// 初始化队列：把第一层命令按长短名拆开入队
 	q := list.New()
-	for _, c := range cmds {
+	for _, c := range cmdContexts {
 		if c == nil {
 			continue
 		}
 
 		// 长名上下文入队
-		if n := c.ctx.LongName; n != "" {
-			q.PushBack(node{name: n, parentPath: rootPath, cmd: c})
+		if n := c.LongName; n != "" {
+			q.PushBack(node{name: n, parentPath: rootPath, ctx: c})
 		}
 
 		// 短名上下文入队
-		if n := c.ctx.ShortName; n != "" {
-			q.PushBack(node{name: n, parentPath: rootPath, cmd: c})
+		if n := c.ShortName; n != "" {
+			q.PushBack(node{name: n, parentPath: rootPath, ctx: c})
 		}
 	}
 
@@ -145,7 +156,7 @@ func traverseCommandTree(buf *bytes.Buffer, rootPath string, cmds []*Cmd, shellT
 		}
 
 		// 根据 shell 写树条目
-		opts := cur.cmd.collectCompletionOptions()
+		opts := collectCompletionOptions(cur.ctx)
 		switch shellType {
 		case flags.ShellBash: // Bash特定处理
 			generateBashCommandTreeEntry(buf, fullPath, opts)
@@ -154,19 +165,19 @@ func traverseCommandTree(buf *bytes.Buffer, rootPath string, cmds []*Cmd, shellT
 		}
 
 		// 子节点入队（同样按长短名拆分）
-		for _, sub := range cur.cmd.ctx.SubCmds {
+		for _, sub := range cur.ctx.SubCmds {
 			if sub == nil {
 				continue
 			}
 
 			// 长名入队
 			if n := sub.LongName; n != "" {
-				q.PushBack(node{name: n, parentPath: fullPath, cmd: sub})
+				q.PushBack(node{name: n, parentPath: fullPath, ctx: sub})
 			}
 
 			// 短名入队
 			if n := sub.ShortName; n != "" {
-				q.PushBack(node{name: n, parentPath: fullPath, cmd: sub})
+				q.PushBack(node{name: n, parentPath: fullPath, ctx: sub})
 			}
 		}
 
@@ -183,67 +194,26 @@ func traverseCommandTree(buf *bytes.Buffer, rootPath string, cmds []*Cmd, shellT
 	}
 }
 
-// generateShellCompletion 生成shell自动补全脚本
+// collectFlagParameters 收集所有命令标志参数需求，返回标志名称到参数需求类型的映射
 //
 // 参数:
-//   - shellType: shell类型 ("bash", "pwsh", "powershell")
-//
-// 返回值：
-//   - string: 自动补全脚本
-//   - error: 错误信息
-func (c *Cmd) generateShellCompletion(shellType string) (string, error) {
-	// 缓冲区
-	var buf bytes.Buffer
-
-	// 检查生成自动补全脚本的必要条件
-	if checkErr := validateCompletionGeneration(c); checkErr != nil {
-		return "", checkErr
-	}
-
-	// 程序名称
-	programName := filepath.Base(os.Args[0])
-
-	// 获取根命令的补全选项
-	rootCmdOpts := c.collectCompletionOptions()
-
-	// 构建命令树条目缓冲区
-	var cmdTreeEntries bytes.Buffer
-
-	// 从根命令的子命令开始添加条目
-	traverseCommandTree(&cmdTreeEntries, "", c.subCmds, shellType)
-
-	// 缓存标志参数，避免重复计算
-	params := c.collectFlagParameters()
-
-	// 根据shell类型调用对应的处理函数
-	switch shellType {
-	case flags.ShellBash: // Bash特定处理
-		generateBashCompletion(&buf, params, rootCmdOpts, cmdTreeEntries.String(), programName)
-	case flags.ShellPwsh, flags.ShellPowershell: // PowerShell特定处理
-		generatePwshCompletion(&buf, params, rootCmdOpts, cmdTreeEntries.String(), programName)
-	}
-
-	// 返回自动补全脚本
-	return buf.String(), nil
-}
-
-// collectFlagParameters 收集所有命令标志参数需求，返回标志名称到参数需求类型的映射
+//   - ctx: 命令上下文
 //
 // 参数需求类型:
 //   - "required"
 //   - "optional"
 //   - "none"
-func (c *Cmd) collectFlagParameters() []FlagParam {
+func collectFlagParameters(ctx *types.CmdContext) []FlagParam {
 	// 粗略估计：整棵树的 flag 总量
 	params := make([]FlagParam, 0, 256)
 	seen := make(map[string]struct{})
 
 	// 队列 BFS
 	type node struct {
-		cmd  *Cmd
+		ctx  *types.CmdContext
 		path string // 已标准化好的路径
 	}
-	q := []node{{cmd: c, path: "/"}}
+	q := []node{{ctx: ctx, path: "/"}}
 
 	// add 添加一个标志到结果集
 	add := func(prefix, name string, cur node, meta *flags.FlagMeta) {
@@ -282,7 +252,7 @@ func (c *Cmd) collectFlagParameters() []FlagParam {
 		q = q[1:]   // 移除当前节点
 
 		// 遍历当前命令的所有标志
-		for _, meta := range cur.cmd.flagRegistry.GetAllFlagMetas() {
+		for _, meta := range cur.ctx.FlagRegistry.GetAllFlagMetas() {
 			// 如果短标志不为空，则添加短标志
 			if meta.GetShortName() != "" {
 				add("-", meta.GetShortName(), cur, meta)
@@ -295,16 +265,16 @@ func (c *Cmd) collectFlagParameters() []FlagParam {
 		}
 
 		// 子命令入队
-		for _, sub := range cur.cmd.subCmds {
+		for _, sub := range cur.ctx.SubCmds {
 			if sub == nil {
 				continue
 			}
 
 			// 子命令路径
-			subPath := path.Join(cur.path, sub.Name()) + "/"
+			subPath := path.Join(cur.path, sub.GetName()) + "/"
 
 			// 入队
-			q = append(q, node{cmd: sub, path: subPath})
+			q = append(q, node{ctx: sub, path: subPath})
 		}
 	}
 	return params
@@ -313,20 +283,20 @@ func (c *Cmd) collectFlagParameters() []FlagParam {
 // collectCompletionOptions 收集命令的补全选项，包括标志和子命令
 //
 // 参数：
-//   - c: 当前命令实例
+//   - ctx: 命令上下文
 //
 // 返回值：
 //   - 包含所有标志选项和子命令名称的字符串切片
-func (c *Cmd) collectCompletionOptions() []string {
-	if c == nil || c.flagRegistry == nil {
+func collectCompletionOptions(ctx *types.CmdContext) []string {
+	if ctx == nil || ctx.FlagRegistry == nil {
 		return nil
 	}
 
 	// 获取所有标志数量(长标志+短标志)
-	flagCnt := len(c.flagRegistry.GetAllFlags())
+	flagCnt := len(ctx.FlagRegistry.GetAllFlagMetas())
 
 	// 计算总容量（标志数量+子命令数量*2）
-	capacity := flagCnt + len(c.subCmds)*2
+	capacity := flagCnt + len(ctx.SubCmds)*2
 
 	// 创建一个用于存储标志选项和子命令名称的切片
 	seen := make(map[string]struct{}, capacity)
@@ -339,7 +309,7 @@ func (c *Cmd) collectCompletionOptions() []string {
 	}
 
 	// 1. flags （同时展开长短名）
-	for _, m := range c.flagRegistry.GetAllFlagMetas() {
+	for _, m := range ctx.FlagRegistry.GetAllFlagMetas() {
 		if m == nil {
 			continue
 		}
@@ -354,12 +324,12 @@ func (c *Cmd) collectCompletionOptions() []string {
 	}
 
 	// 2. sub-commands（同时展开长短名）
-	for _, sub := range c.subCmds {
+	for _, sub := range ctx.SubCmds {
 		if sub == nil {
 			continue
 		}
-		add(sub.LongName())
-		add(sub.ShortName())
+		add(sub.LongName)
+		add(sub.ShortName)
 	}
 
 	// 3. 转回切片
@@ -368,24 +338,4 @@ func (c *Cmd) collectCompletionOptions() []string {
 		opts = append(opts, k)
 	}
 	return opts
-}
-
-// validateCompletionGeneration 验证补全脚本生成所需的命令状态
-//
-// 参数:
-//   - c: 命令实例
-//
-// 返回值:
-//   - error: 如果验证失败, 返回相应的错误信息; 否则返回nil
-func validateCompletionGeneration(c *Cmd) error {
-	if c == nil {
-		return fmt.Errorf("command instance is nil")
-	}
-	if c.parentCmd != nil {
-		return fmt.Errorf("invalid command state: not a root command")
-	}
-	if c.flagRegistry == nil {
-		return fmt.Errorf("invalid command state: flag registry is nil")
-	}
-	return nil
 }

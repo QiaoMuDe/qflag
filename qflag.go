@@ -215,16 +215,17 @@ func AddNote(note string) {
 // 该函数用于添加命令行标志的示例，这些示例将在命令行帮助信息中显示
 //
 // 参数:
-//   - e: 示例信息，ExampleInfo 类型。
-func AddExample(e cmd.ExampleInfo) {
-	QCommandLine.AddExample(e)
+//   - desc: 示例描述，字符串类型。
+//   - usage: 示例用法，字符串类型。
+func AddExample(desc, usage string) {
+	QCommandLine.AddExample(desc, usage)
 }
 
 // GetExamples 获取示例信息
 // 该函数用于获取命令行标志的示例信息列表
 //
 // 返回值:
-//   - []ExampleInfo: 示例信息列表，每个元素为 ExampleInfo 类型。
+//   - []cmd.ExampleInfo: 示例信息列表，每个元素为 ExampleInfo 类型。
 func GetExamples() []cmd.ExampleInfo {
 	return QCommandLine.GetExamples()
 }

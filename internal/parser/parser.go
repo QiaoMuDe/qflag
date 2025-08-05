@@ -74,15 +74,3 @@ func ParseSubCommandSafe(ctx *types.CmdContext, args []string) error {
 
 	return nil
 }
-
-// ParseFlagsOnly 仅解析标志，不处理子命令
-//
-// 参数:
-//   - ctx: 命令上下文
-//   - args: 命令行参数
-//
-// 返回值:
-//   - error: 如果解析失败，返回错误信息
-func ParseFlagsOnly(ctx *types.CmdContext, args []string) error {
-	return ParseArgs(ctx, args, false)
-}

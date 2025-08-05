@@ -10,18 +10,19 @@ import (
 // ValidateSubCommand 验证单个子命令的有效性
 //
 // 参数：
-//   - cmd: 要验证的子命令实例
+//   - parent: 当前上下文实例
+//   - child: 待添加的上下文实例
 //
 // 返回值：
 //   - error: 验证失败时返回的错误信息, 否则返回nil
 func ValidateSubCommand(parent, child *types.CmdContext) error {
 	if child == nil {
-		return fmt.Errorf("subcmd %s is nil", getCmdIdentifier(child))
+		return fmt.Errorf("subcmd %s is nil", GetCmdIdentifier(child))
 	}
 
 	// 检测循环引用
 	if HasCycle(parent, child) {
-		return fmt.Errorf("cyclic reference detected: Command %s already exists in the command chain", getCmdIdentifier(child))
+		return fmt.Errorf("cyclic reference detected: Command %s already exists in the command chain", GetCmdIdentifier(child))
 	}
 
 	// 检查名称冲突
@@ -52,7 +53,8 @@ func ValidateSubCommand(parent, child *types.CmdContext) error {
 //  2. 子命令的父命令链中包含当前命令
 //
 // 参数:
-//   - child: 待添加的子命令实例
+//   - parent: 当前上下文实例
+//   - child: 待添加的上下文实例
 //
 // 返回值:
 //   - bool: 是否存在循环引用
@@ -116,14 +118,14 @@ func dfs(current, target *types.CmdContext, visited map[*types.CmdContext]bool, 
 	return false
 }
 
-// getCmdIdentifier 获取命令的标识字符串，用于错误信息
+// GetCmdIdentifier 获取命令的标识字符串，用于错误信息
 //
 // 参数：
 //   - cmd: 命令对象
 //
 // 返回：
 //   - 命令标识字符串, 如果为空则返回 <nil>
-func getCmdIdentifier(cmd *types.CmdContext) string {
+func GetCmdIdentifier(cmd *types.CmdContext) string {
 	if cmd == nil {
 		return "<nil>"
 	}

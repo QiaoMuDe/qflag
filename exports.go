@@ -22,9 +22,6 @@ type Cmd = cmd.Cmd
 // NewCmd 导出cmd包中的NewCmd函数
 var NewCmd = cmd.NewCmd
 
-// ExampleInfo 导出cmd包中的ExampleInfo结构体
-type ExampleInfo = cmd.ExampleInfo
-
 // 导出标志类型 //
 
 // Flag 导出flag包中的Flag结构体

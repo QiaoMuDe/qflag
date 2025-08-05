@@ -5,145 +5,96 @@ package cmd
 import (
 	"fmt"
 	"os"
+	"runtime/debug"
 
 	"gitee.com/MM-Q/qflag/flags"
+	"gitee.com/MM-Q/qflag/internal/completion"
+	"gitee.com/MM-Q/qflag/internal/parser"
 	"gitee.com/MM-Q/qflag/internal/types"
+	"gitee.com/MM-Q/qflag/qerr"
 )
 
-// // parseCommon 命令行参数解析公共逻辑
-// //
-// // 主要功能：
-// //  1. 通用参数解析流程(标志解析、内置标志处理、错误处理)
-// //  2. 枚举类型标志验证
-// //  3. 可选的子命令解析支持
-// //
-// // 参数：
-// //
-// //	args: 原始命令行参数切片
-// //	parseSubcommands: 是否解析子命令(true: 解析子命令, false: 忽略子命令)
-// //
-// // 返回值：
-// //
-// //   - 解析过程中遇到的错误(如标志格式错误、子命令解析失败等)
-// //   - 是否需要退出程序, 用于处理内部选项标志的解析处理情况(true: 需要退出, false: 不需要退出)
-// //
-// // 注意事项：
-// //   - 每个Cmd实例仅会被解析一次(线程安全)
-// //   - 内置标志(-h/--help, -v/--version等)处理逻辑在此实现
-// //   - 子命令解析仅在parseSubcommands=true时执行
-// func (c *Cmd) parseCommon(args []string, parseSubcommands bool) (err error, shouldExit bool) {
-// 	defer func() {
-// 		// 添加panic捕获逻辑
-// 		if r := recover(); r != nil {
-// 			err = fmt.Errorf("%w: %v\nStack: %s", qerr.ErrPanicRecovered, r, debug.Stack())
-// 		}
-// 	}()
+// parseCommon 解析命令行参数的公共逻辑
+//
+// 参数:
+//   - args: 命令行参数切片
+//   - parseSubcommands: 是否解析子命令
+//
+// 返回值:
+//   - shouldExit: 是否需要退出程序
+//   - err: 解析过程中遇到的错误
+func (c *Cmd) parseCommon(args []string, parseSubcommands bool) (shouldExit bool, err error) {
+	defer func() {
+		// 添加panic捕获逻辑
+		if r := recover(); r != nil {
+			err = fmt.Errorf("%w: %v\nStack: %s", qerr.ErrPanicRecovered, r, debug.Stack())
+		}
+	}()
 
-// 	// 如果命令为空, 则返回错误
-// 	if c == nil {
-// 		return fmt.Errorf("cmd cannot be nil"), false
-// 	}
+	// 检查命令是否为nil
+	if c == nil {
+		return false, fmt.Errorf("cmd: nil command")
+	}
 
-// 	// 调用提取的组件校验方法
-// 	if err = c.validateComponents(); err != nil {
-// 		return err, false
-// 	}
+	// 调用提取的组件校验方法
+	if err := c.validateComponents(); err != nil {
+		return false, err
+	}
 
-// 	// 确保只解析一次
-// 	c.parseOnce.Do(func() {
-// 		defer c.parsed.Store(true) // 在返回时, 无论成功失败均标记为已解析
+	c.ctx.ParseOnce.Do(func() {
+		defer c.ctx.Parsed.Store(true) // 在返回时, 无论成功失败均标记为已解析
 
-// 		// 调用内置标志注册方法
-// 		c.registerBuiltinFlags()
+		// 调用内置标志注册方法
+		c.registerBuiltinFlags()
 
-// 		// 添加默认的注意事项
-// 		if c.GetUseChinese() {
-// 			c.AddNote(ChineseTemplate.DefaultNote)
-// 		} else {
-// 			c.AddNote(EnglishTemplate.DefaultNote)
-// 		}
+		// 添加默认注意事项
+		if c.ctx.Config.UseChinese {
+			// 中文环境下添加默认注意事项
+			c.ctx.Config.Notes = append(c.ctx.Config.Notes, completion.CompletionNotesCN...)
+		} else {
+			// 英文环境下添加默认注意事项
+			c.ctx.Config.Notes = append(c.ctx.Config.Notes, completion.CompletionNotesEN...)
+		}
 
-// 		// 设置底层flag库的Usage函数
-// 		c.fs.Usage = func() {
-// 			c.PrintHelp()
-// 		}
+		// 设置底层flag库的Usage函数
+		c.ctx.FlagSet.Usage = func() {
+			c.PrintHelp()
+		}
 
-// 		// 解析前加载环境变量的参数值
-// 		if err = c.loadEnvVars(); err != nil {
-// 			err = fmt.Errorf("%w: %v", qerr.ErrEnvLoadFailed, err)
-// 			return
-// 		}
+		// 解析参数
+		if err = parser.ParseArgs(c.ctx, args, parseSubcommands); err != nil {
+			return
+		}
 
-// 		// 调用底层flag库解析参数
-// 		if parseErr := c.fs.Parse(args); parseErr != nil {
-// 			err = fmt.Errorf("%w: %w", qerr.ErrFlagParseFailed, parseErr)
-// 			return
-// 		}
+		// 处理内置标志
+		exit, handleErr := c.handleBuiltinFlags()
+		if handleErr != nil {
+			err = handleErr
+			return
+		}
 
-// 		// 调用内置标志处理方法
-// 		exit, handleErr := c.handleBuiltinFlags()
-// 		if handleErr != nil {
-// 			// 处理内置标志错误
-// 			err = handleErr
-// 			return
-// 		}
+		// 内置标志处理是否需要退出程序
+		if exit {
+			shouldExit = true
+			return
+		}
 
-// 		// 内置标志处理是否需要退出程序
-// 		if exit {
-// 			shouldExit = true
-// 			return
-// 		}
+		// 执行解析钩子
+		if c.ctx.ParseHook != nil {
+			hookErr, hookExit := c.ctx.ParseHook(c.ctx)
+			if hookErr != nil {
+				err = hookErr
+				return
+			}
+			if hookExit {
+				shouldExit = true
+				return
+			}
+		}
+	})
 
-// 		// 设置当前命令的非标志参数
-// 		c.args = append(c.args, c.fs.Args()...)
-
-// 		// 如果允许解析子命令, 则进入子命令解析阶段, 否则跳过子命令解析
-// 		if parseSubcommands {
-// 			// 如果存在子命令并且非标志参数不为0
-// 			if len(c.args) > 0 && (len(c.subCmdMap) > 0 && len(c.subCmds) > 0) {
-// 				// 获取参数的第一个值(子命令名称: 长名或短名)
-// 				arg := c.args[0]
-
-// 				// 保存剩余参数
-// 				remainingArgs := make([]string, len(c.args)-1)
-// 				copy(remainingArgs, c.args[1:])
-
-// 				// 直接通过参数0查找子命令, 如果存在则解析子命令
-// 				if subCmd, ok := c.subCmdMap[arg]; ok {
-// 					// 将剩余参数传递给子命令解析
-// 					if parseErr := subCmd.Parse(remainingArgs); parseErr != nil {
-// 						err = fmt.Errorf("%w for '%s': %v", qerr.ErrSubCommandParseFailed, arg, parseErr)
-// 					}
-// 					return
-// 				}
-// 			}
-// 		}
-
-// 		// 调用自定义解析阶段钩子函数
-// 		if c.ParseHook != nil {
-// 			// 执行钩子函数
-// 			hookErr, hookExit := c.ParseHook(c)
-// 			// 处理钩子函数错误
-// 			if hookErr != nil {
-// 				err = hookErr
-// 				return
-// 			}
-// 			// 钩子函数是否需要退出程序
-// 			if hookExit {
-// 				shouldExit = true
-// 				return
-// 			}
-// 		}
-// 	})
-
-// 	// 检查是否报错
-// 	if err != nil {
-// 		return err, false
-// 	}
-
-// 	// 根据内置标志处理结果决定是否退出
-// 	return nil, shouldExit
-// }
+	return shouldExit, err
+}
 
 // validateComponents 校验核心组件和内置标志的初始化状态
 //
@@ -184,9 +135,9 @@ func (c *Cmd) registerBuiltinFlags() {
 	if c.ctx.Config.EnableCompletion {
 		// 语言配置结构体：集中管理所有语言相关资源
 		type languageConfig struct {
-			notes     []string      // 注意事项
-			shellDesc string        // 用法描述
-			examples  []ExampleInfo // 示例
+			notes     []string            // 注意事项
+			shellDesc string              // 用法描述
+			examples  []types.ExampleInfo // 示例
 		}
 
 		// 一次性判断语言并初始化所有相关资源
@@ -196,15 +147,15 @@ func (c *Cmd) registerBuiltinFlags() {
 		// 根据语言选择对应的资源
 		if useChinese {
 			langConfig = languageConfig{
-				notes:     completionNotesCN,
-				shellDesc: fmt.Sprintf(flags.CompletionShellDescCN, flags.ShellSlice),
-				examples:  completionExamplesCN,
+				notes:     completion.CompletionNotesCN,                               // 注意事项
+				shellDesc: fmt.Sprintf(flags.CompletionShellDescCN, flags.ShellSlice), // 使用帮助
+				examples:  completion.CompletionExamplesCN,                            // 示例
 			}
 		} else {
 			langConfig = languageConfig{
-				notes:     completionNotesEN,
-				shellDesc: fmt.Sprintf(flags.CompletionShellDescEN, flags.ShellSlice),
-				examples:  completionExamplesEN,
+				notes:     completion.CompletionNotesEN,                               // 注意事项
+				shellDesc: fmt.Sprintf(flags.CompletionShellDescEN, flags.ShellSlice), // 使用帮助
+				examples:  completion.CompletionExamplesEN,                            // 示例
 			}
 		}
 
@@ -234,9 +185,13 @@ func (c *Cmd) registerBuiltinFlags() {
 	// 仅在版本信息不为空时注册(-v/--version)
 	if c.ctx.Config.Version != "" {
 		// 获取版本信息的使用说明
-		versionUsage := flags.VersionFlagUsageEn
+		var versionUsage string
 		if c.ctx.Config.UseChinese {
+			// 中文环境下的版本信息使用说明
 			versionUsage = flags.VersionFlagUsageZh
+		} else {
+			// 英文环境下的版本信息使用说明
+			versionUsage = flags.VersionFlagUsageEn
 		}
 
 		// 注册版本信息标志
@@ -256,7 +211,7 @@ func (c *Cmd) registerBuiltinFlags() {
 func (c *Cmd) handleBuiltinFlags() (bool, error) {
 	// 检查是否使用-h/--help标志
 	if c.ctx.BuiltinFlags.Help.Get() {
-		//c.PrintHelp()
+		c.PrintHelp()
 		if c.ctx.Config.ExitOnBuiltinFlags {
 			return true, nil // 标记需要退出
 		}
@@ -282,23 +237,12 @@ func (c *Cmd) handleBuiltinFlags() (bool, error) {
 
 		// 只有不是默认值时才生成补全脚本
 		if shell != flags.ShellNone {
-			// 生成对应shell的补全脚本
-			switch shell {
-			case flags.ShellBash, flags.ShellPowershell, flags.ShellPwsh: // 受支持的shell类型
-				shellCompletion, err := c.generateShellCompletion(c.ctx, shell)
-				if err != nil {
-					return false, err
-				}
-				fmt.Println(shellCompletion)
-			default:
-				return false, fmt.Errorf("unsupported shell: %s. Supported shells are: %v", shell, flags.ShellSlice)
+			completion, err := completion.GenerateShellCompletion(c.ctx, shell)
+			if err != nil {
+				return false, err
 			}
-
-			// 仅在生成补全脚本后检查退出标志
-			if c.ctx.Config.ExitOnBuiltinFlags {
-				return true, nil // 标记需要退出
-			}
-			return false, nil
+			fmt.Println(completion)
+			return c.ctx.Config.ExitOnBuiltinFlags, nil
 		}
 	}
 
