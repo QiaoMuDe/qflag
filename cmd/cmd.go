@@ -8,7 +8,6 @@ import (
 	"path/filepath"
 	"strings"
 	"sync"
-	"sync/atomic"
 
 	"gitee.com/MM-Q/qflag/flags"
 	"gitee.com/MM-Q/qflag/qerr"
@@ -75,51 +74,51 @@ type userInfo struct {
 
 // Cmd 命令行标志管理结构体,封装参数解析、长短标志互斥及帮助系统。
 type Cmd struct {
-	// 底层flag集合, 处理参数解析
-	fs *flag.FlagSet
+	// // 底层flag集合, 处理参数解析
+	// fs *flag.FlagSet
 
-	// 标志注册表, 统一管理标志的元数据
-	flagRegistry *flags.FlagRegistry
+	// // 标志注册表, 统一管理标志的元数据
+	// flagRegistry *flags.FlagRegistry
 
 	// 用于确保命令只被解析一次
-	parseOnce sync.Once
-	parsed    atomic.Bool // 标记是否已完成解析
+	// parseOnce sync.Once
+	// parsed    atomic.Bool // 标记是否已完成解析
 
-	// 子命令映射表, 用于关联和查找子命令
-	subCmdMap map[string]*Cmd
+	// // 子命令映射表, 用于关联和查找子命令
+	// subCmdMap map[string]*Cmd
 
-	// 子命令切片, 用于存储唯一实例(无重复)
-	subCmds []*Cmd
+	// // 子命令切片, 用于存储唯一实例(无重复)
+	// subCmds []*Cmd
 
-	// 父命令指针,用于递归调用, 根命令的父命令为nil
-	parentCmd *Cmd
+	// // 父命令指针,用于递归调用, 根命令的父命令为nil
+	// parentCmd *Cmd
 
 	// 命令行参数切片
-	args []string
+	// args []string
 
-	// 读写锁, 确保并发安全操作, 读操作使用RLock/RUnlock, 写操作使用Lock/Unlock
-	rwMu sync.RWMutex
+	// // 读写锁, 确保并发安全操作, 读操作使用RLock/RUnlock, 写操作使用Lock/Unlock
+	// rwMu sync.RWMutex
 
-	// 用于存储内置标志名称的映射
-	builtinFlagNameMap sync.Map
+	// // 用于存储内置标志名称的映射
+	// builtinFlagNameMap sync.Map
 
-	// 用户自定义信息
-	userInfo userInfo
+	// // 用户自定义信息
+	// userInfo userInfo
 
-	// 帮助标志指针,用于绑定和检查
-	helpFlag *flags.BoolFlag
+	// // 帮助标志指针,用于绑定和检查
+	// helpFlag *flags.BoolFlag
 
-	// 版本标志指针,用于绑定和检查
-	versionFlag *flags.BoolFlag
+	// // 版本标志指针,用于绑定和检查
+	// versionFlag *flags.BoolFlag
 
-	// 自动补全标志指针,用于绑定和检查
-	completionShell *flags.EnumFlag
+	// // 自动补全标志指针,用于绑定和检查
+	// completionShell *flags.EnumFlag
 
-	// 控制内置标志是否自动退出
-	exitOnBuiltinFlags bool
+	// // 控制内置标志是否自动退出
+	// exitOnBuiltinFlags bool
 
-	// 控制是否启用自动补全功能
-	enableCompletion bool
+	// // 控制是否启用自动补全功能
+	// enableCompletion bool
 
 	// 解析阶段钩子函数
 	// 在标志解析完成后、子命令参数处理后调用

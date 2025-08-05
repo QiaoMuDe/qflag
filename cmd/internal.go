@@ -82,7 +82,7 @@ func (c *Cmd) parseCommon(args []string, parseSubcommands bool) (err error, shou
 			err = fmt.Errorf("%w: %w", qerr.ErrFlagParseFailed, parseErr)
 			return
 		}
-
+ 
 		// 调用内置标志处理方法
 		exit, handleErr := c.handleBuiltinFlags()
 		if handleErr != nil {

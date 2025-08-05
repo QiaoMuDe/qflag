@@ -98,8 +98,8 @@ func NewFlagRegistry() *FlagRegistry {
 //   - 3.将标志添加到短名称索引
 //   - 4.将标志添加到所有标志列表
 //
-// 注意:
-//   - 该方法线程安全, 但发现重复标志时会panic
+// 返回值:
+//   - error: 错误信息, 无错误时为nil
 func (r *FlagRegistry) RegisterFlag(meta *FlagMeta) error {
 	r.mu.Lock()         // 获取写锁, 保证并发安全
 	defer r.mu.Unlock() // 函数返回时释放写锁
@@ -117,7 +117,6 @@ func (r *FlagRegistry) RegisterFlag(meta *FlagMeta) error {
 	}
 
 	// 检查短标志是否已存在
-	// 只在短标志不为空时检查重复
 	if meta.GetShortName() != "" {
 		if _, exists := r.byShort[meta.GetShortName()]; exists {
 			return qerr.NewValidationErrorf("short flag %s already exists", meta.GetShortName())
