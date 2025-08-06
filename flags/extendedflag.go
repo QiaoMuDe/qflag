@@ -233,21 +233,34 @@ func (f *MapFlag) Set(value string) error {
 		return qerr.NewValidationError("map value cannot be empty")
 	}
 
+	// 确保分隔符已设置，如果没有设置则使用默认值
+	keyDelim := f.keyDelimiter
+	valueDelim := f.valueDelimiter
+	if keyDelim == "" {
+		keyDelim = FlagSplitComma // 默认使用逗号
+	}
+	if valueDelim == "" {
+		valueDelim = FlagKVEqual // 默认使用等号
+	}
+
 	// 获取当前值
 	current := f.Get()
 	if current == nil {
+		// 如果当前值为空, 初始化一个空map
 		current = make(map[string]string)
 	}
 
-	// 简化的解析逻辑：先按键分隔符分割，再处理每个键值对
-	pairs := strings.Split(value, f.keyDelimiter)
+	// 简化的解析逻辑: 先按键分隔符分割，再处理每个键值对
+	pairs := strings.Split(value, keyDelim)
+
+	// 处理每个键值对
 	for _, pair := range pairs {
-		// 使用SplitN限制分割次数为2，这样值中可以包含值分隔符
-		kv := strings.SplitN(pair, f.valueDelimiter, 2)
+		// 使用SplitN限制分割次数为2，这样值中可以包含值分隔符, 例如: "key=value,key2=value2"
+		kv := strings.SplitN(pair, valueDelim, 2)
 
 		// 检查键值对是否包含两个部分
 		if len(kv) != 2 {
-			return qerr.NewValidationErrorf("invalid key-value pair format: %s", pair)
+			return qerr.NewValidationErrorf("validation failed: invalid key-value pair format: %s", pair)
 		}
 
 		// 去除键和值的前后空格
@@ -259,13 +272,11 @@ func (f *MapFlag) Set(value string) error {
 			key = strings.ToLower(key)
 		}
 
-		// 检查键和值是否为空
+		// 检查键是否为空
 		if key == "" {
-			return qerr.NewValidationErrorf("empty key in key-value pair: %s", pair)
+			return qerr.NewValidationErrorf("validation failed: empty key in key-value pair: %s", pair)
 		}
-		if val == "" {
-			return qerr.NewValidationErrorf("empty value in key-value pair: %s", pair)
-		}
+		// 注意：空值是允许的，不需要检查 val == ""
 
 		// 更新当前值
 		current[key] = val

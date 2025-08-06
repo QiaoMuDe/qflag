@@ -155,13 +155,16 @@ func (r *FlagRegistry) GetByShort(shortName string) (*FlagMeta, bool) {
 //   - *FlagMeta: 找到的标志元数据指针, 未找到时为nil
 //   - bool: 是否找到标志, true表示找到
 func (r *FlagRegistry) GetByName(name string) (*FlagMeta, bool) {
+	r.mu.RLock()
+	defer r.mu.RUnlock()
+
 	// 先尝试按长名称查找
-	if meta, exists := r.GetByLong(name); exists {
+	if meta, exists := r.byLong[name]; exists {
 		return meta, exists
 	}
 
 	// 再尝试按短名称查找
-	if meta, exists := r.GetByShort(name); exists {
+	if meta, exists := r.byShort[name]; exists {
 		return meta, exists
 	}
 

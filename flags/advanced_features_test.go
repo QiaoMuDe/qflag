@@ -584,10 +584,15 @@ func TestMapFlag_EdgeCases(t *testing.T) {
 			t.Error("空键应该返回错误")
 		}
 
-		// 测试空值
+		// 测试空值（应该被允许）
 		err = flag.Set("key=")
-		if err == nil {
-			t.Error("空值应该返回错误")
+		if err != nil {
+			t.Errorf("空值应该被允许: %v", err)
+		}
+
+		result := flag.Get()
+		if result["key"] != "" {
+			t.Errorf("空值应该为空字符串，实际为 '%s'", result["key"])
 		}
 	})
 

@@ -300,10 +300,15 @@ func TestMapFlag_Errors(t *testing.T) {
 		t.Errorf("Expected empty key error, got %v", err)
 	}
 
-	// 测试空值
+	// 测试空值（应该被允许）
 	err = flag.Set("key=")
-	if err == nil || !strings.Contains(err.Error(), "empty value") {
-		t.Errorf("Expected empty value error, got %v", err)
+	if err != nil {
+		t.Errorf("空值应该被允许: %v", err)
+	}
+
+	result := flag.Get()
+	if result["key"] != "" {
+		t.Errorf("空值应该为空字符串，实际为 '%s'", result["key"])
 	}
 }
 

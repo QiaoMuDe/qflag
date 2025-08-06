@@ -197,7 +197,6 @@ func TestBaseFlag_ConcurrentAccess(t *testing.T) {
 			defer wg.Done()
 			flag.Get()
 			flag.IsSet()
-			flag.GetPointer()
 		}()
 	}
 
@@ -278,53 +277,6 @@ func TestBaseFlag_SetAndReset(t *testing.T) {
 	if flag.IsSet() {
 		t.Error("重置后IsSet()应返回false")
 	}
-}
-
-// TestBaseFlag_PointerAccess 测试指针访问功能
-func TestBaseFlag_PointerAccess(t *testing.T) {
-	t.Run("未设置值时指针指向初始值", func(t *testing.T) {
-		flag := &BaseFlag[string]{}
-		value := "default"
-		_ = flag.Init("longname", "l", "usage", &value)
-
-		ptr := flag.GetPointer()
-		if ptr == nil {
-			t.Fatal("GetPointer()不应返回nil")
-		}
-
-		// 未设置值时，指针应指向初始值
-		if *ptr != "default" {
-			t.Errorf("未设置值时指针应指向初始值 'default'，实际为 '%s'", *ptr)
-		}
-
-		// 验证IsSet状态
-		if flag.IsSet() {
-			t.Error("未设置值时IsSet()应返回false")
-		}
-	})
-
-	t.Run("设置值后指针有效", func(t *testing.T) {
-		flag := &BaseFlag[string]{}
-		value := "default"
-		_ = flag.Init("longname", "l", "usage", &value)
-
-		_ = flag.Set("newvalue")
-		ptr := flag.GetPointer()
-
-		if ptr == nil {
-			t.Fatal("设置值后GetPointer()不应返回nil")
-		}
-
-		if *ptr != "newvalue" {
-			t.Errorf("指针指向的值应为 'newvalue'，实际为 '%s'", *ptr)
-		}
-
-		// 通过指针修改值
-		*ptr = "modified"
-		if flag.Get() != "modified" {
-			t.Errorf("通过指针修改后的值应为 'modified'，实际为 '%s'", flag.Get())
-		}
-	})
 }
 
 // TestBaseFlag_StringRepresentation 测试字符串表示

@@ -11,14 +11,28 @@ func TestMapFlag_EdgeCases_Fixed(t *testing.T) {
 		flag := &MapFlag{}
 		flag.SetDelimiters(",", "=")
 
-		// 测试键包含分隔符的情况 - 这应该失败
-		err := flag.Set("key=with=equals=value")
-		if err == nil {
-			t.Error("包含多个分隔符的键值对应该返回错误")
+		// 测试值中包含分隔符的情况 - 这应该成功
+		err := flag.Set("key=value=with=equals")
+		if err != nil {
+			t.Errorf("值中包含分隔符应该被允许: %v", err)
 		}
 
-		// 测试正确的转义或引用方式
-		err = flag.Set("key1=value1,key2=value with spaces")
+		result := flag.Get()
+		if result["key"] != "value=with=equals" {
+			t.Errorf("期望值 'value=with=equals'，实际 '%s'", result["key"])
+		}
+
+		// 测试键中包含分隔符的情况 - 这应该失败
+		err = flag.Set("key=with=delimiter=another=value")
+		if err != nil {
+			// 这种情况下，键是 "key"，值是 "with=delimiter=another=value"，应该成功
+			t.Errorf("意外的错误: %v", err)
+		}
+
+		// 测试正常的键值对
+		flag2 := &MapFlag{}
+		flag2.SetDelimiters(",", "=")
+		err = flag2.Set("key1=value1,key2=value with spaces")
 		if err != nil {
 			t.Errorf("正常键值对设置失败: %v", err)
 		}
@@ -58,54 +72,6 @@ func TestMapFlag_EdgeCases_Fixed(t *testing.T) {
 		result := flag.Get()
 		if len(result) != 2 {
 			t.Errorf("应该有2个键值对，实际有 %d 个", len(result))
-		}
-	})
-}
-
-// TestBaseFlag_PointerAccess_Fixed 修复BaseFlag指针访问测试
-func TestBaseFlag_PointerAccess_Fixed(t *testing.T) {
-	t.Run("未设置值时指针行为", func(t *testing.T) {
-		flag := &BaseFlag[int]{
-			initialValue: 42,
-			value:        new(int),
-		}
-
-		// 初始化标志
-		_ = flag.Init("test", "", "test flag", nil)
-
-		// 获取指针 - 应该返回指向初始值的指针
-		ptr := flag.GetPointer()
-		if ptr == nil {
-			t.Error("GetPointer()不应该返回nil")
-			return
-		}
-
-		// 检查指针指向的值
-		if *ptr != 42 {
-			t.Errorf("指针应该指向初始值42，实际为 %d", *ptr)
-		}
-	})
-
-	t.Run("设置值后指针有效", func(t *testing.T) {
-		flag := &BaseFlag[int]{
-			initialValue: 0,
-			value:        new(int),
-		}
-
-		_ = flag.Init("test", "", "test flag", nil)
-
-		// 设置值
-		*flag.value = 100
-		flag.isSet = true
-
-		ptr := flag.GetPointer()
-		if ptr == nil {
-			t.Error("设置值后GetPointer()不应该返回nil")
-			return
-		}
-
-		if *ptr != 100 {
-			t.Errorf("指针应该指向设置的值100，实际为 %d", *ptr)
 		}
 	})
 }

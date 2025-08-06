@@ -152,20 +152,6 @@ func (f *BaseFlag[T]) Get() T {
 	return *f.value
 }
 
-// GetPointer 返回标志值的指针(泛型类型)
-//
-// 返回值:
-//   - *T: 标志值的指针
-//
-// 注意:
-//  1. 获取指针过程受锁保护, 但直接修改指针指向的值仍会绕过验证机制
-//  2. 多线程环境下修改时需额外同步措施, 建议优先使用Set()方法
-func (f *BaseFlag[T]) GetPointer() *T {
-	f.baseMu.RLock()
-	defer f.baseMu.RUnlock()
-	return f.value
-}
-
 // Set 设置标志的值(泛型类型)
 //
 // 参数:
