@@ -435,7 +435,10 @@ func TestEdgeCases(t *testing.T) {
 				t.Error("nil上下文应该导致panic或错误")
 			}
 		}()
-		ValidateFlagNames(nil, "test", "")
+		err := ValidateFlagNames(nil, "test", "")
+		if err == nil {
+			t.Error("期望验证标志名称时返回错误")
+		}
 	})
 }
 
@@ -536,7 +539,10 @@ func TestNilInputs(t *testing.T) {
 				t.Error("注册nil标志应该导致panic或返回错误")
 			}
 		}()
-		RegisterFlag(ctx, nil, "test", "")
+		err := RegisterFlag(ctx, nil, "test", "")
+		if err == nil {
+			t.Error("期望注册标志时返回错误")
+		}
 	})
 
 	t.Run("nil上下文标志注册", func(t *testing.T) {
@@ -546,7 +552,10 @@ func TestNilInputs(t *testing.T) {
 				t.Error("nil上下文应该导致panic")
 			}
 		}()
-		RegisterFlag(nil, flag, "test", "")
+		err := RegisterFlag(nil, flag, "test", "")
+		if err == nil {
+			t.Error("期望注册标志时返回错误")
+		}
 	})
 }
 

@@ -346,7 +346,10 @@ func TestStringFlag_EdgeCases(t *testing.T) {
 		}
 
 		testString := "Hello, 世界! 🌍"
-		flag.Set(testString)
+		err := flag.Set(testString)
+		if err != nil {
+			t.Fatalf("设置标志失败: %v", err)
+		}
 
 		// 测试Len方法
 		if flag.Len() != len(testString) {

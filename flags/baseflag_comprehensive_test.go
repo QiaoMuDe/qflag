@@ -55,8 +55,8 @@ func TestBaseFlag_Init(t *testing.T) {
 		}
 
 		// 第二次初始化应该失败
-		err = flag.Init("longname2", "l2", "usage2", &value)
-		if err == nil {
+		err2 := flag.Init("longname2", "l2", "usage2", &value)
+		if err2 == nil {
 			t.Error("重复初始化应该返回错误")
 		}
 	})
@@ -86,7 +86,9 @@ func TestBaseFlag_NameMethods(t *testing.T) {
 	t.Run("优先返回长名称", func(t *testing.T) {
 		flag := &BaseFlag[string]{}
 		value := "test"
-		flag.Init("longname", "l", "usage", &value)
+		if err := flag.Init("longname", "l", "usage", &value); err != nil {
+			t.Fatalf("初始化标志失败: %v", err)
+		}
 
 		if flag.Name() != "longname" {
 			t.Errorf("Name()应返回长名称 'longname'，实际为 '%s'", flag.Name())
@@ -96,7 +98,10 @@ func TestBaseFlag_NameMethods(t *testing.T) {
 	t.Run("长名称为空时返回短名称", func(t *testing.T) {
 		flag := &BaseFlag[string]{}
 		value := "test"
-		flag.Init("", "l", "usage", &value)
+		err := flag.Init("", "l", "usage", &value)
+		if err != nil {
+			t.Fatalf("初始化标志失败: %v", err)
+		}
 
 		if flag.Name() != "l" {
 			t.Errorf("长名称为空时Name()应返回短名称 'l'，实际为 '%s'", flag.Name())
@@ -108,7 +113,10 @@ func TestBaseFlag_NameMethods(t *testing.T) {
 func TestBaseFlag_EnvironmentVariable(t *testing.T) {
 	flag := &BaseFlag[string]{}
 	value := "test"
-	flag.Init("longname", "l", "usage", &value)
+	err := flag.Init("longname", "l", "usage", &value)
+	if err != nil {
+		t.Fatalf("初始化标志失败: %v", err)
+	}
 
 	// 测试绑定环境变量
 	result := flag.BindEnv("TEST_ENV")
@@ -126,26 +134,32 @@ func TestBaseFlag_Validator(t *testing.T) {
 	t.Run("验证器通过", func(t *testing.T) {
 		flag := &BaseFlag[string]{}
 		value := "test"
-		flag.Init("longname", "l", "usage", &value)
+		err := flag.Init("longname", "l", "usage", &value)
+		if err != nil {
+			t.Fatalf("初始化标志失败: %v", err)
+		}
 
 		validator := &MockValidator{shouldFail: false}
 		flag.SetValidator(validator)
 
-		err := flag.Set("newvalue")
+		err = flag.Set("newvalue")
 		if err != nil {
-			t.Errorf("验证器通过时Set应该成功，但得到错误: %v", err)
+			t.Fatalf("设置标志失败: %v", err)
 		}
 	})
 
 	t.Run("验证器失败", func(t *testing.T) {
 		flag := &BaseFlag[string]{}
 		value := "test"
-		flag.Init("longname", "l", "usage", &value)
+		err := flag.Init("longname", "l", "usage", &value)
+		if err != nil {
+			t.Fatalf("初始化标志失败: %v", err)
+		}
 
 		validator := &MockValidator{shouldFail: true, errorMsg: "验证失败"}
 		flag.SetValidator(validator)
 
-		err := flag.Set("newvalue")
+		err = flag.Set("newvalue")
 		if err == nil {
 			t.Error("验证器失败时Set应该返回错误")
 		}
@@ -156,7 +170,10 @@ func TestBaseFlag_Validator(t *testing.T) {
 func TestBaseFlag_ConcurrentAccess(t *testing.T) {
 	flag := &BaseFlag[int]{}
 	value := 0
-	flag.Init("longname", "l", "usage", &value)
+	err := flag.Init("longname", "l", "usage", &value)
+	if err != nil {
+		t.Fatalf("初始化标志失败: %v", err)
+	}
 
 	var wg sync.WaitGroup
 	numGoroutines := 100
@@ -166,7 +183,10 @@ func TestBaseFlag_ConcurrentAccess(t *testing.T) {
 	for i := 0; i < numGoroutines; i++ {
 		go func(val int) {
 			defer wg.Done()
-			flag.Set(val)
+			err := flag.Set(val)
+			if err != nil {
+				t.Errorf("设置标志失败: %v", err)
+			}
 		}(i)
 	}
 
@@ -199,7 +219,10 @@ func TestBaseFlag_DefaultValueHandling(t *testing.T) {
 	t.Run("获取默认值", func(t *testing.T) {
 		flag := &BaseFlag[string]{}
 		value := "default"
-		flag.Init("longname", "l", "usage", &value)
+		err := flag.Init("longname", "l", "usage", &value)
+		if err != nil {
+			t.Fatalf("初始化标志失败: %v", err)
+		}
 
 		if flag.GetDefault() != "default" {
 			t.Errorf("默认值应为 'default'，实际为 '%s'", flag.GetDefault())
@@ -311,7 +334,10 @@ func TestBaseFlag_StringRepresentation(t *testing.T) {
 		value := "test"
 		flag.Init("longname", "l", "usage", &value)
 
-		flag.Set("hello")
+		err := flag.Set("hello")
+		if err != nil {
+			t.Fatalf("设置标志失败: %v", err)
+		}
 		if flag.String() != "hello" {
 			t.Errorf("字符串表示应为 'hello'，实际为 '%s'", flag.String())
 		}
@@ -322,7 +348,10 @@ func TestBaseFlag_StringRepresentation(t *testing.T) {
 		value := 0
 		flag.Init("longname", "l", "usage", &value)
 
-		flag.Set(42)
+		err := flag.Set(42)
+		if err != nil {
+			t.Fatalf("设置标志失败: %v", err)
+		}
 		if flag.String() != "42" {
 			t.Errorf("字符串表示应为 '42'，实际为 '%s'", flag.String())
 		}

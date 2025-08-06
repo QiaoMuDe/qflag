@@ -1022,7 +1022,8 @@ func TestCmd_ExtendedBoundaryConditions(t *testing.T) {
 
 		flag := cmd.Enum(longName, shortName, "default", "极长标志名称测试", []string{"default", "option1"})
 		if flag == nil {
-			t.Error("创建极长标志名称失败")
+			t.Errorf("标志 %s 不应为 nil", longName)
+			return
 		}
 		if flag.LongName() != longName {
 			t.Error("极长标志名称不匹配")

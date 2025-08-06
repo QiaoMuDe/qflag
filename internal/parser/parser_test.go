@@ -218,8 +218,14 @@ func TestParseCommand_环境变量(t *testing.T) {
 	// 设置环境变量
 	envKey := "TEST_FLAG"
 	envValue := "环境变量值"
-	os.Setenv(envKey, envValue)
-	defer os.Unsetenv(envKey)
+	if err := os.Setenv(envKey, envValue); err != nil {
+		t.Fatalf("设置环境变量失败: %v", err)
+	}
+	defer func() {
+		if err := os.Unsetenv(envKey); err != nil {
+			t.Logf("清除环境变量失败: %v", err)
+		}
+	}()
 
 	// 添加对应的标志
 	var testFlag string

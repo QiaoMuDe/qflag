@@ -255,7 +255,10 @@ func TestFlagRegistry_GetMethods(t *testing.T) {
 		},
 	}
 	meta := &FlagMeta{Flag: flag}
-	registry.RegisterFlag(meta)
+	err := registry.RegisterFlag(meta)
+	if err != nil {
+		t.Fatalf("注册标志失败: %v", err)
+	}
 
 	t.Run("通过长名称查找", func(t *testing.T) {
 		foundMeta, exists := registry.GetByLong("verbose")
@@ -327,7 +330,10 @@ func TestFlagRegistry_GetCollections(t *testing.T) {
 	}
 
 	for _, flag := range flags {
-		registry.RegisterFlag(flag)
+		err := registry.RegisterFlag(flag)
+		if err != nil {
+			t.Fatalf("注册标志失败: %v", err)
+		}
 	}
 
 	t.Run("获取标志元数据列表", func(t *testing.T) {
@@ -396,7 +402,10 @@ func TestFlagRegistry_CountMethods(t *testing.T) {
 	}
 
 	for _, flag := range flags {
-		registry.RegisterFlag(flag)
+		err := registry.RegisterFlag(flag)
+		if err != nil {
+			t.Fatalf("注册标志失败: %v", err)
+		}
 	}
 
 	t.Run("标志元数据计数", func(t *testing.T) {
@@ -446,7 +455,7 @@ func TestFlagRegistry_ConcurrentAccess(t *testing.T) {
 				},
 			}
 			meta := &FlagMeta{Flag: flag}
-			registry.RegisterFlag(meta) // 可能会因为重复名称而失败，这是正常的
+			_ = registry.RegisterFlag(meta) // 可能会因为重复名称而失败，这是正常的
 		}(i)
 	}
 

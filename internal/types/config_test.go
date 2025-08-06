@@ -187,9 +187,7 @@ func TestCmdConfig_切片操作(t *testing.T) {
 			"Unicode备注: 🎉🚀✨",
 		}
 
-		for _, note := range testNotes {
-			config.Notes = append(config.Notes, note)
-		}
+		config.Notes = append(config.Notes, testNotes...)
 
 		// 验证Notes
 		if len(config.Notes) != len(testNotes) {
@@ -226,9 +224,7 @@ func TestCmdConfig_切片操作(t *testing.T) {
 		}
 
 		// 添加所有示例
-		for _, example := range testExamples {
-			config.Examples = append(config.Examples, example)
-		}
+		config.Examples = append(config.Examples, testExamples...)
 
 		// 验证Examples
 		if len(config.Examples) != len(testExamples) {
@@ -411,7 +407,8 @@ func TestCmdConfig_内存使用(t *testing.T) {
 	// 验证所有配置都正确创建
 	for i, config := range configs {
 		if config == nil {
-			t.Errorf("第%d个配置创建失败", i)
+			t.Error("配置不应为nil")
+			return
 		}
 		if len(config.Notes) != 3 {
 			t.Errorf("第%d个配置Notes数量不正确", i)
@@ -425,7 +422,8 @@ func TestCmdConfig_内存使用(t *testing.T) {
 	for i := range configs {
 		configs[i] = nil
 	}
-	configs = nil
+	// 清空配置切片
+	_ = configs[:0]
 
 	t.Log("内存使用测试完成")
 }

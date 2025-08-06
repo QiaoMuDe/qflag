@@ -111,7 +111,10 @@ func TestMemoryLeakPrevention(t *testing.T) {
 
 		for j := 0; j < 10; j++ {
 			child := types.NewCmdContext(fmt.Sprintf("child%d_%d", i, j), fmt.Sprintf("c%d_%d", i, j), flag.ContinueOnError)
-			ValidateSubCommand(parent, child)
+			err := ValidateSubCommand(parent, child)
+			if err != nil {
+				t.Fatalf("验证子命令失败: %v", err)
+			}
 		}
 	}
 

@@ -15,7 +15,10 @@ func BenchmarkValidateSubCommand_Simple(b *testing.B) {
 
 	b.ResetTimer()
 	for i := 0; i < b.N; i++ {
-		ValidateSubCommand(parent, child)
+		err := ValidateSubCommand(parent, child)
+		if err != nil {
+			b.Fatalf("验证子命令失败: %v", err)
+		}
 	}
 }
 
@@ -30,7 +33,10 @@ func BenchmarkValidateSubCommand_WithConflict(b *testing.B) {
 
 	b.ResetTimer()
 	for i := 0; i < b.N; i++ {
-		ValidateSubCommand(parent, conflicting)
+		err := ValidateSubCommand(parent, conflicting)
+		if err == nil {
+			b.Fatal("期望验证冲突的子命令时返回错误")
+		}
 	}
 }
 
@@ -49,7 +55,10 @@ func BenchmarkValidateSubCommand_LargeSubCmdMap(b *testing.B) {
 
 	b.ResetTimer()
 	for i := 0; i < b.N; i++ {
-		ValidateSubCommand(parent, child)
+		err := ValidateSubCommand(parent, child)
+		if err != nil {
+			b.Fatalf("验证子命令失败: %v", err)
+		}
 	}
 }
 
@@ -162,7 +171,10 @@ func BenchmarkValidateSubCommand_Parallel(b *testing.B) {
 		i := 0
 		for pb.Next() {
 			child := types.NewCmdContext(fmt.Sprintf("child%d", i), fmt.Sprintf("c%d", i), flag.ContinueOnError)
-			ValidateSubCommand(parent, child)
+			err := ValidateSubCommand(parent, child)
+			if err != nil {
+				b.Fatalf("验证子命令失败: %v", err)
+			}
 			i++
 		}
 	})
@@ -216,6 +228,9 @@ func BenchmarkComplexValidationScenario(b *testing.B) {
 
 	b.ResetTimer()
 	for i := 0; i < b.N; i++ {
-		ValidateSubCommand(root, newChild)
+		err := ValidateSubCommand(root, newChild)
+		if err != nil {
+			b.Fatalf("验证子命令失败: %v", err)
+		}
 	}
 }

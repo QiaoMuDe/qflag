@@ -77,6 +77,7 @@ func TestBaseFlag_PointerAccess_Fixed(t *testing.T) {
 		ptr := flag.GetPointer()
 		if ptr == nil {
 			t.Error("GetPointer()不应该返回nil")
+			return
 		}
 
 		// 检查指针指向的值
@@ -100,6 +101,7 @@ func TestBaseFlag_PointerAccess_Fixed(t *testing.T) {
 		ptr := flag.GetPointer()
 		if ptr == nil {
 			t.Error("设置值后GetPointer()不应该返回nil")
+			return
 		}
 
 		if *ptr != 100 {
@@ -238,7 +240,7 @@ func TestAllFlags_Comprehensive(t *testing.T) {
 				flag:     &BoolFlag{BaseFlag: BaseFlag[bool]{value: new(bool)}},
 				setValue: "true",
 				checkFn: func(f interface{}) bool {
-					return f.(*BoolFlag).Get() == true
+					return f.(*BoolFlag).Get()
 				},
 			},
 			{

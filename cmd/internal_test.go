@@ -103,7 +103,10 @@ func TestCmd_parseCommon(t *testing.T) {
 			setupSubcommands: func(cmd *Cmd) {
 				subCmd := NewCmd("subcmd", "sc", flag.ContinueOnError)
 				subCmd.SetExitOnBuiltinFlags(false) // 设置子命令不在内置标志时退出
-				cmd.AddSubCmd(subCmd)
+				err := cmd.AddSubCmd(subCmd)
+				if err != nil {
+					t.Fatalf("添加子命令失败: %v", err)
+				}
 			},
 		},
 		{
@@ -115,7 +118,10 @@ func TestCmd_parseCommon(t *testing.T) {
 			expectError:      false,
 			setupSubcommands: func(cmd *Cmd) {
 				subCmd := NewCmd("subcmd", "sc", flag.ContinueOnError)
-				cmd.AddSubCmd(subCmd)
+				err := cmd.AddSubCmd(subCmd)
+				if err != nil {
+					t.Fatalf("添加子命令失败: %v", err)
+				}
 			},
 		},
 		{
@@ -473,7 +479,10 @@ func TestCmd_handleBuiltinFlags(t *testing.T) {
 			name:     "help标志触发",
 			setupCmd: createInternalTestCmd,
 			setupFlags: func(cmd *Cmd) {
-				cmd.ctx.BuiltinFlags.Help.Set("true")
+				err := cmd.ctx.BuiltinFlags.Help.Set("true")
+				if err != nil {
+					t.Fatalf("设置帮助标志失败: %v", err)
+				}
 			},
 			expectExit:  true,
 			expectError: false,
@@ -482,7 +491,10 @@ func TestCmd_handleBuiltinFlags(t *testing.T) {
 			name:     "version标志触发",
 			setupCmd: createInternalTestCmdWithVersion,
 			setupFlags: func(cmd *Cmd) {
-				cmd.ctx.BuiltinFlags.Version.Set("true")
+				err := cmd.ctx.BuiltinFlags.Version.Set("true")
+				if err != nil {
+					t.Fatalf("设置版本标志失败: %v", err)
+				}
 			},
 			expectExit:  true,
 			expectError: false,
@@ -498,7 +510,10 @@ func TestCmd_handleBuiltinFlags(t *testing.T) {
 				return child
 			},
 			setupFlags: func(cmd *Cmd) {
-				cmd.ctx.BuiltinFlags.Version.Set("true")
+				err := cmd.ctx.BuiltinFlags.Version.Set("true")
+				if err != nil {
+					t.Fatalf("设置版本标志失败: %v", err)
+				}
 			},
 			expectExit:  false,
 			expectError: false,
@@ -507,7 +522,10 @@ func TestCmd_handleBuiltinFlags(t *testing.T) {
 			name:     "补全标志触发",
 			setupCmd: createInternalTestCmdWithCompletion,
 			setupFlags: func(cmd *Cmd) {
-				cmd.ctx.BuiltinFlags.Completion.Set("bash")
+				err := cmd.ctx.BuiltinFlags.Completion.Set("bash")
+				if err != nil {
+					t.Fatalf("设置补全标志失败: %v", err)
+				}
 			},
 			expectExit:  true,
 			expectError: false,
@@ -518,7 +536,10 @@ func TestCmd_handleBuiltinFlags(t *testing.T) {
 			setupFlags: func(cmd *Cmd) {
 				enumFlag := cmd.Enum("mode", "m", "debug", "运行模式", []string{"debug", "release"})
 				// 通过直接修改内部值来模拟无效状态
-				enumFlag.BaseFlag.Set("invalid")
+				err := enumFlag.BaseFlag.Set("invalid")
+				if err == nil {
+					t.Fatal("期望设置无效值时返回错误")
+				}
 			},
 			expectExit:    false,
 			expectError:   true,
@@ -532,7 +553,10 @@ func TestCmd_handleBuiltinFlags(t *testing.T) {
 				return cmd
 			},
 			setupFlags: func(cmd *Cmd) {
-				cmd.ctx.BuiltinFlags.Help.Set("true")
+				err := cmd.ctx.BuiltinFlags.Help.Set("true")
+				if err != nil {
+					t.Fatalf("设置帮助标志失败: %v", err)
+				}
 			},
 			expectExit:  false,
 			expectError: false,
@@ -660,8 +684,8 @@ func TestCmd_Internal_ErrorHandling(t *testing.T) {
 		cmd.ctx.BuiltinFlags.Help = nil
 
 		err := cmd.validateComponents()
-		if err == nil {
-			t.Error("期望内置标志验证失败但未发生")
+		if err != nil {
+			t.Fatalf("验证组件失败: %v", err)
 		}
 		if !strings.Contains(err.Error(), "help flag is not initialized") {
 			t.Errorf("错误信息应包含help flag相关信息，实际: %v", err.Error())
@@ -683,7 +707,10 @@ func BenchmarkCmd_parseCommon(b *testing.B) {
 		cmd.ctx.ParseOnce = sync.Once{}
 		cmd.ctx.Parsed.Store(false)
 
-		cmd.parseCommon(args, true)
+		_, err := cmd.parseCommon(args, true)
+		if err != nil {
+			b.Fatalf("解析通用参数失败: %v", err)
+		}
 	}
 }
 
@@ -692,7 +719,10 @@ func BenchmarkCmd_validateComponents(b *testing.B) {
 
 	b.ResetTimer()
 	for i := 0; i < b.N; i++ {
-		cmd.validateComponents()
+		err := cmd.validateComponents()
+		if err != nil {
+			b.Fatalf("验证组件失败: %v", err)
+		}
 	}
 }
 
@@ -701,7 +731,10 @@ func BenchmarkCmd_handleBuiltinFlags(b *testing.B) {
 
 	b.ResetTimer()
 	for i := 0; i < b.N; i++ {
-		cmd.handleBuiltinFlags()
+		_, err := cmd.handleBuiltinFlags()
+		if err != nil {
+			b.Fatalf("处理内置标志失败: %v", err)
+		}
 	}
 }
 
@@ -758,7 +791,10 @@ func TestCmd_Internal_Integration(t *testing.T) {
 					cmd := createInternalTestCmd()
 					subCmd := NewCmd("start", "s", flag.ContinueOnError)
 					subCmd.String("env", "e", "dev", "环境")
-					cmd.AddSubCmd(subCmd)
+					err := cmd.AddSubCmd(subCmd)
+					if err != nil {
+						t.Fatalf("添加子命令失败: %v", err)
+					}
 					return cmd
 				},
 				args:        []string{"start", "--env", "prod"},
@@ -1055,7 +1091,10 @@ func BenchmarkCmd_handleBuiltinFlags_WithManyEnums(b *testing.B) {
 
 	b.ResetTimer()
 	for i := 0; i < b.N; i++ {
-		cmd.handleBuiltinFlags()
+		_, err := cmd.handleBuiltinFlags()
+		if err != nil {
+			b.Fatalf("处理内置标志失败: %v", err)
+		}
 	}
 }
 

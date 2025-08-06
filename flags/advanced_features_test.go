@@ -278,7 +278,10 @@ func TestTimeFlag_AdvancedFeatures(t *testing.T) {
 		}
 
 		testTime := time.Date(2024, 3, 15, 14, 30, 45, 0, time.UTC)
-		flag.Set(testTime.Format(time.RFC3339))
+		err := flag.Set(testTime.Format(time.RFC3339))
+		if err != nil {
+			t.Fatalf("设置时间标志失败: %v", err)
+		}
 
 		// 并发设置和读取输出格式
 		done := make(chan bool, 2)
@@ -505,10 +508,13 @@ func TestSliceFlag_EdgeCases(t *testing.T) {
 			delimiters: []string{","},
 		}
 
-		flag.Set("a,b,c")
+		err := flag.Set("a,b,c")
+		if err != nil {
+			t.Fatalf("设置标志失败: %v", err)
+		}
 
 		// 移除不存在的元素
-		err := flag.Remove("d")
+		err = flag.Remove("d")
 		if err != nil {
 			t.Errorf("移除不存在的元素不应该返回错误: %v", err)
 		}
@@ -529,8 +535,14 @@ func TestSliceFlag_EdgeCases(t *testing.T) {
 			},
 		}
 
-		flag.Clear()
-		err := flag.Sort()
+		err := flag.Clear()
+		if err != nil {
+			t.Fatalf("清除标志失败: %v", err)
+		}
+		err = flag.Sort()
+		if err != nil {
+			t.Errorf("排序空切片不应该返回错误: %v", err)
+		}
 		if err != nil {
 			t.Errorf("排序空切片不应该返回错误: %v", err)
 		}
