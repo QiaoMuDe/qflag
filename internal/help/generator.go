@@ -3,7 +3,6 @@ package help
 
 import (
 	"bytes"
-	"fmt"
 
 	"gitee.com/MM-Q/qflag/internal/types"
 )
@@ -57,11 +56,6 @@ func GenerateHelp(ctx *types.CmdContext) string {
 	writeNotes(ctx, tpl, &buf)
 
 	return buf.String()
-}
-
-// PrintHelp 打印帮助信息
-func PrintHelp(ctx *types.CmdContext) {
-	fmt.Println(GenerateHelp(ctx))
 }
 
 // flagInfo 标志信息结构体
