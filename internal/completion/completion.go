@@ -252,7 +252,7 @@ func collectFlagParameters(ctx *types.CmdContext) []FlagParam {
 		q = q[1:]   // 移除当前节点
 
 		// 遍历当前命令的所有标志
-		for _, meta := range cur.ctx.FlagRegistry.GetAllFlagMetas() {
+		for _, meta := range cur.ctx.FlagRegistry.GetFlagMetaList() {
 			// 如果短标志不为空，则添加短标志
 			if meta.GetShortName() != "" {
 				add("-", meta.GetShortName(), cur, meta)
@@ -293,7 +293,7 @@ func collectCompletionOptions(ctx *types.CmdContext) []string {
 	}
 
 	// 获取所有标志数量(长标志+短标志)
-	flagCnt := len(ctx.FlagRegistry.GetAllFlagMetas())
+	flagCnt := ctx.FlagRegistry.GetAllFlagsCount()
 
 	// 计算总容量（标志数量+子命令数量*2）
 	capacity := flagCnt + len(ctx.SubCmds)*2
@@ -309,7 +309,7 @@ func collectCompletionOptions(ctx *types.CmdContext) []string {
 	}
 
 	// 1. flags （同时展开长短名）
-	for _, m := range ctx.FlagRegistry.GetAllFlagMetas() {
+	for _, m := range ctx.FlagRegistry.GetFlagMetaList() {
 		if m == nil {
 			continue
 		}

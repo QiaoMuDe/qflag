@@ -588,7 +588,9 @@ func (c *Cmd) NArg() int {
 func (c *Cmd) NFlag() int {
 	c.ctx.Mutex.RLock()
 	defer c.ctx.Mutex.RUnlock()
-	return c.ctx.FlagSet.NFlag()
+
+	// 返回独立的标志数量
+	return c.ctx.FlagRegistry.GetFlagMetaCount()
 }
 
 // FlagExists 检查指定名称的标志是否存在

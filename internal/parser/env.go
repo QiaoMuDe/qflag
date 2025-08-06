@@ -23,7 +23,7 @@ func LoadEnvVars(ctx *types.CmdContext) error {
 
 	// 预分配map容量以提高性能,初始容量为已注册标志数量
 	// 使用所有标志总数作为容量最大基准, 确保独立长/短标志场景下容量充足
-	processedEnvs := make(map[string]bool, ctx.FlagRegistry.GetALLFlagsCount()) // 跟踪已处理的环境变量，避免重复处理
+	processedEnvs := make(map[string]bool, ctx.FlagRegistry.GetAllFlagsCount()) // 跟踪已处理的环境变量，避免重复处理
 
 	// 遍历所有已注册的标志
 	ctx.FlagSet.VisitAll(func(f *flag.Flag) {

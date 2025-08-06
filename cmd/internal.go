@@ -247,7 +247,7 @@ func (c *Cmd) handleBuiltinFlags() (bool, error) {
 	}
 
 	// 检查枚举类型标志是否有效
-	for _, meta := range c.ctx.FlagRegistry.GetAllFlagMetas() {
+	for _, meta := range c.ctx.FlagRegistry.GetFlagMetaList() {
 		// 不是枚举类型标志，跳过
 		if meta.GetFlagType() != flags.FlagTypeEnum {
 			continue
