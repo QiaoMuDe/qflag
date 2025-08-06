@@ -52,8 +52,9 @@ func (c *Cmd) parseCommon(args []string, parseSubcommands bool) (shouldExit bool
 			c.PrintHelp()
 		}
 
-		// 解析参数
-		if err = parser.ParseArgs(c.ctx, args, parseSubcommands); err != nil {
+		// 解析当前命令的参数
+		if parseErr := parser.ParseCommand(c.ctx, args); parseErr != nil {
+			err = parseErr
 			return
 		}
 
@@ -68,6 +69,19 @@ func (c *Cmd) parseCommon(args []string, parseSubcommands bool) (shouldExit bool
 		if exit {
 			shouldExit = true
 			return
+		}
+
+		// 解析子命令参数
+		if parseSubcommands {
+			exit, parseErr := c.parseSubCommands()
+			if parseErr != nil {
+				err = parseErr
+				return
+			}
+			if exit {
+				shouldExit = true
+				return
+			}
 		}
 
 		// 执行解析钩子
@@ -85,6 +99,39 @@ func (c *Cmd) parseCommon(args []string, parseSubcommands bool) (shouldExit bool
 	})
 
 	return shouldExit, err
+}
+
+// parseSubCommands 解析子命令
+//
+// 返回值:
+//   - shouldExit: 是否需要退出程序
+//   - err: 解析过程中遇到的错误
+func (c *Cmd) parseSubCommands() (bool, error) {
+	// 只有在存在非标志参数并且存在子命令的情况下才需要解析
+	if len(c.ctx.Args) == 0 || (len(c.ctx.SubCmdMap) == 0 || len(c.ctx.SubCmds) == 0) {
+		return false, nil
+	}
+
+	// 获取非标志参数的第一个参数(子命令名称)
+	subCmdName := c.ctx.Args[0]
+
+	// 获取除子命令名称外的剩余参数
+	argsToProcess := make([]string, len(c.ctx.Args)-1)
+	copy(argsToProcess, c.ctx.Args[1:])
+
+	// 检查子命令是否存在
+	subCmd, exists := c.ctx.SubCmdMap[subCmdName]
+	if !exists {
+		return false, nil
+	}
+
+	// 解析子命令的参数(这里创建了临时Cmd实例包装器)
+	exit, parseErr := tempCmd(subCmd).parseCommon(argsToProcess, true)
+	if parseErr != nil {
+		return false, fmt.Errorf("%w for '%s': %v", qerr.ErrSubCommandParseFailed, subCmdName, parseErr)
+	}
+
+	return exit, nil
 }
 
 // validateComponents 校验核心组件和内置标志的初始化状态
@@ -248,4 +295,18 @@ func (c *Cmd) handleBuiltinFlags() (bool, error) {
 	}
 
 	return false, nil
+}
+
+// tempCmd 创建临时的 Cmd 包装器用于递归解析子命令
+//
+// 这个函数解决了 *types.CmdContext 无法直接调用 parseCommon 方法的问题
+// 创建的临时实例仅用于方法调用，不会被其他地方引用
+//
+// 参数:
+//   - ctx: 子命令的上下文
+//
+// 返回值:
+//   - *Cmd: 临时的 Cmd 包装器
+func tempCmd(ctx *types.CmdContext) *Cmd {
+	return &Cmd{ctx: ctx}
 }

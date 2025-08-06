@@ -2,6 +2,7 @@ package cmd
 
 import (
 	"flag"
+	"fmt"
 	"os"
 	"testing"
 	"time"
@@ -74,28 +75,28 @@ func TestNestedCommandHelp(t *testing.T) {
 	}
 
 	// 解析命令行参数
-	if err := cmd1.Parse([]string{"cmd2", "-h"}); err != nil {
+	if err := cmd1.Parse([]string{}); err != nil {
 		t.Fatal(err)
 	}
 
-	// // 分隔符
-	// fmt.Println("=============================")
+	// 分隔符
+	fmt.Println("=============================")
 
-	// // 打印 cmd1 帮助信息
-	// cmd1.PrintHelp()
+	// 打印 cmd1 帮助信息
+	cmd1.PrintHelp()
 
-	// // 分隔符
-	// fmt.Println("=============================")
+	// 分隔符
+	fmt.Println("=============================")
 
-	// // 打印 cmd2 帮助信息
-	// cmd2.PrintHelp()
+	// 打印 cmd2 帮助信息
+	cmd2.PrintHelp()
 
-	// // 分隔符
-	// fmt.Println("=============================")
+	// 分隔符
+	fmt.Println("=============================")
 
-	// // 打印 cmd3 帮助信息
-	// cmd3.PrintHelp()
+	// 打印 cmd3 帮助信息
+	cmd3.PrintHelp()
 
-	// // 分隔符
-	// fmt.Println("=============================")
+	// 分隔符
+	fmt.Println("=============================")
 }
