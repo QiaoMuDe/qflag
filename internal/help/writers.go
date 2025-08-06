@@ -4,7 +4,6 @@ package help
 import (
 	"bytes"
 	"fmt"
-	"sort"
 	"time"
 
 	"gitee.com/MM-Q/qflag/flags"
@@ -241,55 +240,6 @@ func collectFlags(cmd *types.CmdContext) []flagInfo {
 	return flagInfos
 }
 
-// sortFlags 按短标志字母顺序排序，有短标志的选项优先
-//
-// 参数：
-//
-//	flags - 需要排序的标志列表
-func sortFlags(flags []flagInfo) {
-	// 根据标志的短标志名和长标志名进行排序
-	sort.Slice(flags, func(i, j int) bool {
-		a, b := flags[i], flags[j]
-		return sortWithShortNamePriority(
-			a.shortFlag != "",
-			b.shortFlag != "",
-			a.longFlag,
-			b.longFlag,
-			a.shortFlag,
-			b.shortFlag,
-		)
-	})
-}
-
-// sortWithShortNamePriority 通用排序函数
-//
-// 排序优先级: 1.有短名称的优先 2.按长名称字母序 3.短名称字母序
-//
-// 参数：
-//   - aHasShort: a是否有短名称
-//   - bHasShort: b是否有短名称
-//   - aName: a的长名称
-//   - bName: b的长名称
-//   - aShort: a的短名称
-//   - bShort: b的短名称
-//
-// 返回：
-//   - bool: a是否应该排在b之前
-func sortWithShortNamePriority(aHasShort, bHasShort bool, aName, bName, aShort, bShort string) bool {
-	// 1. 有短名称的优先
-	if aHasShort != bHasShort {
-		return aHasShort
-	}
-
-	// 2. 按长名称字母顺序排序
-	if aName != bName {
-		return aName < bName
-	}
-
-	// 3. 都有短名称则按短名称字母顺序排序
-	return aShort < bShort
-}
-
 // writeSubCmds 写入子命令信息
 //
 // 参数:
@@ -310,26 +260,11 @@ func writeSubCmds(ctx *types.CmdContext, tpl HelpTemplate, buf *bytes.Buffer) {
 	// 添加子命令标题
 	buf.WriteString(tpl.SubCmdsHeader)
 
-	// 排序子命令：
-	// 1. 按长命令名首字母排序
-	// 2. 有短命令名的优先
-	// 3. 只有长命令名的排最后
-
-	// 获取子命令列表
+	// 获取子命令列表并排序
 	sortedSubCmds := ctx.SubCmds
 
-	// 排序子命令
-	sort.Slice(sortedSubCmds, func(i, j int) bool {
-		a, b := sortedSubCmds[i], sortedSubCmds[j]
-		return sortWithShortNamePriority(
-			a.ShortName != "",
-			b.ShortName != "",
-			a.LongName,
-			b.LongName,
-			a.ShortName,
-			b.ShortName,
-		)
-	})
+	// 使用通用排序函数对子命令进行排序
+	sortSubCommands(sortedSubCmds)
 
 	// 计算最大命令名长度用于对齐，使用常量替代魔法数字
 	maxNameLen := 0
