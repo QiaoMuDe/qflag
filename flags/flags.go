@@ -53,9 +53,8 @@ const (
 
 // 内置标志使用说明
 var (
-	HelpFlagUsageEn    = "Show help"                       // 帮助标志英文使用说明
-	VersionFlagUsageEn = "Show the version of the program" // 版本标志英文使用说明
-	VersionFlagUsageZh = "显示程序的版本信息"                       // 版本标志中文使用说明
+	HelpFlagUsage    = "Show help"    // 帮助标志使用说明
+	VersionFlagUsage = "Show version" // 版本标志使用说明
 )
 
 // 定义标志的分隔符常量

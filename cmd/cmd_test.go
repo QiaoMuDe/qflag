@@ -2,7 +2,6 @@ package cmd
 
 import (
 	"flag"
-	"fmt"
 	"os"
 	"testing"
 	"time"
@@ -46,12 +45,17 @@ func TestNestedCommandHelp(t *testing.T) {
 	cmd1 := NewCmd("cmd1", "c1", flag.ContinueOnError)
 	cmd1.SetDescription("cmd1 的描述信息")
 	cmd1.SetVersion("1.0.0")
+	cmd1.SetUseChinese(true)
+	cmd1.SetExitOnBuiltinFlags(false)
+	//cmd1.SetEnableCompletion(true)
 	cmd2 := NewCmd("cmd2", "", flag.ContinueOnError)
 	cmd2.SetUseChinese(true)
 	cmd2.SetDescription("cmd2 的描述信息")
 	cmd3 := NewCmd("cmd3", "c3", flag.ContinueOnError)
 	cmd3.SetUseChinese(true)
 	cmd3.SetDescription("cmd3 的描述信息")
+	cmd2.SetExitOnBuiltinFlags(false)
+	cmd3.SetExitOnBuiltinFlags(false)
 
 	// 定义标志
 	cmd1.String("file", "f", "", "file")
@@ -70,28 +74,28 @@ func TestNestedCommandHelp(t *testing.T) {
 	}
 
 	// 解析命令行参数
-	if err := cmd1.Parse([]string{}); err != nil {
+	if err := cmd1.Parse([]string{"cmd2", "-h"}); err != nil {
 		t.Fatal(err)
 	}
 
-	// 分隔符
-	fmt.Println("=============================")
+	// // 分隔符
+	// fmt.Println("=============================")
 
-	// 打印 cmd1 帮助信息
-	cmd1.PrintHelp()
+	// // 打印 cmd1 帮助信息
+	// cmd1.PrintHelp()
 
-	// 分隔符
-	fmt.Println("=============================")
+	// // 分隔符
+	// fmt.Println("=============================")
 
-	// 打印 cmd2 帮助信息
-	cmd2.PrintHelp()
+	// // 打印 cmd2 帮助信息
+	// cmd2.PrintHelp()
 
-	// 分隔符
-	fmt.Println("=============================")
+	// // 分隔符
+	// fmt.Println("=============================")
 
-	// 打印 cmd3 帮助信息
-	cmd3.PrintHelp()
+	// // 打印 cmd3 帮助信息
+	// cmd3.PrintHelp()
 
-	// 分隔符
-	fmt.Println("=============================")
+	// // 分隔符
+	// fmt.Println("=============================")
 }

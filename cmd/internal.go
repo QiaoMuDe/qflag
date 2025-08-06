@@ -47,15 +47,6 @@ func (c *Cmd) parseCommon(args []string, parseSubcommands bool) (shouldExit bool
 		// 调用内置标志注册方法
 		c.registerBuiltinFlags()
 
-		// 添加默认注意事项
-		if c.ctx.Config.UseChinese {
-			// 中文环境下添加默认注意事项
-			c.ctx.Config.Notes = append(c.ctx.Config.Notes, completion.CompletionNotesCN...)
-		} else {
-			// 英文环境下添加默认注意事项
-			c.ctx.Config.Notes = append(c.ctx.Config.Notes, completion.CompletionNotesEN...)
-		}
-
 		// 设置底层flag库的Usage函数
 		c.ctx.FlagSet.Usage = func() {
 			c.PrintHelp()
@@ -184,18 +175,8 @@ func (c *Cmd) registerBuiltinFlags() {
 
 	// 仅在版本信息不为空时注册(-v/--version)
 	if c.ctx.Config.Version != "" {
-		// 获取版本信息的使用说明
-		var versionUsage string
-		if c.ctx.Config.UseChinese {
-			// 中文环境下的版本信息使用说明
-			versionUsage = flags.VersionFlagUsageZh
-		} else {
-			// 英文环境下的版本信息使用说明
-			versionUsage = flags.VersionFlagUsageEn
-		}
-
 		// 注册版本信息标志
-		c.BoolVar(c.ctx.BuiltinFlags.Version, flags.VersionFlagLongName, flags.VersionFlagShortName, false, versionUsage)
+		c.BoolVar(c.ctx.BuiltinFlags.Version, flags.VersionFlagLongName, flags.VersionFlagShortName, false, flags.VersionFlagUsage)
 
 		// 添加到内置标志名称映射
 		c.ctx.BuiltinFlags.NameMap.Store(flags.VersionFlagLongName, true)

@@ -72,7 +72,7 @@ func NewCmd(longName, shortName string, errorHandling flag.ErrorHandling) *Cmd {
 	cmd := &Cmd{ctx: ctx}
 
 	// 注册内置标志help
-	cmd.BoolVar(cmd.ctx.BuiltinFlags.Help, flags.HelpFlagName, flags.HelpFlagShortName, false, flags.HelpFlagUsageEn)
+	cmd.BoolVar(cmd.ctx.BuiltinFlags.Help, flags.HelpFlagName, flags.HelpFlagShortName, false, flags.HelpFlagUsage)
 
 	// 添加到内置标志名称映射
 	cmd.ctx.BuiltinFlags.NameMap.Store(flags.HelpFlagName, true)
