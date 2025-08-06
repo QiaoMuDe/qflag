@@ -11,8 +11,8 @@ import (
 
 	"gitee.com/MM-Q/qflag/flags"
 	"gitee.com/MM-Q/qflag/internal/help"
-	"gitee.com/MM-Q/qflag/internal/subcmd"
 	"gitee.com/MM-Q/qflag/internal/types"
+	"gitee.com/MM-Q/qflag/internal/validator"
 	"gitee.com/MM-Q/qflag/qerr"
 )
 
@@ -159,8 +159,8 @@ func (c *Cmd) AddSubCmd(subCmds ...*Cmd) error {
 		}
 
 		// 执行子命令的验证方法（无锁操作）
-		if err := subcmd.ValidateSubCommand(c.ctx, cmd.ctx); err != nil {
-			errors = append(errors, fmt.Errorf("invalid subcommand %s: %w", subcmd.GetCmdIdentifier(cmd.ctx), err))
+		if err := validator.ValidateSubCommand(c.ctx, cmd.ctx); err != nil {
+			errors = append(errors, fmt.Errorf("invalid subcommand %s: %w", validator.GetCmdIdentifier(cmd.ctx), err))
 			continue
 		}
 		validCmds = append(validCmds, cmd)

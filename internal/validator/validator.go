@@ -1,5 +1,5 @@
 // internal/subcmd/validator.go
-package subcmd
+package validator
 
 import (
 	"fmt"
@@ -18,6 +18,15 @@ import (
 func ValidateSubCommand(parent, child *types.CmdContext) error {
 	if child == nil {
 		return fmt.Errorf("subcmd %s is nil", GetCmdIdentifier(child))
+	}
+
+	if parent == nil {
+		return nil // 如果父命令为nil，跳过验证
+	}
+
+	// 检查父命令的SubCmdMap是否已初始化
+	if parent.SubCmdMap == nil {
+		panic("父命令的SubCmdMap未初始化")
 	}
 
 	// 检测循环引用 - 在获取锁之前进行，避免死锁
@@ -45,8 +54,9 @@ func ValidateSubCommand(parent, child *types.CmdContext) error {
 
 // HasCycle 检测当前命令与待添加子命令间是否存在循环引用
 //
-// 使用简化的无锁算法：只检查父命令链，避免复杂的锁操作和递归调用
-// 循环引用场景：子命令的父命令链中包含当前命令
+// 检测两种循环情况：
+// 1. 子命令的父命令链中包含当前命令
+// 2. 子命令的子树中包含当前命令或其祖先
 //
 // 参数:
 //   - parent: 当前上下文实例
@@ -64,18 +74,60 @@ func HasCycle(parent, child *types.CmdContext) bool {
 		return true
 	}
 
-	// 简化的循环检测：只检查父命令链
-	// 这避免了复杂的锁操作和递归调用
+	// 检查1：子命令的父命令链中是否包含当前命令
 	current := child.Parent
 	depth := 0
-	
 	for current != nil && depth < 100 {
-		// 如果在子命令的父命令链中找到了要添加到的父命令，则存在循环
 		if current == parent {
 			return true
 		}
 		current = current.Parent
 		depth++
+	}
+
+	// 检查2：子命令的子树中是否包含当前命令或其祖先
+	// 收集parent及其所有祖先
+	ancestors := make(map[*types.CmdContext]bool)
+	current = parent
+	depth = 0
+	for current != nil && depth < 100 {
+		ancestors[current] = true
+		current = current.Parent
+		depth++
+	}
+
+	// 检查child的子树中是否包含任何祖先
+	visited := make(map[*types.CmdContext]bool)
+	return containsAnyAncestor(child, ancestors, visited, 0)
+}
+
+// containsAnyAncestor 检查命令树中是否包含任何祖先命令
+func containsAnyAncestor(root *types.CmdContext, ancestors map[*types.CmdContext]bool, visited map[*types.CmdContext]bool, depth int) bool {
+	if root == nil || depth > 100 {
+		return false
+	}
+
+	// 避免重复访问
+	if visited[root] {
+		return false
+	}
+	visited[root] = true
+
+	// 如果找到任何祖先命令
+	if ancestors[root] {
+		return true
+	}
+
+	// 递归检查所有子命令
+	if root.SubCmdMap != nil {
+		for _, subCmd := range root.SubCmdMap {
+			if subCmd == nil {
+				continue
+			}
+			if containsAnyAncestor(subCmd, ancestors, visited, depth+1) {
+				return true
+			}
+		}
 	}
 
 	return false
