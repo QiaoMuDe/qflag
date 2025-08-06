@@ -121,12 +121,8 @@ func writeOptions(ctx *types.CmdContext, tpl HelpTemplate, buf *bytes.Buffer) {
 	sortFlags(flags)
 
 	// 计算描述信息对齐位置
-	maxWidth, err := calculateMaxWidth(flags)
-	if err != nil {
-		// 如果计算宽度出错，则使用默认宽度
-		maxWidth = 30
-	}
-	descStartPos := maxWidth + 5 // 增加5个空格作为间距
+	maxWidth := calculateMaxWidth(flags) // 获取最大宽度
+	descStartPos := maxWidth + 5         // 增加5个空格作为间距
 
 	// 遍历所有标志
 	for _, flag := range flags {
@@ -325,11 +321,10 @@ func writeSubCmds(ctx *types.CmdContext, tpl HelpTemplate, buf *bytes.Buffer) {
 //
 // 返回:
 //   - int: 最大标志名称宽度
-//   - error: 如果没有标志，则返回错误
-func calculateMaxWidth(flags []flagInfo) (int, error) {
+func calculateMaxWidth(flags []flagInfo) int {
 	// 如果没有标志，则返回0
 	if len(flags) == 0 {
-		return 0, nil
+		return 0
 	}
 
 	maxWidth := 0
@@ -352,7 +347,7 @@ func calculateMaxWidth(flags []flagInfo) (int, error) {
 		}
 	}
 
-	return maxWidth, nil
+	return maxWidth
 }
 
 // writeExamples 写入示例信息
