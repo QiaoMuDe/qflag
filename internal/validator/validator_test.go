@@ -403,7 +403,7 @@ func TestValidateSubCommand_SubCmdMapNil(t *testing.T) {
 		}
 	}()
 
-	ValidateSubCommand(parent, child)
+	_ = ValidateSubCommand(parent, child)
 }
 
 // BenchmarkValidateSubCommand 性能基准测试
@@ -413,7 +413,7 @@ func BenchmarkValidateSubCommand(b *testing.B) {
 
 	b.ResetTimer()
 	for i := 0; i < b.N; i++ {
-		ValidateSubCommand(parent, child)
+		_ = ValidateSubCommand(parent, child)
 	}
 }
 

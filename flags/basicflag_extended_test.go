@@ -396,7 +396,7 @@ func TestStringFlag_EdgeCases(t *testing.T) {
 		}
 
 		for _, test := range testCases {
-			flag.Set(test.input)
+			_ = flag.Set(test.input)
 			result := flag.String()
 			if result != test.expected {
 				t.Errorf("输入 '%s'，String()期望 '%s'，实际 '%s'", test.input, test.expected, result)

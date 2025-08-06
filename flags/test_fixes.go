@@ -71,7 +71,7 @@ func TestBaseFlag_PointerAccess_Fixed(t *testing.T) {
 		}
 
 		// 初始化标志
-		flag.Init("test", "", "test flag", nil)
+		_ = flag.Init("test", "", "test flag", nil)
 
 		// 获取指针 - 应该返回指向初始值的指针
 		ptr := flag.GetPointer()
@@ -92,7 +92,7 @@ func TestBaseFlag_PointerAccess_Fixed(t *testing.T) {
 			value:        new(int),
 		}
 
-		flag.Init("test", "", "test flag", nil)
+		_ = flag.Init("test", "", "test flag", nil)
 
 		// 设置值
 		*flag.value = 100

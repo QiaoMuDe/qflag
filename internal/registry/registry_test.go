@@ -616,7 +616,7 @@ func BenchmarkValidateFlagNames(b *testing.B) {
 	b.ResetTimer()
 	for i := 0; i < b.N; i++ {
 		flagName := fmt.Sprintf("benchmark-flag-%d", i%1000)
-		ValidateFlagNames(ctx, flagName, "")
+		_ = ValidateFlagNames(ctx, flagName, "")
 	}
 }
 
@@ -631,7 +631,7 @@ func BenchmarkRegisterFlag(b *testing.B) {
 	for i := 0; i < b.N; i++ {
 		flagName := fmt.Sprintf("benchmark-flag-%d", i%1000)
 		flag := NewMockFlag(flagName, "", "default")
-		RegisterFlag(ctx, flag, flagName, "")
+		_ = RegisterFlag(ctx, flag, flagName, "")
 	}
 }
 
@@ -646,7 +646,7 @@ func BenchmarkConcurrentValidation(b *testing.B) {
 		i := 0
 		for pb.Next() {
 			flagName := fmt.Sprintf("concurrent-flag-%d", i%1000)
-			ValidateFlagNames(ctx, flagName, "")
+			_ = ValidateFlagNames(ctx, flagName, "")
 			i++
 		}
 	})

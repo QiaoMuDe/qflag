@@ -236,7 +236,7 @@ func TestBaseFlag_DefaultValueHandling(t *testing.T) {
 	t.Run("未设置值时返回默认值", func(t *testing.T) {
 		flag := &BaseFlag[string]{}
 		value := "default"
-		flag.Init("longname", "l", "usage", &value)
+		_ = flag.Init("longname", "l", "usage", &value)
 
 		if flag.Get() != "default" {
 			t.Errorf("未设置值时Get()应返回默认值 'default'，实际为 '%s'", flag.Get())
@@ -252,7 +252,7 @@ func TestBaseFlag_DefaultValueHandling(t *testing.T) {
 func TestBaseFlag_SetAndReset(t *testing.T) {
 	flag := &BaseFlag[string]{}
 	value := "default"
-	flag.Init("longname", "l", "usage", &value)
+	_ = flag.Init("longname", "l", "usage", &value)
 
 	// 设置新值
 	err := flag.Set("newvalue")
@@ -285,7 +285,7 @@ func TestBaseFlag_PointerAccess(t *testing.T) {
 	t.Run("未设置值时指针指向初始值", func(t *testing.T) {
 		flag := &BaseFlag[string]{}
 		value := "default"
-		flag.Init("longname", "l", "usage", &value)
+		_ = flag.Init("longname", "l", "usage", &value)
 
 		ptr := flag.GetPointer()
 		if ptr == nil {
@@ -306,9 +306,9 @@ func TestBaseFlag_PointerAccess(t *testing.T) {
 	t.Run("设置值后指针有效", func(t *testing.T) {
 		flag := &BaseFlag[string]{}
 		value := "default"
-		flag.Init("longname", "l", "usage", &value)
+		_ = flag.Init("longname", "l", "usage", &value)
 
-		flag.Set("newvalue")
+		_ = flag.Set("newvalue")
 		ptr := flag.GetPointer()
 
 		if ptr == nil {
@@ -332,7 +332,7 @@ func TestBaseFlag_StringRepresentation(t *testing.T) {
 	t.Run("字符串类型", func(t *testing.T) {
 		flag := &BaseFlag[string]{}
 		value := "test"
-		flag.Init("longname", "l", "usage", &value)
+		_ = flag.Init("longname", "l", "usage", &value)
 
 		err := flag.Set("hello")
 		if err != nil {
@@ -346,7 +346,7 @@ func TestBaseFlag_StringRepresentation(t *testing.T) {
 	t.Run("整数类型", func(t *testing.T) {
 		flag := &BaseFlag[int]{}
 		value := 0
-		flag.Init("longname", "l", "usage", &value)
+		_ = flag.Init("longname", "l", "usage", &value)
 
 		err := flag.Set(42)
 		if err != nil {
@@ -362,7 +362,7 @@ func TestBaseFlag_StringRepresentation(t *testing.T) {
 func TestBaseFlag_TypeMethod(t *testing.T) {
 	flag := &BaseFlag[string]{}
 	value := "test"
-	flag.Init("longname", "l", "usage", &value)
+	_ = flag.Init("longname", "l", "usage", &value)
 
 	if flag.Type() != 0 {
 		t.Errorf("BaseFlag的Type()默认实现应返回0，实际返回 %d", flag.Type())
