@@ -75,27 +75,3 @@ func validateSingleFlagName(ctx *types.CmdContext, name, nameType string) error 
 
 	return nil
 }
-
-// GetFlagRegistry 获取标志注册表
-//
-// 参数：
-//   - ctx: 命令上下文
-//
-// 返回：
-//   - *flags.FlagRegistry: 标志注册表
-func GetFlagRegistry(ctx *types.CmdContext) *flags.FlagRegistry {
-	return ctx.FlagRegistry
-}
-
-// FlagExists 检查标志是否存在
-//
-// 参数：
-//   - ctx: 命令上下文
-//   - name: 标志名称
-//
-// 返回：
-//   - bool: 如果标志存在，则返回 true；否则返回 false
-func FlagExists(ctx *types.CmdContext, name string) bool {
-	_, exists := ctx.FlagRegistry.GetByName(name)
-	return exists
-}

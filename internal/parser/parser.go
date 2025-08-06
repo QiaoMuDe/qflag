@@ -30,12 +30,10 @@ func ParseArgs(ctx *types.CmdContext, args []string, parseSubcmds bool) error {
 	// 获取解析后的参数
 	parsedArgs := ctx.FlagSet.Args()
 
-	// 一次性更新参数，减少锁持有时间
-	ctx.Mutex.Lock()
+	// 直接更新参数（外部API层已提供锁保护）
 	ctx.Args = append(ctx.Args, parsedArgs...)     // 设置非标志参数
-	argsToProcess := make([]string, len(ctx.Args)) // 获取参数的副本, 降低锁持有时间
+	argsToProcess := make([]string, len(ctx.Args)) // 获取参数的副本
 	copy(argsToProcess, ctx.Args)
-	ctx.Mutex.Unlock()
 
 	// 解析子命令: 如果存在子命令并且存在非标志参数, 则解析子命令
 	if !parseSubcmds {

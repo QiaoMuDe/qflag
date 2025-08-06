@@ -141,29 +141,16 @@ func (c *Cmd) ParseFlagsOnly(args []string) (err error) {
 // 返回值:
 //   - 错误信息, 如果所有子命令添加成功则返回nil
 func (c *Cmd) AddSubCmd(subCmds ...*Cmd) error {
-	c.ctx.Mutex.Lock()
-	defer c.ctx.Mutex.Unlock()
-
 	// 检查子命令是否为空
 	if len(subCmds) == 0 {
 		return qerr.NewValidationError("subCmds list cannot be empty")
 	}
 
-	// 检查子命令map是否为nil
-	if c.ctx.SubCmdMap == nil {
-		return qerr.NewValidationError("subCmdMap cannot be nil")
-	}
-
-	// 检查子命令数组是否为nil
-	if c.ctx.SubCmds == nil {
-		return qerr.NewValidationError("subCmds cannot be nil")
-	}
-
-	// 验证阶段 - 收集所有错误
+	// 验证阶段 - 在获取锁之前进行，避免死锁
 	var errors []error
 	validCmds := make([]*Cmd, 0, len(subCmds)) // 预分配空间
 
-	// 验证所有子命令
+	// 验证所有子命令（无锁操作）
 	for cmdIndex, cmd := range subCmds {
 		// 检查子命令是否为nil
 		if cmd == nil {
@@ -171,7 +158,7 @@ func (c *Cmd) AddSubCmd(subCmds ...*Cmd) error {
 			continue
 		}
 
-		// 执行子命令的验证方法
+		// 执行子命令的验证方法（无锁操作）
 		if err := subcmd.ValidateSubCommand(c.ctx, cmd.ctx); err != nil {
 			errors = append(errors, fmt.Errorf("invalid subcommand %s: %w", subcmd.GetCmdIdentifier(cmd.ctx), err))
 			continue
@@ -182,6 +169,20 @@ func (c *Cmd) AddSubCmd(subCmds ...*Cmd) error {
 	// 如果有验证错误, 返回所有错误信息
 	if len(errors) > 0 {
 		return qerr.NewValidationErrorf("%s: %v", qerr.ErrAddSubCommandFailed, qerr.JoinErrors(errors))
+	}
+
+	// 获取锁进行实际的添加操作
+	c.ctx.Mutex.Lock()
+	defer c.ctx.Mutex.Unlock()
+
+	// 检查子命令map是否为nil
+	if c.ctx.SubCmdMap == nil {
+		return qerr.NewValidationError("subCmdMap cannot be nil")
+	}
+
+	// 检查子命令数组是否为nil
+	if c.ctx.SubCmds == nil {
+		return qerr.NewValidationError("subCmds cannot be nil")
 	}
 
 	// 预分配临时切片(容量=validCmds长度, 避免多次扩容)

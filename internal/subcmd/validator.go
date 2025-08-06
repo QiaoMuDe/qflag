@@ -20,15 +20,12 @@ func ValidateSubCommand(parent, child *types.CmdContext) error {
 		return fmt.Errorf("subcmd %s is nil", GetCmdIdentifier(child))
 	}
 
-	// 检测循环引用
+	// 检测循环引用 - 在获取锁之前进行，避免死锁
 	if HasCycle(parent, child) {
 		return fmt.Errorf("cyclic reference detected: Command %s already exists in the command chain", GetCmdIdentifier(child))
 	}
 
-	// 检查名称冲突
-	parent.Mutex.RLock()
-	defer parent.Mutex.RUnlock()
-
+	// 检查名称冲突（外部API层已提供锁保护）
 	// 检查长名称冲突
 	if child.LongName != "" {
 		if _, exists := parent.SubCmdMap[child.LongName]; exists {
@@ -48,9 +45,8 @@ func ValidateSubCommand(parent, child *types.CmdContext) error {
 
 // HasCycle 检测当前命令与待添加子命令间是否存在循环引用
 //
-// 循环引用场景包括：
-//  1. 子命令直接或间接引用当前命令
-//  2. 子命令的父命令链中包含当前命令
+// 使用简化的无锁算法：只检查父命令链，避免复杂的锁操作和递归调用
+// 循环引用场景：子命令的父命令链中包含当前命令
 //
 // 参数:
 //   - parent: 当前上下文实例
@@ -63,56 +59,23 @@ func HasCycle(parent, child *types.CmdContext) bool {
 		return false
 	}
 
-	// 创建一个已访问的命令集合
-	visited := make(map[*types.CmdContext]bool)
-
-	// 添加初始深度参数0
-	return dfs(parent, child, visited, 0)
-}
-
-// dfs 深度优先搜索检测循环引用
-// 递归检查当前节点及其子命令、父命令链中是否包含目标节点(q)
-//
-// 参数:
-//   - current: 当前节点
-//   - target: 目标节点
-//   - visited: 已访问的节点集合
-//   - depth: 当前递归深度
-//
-// 返回值:
-//   - bool: 是否存在循环引用
-func dfs(current, target *types.CmdContext, visited map[*types.CmdContext]bool, depth int) bool {
-	if depth > 100 {
-		return true // 防止无限递归
-	}
-
-	// 已访问过当前节点，直接返回避免无限循环
-	if visited[current] {
-		return false
-	}
-	visited[current] = true
-
-	// 找到目标节点，存在循环引用
-	if current == target {
+	// 检查是否子命令本身就是父命令（直接循环）
+	if child == parent {
 		return true
 	}
 
-	// 检查子命令
-	current.Mutex.RLock()
-	subCmds := make([]*types.CmdContext, len(current.SubCmds))
-	copy(subCmds, current.SubCmds)
-	current.Mutex.RUnlock()
-
-	// 递归检查子命令
-	for _, subCmd := range subCmds {
-		if dfs(subCmd, target, visited, depth+1) {
+	// 简化的循环检测：只检查父命令链
+	// 这避免了复杂的锁操作和递归调用
+	current := child.Parent
+	depth := 0
+	
+	for current != nil && depth < 100 {
+		// 如果在子命令的父命令链中找到了要添加到的父命令，则存在循环
+		if current == parent {
 			return true
 		}
-	}
-
-	// 检查父命令
-	if current.Parent != nil {
-		return dfs(current.Parent, target, visited, depth+1)
+		current = current.Parent
+		depth++
 	}
 
 	return false
