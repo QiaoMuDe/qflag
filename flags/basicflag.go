@@ -152,11 +152,22 @@ func (f *BoolFlag) Type() FlagType { return FlagTypeBool }
 
 // Set 实现flag.Value接口,解析并设置布尔值
 //
+// 支持以下布尔值格式（大小写不敏感）:
+//   - 真值: "true", "1", "t", "T", "TRUE", "True"
+//   - 假值: "false", "0", "f", "F", "FALSE", "False"
+//
 // 参数:
-//   - value: 待设置的值
+//   - value: 待设置的布尔值字符串
 //
 // 返回值:
 //   - error: 解析或验证失败时返回错误信息
+//
+// 示例:
+//   - flag.Set("true")   // ✅ 成功，值为 true
+//   - flag.Set("1")      // ✅ 成功，值为 true
+//   - flag.Set("FALSE")  // ✅ 成功，值为 false
+//   - flag.Set("0")      // ✅ 成功，值为 false
+//   - flag.Set("yes")    // ❌ 失败，返回解析错误
 func (f *BoolFlag) Set(value string) error {
 	f.mu.Lock()
 	defer f.mu.Unlock()

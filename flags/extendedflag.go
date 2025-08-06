@@ -239,10 +239,10 @@ func (f *MapFlag) Set(value string) error {
 		current = make(map[string]string)
 	}
 
-	// 使用键分隔符分割多个键值对
+	// 简化的解析逻辑：先按键分隔符分割，再处理每个键值对
 	pairs := strings.Split(value, f.keyDelimiter)
 	for _, pair := range pairs {
-		// 使用值分隔符分割键和值
+		// 使用SplitN限制分割次数为2，这样值中可以包含值分隔符
 		kv := strings.SplitN(pair, f.valueDelimiter, 2)
 
 		// 检查键值对是否包含两个部分
@@ -287,6 +287,13 @@ func (f *MapFlag) SetDelimiters(keyDelimiter, valueDelimiter string) {
 	}
 	if valueDelimiter == "" {
 		valueDelimiter = FlagKVEqual // 默认使用等号
+	}
+
+	// 检查键分隔符和值分隔符是否相同
+	if keyDelimiter == valueDelimiter {
+		// 如果相同，使用默认值组合
+		keyDelimiter = FlagSplitComma
+		valueDelimiter = FlagKVEqual
 	}
 
 	// 设置分隔符
