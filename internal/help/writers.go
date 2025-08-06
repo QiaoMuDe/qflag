@@ -11,12 +11,35 @@ import (
 	"gitee.com/MM-Q/qflag/internal/types"
 )
 
+// 帮助信息格式化常量
+const (
+	// 默认最大宽度，当计算失败时使用
+	DefaultMaxWidth = 30
+
+	// 描述信息与选项之间的间距
+	DescriptionPadding = 5
+
+	// 子命令名称分隔符长度 (", " 的长度)
+	SubCmdSeparatorLen = 2
+
+	// 子命令对齐额外空格数
+	SubCmdAlignSpaces = 5
+
+	// 最小填充空格数
+	MinPadding = 1
+)
+
 // writeModuleHelps 写入自定义模块帮助信息
 //
 // 参数:
 //   - ctx: 命令上下文
 //   - buf: 输出缓冲区
 func writeModuleHelps(ctx *types.CmdContext, buf *bytes.Buffer) {
+	// 空指针检查
+	if ctx == nil || buf == nil {
+		return
+	}
+
 	// 如果存在自定义模块帮助信息，则写入
 	if ctx.Config.ModuleHelps != "" {
 		buf.WriteString("\n" + ctx.Config.ModuleHelps + "\n")
@@ -29,6 +52,11 @@ func writeModuleHelps(ctx *types.CmdContext, buf *bytes.Buffer) {
 //   - ctx: 命令上下文
 //   - buf: 输出缓冲区
 func writeLogoText(ctx *types.CmdContext, buf *bytes.Buffer) {
+	// 空指针检查
+	if ctx == nil || buf == nil {
+		return
+	}
+
 	// 如果配置了Logo文本, 则写入
 	if ctx.Config.LogoText != "" {
 		buf.WriteString(ctx.Config.LogoText + "\n")
@@ -42,6 +70,11 @@ func writeLogoText(ctx *types.CmdContext, buf *bytes.Buffer) {
 //   - tpl: 模板
 //   - buf: 输出缓冲区
 func writeCommandHeader(ctx *types.CmdContext, tpl HelpTemplate, buf *bytes.Buffer) {
+	// 空指针检查
+	if ctx == nil || buf == nil {
+		return
+	}
+
 	// 修改后的命令名称显示逻辑
 	if ctx.LongName != "" && ctx.ShortName != "" {
 		// 同时有长短名称
@@ -65,6 +98,11 @@ func writeCommandHeader(ctx *types.CmdContext, tpl HelpTemplate, buf *bytes.Buff
 // tpl: 模板实例
 // buf: 输出缓冲区
 func writeUsageLine(ctx *types.CmdContext, tpl HelpTemplate, buf *bytes.Buffer) {
+	// 空指针检查
+	if ctx == nil || buf == nil {
+		return
+	}
+
 	// 使用模板中的用法说明前缀
 	usageLinePrefix := tpl.UsagePrefix
 	var usageLine string
@@ -110,6 +148,11 @@ func writeUsageLine(ctx *types.CmdContext, tpl HelpTemplate, buf *bytes.Buffer) 
 //   - tpl: 模板实例
 //   - buf: 输出缓冲区
 func writeOptions(ctx *types.CmdContext, tpl HelpTemplate, buf *bytes.Buffer) {
+	// 空指针检查
+	if ctx == nil || buf == nil {
+		return
+	}
+
 	// 获取所有标志信息并排序
 	flags := collectFlags(ctx)
 	// 如果没有标志，不显示选项部分
@@ -120,9 +163,12 @@ func writeOptions(ctx *types.CmdContext, tpl HelpTemplate, buf *bytes.Buffer) {
 	buf.WriteString(tpl.OptionsHeader)
 	sortFlags(flags)
 
-	// 计算描述信息对齐位置
-	maxWidth := calculateMaxWidth(flags) // 获取最大宽度
-	descStartPos := maxWidth + 5         // 增加5个空格作为间距
+	// 计算描述信息对齐位置，使用常量替代魔法数字
+	maxWidth := calculateMaxWidth(flags)
+	if maxWidth == 0 {
+		maxWidth = DefaultMaxWidth
+	}
+	descStartPos := maxWidth + DescriptionPadding
 
 	// 遍历所有标志
 	for _, flag := range flags {
@@ -141,10 +187,10 @@ func writeOptions(ctx *types.CmdContext, tpl HelpTemplate, buf *bytes.Buffer) {
 			optPart = fmt.Sprintf(tpl.Option3, flag.shortFlag, flag.typeStr)
 		}
 
-		// 计算选项部分需要的填充空格
+		// 计算选项部分需要的填充空格，使用常量替代魔法数字
 		padding := descStartPos - len(optPart)
-		if padding < 1 {
-			padding = 1
+		if padding < MinPadding {
+			padding = MinPadding
 		}
 
 		// 格式化整行输出
@@ -161,6 +207,11 @@ func writeOptions(ctx *types.CmdContext, tpl HelpTemplate, buf *bytes.Buffer) {
 // 返回:
 //   - []flagInfo: 标志信息列表
 func collectFlags(cmd *types.CmdContext) []flagInfo {
+	// 空指针检查
+	if cmd == nil || cmd.FlagRegistry == nil {
+		return []flagInfo{}
+	}
+
 	var flagInfos []flagInfo
 
 	// 遍历所有标志, 收集标志信息
@@ -246,6 +297,11 @@ func sortWithShortNamePriority(aHasShort, bHasShort bool, aName, bName, aShort, 
 //   - tpl: 模板实例
 //   - buf: 输出缓冲区
 func writeSubCmds(ctx *types.CmdContext, tpl HelpTemplate, buf *bytes.Buffer) {
+	// 空指针检查
+	if ctx == nil || buf == nil {
+		return
+	}
+
 	// 没有子命令则返回
 	if len(ctx.SubCmds) == 0 {
 		return
@@ -275,13 +331,13 @@ func writeSubCmds(ctx *types.CmdContext, tpl HelpTemplate, buf *bytes.Buffer) {
 		)
 	})
 
-	// 计算最大命令名长度用于对齐
+	// 计算最大命令名长度用于对齐，使用常量替代魔法数字
 	maxNameLen := 0
 	for _, subCmd := range sortedSubCmds {
 		nameLen := len(subCmd.LongName) // 计算长命令名长度
 		// 如果子命令有短名称，则计算短名称长度
 		if subCmd.ShortName != "" {
-			nameLen += len(subCmd.ShortName) + 5 // 添加5个空格, 保持命令对齐
+			nameLen += len(subCmd.ShortName) + SubCmdAlignSpaces // 使用常量替代魔法数字
 		}
 		// 更新最大命令名长度
 		if nameLen > maxNameLen {
@@ -357,6 +413,11 @@ func calculateMaxWidth(flags []flagInfo) int {
 //   - tpl: 模板实例
 //   - buf: 输出缓冲区
 func writeExamples(ctx *types.CmdContext, tpl HelpTemplate, buf *bytes.Buffer) {
+	// 空指针检查
+	if ctx == nil || buf == nil {
+		return
+	}
+
 	// 如果没有示例信息，则返回
 	examples := ctx.Config.Examples
 	if len(examples) == 0 {
@@ -385,6 +446,11 @@ func writeExamples(ctx *types.CmdContext, tpl HelpTemplate, buf *bytes.Buffer) {
 //   - tpl: 模板实例
 //   - buf: 输出缓冲区
 func writeNotes(ctx *types.CmdContext, tpl HelpTemplate, buf *bytes.Buffer) {
+	// 空指针检查
+	if ctx == nil || buf == nil {
+		return
+	}
+
 	// 如果没有注意事项，则返回
 	notes := ctx.Config.Notes
 	if len(notes) == 0 {
@@ -408,6 +474,11 @@ func writeNotes(ctx *types.CmdContext, tpl HelpTemplate, buf *bytes.Buffer) {
 // 返回:
 //   - string: 完整的命令路径
 func getFullCommandPath(ctx *types.CmdContext) string {
+	// 空指针检查
+	if ctx == nil || ctx.FlagSet == nil {
+		return ""
+	}
+
 	if ctx.Parent == nil {
 		// 如果没有父命令，则直接返回命令名
 		return ctx.FlagSet.Name()
