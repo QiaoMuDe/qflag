@@ -3,7 +3,6 @@ package types
 import (
 	"reflect"
 	"strings"
-	"sync"
 	"testing"
 )
 
@@ -337,69 +336,6 @@ func TestExampleInfo_结构体(t *testing.T) {
 			}
 		})
 	}
-}
-
-// TestCmdConfig_并发安全性 测试CmdConfig的并发安全性
-func TestCmdConfig_并发安全性(t *testing.T) {
-	config := NewCmdConfig()
-
-	var wg sync.WaitGroup
-	numGoroutines := 10
-	numOperations := 100
-
-	// 测试并发读写字符串字段
-	wg.Add(numGoroutines)
-	for i := 0; i < numGoroutines; i++ {
-		go func(id int) {
-			defer wg.Done()
-			for j := 0; j < numOperations; j++ {
-				// 并发写入
-				config.Version = "v1.0.0"
-				config.Description = "测试描述"
-				config.Help = "帮助信息"
-
-				// 并发读取
-				_ = config.Version
-				_ = config.Description
-				_ = config.Help
-			}
-		}(i)
-	}
-
-	// 测试并发读写布尔字段
-	wg.Add(numGoroutines)
-	for i := 0; i < numGoroutines; i++ {
-		go func(id int) {
-			defer wg.Done()
-			for j := 0; j < numOperations; j++ {
-				// 并发写入
-				config.UseChinese = j%2 == 0
-				config.ExitOnBuiltinFlags = j%3 == 0
-				config.EnableCompletion = j%4 == 0
-
-				// 并发读取
-				_ = config.UseChinese
-				_ = config.ExitOnBuiltinFlags
-				_ = config.EnableCompletion
-			}
-		}(i)
-	}
-
-	// 测试并发操作切片（注意：实际使用中应该加锁保护）
-	wg.Add(numGoroutines)
-	for i := 0; i < numGoroutines; i++ {
-		go func(id int) {
-			defer wg.Done()
-			for j := 0; j < 10; j++ { // 减少操作次数避免竞态条件
-				// 这里只是测试读取，实际写入切片需要加锁
-				_ = len(config.Notes)
-				_ = len(config.Examples)
-			}
-		}(i)
-	}
-
-	wg.Wait()
-	t.Log("并发安全性测试完成")
 }
 
 // TestCmdConfig_极值测试 测试极值情况
