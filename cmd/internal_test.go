@@ -102,6 +102,7 @@ func TestCmd_parseCommon(t *testing.T) {
 			expectError:      false,
 			setupSubcommands: func(cmd *Cmd) {
 				subCmd := NewCmd("subcmd", "sc", flag.ContinueOnError)
+				subCmd.SetExitOnBuiltinFlags(false) // 设置子命令不在内置标志时退出
 				cmd.AddSubCmd(subCmd)
 			},
 		},

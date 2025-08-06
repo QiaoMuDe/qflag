@@ -107,23 +107,23 @@ func (c *Cmd) parseCommon(args []string, parseSubcommands bool) (shouldExit bool
 //   - shouldExit: 是否需要退出程序
 //   - err: 解析过程中遇到的错误
 func (c *Cmd) parseSubCommands() (bool, error) {
-	// 只有在存在非标志参数并且存在子命令的情况下才需要解析
-	if len(c.ctx.Args) == 0 || (len(c.ctx.SubCmdMap) == 0 || len(c.ctx.SubCmds) == 0) {
+	// 如果没有非标志参数或者没有注册子命令，则无需解析子命令
+	if len(c.ctx.Args) == 0 || len(c.ctx.SubCmdMap) == 0 {
 		return false, nil
 	}
 
 	// 获取非标志参数的第一个参数(子命令名称)
 	subCmdName := c.ctx.Args[0]
 
-	// 获取除子命令名称外的剩余参数
-	argsToProcess := make([]string, len(c.ctx.Args)-1)
-	copy(argsToProcess, c.ctx.Args[1:])
-
 	// 检查子命令是否存在
 	subCmd, exists := c.ctx.SubCmdMap[subCmdName]
 	if !exists {
 		return false, nil
 	}
+
+	// 获取除子命令名称外的剩余参数
+	argsToProcess := make([]string, len(c.ctx.Args)-1)
+	copy(argsToProcess, c.ctx.Args[1:])
 
 	// 解析子命令的参数(这里创建了临时Cmd实例包装器)
 	exit, parseErr := tempCmd(subCmd).parseCommon(argsToProcess, true)

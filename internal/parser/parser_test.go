@@ -2,655 +2,391 @@ package parser
 
 import (
 	"flag"
-	"fmt"
 	"os"
-	"strings"
-	"sync"
 	"testing"
 
-	"gitee.com/MM-Q/qflag/flags"
+	"gitee.com/MM-Q/qflag/internal/help"
 	"gitee.com/MM-Q/qflag/internal/types"
 )
 
-// MockFlag 模拟标志实现，用于测试
-type MockFlag struct {
-	longName  string
-	shortName string
-	value     string
-	isSet     bool
-	envVar    string
-}
+// createTestContext 创建测试用的命令上下文
+func createTestContext(name string) *types.CmdContext {
+	ctx := types.NewCmdContext(name, "", flag.ContinueOnError)
 
-func NewMockFlag(longName, shortName, defaultValue string) *MockFlag {
-	return &MockFlag{
-		longName:  longName,
-		shortName: shortName,
-		value:     defaultValue,
-		isSet:     false,
-	}
-}
+	// 初始化必要的字段
+	ctx.Config.UseChinese = false
+	ctx.Config.Notes = []string{}
 
-func (m *MockFlag) LongName() string {
-	return m.longName
-}
-
-func (m *MockFlag) ShortName() string {
-	return m.shortName
-}
-
-func (m *MockFlag) Usage() string {
-	return "mock flag usage"
-}
-
-func (m *MockFlag) Type() flags.FlagType {
-	return flags.FlagTypeString
-}
-
-func (m *MockFlag) GetDefaultAny() interface{} {
-	return m.value
-}
-
-func (m *MockFlag) String() string {
-	return m.value
-}
-
-func (m *MockFlag) IsSet() bool {
-	return m.isSet
-}
-
-func (m *MockFlag) Reset() {
-	m.isSet = false
-}
-
-func (m *MockFlag) GetEnvVar() string {
-	return m.envVar
-}
-
-func (m *MockFlag) Set(value string) error {
-	m.value = value
-	m.isSet = true
-	return nil
-}
-
-func (m *MockFlag) BindEnv(envName string) {
-	m.envVar = envName
-}
-
-// ErrorMockFlag 用于测试错误情况的Mock标志
-type ErrorMockFlag struct {
-	*MockFlag
-	shouldError bool
-	errorMsg    string
-}
-
-func NewErrorMockFlag(longName, shortName, defaultValue string, shouldError bool, errorMsg string) *ErrorMockFlag {
-	return &ErrorMockFlag{
-		MockFlag:    NewMockFlag(longName, shortName, defaultValue),
-		shouldError: shouldError,
-		errorMsg:    errorMsg,
-	}
-}
-
-func (e *ErrorMockFlag) Set(value string) error {
-	if e.shouldError {
-		return fmt.Errorf("%s", e.errorMsg)
-	}
-	return e.MockFlag.Set(value)
-}
-
-// createTestContext 创建用于测试的命令上下文
-func createTestContext() *types.CmdContext {
-	ctx := types.NewCmdContext("test-cmd", "tc", flag.ContinueOnError)
 	return ctx
 }
 
-// createTestContextWithFlags 创建带有标志的测试上下文
-func createTestContextWithFlags() *types.CmdContext {
-	ctx := createTestContext()
+// TestParseCommand_基本标志解析 测试基本标志解析功能
+func TestParseCommand_基本标志解析(t *testing.T) {
+	ctx := createTestContext("测试")
 
 	// 添加一些测试标志
-	mockFlag1 := NewMockFlag("verbose", "v", "false")
-	mockFlag2 := NewMockFlag("output", "o", "stdout")
-	mockFlag3 := NewMockFlag("config", "c", "")
+	var stringFlag string
+	var intFlag int
+	var boolFlag bool
 
-	// 绑定环境变量
-	mockFlag2.BindEnv("TEST_OUTPUT")
-	mockFlag3.BindEnv("TEST_CONFIG")
+	ctx.FlagSet.StringVar(&stringFlag, "string", "默认值", "字符串标志")
+	ctx.FlagSet.IntVar(&intFlag, "int", 0, "整数标志")
+	ctx.FlagSet.BoolVar(&boolFlag, "bool", false, "布尔标志")
 
-	// 注册标志到 FlagSet
-	ctx.FlagSet.Var(mockFlag1, "verbose", "verbose output")
-	ctx.FlagSet.Var(mockFlag1, "v", "verbose output")
-	ctx.FlagSet.Var(mockFlag2, "output", "output destination")
-	ctx.FlagSet.Var(mockFlag2, "o", "output destination")
-	ctx.FlagSet.Var(mockFlag3, "config", "config file path")
-	ctx.FlagSet.Var(mockFlag3, "c", "config file path")
+	// 测试参数
+	args := []string{"--string", "测试值", "--int", "42", "--bool", "剩余", "参数"}
 
-	return ctx
-}
-
-// TestParseArgs 测试参数解析功能
-func TestParseArgs(t *testing.T) {
-	tests := []struct {
-		name         string
-		args         []string
-		parseSubcmds bool
-		setupEnv     map[string]string
-		wantErr      bool
-		errContains  string
-	}{
-		{
-			name:         "解析空参数",
-			args:         []string{},
-			parseSubcmds: false,
-			wantErr:      false,
-		},
-		{
-			name:         "解析有效标志",
-			args:         []string{"-v", "true", "--output", "file.txt"},
-			parseSubcmds: false,
-			wantErr:      false,
-		},
-		{
-			name:         "解析带环境变量的标志",
-			args:         []string{"-v", "true"},
-			parseSubcmds: false,
-			setupEnv: map[string]string{
-				"TEST_OUTPUT": "env_output.txt",
-				"TEST_CONFIG": "env_config.yaml",
-			},
-			wantErr: false,
-		},
-		{
-			name:         "解析非标志参数",
-			args:         []string{"-v", "true", "arg1", "arg2"},
-			parseSubcmds: false,
-			wantErr:      false,
-		},
-		{
-			name:         "解析子命令",
-			args:         []string{"subcmd", "-v", "true"},
-			parseSubcmds: true,
-			wantErr:      false,
-		},
-		{
-			name:         "解析无效标志",
-			args:         []string{"--invalid-flag", "value"},
-			parseSubcmds: false,
-			wantErr:      true,
-			errContains:  "flag provided but not defined",
-		},
+	err := ParseCommand(ctx, args)
+	if err != nil {
+		t.Fatalf("ParseCommand 解析失败: %v", err)
 	}
 
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			// 设置环境变量
-			for key, value := range tt.setupEnv {
-				os.Setenv(key, value)
-				defer os.Unsetenv(key)
-			}
+	// 验证标志值
+	if stringFlag != "测试值" {
+		t.Errorf("期望字符串标志为 '测试值'，实际得到 '%s'", stringFlag)
+	}
 
-			ctx := createTestContextWithFlags()
+	if intFlag != 42 {
+		t.Errorf("期望整数标志为 42，实际得到 %d", intFlag)
+	}
 
-			// 如果测试子命令，添加子命令
-			if tt.parseSubcmds && len(tt.args) > 0 && tt.args[0] == "subcmd" {
-				subCtx := createTestContextWithFlags()
-				ctx.SubCmds = append(ctx.SubCmds, subCtx)
-				ctx.SubCmdMap["subcmd"] = subCtx
-			}
+	if !boolFlag {
+		t.Errorf("期望布尔标志为 true，实际得到 %v", boolFlag)
+	}
 
-			err := ParseArgs(ctx, tt.args, tt.parseSubcmds)
+	// 验证非标志参数
+	expectedArgs := []string{"剩余", "参数"}
+	if len(ctx.Args) != len(expectedArgs) {
+		t.Errorf("期望 %d 个参数，实际得到 %d 个", len(expectedArgs), len(ctx.Args))
+	}
 
-			if tt.wantErr {
-				if err == nil {
-					t.Errorf("ParseArgs() 期望错误但未返回错误")
-					return
-				}
-				if tt.errContains != "" && !strings.Contains(err.Error(), tt.errContains) {
-					t.Errorf("ParseArgs() 错误信息 = %v, 期望包含 %v", err.Error(), tt.errContains)
-				}
-			} else {
-				if err != nil {
-					t.Errorf("ParseArgs() 意外错误 = %v", err)
-				}
-			}
-		})
+	for i, expected := range expectedArgs {
+		if i >= len(ctx.Args) || ctx.Args[i] != expected {
+			t.Errorf("期望参数[%d] 为 '%s'，实际得到 '%s'", i, expected, ctx.Args[i])
+		}
 	}
 }
 
-// TestParseSubCommandSafe 测试子命令解析功能
-func TestParseSubCommandSafe(t *testing.T) {
-	tests := []struct {
-		name        string
-		args        []string
-		setupSubCmd bool
-		wantErr     bool
-		errContains string
-	}{
-		{
-			name:        "解析空参数",
-			args:        []string{},
-			setupSubCmd: false,
-			wantErr:     false,
-		},
-		{
-			name:        "解析存在的子命令",
-			args:        []string{"subcmd", "-v", "true"},
-			setupSubCmd: true,
-			wantErr:     false,
-		},
-		{
-			name:        "解析不存在的子命令",
-			args:        []string{"nonexistent", "-v", "true"},
-			setupSubCmd: false,
-			wantErr:     false, // 不存在的子命令不会报错，只是不处理
-		},
-		{
-			name:        "解析子命令但无剩余参数",
-			args:        []string{"subcmd"},
-			setupSubCmd: true,
-			wantErr:     false,
-		},
+// TestParseCommand_空参数 测试空参数处理
+func TestParseCommand_空参数(t *testing.T) {
+	ctx := createTestContext("测试")
+
+	err := ParseCommand(ctx, []string{})
+	if err != nil {
+		t.Fatalf("空参数解析失败: %v", err)
 	}
 
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			ctx := createTestContextWithFlags()
-
-			// 设置子命令
-			if tt.setupSubCmd {
-				subCtx := createTestContextWithFlags()
-				ctx.SubCmds = append(ctx.SubCmds, subCtx)
-				ctx.SubCmdMap["subcmd"] = subCtx
-			}
-
-			err := ParseSubCommandSafe(ctx, tt.args)
-
-			if tt.wantErr {
-				if err == nil {
-					t.Errorf("ParseSubCommandSafe() 期望错误但未返回错误")
-					return
-				}
-				if tt.errContains != "" && !strings.Contains(err.Error(), tt.errContains) {
-					t.Errorf("ParseSubCommandSafe() 错误信息 = %v, 期望包含 %v", err.Error(), tt.errContains)
-				}
-			} else {
-				if err != nil {
-					t.Errorf("ParseSubCommandSafe() 意外错误 = %v", err)
-				}
-			}
-		})
+	if len(ctx.Args) != 0 {
+		t.Errorf("期望没有参数，实际得到 %d 个", len(ctx.Args))
 	}
 }
 
-// TestLoadEnvVars 测试环境变量加载功能
-func TestLoadEnvVars(t *testing.T) {
-	tests := []struct {
-		name        string
-		envVars     map[string]string
-		wantErr     bool
-		errContains string
-	}{
-		{
-			name: "加载有效环境变量",
-			envVars: map[string]string{
-				"TEST_OUTPUT": "env_output.txt",
-				"TEST_CONFIG": "env_config.yaml",
-			},
-			wantErr: false,
-		},
-		{
-			name:    "加载空环境变量",
-			envVars: map[string]string{},
-			wantErr: false,
-		},
-		{
-			name: "加载部分环境变量",
-			envVars: map[string]string{
-				"TEST_OUTPUT": "env_output.txt",
-			},
-			wantErr: false,
-		},
-		{
-			name: "环境变量值为空",
-			envVars: map[string]string{
-				"TEST_OUTPUT": "",
-				"TEST_CONFIG": "config.yaml",
-			},
-			wantErr: false,
-		},
+// TestParseCommand_仅标志 测试只有标志没有参数的情况
+func TestParseCommand_仅标志(t *testing.T) {
+	ctx := createTestContext("测试")
+
+	var testFlag string
+	ctx.FlagSet.StringVar(&testFlag, "test", "默认值", "测试标志")
+
+	args := []string{"--test", "值"}
+
+	err := ParseCommand(ctx, args)
+	if err != nil {
+		t.Fatalf("ParseCommand 解析失败: %v", err)
 	}
 
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			// 设置环境变量
-			for key, value := range tt.envVars {
-				if value != "" {
-					os.Setenv(key, value)
-				}
-				defer os.Unsetenv(key)
-			}
+	if testFlag != "值" {
+		t.Errorf("期望测试标志为 '值'，实际得到 '%s'", testFlag)
+	}
 
-			ctx := createTestContextWithFlags()
-			err := LoadEnvVars(ctx)
-
-			if tt.wantErr {
-				if err == nil {
-					t.Errorf("LoadEnvVars() 期望错误但未返回错误")
-					return
-				}
-				if tt.errContains != "" && !strings.Contains(err.Error(), tt.errContains) {
-					t.Errorf("LoadEnvVars() 错误信息 = %v, 期望包含 %v", err.Error(), tt.errContains)
-				}
-			} else {
-				if err != nil {
-					t.Errorf("LoadEnvVars() 意外错误 = %v", err)
-				}
-			}
-		})
+	if len(ctx.Args) != 0 {
+		t.Errorf("期望没有剩余参数，实际得到 %d 个", len(ctx.Args))
 	}
 }
 
-// TestEdgeCases 测试边界情况
-func TestEdgeCases(t *testing.T) {
-	t.Run("nil上下文测试", func(t *testing.T) {
-		defer func() {
-			if r := recover(); r == nil {
-				t.Error("nil上下文应该导致panic")
-			}
-		}()
-		ParseArgs(nil, []string{}, false)
-	})
+// TestParseCommand_仅参数 测试只有参数没有标志的情况
+func TestParseCommand_仅参数(t *testing.T) {
+	ctx := createTestContext("测试")
 
-	t.Run("极长参数列表", func(t *testing.T) {
-		ctx := createTestContextWithFlags()
-		args := make([]string, 10000)
-		for i := range args {
-			args[i] = fmt.Sprintf("arg%d", i)
+	args := []string{"参数1", "参数2", "参数3"}
+
+	err := ParseCommand(ctx, args)
+	if err != nil {
+		t.Fatalf("ParseCommand 解析失败: %v", err)
+	}
+
+	if len(ctx.Args) != 3 {
+		t.Errorf("期望 3 个参数，实际得到 %d 个", len(ctx.Args))
+	}
+
+	expectedArgs := []string{"参数1", "参数2", "参数3"}
+	for i, expected := range expectedArgs {
+		if i >= len(ctx.Args) || ctx.Args[i] != expected {
+			t.Errorf("期望参数[%d] 为 '%s'，实际得到 '%s'", i, expected, ctx.Args[i])
 		}
-
-		err := ParseArgs(ctx, args, false)
-		if err != nil {
-			t.Errorf("极长参数列表解析失败: %v", err)
-		}
-
-		if len(ctx.Args) != 10000 {
-			t.Errorf("参数数量不匹配，期望 10000，实际 %d", len(ctx.Args))
-		}
-	})
-
-	t.Run("特殊字符参数", func(t *testing.T) {
-		ctx := createTestContextWithFlags()
-		specialArgs := []string{
-			"arg with spaces",
-			"arg-with-dashes",
-			"arg_with_underscores",
-			"arg123",
-			"中文参数",
-			"🚀emoji",
-		}
-
-		err := ParseArgs(ctx, specialArgs, false)
-		if err != nil {
-			t.Errorf("特殊字符参数解析失败: %v", err)
-		}
-	})
-
-	t.Run("重复环境变量处理", func(t *testing.T) {
-		os.Setenv("TEST_OUTPUT", "duplicate_test")
-		defer os.Unsetenv("TEST_OUTPUT")
-
-		ctx := createTestContextWithFlags()
-
-		// 多次调用LoadEnvVars
-		err1 := LoadEnvVars(ctx)
-		err2 := LoadEnvVars(ctx)
-
-		if err1 != nil {
-			t.Errorf("第一次LoadEnvVars失败: %v", err1)
-		}
-		if err2 != nil {
-			t.Errorf("第二次LoadEnvVars失败: %v", err2)
-		}
-	})
+	}
 }
 
-// TestConcurrency 测试并发安全性
-func TestConcurrency(t *testing.T) {
-	t.Run("并发解析参数", func(t *testing.T) {
-		var wg sync.WaitGroup
-		numGoroutines := 100
-		errors := make(chan error, numGoroutines)
+// TestParseCommand_无效标志 测试无效标志处理
+func TestParseCommand_无效标志(t *testing.T) {
+	ctx := createTestContext("测试")
 
-		wg.Add(numGoroutines)
-		for i := 0; i < numGoroutines; i++ {
-			go func(id int) {
-				defer wg.Done()
-				ctx := createTestContextWithFlags()
-				args := []string{"-v", "true", fmt.Sprintf("arg%d", id)}
-				err := ParseArgs(ctx, args, false)
-				if err != nil {
-					errors <- err
-				}
-			}(i)
-		}
-		wg.Wait()
-		close(errors)
+	// 不添加任何标志定义
+	args := []string{"--不存在的标志", "值"}
 
-		for err := range errors {
-			t.Errorf("并发解析参数失败: %v", err)
-		}
-	})
+	err := ParseCommand(ctx, args)
+	if err == nil {
+		t.Fatal("期望 ParseCommand 因无效标志失败，但实际成功了")
+	}
 
-	t.Run("并发加载环境变量", func(t *testing.T) {
-		os.Setenv("TEST_CONCURRENT", "concurrent_value")
-		defer os.Unsetenv("TEST_CONCURRENT")
-
-		var wg sync.WaitGroup
-		numGoroutines := 50
-		errors := make(chan error, numGoroutines)
-
-		wg.Add(numGoroutines)
-		for i := 0; i < numGoroutines; i++ {
-			go func() {
-				defer wg.Done()
-				ctx := createTestContextWithFlags()
-				err := LoadEnvVars(ctx)
-				if err != nil {
-					errors <- err
-				}
-			}()
-		}
-		wg.Wait()
-		close(errors)
-
-		for err := range errors {
-			t.Errorf("并发加载环境变量失败: %v", err)
-		}
-	})
+	// 验证错误类型
+	if err.Error() == "" {
+		t.Error("期望非空错误消息")
+	}
 }
 
-// TestComplexScenarios 测试复杂场景
-func TestComplexScenarios(t *testing.T) {
-	t.Run("嵌套子命令解析", func(t *testing.T) {
-		// 创建主命令
-		mainCtx := createTestContextWithFlags()
+// TestParseCommand_中文注释 测试中文注释添加
+func TestParseCommand_中文注释(t *testing.T) {
+	ctx := createTestContext("测试")
+	ctx.Config.UseChinese = true
 
-		// 创建一级子命令
-		subCtx1 := createTestContextWithFlags()
-		mainCtx.SubCmds = append(mainCtx.SubCmds, subCtx1)
-		mainCtx.SubCmdMap["sub1"] = subCtx1
+	// 清空现有注释
+	ctx.Config.Notes = []string{}
 
-		// 创建二级子命令
-		subCtx2 := createTestContextWithFlags()
-		subCtx1.SubCmds = append(subCtx1.SubCmds, subCtx2)
-		subCtx1.SubCmdMap["sub2"] = subCtx2
+	err := ParseCommand(ctx, []string{})
+	if err != nil {
+		t.Fatalf("ParseCommand 解析失败: %v", err)
+	}
 
-		args := []string{"sub1", "sub2", "-v", "true", "final_arg"}
-		err := ParseArgs(mainCtx, args, true)
+	// 验证是否添加了中文注释
+	if len(ctx.Config.Notes) == 0 {
+		t.Error("期望添加中文注释，但没有找到")
+	}
 
-		if err != nil {
-			t.Errorf("嵌套子命令解析失败: %v", err)
+	// 验证注释内容是否为中文模板
+	expectedNote := help.ChineseTemplate.DefaultNote
+	found := false
+	for _, note := range ctx.Config.Notes {
+		if note == expectedNote {
+			found = true
+			break
 		}
-	})
+	}
 
-	t.Run("混合标志和环境变量", func(t *testing.T) {
-		// 设置环境变量
-		os.Setenv("TEST_OUTPUT", "env_value")
-		os.Setenv("TEST_CONFIG", "env_config")
-		defer func() {
-			os.Unsetenv("TEST_OUTPUT")
-			os.Unsetenv("TEST_CONFIG")
-		}()
-
-		ctx := createTestContextWithFlags()
-		args := []string{"-v", "true", "--config", "flag_config", "remaining_arg"}
-
-		err := ParseArgs(ctx, args, false)
-		if err != nil {
-			t.Errorf("混合标志和环境变量解析失败: %v", err)
-		}
-
-		// 验证参数被正确解析
-		if len(ctx.Args) == 0 {
-			t.Error("期望有剩余参数")
-		}
-	})
+	if !found {
+		t.Errorf("期望在注释中找到中文默认注释 '%s'", expectedNote)
+	}
 }
 
-// TestErrorHandling 测试错误处理
-func TestErrorHandling(t *testing.T) {
-	t.Run("标志解析错误", func(t *testing.T) {
-		ctx := createTestContext()
-		// 不注册任何标志，然后尝试解析未定义的标志
-		args := []string{"--undefined-flag", "value"}
+// TestParseCommand_英文注释 测试英文注释添加
+func TestParseCommand_英文注释(t *testing.T) {
+	ctx := createTestContext("测试")
+	ctx.Config.UseChinese = false
 
-		err := ParseArgs(ctx, args, false)
-		if err == nil {
-			t.Error("期望解析未定义标志时返回错误")
+	// 清空现有注释
+	ctx.Config.Notes = []string{}
+
+	err := ParseCommand(ctx, []string{})
+	if err != nil {
+		t.Fatalf("ParseCommand 解析失败: %v", err)
+	}
+
+	// 验证是否添加了英文注释
+	if len(ctx.Config.Notes) == 0 {
+		t.Error("期望添加英文注释，但没有找到")
+	}
+
+	// 验证注释内容是否为英文模板
+	expectedNote := help.EnglishTemplate.DefaultNote
+	found := false
+	for _, note := range ctx.Config.Notes {
+		if note == expectedNote {
+			found = true
+			break
 		}
-	})
+	}
 
-	t.Run("环境变量解析错误", func(t *testing.T) {
-		// 创建一个会在Set时返回错误的ErrorMockFlag
-		ctx := createTestContext()
-
-		errorFlag := NewErrorMockFlag("error-flag", "", "default", true, "模拟设置错误")
-		errorFlag.BindEnv("ERROR_ENV")
-
-		ctx.FlagSet.Var(errorFlag, "error-flag", "error flag")
-
-		os.Setenv("ERROR_ENV", "some_value")
-		defer os.Unsetenv("ERROR_ENV")
-
-		err := LoadEnvVars(ctx)
-		if err == nil {
-			t.Error("期望环境变量解析错误时返回错误")
-		}
-	})
+	if !found {
+		t.Errorf("期望在注释中找到英文默认注释 '%s'", expectedNote)
+	}
 }
 
-// TestPerformance 性能测试
-func TestPerformance(t *testing.T) {
-	t.Run("大量标志解析性能", func(t *testing.T) {
-		ctx := createTestContext()
+// TestParseCommand_环境变量 测试环境变量加载
+func TestParseCommand_环境变量(t *testing.T) {
+	ctx := createTestContext("测试")
 
-		// 创建大量标志
-		numFlags := 1000
-		args := make([]string, 0, numFlags*2)
+	// 设置环境变量
+	envKey := "TEST_FLAG"
+	envValue := "环境变量值"
+	os.Setenv(envKey, envValue)
+	defer os.Unsetenv(envKey)
 
-		for i := 0; i < numFlags; i++ {
-			flagName := fmt.Sprintf("flag%d", i)
-			mockFlag := NewMockFlag(flagName, "", "default")
-			ctx.FlagSet.Var(mockFlag, flagName, "test flag")
+	// 添加对应的标志
+	var testFlag string
+	ctx.FlagSet.StringVar(&testFlag, "flag", "默认值", "测试标志")
 
-			args = append(args, fmt.Sprintf("--%s", flagName), fmt.Sprintf("value%d", i))
-		}
+	// 主要测试 LoadEnvVars 函数是否被调用而不出错
+	err := ParseCommand(ctx, []string{})
+	if err != nil {
+		t.Fatalf("ParseCommand 解析失败: %v", err)
+	}
 
-		err := ParseArgs(ctx, args, false)
-		if err != nil {
-			t.Errorf("大量标志解析失败: %v", err)
-		}
-	})
-
-	t.Run("大量环境变量加载性能", func(t *testing.T) {
-		ctx := createTestContext()
-
-		// 创建大量带环境变量的标志
-		numFlags := 500
-
-		for i := 0; i < numFlags; i++ {
-			flagName := fmt.Sprintf("envflag%d", i)
-			envName := fmt.Sprintf("TEST_ENV_%d", i)
-
-			mockFlag := NewMockFlag(flagName, "", "default")
-			mockFlag.BindEnv(envName)
-			ctx.FlagSet.Var(mockFlag, flagName, "test env flag")
-
-			os.Setenv(envName, fmt.Sprintf("env_value_%d", i))
-			defer os.Unsetenv(envName)
-		}
-
-		err := LoadEnvVars(ctx)
-		if err != nil {
-			t.Errorf("大量环境变量加载失败: %v", err)
-		}
-	})
+	// 注意：实际的环境变量处理逻辑在 LoadEnvVars 函数中
+	// 这里主要验证函数调用不会出错
 }
 
-// BenchmarkParseArgs 基准测试参数解析
-func BenchmarkParseArgs(b *testing.B) {
-	ctx := createTestContextWithFlags()
-	args := []string{"-v", "true", "--output", "file.txt", "arg1", "arg2"}
+// TestParseCommand_标志解析错误 测试标志解析错误处理
+func TestParseCommand_标志解析错误(t *testing.T) {
+	ctx := createTestContext("测试")
+
+	// 添加一个整数标志
+	var intFlag int
+	ctx.FlagSet.IntVar(&intFlag, "number", 0, "数字标志")
+
+	// 传入无效的整数值
+	args := []string{"--number", "不是数字"}
+
+	err := ParseCommand(ctx, args)
+	if err == nil {
+		t.Fatal("期望 ParseCommand 因无效整数值失败，但实际成功了")
+	}
+
+	// 验证错误消息包含标志解析失败的信息
+	if err.Error() == "" {
+		t.Error("期望非空错误消息")
+	}
+}
+
+// TestParseCommand_多种标志组合 测试多种标志组合
+func TestParseCommand_多种标志组合(t *testing.T) {
+	ctx := createTestContext("测试")
+
+	// 添加多种类型的标志
+	var (
+		stringFlag string
+		intFlag    int
+		boolFlag   bool
+		floatFlag  float64
+	)
+
+	ctx.FlagSet.StringVar(&stringFlag, "string", "", "字符串标志")
+	ctx.FlagSet.StringVar(&stringFlag, "s", "", "字符串标志简写")
+	ctx.FlagSet.IntVar(&intFlag, "int", 0, "整数标志")
+	ctx.FlagSet.BoolVar(&boolFlag, "bool", false, "布尔标志")
+	ctx.FlagSet.Float64Var(&floatFlag, "float", 0.0, "浮点数标志")
+
+	args := []string{
+		"-s", "简写值",
+		"--int", "123",
+		"--bool",
+		"--float", "3.14",
+		"剩余", "参数",
+	}
+
+	err := ParseCommand(ctx, args)
+	if err != nil {
+		t.Fatalf("ParseCommand 解析失败: %v", err)
+	}
+
+	// 验证所有标志值
+	if stringFlag != "简写值" {
+		t.Errorf("期望字符串标志为 '简写值'，实际得到 '%s'", stringFlag)
+	}
+
+	if intFlag != 123 {
+		t.Errorf("期望整数标志为 123，实际得到 %d", intFlag)
+	}
+
+	if !boolFlag {
+		t.Errorf("期望布尔标志为 true，实际得到 %v", boolFlag)
+	}
+
+	if floatFlag != 3.14 {
+		t.Errorf("期望浮点数标志为 3.14，实际得到 %f", floatFlag)
+	}
+
+	// 验证剩余参数
+	expectedArgs := []string{"剩余", "参数"}
+	if len(ctx.Args) != len(expectedArgs) {
+		t.Errorf("期望 %d 个剩余参数，实际得到 %d 个", len(expectedArgs), len(ctx.Args))
+	}
+}
+
+// TestParseCommand_参数累积 测试参数累积功能
+func TestParseCommand_参数累积(t *testing.T) {
+	ctx := createTestContext("测试")
+
+	// 预先添加一些参数
+	ctx.Args = []string{"现有", "参数"}
+
+	args := []string{"新", "参数"}
+
+	err := ParseCommand(ctx, args)
+	if err != nil {
+		t.Fatalf("ParseCommand 解析失败: %v", err)
+	}
+
+	// 验证参数是否正确累积
+	expectedArgs := []string{"现有", "参数", "新", "参数"}
+	if len(ctx.Args) != len(expectedArgs) {
+		t.Errorf("期望总共 %d 个参数，实际得到 %d 个", len(expectedArgs), len(ctx.Args))
+	}
+
+	for i, expected := range expectedArgs {
+		if i >= len(ctx.Args) || ctx.Args[i] != expected {
+			t.Errorf("期望参数[%d] 为 '%s'，实际得到 '%s'", i, expected, ctx.Args[i])
+		}
+	}
+}
+
+// TestParseCommand_Panic恢复 测试panic恢复机制
+func TestParseCommand_Panic恢复(t *testing.T) {
+	ctx := createTestContext("测试")
+
+	// 创建一个会导致panic的FlagSet
+	ctx.FlagSet = nil
+
+	err := ParseCommand(ctx, []string{})
+	if err == nil {
+		t.Fatal("期望 ParseCommand 因panic而失败，但实际成功了")
+	}
+
+	// 验证错误消息包含panic恢复信息
+	if err.Error() == "" {
+		t.Error("期望非空错误消息")
+	}
+}
+
+// BenchmarkParseCommand 性能基准测试
+func BenchmarkParseCommand(b *testing.B) {
+	ctx := createTestContext("基准测试")
+
+	// 添加一些标志
+	var (
+		stringFlag string
+		intFlag    int
+		boolFlag   bool
+	)
+
+	ctx.FlagSet.StringVar(&stringFlag, "string", "", "字符串标志")
+	ctx.FlagSet.IntVar(&intFlag, "int", 0, "整数标志")
+	ctx.FlagSet.BoolVar(&boolFlag, "bool", false, "布尔标志")
+
+	args := []string{"--string", "测试", "--int", "42", "--bool", "参数1", "参数2"}
 
 	b.ResetTimer()
 	for i := 0; i < b.N; i++ {
 		// 重置上下文状态
-		ctx.Args = []string{}
-		ctx.Parsed.Store(false)
+		ctx.Args = ctx.Args[:0]
+		ctx.Config.Notes = ctx.Config.Notes[:0]
+		ctx.FlagSet = flag.NewFlagSet("基准测试", flag.ContinueOnError)
+		ctx.FlagSet.StringVar(&stringFlag, "string", "", "字符串标志")
+		ctx.FlagSet.IntVar(&intFlag, "int", 0, "整数标志")
+		ctx.FlagSet.BoolVar(&boolFlag, "bool", false, "布尔标志")
 
-		ParseArgs(ctx, args, false)
-	}
-}
-
-// BenchmarkLoadEnvVars 基准测试环境变量加载
-func BenchmarkLoadEnvVars(b *testing.B) {
-	os.Setenv("TEST_OUTPUT", "benchmark_output")
-	os.Setenv("TEST_CONFIG", "benchmark_config")
-	defer func() {
-		os.Unsetenv("TEST_OUTPUT")
-		os.Unsetenv("TEST_CONFIG")
-	}()
-
-	ctx := createTestContextWithFlags()
-
-	b.ResetTimer()
-	for i := 0; i < b.N; i++ {
-		LoadEnvVars(ctx)
-	}
-}
-
-// BenchmarkParseSubCommand 基准测试子命令解析
-func BenchmarkParseSubCommand(b *testing.B) {
-	ctx := createTestContextWithFlags()
-	subCtx := createTestContextWithFlags()
-	ctx.SubCmds = append(ctx.SubCmds, subCtx)
-	ctx.SubCmdMap["subcmd"] = subCtx
-
-	args := []string{"subcmd", "-v", "true"}
-
-	b.ResetTimer()
-	for i := 0; i < b.N; i++ {
-		ParseSubCommandSafe(ctx, args)
-	}
-}
-
-// BenchmarkConcurrentParsing 基准测试并发解析
-func BenchmarkConcurrentParsing(b *testing.B) {
-	b.RunParallel(func(pb *testing.PB) {
-		for pb.Next() {
-			ctx := createTestContextWithFlags()
-			args := []string{"-v", "true", "--output", "file.txt"}
-			ParseArgs(ctx, args, false)
+		err := ParseCommand(ctx, args)
+		if err != nil {
+			b.Fatalf("ParseCommand 解析失败: %v", err)
 		}
-	})
+	}
 }
