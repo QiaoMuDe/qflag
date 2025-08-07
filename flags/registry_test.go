@@ -30,7 +30,7 @@ func TestFlagTypeToString(t *testing.T) {
 
 	for _, tc := range testCases {
 		t.Run(tc.expected, func(t *testing.T) {
-			result := FlagTypeToString(tc.flagType, false)
+			result := FlagTypeToString(tc.flagType)
 			if result != tc.expected {
 				t.Errorf("FlagTypeToString(%v, false) = %s, 期望 %s", tc.flagType, result, tc.expected)
 			}
@@ -53,7 +53,7 @@ func TestFlagTypeToStringWithBrackets(t *testing.T) {
 
 	for _, tc := range testCases {
 		t.Run(tc.expected, func(t *testing.T) {
-			result := FlagTypeToString(tc.flagType, true)
+			result := FlagTypeToString(tc.flagType)
 			if result != tc.expected {
 				t.Errorf("FlagTypeToString(%v, true) = %s, 期望 %s", tc.flagType, result, tc.expected)
 			}

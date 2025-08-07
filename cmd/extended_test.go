@@ -596,7 +596,7 @@ func TestCmd_Time(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			cmd := tt.setupCmd()
-			flag := cmd.Time(tt.longName, tt.shortName, tt.defValue, tt.usage)
+			flag := cmd.Time(tt.longName, tt.shortName, tt.defValue.Format(time.RFC3339), tt.usage)
 
 			if flag == nil {
 				t.Error("Time() 返回nil")
@@ -650,7 +650,7 @@ func TestCmd_TimeVar(t *testing.T) {
 				}
 			}()
 
-			cmd.TimeVar(tt.flag, "test", "t", defaultTime, "测试时间")
+			cmd.TimeVar(tt.flag, "test", "t", defaultTime.Format(time.RFC3339), "测试时间")
 
 			if !tt.expectPanic && tt.flag != nil {
 				if !tt.flag.Get().Equal(defaultTime) {
@@ -993,7 +993,7 @@ func TestCmd_ConcurrentFlagCreation(t *testing.T) {
 			cmd.Uint16(fmt.Sprintf("uint16-%d", id), fmt.Sprintf("u%d", id), uint16(id), "测试uint16")
 			cmd.Uint32(fmt.Sprintf("uint32-%d", id), fmt.Sprintf("v%d", id), uint32(id), "测试uint32")
 			cmd.Uint64(fmt.Sprintf("uint64-%d", id), fmt.Sprintf("w%d", id), uint64(id), "测试uint64")
-			cmd.Time(fmt.Sprintf("time-%d", id), fmt.Sprintf("t%d", id), time.Now(), "测试时间")
+			cmd.Time(fmt.Sprintf("time-%d", id), fmt.Sprintf("t%d", id), "now", "测试时间")
 			cmd.Duration(fmt.Sprintf("duration-%d", id), fmt.Sprintf("d%d", id), time.Duration(id)*time.Second, "测试时间间隔")
 			cmd.Map(fmt.Sprintf("map-%d", id), fmt.Sprintf("m%d", id), map[string]string{"key": fmt.Sprintf("value-%d", id)}, "测试键值对")
 			cmd.Slice(fmt.Sprintf("slice-%d", id), fmt.Sprintf("s%d", id), []string{fmt.Sprintf("item-%d", id)}, "测试切片")
@@ -1073,7 +1073,7 @@ func TestCmd_ExtendedBoundaryConditions(t *testing.T) {
 
 		// Unix纪元时间
 		epochTime := time.Unix(0, 0)
-		flag1 := cmd.Time("epoch", "e", epochTime, "Unix纪元时间")
+		flag1 := cmd.Time("epoch", "e", epochTime.Format(time.RFC3339), "Unix纪元时间")
 		if !flag1.Get().Equal(epochTime) {
 			t.Errorf("Unix纪元时间 = %v, 期望 %v", flag1.Get(), epochTime)
 		}
@@ -1173,7 +1173,7 @@ func TestCmd_ExtendedIntegration(t *testing.T) {
 		uint16Flag := cmd.Uint16("port", "p", 8080, "端口号")
 		uint32Flag := cmd.Uint32("size", "s", 1024, "大小")
 		uint64Flag := cmd.Uint64("memory", "m", 1073741824, "内存")
-		timeFlag := cmd.Time("start", "st", time.Now(), "开始时间")
+		timeFlag := cmd.Time("start", "st", "now", "开始时间")
 		durationFlag := cmd.Duration("timeout", "t", 30*time.Second, "超时")
 		mapFlag := cmd.Map("config", "c", map[string]string{"key": "value"}, "配置")
 		sliceFlag := cmd.Slice("files", "fl", []string{"file1", "file2"}, "文件列表")

@@ -282,12 +282,19 @@ func (c *Cmd) Uint64(longName, shortName string, defValue uint64, usage string) 
 // 参数值:
 //   - longName: 长标志名
 //   - shortName: 短标志名
-//   - defValue: 默认值
+//   - defValue: 默认值(时间表达式, 如"now", "zero", "1h", "2006-01-02")
 //   - usage: 帮助说明
 //
 // 返回值:
 //   - *flags.TimeFlag: 时间标志对象指针
-func (c *Cmd) Time(longName, shortName string, defValue time.Time, usage string) *flags.TimeFlag {
+//
+// 支持的默认值格式:
+//   - "now" 或 "" : 当前时间
+//   - "zero" : 零时间 (time.Time{})
+//   - "1h", "30m", "-2h" : 相对时间（基于当前时间的偏移）
+//   - "2006-01-02", "2006-01-02 15:04:05" : 绝对时间格式
+//   - RFC3339等标准格式
+func (c *Cmd) Time(longName, shortName string, defValue string, usage string) *flags.TimeFlag {
 	f := &flags.TimeFlag{}
 	c.TimeVar(f, longName, shortName, defValue, usage)
 	return f
@@ -299,9 +306,16 @@ func (c *Cmd) Time(longName, shortName string, defValue time.Time, usage string)
 //   - f: 时间标志指针
 //   - longName: 长标志名
 //   - shortName: 短标志名
-//   - defValue: 默认值
+//   - defValue: 默认值(时间表达式, 如"now", "zero", "1h", "2006-01-02")
 //   - usage: 帮助说明
-func (c *Cmd) TimeVar(f *flags.TimeFlag, longName, shortName string, defValue time.Time, usage string) {
+//
+// 支持的默认值格式:
+//   - "now" 或 "" : 当前时间
+//   - "zero" : 零时间 (time.Time{})
+//   - "1h", "30m", "-2h" : 相对时间（基于当前时间的偏移）
+//   - "2006-01-02", "2006-01-02 15:04:05" : 绝对时间格式
+//   - RFC3339等标准格式
+func (c *Cmd) TimeVar(f *flags.TimeFlag, longName, shortName string, defValue string, usage string) {
 	c.ctx.Mutex.Lock()
 	defer c.ctx.Mutex.Unlock()
 
@@ -318,12 +332,8 @@ func (c *Cmd) TimeVar(f *flags.TimeFlag, longName, shortName string, defValue ti
 		panic(fmt.Errorf("flag short name %s is reserved", shortName))
 	}
 
-	// 初始化默认值
-	currentTime := new(time.Time)
-	*currentTime = defValue
-
 	// 初始化Flag对象
-	if initErr := f.Init(longName, shortName, usage, currentTime); initErr != nil {
+	if initErr := f.Init(longName, shortName, usage, defValue); initErr != nil {
 		panic(initErr)
 	}
 

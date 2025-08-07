@@ -984,7 +984,7 @@ func TestCmd_Internal_SpecialScenarios(t *testing.T) {
 		cmd := createInternalTestCmd()
 
 		// 添加时间相关标志
-		timeFlag := cmd.Time("start-time", "st", time.Now(), "开始时间")
+		timeFlag := cmd.Time("start-time", "st", "now", "开始时间")
 		durationFlag := cmd.Duration("timeout", "to", 30*time.Second, "超时时间")
 
 		// 解析参数

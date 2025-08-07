@@ -122,55 +122,43 @@ type TypedFlag[T any] interface {
 	BindEnv(envName string) *BaseFlag[T] // 绑定环境变量
 }
 
-// FlagTypeToString 将FlagType转换为字符串
+// FlagTypeToString 将FlagType转换为带语义信息的字符串
 //
 // 参数:
 //   - flagType: 需要转换的FlagType枚举值
-//   - withBrackets: 是否在返回的字符串中包含尖括号
-//     如果为true且flagType为bool时返回空字符串
 //
 // 返回值:
-//   - 对应的类型字符串，如果类型未知则返回"unknown"或"<unknown>"
-func FlagTypeToString(flagType FlagType, withBrackets bool) string {
-	var result string
-
+//   - 带语义信息的类型字符串，用于命令行帮助信息显示
+func FlagTypeToString(flagType FlagType) string {
 	switch flagType {
 	case FlagTypeInt:
-		result = "int"
+		return "<int>"
 	case FlagTypeInt64:
-		result = "int64"
+		return "<int64>"
 	case FlagTypeUint16:
-		result = "uint16"
+		return "<0-65535>"
 	case FlagTypeUint32:
-		result = "uint32"
+		return "<uint32>"
 	case FlagTypeUint64:
-		result = "uint64"
+		return "<uint64>"
 	case FlagTypeString:
-		result = "string"
+		return "<string>"
 	case FlagTypeBool:
 		// 布尔类型特殊处理
-		if withBrackets {
-			return ""
-		}
-		return "bool"
+		return ""
 	case FlagTypeFloat64:
-		result = "float64"
+		return "<float64>"
 	case FlagTypeEnum:
-		result = "enum"
+		return "<enum>"
 	case FlagTypeDuration:
-		result = "duration"
+		return "<duration>"
 	case FlagTypeTime:
-		result = "time"
+		return "<time>"
 	case FlagTypeMap:
-		result = "map"
+		return "<k=v,k=v,...>"
 	case FlagTypeSlice:
-		result = "slice"
+		return "<value,value,...>"
 	default:
-		result = "unknown"
+		return "<value>"
 	}
-
-	if withBrackets {
-		return "<" + result + ">"
-	}
-	return result
 }

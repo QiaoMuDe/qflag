@@ -272,12 +272,19 @@ func Uint16Var(f *flags.Uint16Flag, longName, shortName string, defValue uint16,
 // 参数值：
 //   - longName: 命令行标志的长名称，在命令行中使用时需遵循 `--longName` 的格式。
 //   - shortName: 命令行标志的短名称，在命令行中使用时需遵循 `-shortName` 的格式。
-//   - defValue: 命令行标志的默认值。
+//   - defValue: 命令行标志的默认值(时间表达式, 如"now", "zero", "1h", "2006-01-02")
 //   - usage: 命令行标志的用法说明。
 //
 // 返回值：
 //   - *flags.TimeFlag: 指向新创建的时间类型标志对象的指针。
-func Time(longName, shortName string, defValue time.Time, usage string) *flags.TimeFlag {
+//
+// 支持的默认值格式:
+//   - "now" 或 "" : 当前时间
+//   - "zero" : 零时间 (time.Time{})
+//   - "1h", "30m", "-2h" : 相对时间（基于当前时间的偏移）
+//   - "2006-01-02", "2006-01-02 15:04:05" : 绝对时间格式
+//   - RFC3339等标准格式
+func Time(longName, shortName string, defValue string, usage string) *flags.TimeFlag {
 	return QCommandLine.Time(longName, shortName, defValue, usage)
 }
 
@@ -288,9 +295,16 @@ func Time(longName, shortName string, defValue time.Time, usage string) *flags.T
 //   - f: 指向要绑定的 `TimeFlag` 对象的指针。
 //   - longName: 命令行标志的长名称，在命令行中使用时需遵循 `--longName` 的格式。
 //   - shortName: 命令行标志的短名称，在命令行中使用时需遵循 `-shortName` 的格式。
-//   - defValue: 命令行标志的默认值。
+//   - defValue: 命令行标志的默认值(时间表达式, 如"now", "zero", "1h", "2006-01-02")
 //   - usage: 命令行标志的用法说明。
-func TimeVar(f *flags.TimeFlag, longName, shortName string, defValue time.Time, usage string) {
+//
+// 支持的默认值格式:
+//   - "now" 或 "" : 当前时间
+//   - "zero" : 零时间 (time.Time{})
+//   - "1h", "30m", "-2h" : 相对时间（基于当前时间的偏移）
+//   - "2006-01-02", "2006-01-02 15:04:05" : 绝对时间格式
+//   - RFC3339等标准格式
+func TimeVar(f *flags.TimeFlag, longName, shortName string, defValue string, usage string) {
 	QCommandLine.TimeVar(f, longName, shortName, defValue, usage)
 }
 

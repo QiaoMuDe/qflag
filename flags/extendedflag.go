@@ -112,6 +112,80 @@ func (f *TimeFlag) SetOutputFormat(format string) {
 	f.outputFormat = format
 }
 
+// Init 初始化时间类型标志，支持字符串类型默认值
+//
+// 参数:
+//   - longName: 长标志名称
+//   - shortName: 短标志字符
+//   - defValue: 默认值（字符串格式，支持多种时间表达）
+//   - usage: 帮助说明
+//
+// 返回值:
+//   - error: 初始化错误信息
+//
+// 支持的默认值格式:
+//   - "now" 或 "" : 当前时间
+//   - "zero" : 零时间 (time.Time{})
+//   - "1h", "30m", "-2h" : 相对时间（基于当前时间的偏移）
+//   - "2006-01-02", "2006-01-02 15:04:05" : 绝对时间格式
+//   - RFC3339等标准格式
+func (f *TimeFlag) Init(longName, shortName string, defValue string, usage string) error {
+	f.mu.Lock()
+	defer f.mu.Unlock()
+
+	// 解析字符串默认值为 time.Time
+	parsedTime, err := f.parseTimeString(defValue)
+	if err != nil {
+		return qerr.NewValidationErrorf("invalid default time value '%s': %v", defValue, err)
+	}
+
+	// 创建时间值指针
+	timePtr := new(time.Time)
+	*timePtr = parsedTime
+
+	// 调用基类的 Init 方法
+	return f.BaseFlag.Init(longName, shortName, usage, timePtr)
+}
+
+// parseTimeString 解析时间字符串为 time.Time
+//
+// 参数:
+//   - s: 时间字符串
+//
+// 返回值:
+//   - time.Time: 解析后的时间
+//   - error: 解析错误
+func (f *TimeFlag) parseTimeString(s string) (time.Time, error) {
+	// 处理特殊值
+	switch strings.ToLower(strings.TrimSpace(s)) {
+	// now 或 空字符串 表示当前时间
+	case "now", "":
+		return time.Now(), nil
+	// zero 表示零时间
+	case "zero":
+		return time.Time{}, nil
+	}
+
+	// 尝试解析相对时间（如 "1h", "-30m", "2h30m"）
+	if d, err := time.ParseDuration(s); err == nil {
+		return time.Now().Add(d), nil
+	}
+
+	// 尝试解析绝对时间格式
+	for _, format := range supportedTimeFormats {
+		if t, err := time.Parse(format, s); err == nil {
+			return t, nil
+		}
+	}
+
+	// 如果都解析失败，返回错误
+	return time.Time{}, qerr.NewValidationError("unsupported time format, supported formats: 'now', 'zero', duration (1h, 30m), or standard time formats")
+}
+
+// =============================================================================
+// 时间间隔类型标志
+// =============================================================================
+
 // DurationFlag 时间间隔类型标志结构体
 // 继承BaseFlag[time.Duration]泛型结构体,实现Flag接口
 type DurationFlag struct {
@@ -533,7 +607,7 @@ func (f *SliceFlag) Sort() error {
 func (f *SliceFlag) Init(longName, shortName string, defValue []string, usage string) error {
 	// 确保默认值不为nil
 	if defValue == nil {
-		defValue = make([]string, 0)
+		defValue = []string{}
 	}
 
 	// 1. 初始化值指针（切片需创建副本避免外部修改影响）
