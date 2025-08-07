@@ -127,6 +127,12 @@ func generatePwshCompletion(buf *bytes.Buffer, params []FlagParam, rootCmdOpts [
 
 // escapePwshString 转义PowerShell字符串中的特殊字符
 // 优化：单次循环处理所有转义，减少字符串分配
+//
+// 参数:
+// - s: 需要转义的字符串
+//
+// 返回:
+// - 转义后的字符串
 func escapePwshString(s string) string {
 	// 预计算所需容量：最坏情况下每个字符都需要转义
 	buf := make([]byte, 0, len(s)*2)
