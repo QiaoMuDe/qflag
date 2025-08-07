@@ -4,58 +4,38 @@ import (
 	"testing"
 )
 
-// TestFlagTypeToString 测试FlagType到字符串的转换功能
+// TestFlagTypeToString 测试FlagType到语义化字符串的转换功能
 func TestFlagTypeToString(t *testing.T) {
-	// 测试不带括号的情况
-	testCases := []struct {
-		flagType FlagType
-		expected string
-	}{
-		{FlagTypeInt, "int"},
-		{FlagTypeInt64, "int64"},
-		{FlagTypeUint16, "uint16"},
-		{FlagTypeUint32, "uint32"},
-		{FlagTypeUint64, "uint64"},
-		{FlagTypeString, "string"},
-		{FlagTypeBool, "bool"},
-		{FlagTypeFloat64, "float64"},
-		{FlagTypeEnum, "enum"},
-		{FlagTypeDuration, "duration"},
-		{FlagTypeTime, "time"},
-		{FlagTypeMap, "map"},
-		{FlagTypeSlice, "slice"},
-		{FlagTypeUnknown, "unknown"},
-		{FlagType(999), "unknown"}, // 测试未知类型
-	}
-
-	for _, tc := range testCases {
-		t.Run(tc.expected, func(t *testing.T) {
-			result := FlagTypeToString(tc.flagType)
-			if result != tc.expected {
-				t.Errorf("FlagTypeToString(%v, false) = %s, 期望 %s", tc.flagType, result, tc.expected)
-			}
-		})
-	}
-}
-
-// TestFlagTypeToStringWithBrackets 测试带括号的FlagType转换
-func TestFlagTypeToStringWithBrackets(t *testing.T) {
 	testCases := []struct {
 		flagType FlagType
 		expected string
 	}{
 		{FlagTypeInt, "<int>"},
+		{FlagTypeInt64, "<int64>"},
+		{FlagTypeUint16, "<0-65535>"},
+		{FlagTypeUint32, "<uint32>"},
+		{FlagTypeUint64, "<uint64>"},
 		{FlagTypeString, "<string>"},
-		{FlagTypeBool, ""}, // 布尔类型特殊处理
+		{FlagTypeBool, ""}, // 布尔类型特殊处理，返回空字符串
 		{FlagTypeFloat64, "<float64>"},
-		{FlagTypeUnknown, "<unknown>"},
+		{FlagTypeEnum, "<enum>"},
+		{FlagTypeDuration, "<duration>"},
+		{FlagTypeTime, "<time>"},
+		{FlagTypeMap, "<k=v,k=v,...>"},
+		{FlagTypeSlice, "<value,value,...>"},
+		{FlagTypeUnknown, "<value>"},
+		{FlagType(999), "<value>"}, // 测试未知类型
 	}
 
 	for _, tc := range testCases {
-		t.Run(tc.expected, func(t *testing.T) {
+		testName := tc.expected
+		if testName == "" {
+			testName = "bool_empty"
+		}
+		t.Run(testName, func(t *testing.T) {
 			result := FlagTypeToString(tc.flagType)
 			if result != tc.expected {
-				t.Errorf("FlagTypeToString(%v, true) = %s, 期望 %s", tc.flagType, result, tc.expected)
+				t.Errorf("FlagTypeToString(%v) = %s, 期望 %s", tc.flagType, result, tc.expected)
 			}
 		})
 	}

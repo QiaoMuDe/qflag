@@ -560,43 +560,48 @@ func TestCmd_Time(t *testing.T) {
 	defaultTime := time.Date(2024, 1, 1, 0, 0, 0, 0, time.UTC)
 
 	tests := []struct {
-		name      string
-		longName  string
-		shortName string
-		defValue  time.Time
-		usage     string
-		setupCmd  func() *Cmd
+		name         string
+		longName     string
+		shortName    string
+		defValue     string
+		expectedTime time.Time
+		usage        string
+		setupCmd     func() *Cmd
 	}{
 		{
-			name:      "正常创建时间标志",
-			longName:  "start",
-			shortName: "s",
-			defValue:  defaultTime,
-			usage:     "开始时间",
-			setupCmd:  createExtendedTestCmd,
+			name:         "正常创建时间标志",
+			longName:     "start",
+			shortName:    "s",
+			defValue:     defaultTime.Format(time.RFC3339),
+			expectedTime: defaultTime,
+			usage:        "开始时间",
+			setupCmd:     createExtendedTestCmd,
 		},
 		{
-			name:      "零值时间标志",
-			longName:  "zero",
-			shortName: "z",
-			defValue:  time.Time{},
-			usage:     "零值时间",
-			setupCmd:  createExtendedTestCmd,
+			name:         "零值时间标志",
+			longName:     "zero",
+			shortName:    "z",
+			defValue:     "zero",
+			expectedTime: time.Time{},
+			usage:        "零值时间",
+			setupCmd:     createExtendedTestCmd,
 		},
 		{
 			name:      "当前时间标志",
 			longName:  "now",
 			shortName: "n",
-			defValue:  time.Now(),
-			usage:     "当前时间",
-			setupCmd:  createExtendedTestCmd,
+			defValue:  "now",
+			// 对于 "now"，我们不能精确预测时间，所以只检查时间是否合理
+			expectedTime: time.Time{}, // 将在测试中特殊处理
+			usage:        "当前时间",
+			setupCmd:     createExtendedTestCmd,
 		},
 	}
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			cmd := tt.setupCmd()
-			flag := cmd.Time(tt.longName, tt.shortName, tt.defValue.Format(time.RFC3339), tt.usage)
+			flag := cmd.Time(tt.longName, tt.shortName, tt.defValue, tt.usage)
 
 			if flag == nil {
 				t.Error("Time() 返回nil")
@@ -604,8 +609,17 @@ func TestCmd_Time(t *testing.T) {
 			}
 
 			// 验证标志属性
-			if !flag.Get().Equal(tt.defValue) {
-				t.Errorf("Get() = %v, 期望 %v", flag.Get(), tt.defValue)
+			got := flag.Get()
+			if tt.name == "当前时间标志" {
+				// 对于 "now"，检查时间是否在合理范围内（最近1分钟内）
+				now := time.Now()
+				if got.Before(now.Add(-time.Minute)) || got.After(now.Add(time.Minute)) {
+					t.Errorf("Get() = %v, 期望在当前时间附近", got)
+				}
+			} else {
+				if !got.Equal(tt.expectedTime) {
+					t.Errorf("Get() = %v, 期望 %v", got, tt.expectedTime)
+				}
 			}
 			if flag.Type() != flags.FlagTypeTime {
 				t.Errorf("Type() = %v, 期望 %v", flag.Type(), flags.FlagTypeTime)

@@ -333,7 +333,7 @@ func (c *Cmd) TimeVar(f *flags.TimeFlag, longName, shortName string, defValue st
 	}
 
 	// 初始化Flag对象
-	if initErr := f.Init(longName, shortName, usage, defValue); initErr != nil {
+	if initErr := f.Init(longName, shortName, defValue, usage); initErr != nil {
 		panic(initErr)
 	}
 
