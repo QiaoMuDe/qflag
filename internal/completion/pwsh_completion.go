@@ -32,26 +32,39 @@ func formatOptions(buf *bytes.Buffer, options []string, escape func(string) stri
 }
 
 // generatePwshCommandTreeEntry 生成PowerShell命令树条目
+// 使用对象池优化内存分配，避免创建临时缓冲区和Replacer
 //
 // 参数:
 // - cmdTreeEntries: 命令树条目缓冲区
 // - cmdPath: 命令路径
 // - cmdOpts: 命令选项
 func generatePwshCommandTreeEntry(cmdTreeEntries *bytes.Buffer, cmdPath string, cmdOpts []string) {
-	// 预分配缓冲区容量，减少内存分配
-	optsBuf := bytes.NewBuffer(make([]byte, 0, len(cmdOpts)*20)) // 假设平均每个选项20字节
+	// 使用对象池构建命令树条目，避免创建临时缓冲区和strings.NewReplacer的开销
+	cmdTreeItem := buildString(func(builder *strings.Builder) {
+		builder.WriteString("\t@{ Context = \"")
+		builder.WriteString(cmdPath)
+		builder.WriteString("\"; Options = @(")
 
-	// 格式化命令选项
-	formatOptions(optsBuf, cmdOpts, escapePwshString)
+		// 直接在builder中格式化选项，避免额外的字符串分配
+		first := true
+		for _, opt := range cmdOpts {
+			if opt == "" {
+				continue
+			}
 
-	// 使用命名占位符替换位置参数
-	replacer := strings.NewReplacer(
-		"{{.Context}}", cmdPath,
-		"{{.Options}}", optsBuf.String(),
-	)
+			if !first {
+				builder.WriteString(", ")
+			}
+			first = false
 
-	// 添加命令树条目
-	cmdTreeItem := replacer.Replace(PwshCmdTreeItem)
+			builder.WriteByte('\'')
+			builder.WriteString(escapePwshString(opt))
+			builder.WriteByte('\'')
+		}
+
+		builder.WriteString(") }")
+	})
+
 	cmdTreeEntries.WriteString(cmdTreeItem)
 }
 

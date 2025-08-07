@@ -32,15 +32,33 @@ func generateBashCompletion(buf *bytes.Buffer, params []FlagParam, rootCmdOpts [
 	// 遍历标志参数并生成相应的Bash自动补全脚本
 	for _, param := range params {
 		var key string
-		// 如果命令路径为空，则使用参数名称作为键
+		// 使用对象池构建键字符串，避免fmt.Sprintf的内存分配
 		if param.CommandPath == "" {
 			key = param.Name
 		} else {
-			key = fmt.Sprintf("%s|%s", param.CommandPath, param.Name)
+			key = buildString(func(builder *strings.Builder) {
+				builder.WriteString(param.CommandPath)
+				builder.WriteByte('|')
+				builder.WriteString(param.Name)
+			})
 		}
 
-		// 写入标志参数项
-		fmt.Fprintf(&flagParamsBuf, BashFlagParamItem, key, param.Type+"|"+param.ValueType)
+		// 使用对象池构建参数值字符串，避免字符串拼接的内存分配
+		paramValue := buildString(func(builder *strings.Builder) {
+			builder.WriteString(param.Type)
+			builder.WriteByte('|')
+			builder.WriteString(param.ValueType)
+		})
+
+		// 使用对象池构建完整的标志参数项，避免fmt.Fprintf的格式化开销
+		flagParamItem := buildString(func(builder *strings.Builder) {
+			builder.WriteString("flag_params[\"")
+			builder.WriteString(key)
+			builder.WriteString("\"]=\"")
+			builder.WriteString(paramValue)
+			builder.WriteString("\"\n")
+		})
+		flagParamsBuf.WriteString(flagParamItem)
 
 		// 如果参数类型为枚举，则生成枚举选项
 		if param.ValueType == "enum" && len(param.EnumOptions) > 0 {

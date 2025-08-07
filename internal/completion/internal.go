@@ -2,10 +2,37 @@ package completion
 
 import (
 	"fmt"
+	"strings"
+	"sync"
 
 	"gitee.com/MM-Q/qflag/flags"
 	"gitee.com/MM-Q/qflag/internal/types"
 )
+
+// 通用字符串构建器对象池 - 供bash和pwsh共同使用
+var stringBuilderPool = sync.Pool{
+	New: func() interface{} {
+		builder := &strings.Builder{}
+		builder.Grow(512) // 预分配512字节容量
+		return builder
+	},
+}
+
+// buildString 使用对象池构建字符串的通用辅助函数
+// 供bash_completion.go和pwsh_completion.go共同使用
+func buildString(fn func(*strings.Builder)) string {
+	builder := stringBuilderPool.Get().(*strings.Builder)
+	defer func() {
+		// 如果容量过大则不回收，避免内存浪费
+		if builder.Cap() <= 8192 {
+			builder.Reset()
+			stringBuilderPool.Put(builder)
+		}
+	}()
+
+	fn(builder)
+	return builder.String()
+}
 
 // getValueTypeByFlagType 根据标志类型获取值类型
 //
