@@ -3,8 +3,11 @@ package completion
 import (
 	"bytes"
 	"flag"
+	"fmt"
+	"runtime"
 	"strings"
 	"testing"
+	"time"
 
 	"gitee.com/MM-Q/qflag/flags"
 	"gitee.com/MM-Q/qflag/internal/types"
@@ -17,20 +20,20 @@ func createTestContext(longName, shortName string) *types.CmdContext {
 	// 添加一些测试标志
 	var stringValue string
 	stringFlag := &flags.StringFlag{}
-	stringFlag.Init("string", "s", "字符串标志", &stringValue)
+	_ = stringFlag.Init("string", "s", "字符串标志", &stringValue)
 	stringMeta := &flags.FlagMeta{Flag: stringFlag}
-	ctx.FlagRegistry.RegisterFlag(stringMeta)
+	_ = ctx.FlagRegistry.RegisterFlag(stringMeta)
 
 	var boolValue bool
 	boolFlag := &flags.BoolFlag{}
-	boolFlag.Init("verbose", "v", "详细输出", &boolValue)
+	_ = boolFlag.Init("verbose", "v", "详细输出", &boolValue)
 	boolMeta := &flags.FlagMeta{Flag: boolFlag}
-	ctx.FlagRegistry.RegisterFlag(boolMeta)
+	_ = ctx.FlagRegistry.RegisterFlag(boolMeta)
 
 	enumFlag := &flags.EnumFlag{}
-	enumFlag.Init("mode", "m", "debug", "运行模式", []string{"debug", "release", "test"})
+	_ = enumFlag.Init("mode", "m", "debug", "运行模式", []string{"debug", "release", "test"})
 	enumMeta := &flags.FlagMeta{Flag: enumFlag}
-	ctx.FlagRegistry.RegisterFlag(enumMeta)
+	_ = ctx.FlagRegistry.RegisterFlag(enumMeta)
 
 	return ctx
 }
@@ -354,6 +357,272 @@ func TestTraverseCommandTree(t *testing.T) {
 	}
 }
 
+// TestCompletionPerformance 测试补全脚本生成性能
+func TestCompletionPerformance(t *testing.T) {
+	// ---------- 阶段 1：构建命令树 ----------
+	buildStart := time.Now()
+	rootCtx := createTestContext("root", "r")
+
+	// 统计节点、flag 数量
+	var (
+		totalCmds  = 1 // root
+		totalFlags int
+	)
+
+	// 创建复杂的命令树结构
+	for i := 0; i < 10; i++ {
+		parentCtx := createTestContext(fmt.Sprintf("sub%d", i), fmt.Sprintf("s%d", i))
+		rootCtx.SubCmds = append(rootCtx.SubCmds, parentCtx)
+		if rootCtx.SubCmdMap == nil {
+			rootCtx.SubCmdMap = make(map[string]*types.CmdContext)
+		}
+		rootCtx.SubCmdMap[parentCtx.LongName] = parentCtx
+		rootCtx.SubCmdMap[parentCtx.ShortName] = parentCtx
+		totalCmds++
+
+		// 为每个父命令添加20个标志
+		for j := 0; j < 20; j++ {
+			var value string
+			flag := &flags.StringFlag{}
+			flagName := fmt.Sprintf("option%d", j)
+			shortName := fmt.Sprintf("o%d", j)
+			_ = flag.Init(flagName, shortName, "测试选项", &value)
+			meta := &flags.FlagMeta{Flag: flag}
+			_ = parentCtx.FlagRegistry.RegisterFlag(meta)
+			totalFlags++
+		}
+
+		// 为每个父命令创建5个子命令
+		for k := 0; k < 5; k++ {
+			childCtx := createTestContext(fmt.Sprintf("sub%d-grand%d", i, k), fmt.Sprintf("g%d", k))
+			parentCtx.SubCmds = append(parentCtx.SubCmds, childCtx)
+			if parentCtx.SubCmdMap == nil {
+				parentCtx.SubCmdMap = make(map[string]*types.CmdContext)
+			}
+			parentCtx.SubCmdMap[childCtx.LongName] = childCtx
+			parentCtx.SubCmdMap[childCtx.ShortName] = childCtx
+			totalCmds++
+
+			// 为每个子命令添加15个标志
+			for l := 0; l < 15; l++ {
+				var value int
+				flag := &flags.IntFlag{}
+				flagName := fmt.Sprintf("param%d", l)
+				shortName := fmt.Sprintf("p%d", l)
+				_ = flag.Init(flagName, shortName, "测试参数", &value)
+				meta := &flags.FlagMeta{Flag: flag}
+				_ = childCtx.FlagRegistry.RegisterFlag(meta)
+				totalFlags++
+			}
+		}
+	}
+	buildDuration := time.Since(buildStart)
+	t.Logf("构建命令树耗时: %v, 命令数量=%d, 标志数量=%d", buildDuration, totalCmds, totalFlags)
+
+	// ---------- 阶段 2：内存基线 ----------
+	var before runtime.MemStats
+	runtime.ReadMemStats(&before)
+
+	// ---------- 阶段 3：Bash 补全 ----------
+	t.Run("bash", func(t *testing.T) {
+		start := time.Now()
+		script, err := GenerateShellCompletion(rootCtx, flags.ShellBash)
+		if err != nil {
+			t.Fatalf("bash 生成失败: %v", err)
+		}
+		genDuration := time.Since(start)
+		t.Logf("bash 生成 %d 字节耗时: %v", len(script), genDuration)
+
+		// 阈值：50 ms 以内
+		if genDuration > 50*time.Millisecond {
+			t.Errorf("bash 生成耗时过长: %v", genDuration)
+		}
+	})
+
+	// ---------- 阶段 4：PowerShell 补全 ----------
+	t.Run("pwsh", func(t *testing.T) {
+		start := time.Now()
+		script, err := GenerateShellCompletion(rootCtx, flags.ShellPowershell)
+		if err != nil {
+			t.Fatalf("pwsh 生成失败: %v", err)
+		}
+		genDuration := time.Since(start)
+		t.Logf("pwsh 生成 %d 字节耗时: %v", len(script), genDuration)
+
+		// 阈值：75 ms 以内
+		if genDuration > 75*time.Millisecond {
+			t.Errorf("pwsh 生成耗时过长: %v", genDuration)
+		}
+	})
+
+	// ---------- 阶段 5：内存增量 ----------
+	var after runtime.MemStats
+	runtime.ReadMemStats(&after)
+	allocKB := (after.Alloc - before.Alloc) / 1024
+	t.Logf("内存增量: %d KB", allocKB)
+}
+
+// TestCompletionBash 测试Bash自动补全生成
+func TestCompletionBash(t *testing.T) {
+	// 创建根命令上下文
+	rootCtx := createTestContext("root", "r")
+
+	// 创建子命令
+	cmd1Ctx := createTestContext("cmd1", "c1")
+	cmd2Ctx := createTestContext("cmd2", "c2")
+
+	// 为cmd1添加字符串标志
+	var strValue string
+	strFlag := &flags.StringFlag{}
+	_ = strFlag.Init("str", "s", "test string", &strValue)
+	strMeta := &flags.FlagMeta{Flag: strFlag}
+	_ = cmd1Ctx.FlagRegistry.RegisterFlag(strMeta)
+
+	// 为cmd2添加整数标志
+	var intValue int
+	intFlag := &flags.IntFlag{}
+	_ = intFlag.Init("int", "i", "test int", &intValue)
+	intMeta := &flags.FlagMeta{Flag: intFlag}
+	_ = cmd2Ctx.FlagRegistry.RegisterFlag(intMeta)
+
+	// 构建命令树
+	rootCtx.SubCmds = []*types.CmdContext{cmd1Ctx}
+	rootCtx.SubCmdMap = map[string]*types.CmdContext{
+		"cmd1": cmd1Ctx,
+		"c1":   cmd1Ctx,
+	}
+
+	cmd1Ctx.SubCmds = []*types.CmdContext{cmd2Ctx}
+	cmd1Ctx.SubCmdMap = map[string]*types.CmdContext{
+		"cmd2": cmd2Ctx,
+		"c2":   cmd2Ctx,
+	}
+
+	// 生成Bash补全脚本
+	script, err := GenerateShellCompletion(rootCtx, flags.ShellBash)
+	if err != nil {
+		t.Fatalf("生成Bash补全脚本失败: %v", err)
+	}
+
+	// 验证生成的脚本包含预期内容
+	expectedContents := []string{
+		"declare -A cmd_tree",
+		"declare -A flag_params",
+		"complete -F",
+		"/cmd1/",
+		"/c1/",
+		"--str",
+		"-s",
+	}
+
+	for _, expected := range expectedContents {
+		if !strings.Contains(script, expected) {
+			t.Errorf("Bash补全脚本不包含预期内容: %s", expected)
+		}
+	}
+
+	fmt.Println(script)
+}
+
+// TestCompletionPwsh 测试PowerShell自动补全生成
+func TestCompletionPwsh(t *testing.T) {
+	// 创建根命令上下文
+	rootCtx := createTestContext("root", "r")
+
+	// 创建子命令
+	cmd1Ctx := createTestContext("cmd1", "c1")
+	cmd2Ctx := createTestContext("cmd2", "c2")
+
+	// 为cmd1添加字符串标志
+	var strValue string
+	strFlag := &flags.StringFlag{}
+	_ = strFlag.Init("str", "s", "test string", &strValue)
+	strMeta := &flags.FlagMeta{Flag: strFlag}
+	_ = cmd1Ctx.FlagRegistry.RegisterFlag(strMeta)
+
+	// 为cmd2添加整数标志
+	var intValue int
+	intFlag := &flags.IntFlag{}
+	_ = intFlag.Init("int", "i", "test int", &intValue)
+	intMeta := &flags.FlagMeta{Flag: intFlag}
+	_ = cmd2Ctx.FlagRegistry.RegisterFlag(intMeta)
+
+	// 构建命令树
+	rootCtx.SubCmds = []*types.CmdContext{cmd1Ctx}
+	rootCtx.SubCmdMap = map[string]*types.CmdContext{
+		"cmd1": cmd1Ctx,
+		"c1":   cmd1Ctx,
+	}
+
+	cmd1Ctx.SubCmds = []*types.CmdContext{cmd2Ctx}
+	cmd1Ctx.SubCmdMap = map[string]*types.CmdContext{
+		"cmd2": cmd2Ctx,
+		"c2":   cmd2Ctx,
+	}
+
+	// 生成PowerShell补全脚本
+	script, err := GenerateShellCompletion(rootCtx, flags.ShellPowershell)
+	if err != nil {
+		t.Fatalf("生成PowerShell补全脚本失败: %v", err)
+	}
+
+	// 验证生成的脚本包含预期内容
+	expectedContents := []string{
+		"Register-ArgumentCompleter",
+		"_cmdTree = @(",
+		"_flagParams = @(",
+		"Context = \"/cmd1/\"",
+		"Context = \"/c1/\"",
+		"Parameter = \"--string\"",
+		"Parameter = \"-s\"",
+	}
+
+	for _, expected := range expectedContents {
+		if !strings.Contains(script, expected) {
+			t.Errorf("PowerShell补全脚本不包含预期内容: %s", expected)
+		}
+	}
+
+	fmt.Println(script)
+}
+
+// TestCompletionNone 测试无补全模式
+func TestCompletionNone(t *testing.T) {
+	// 测试场景1: ShellNone模式下不应生成任何补全脚本
+	t.Run("no_completion_script_generated", func(t *testing.T) {
+		// 创建命令上下文
+		ctx := createTestContext("test", "t")
+
+		// 生成补全脚本（使用不支持的shell类型）
+		script, err := GenerateShellCompletion(ctx, "none")
+		if err != nil {
+			t.Fatalf("生成补全脚本失败: %v", err)
+		}
+
+		// 验证没有生成补全脚本内容
+		if script != "" {
+			t.Errorf("不支持的shell类型不应生成补全脚本，实际输出: %q", script)
+		}
+	})
+
+	// 测试场景2: 验证空命令上下文的处理
+	t.Run("empty_context_handling", func(t *testing.T) {
+		// 测试nil上下文
+		_, err := GenerateShellCompletion(nil, flags.ShellBash)
+		if err == nil {
+			t.Error("nil上下文应该返回错误")
+		}
+
+		// 测试空的标志注册表
+		ctx := createTestContext("test", "t")
+		ctx.FlagRegistry = nil
+		_, err = GenerateShellCompletion(ctx, flags.ShellBash)
+		if err == nil {
+			t.Error("nil标志注册表应该返回错误")
+		}
+	})
+}
+
 // TestCompletionNotes 测试补全注意事项
 func TestCompletionNotes(t *testing.T) {
 	// 测试中文注意事项
@@ -418,9 +687,9 @@ func BenchmarkGenerateShellCompletion(b *testing.B) {
 		flag := &flags.StringFlag{}
 		flagName := strings.Repeat("flag", i+1)
 		shortName := string(rune('a' + i))
-		flag.Init(flagName, shortName, "测试标志", &value)
+		_ = flag.Init(flagName, shortName, "测试标志", &value)
 		meta := &flags.FlagMeta{Flag: flag}
-		ctx.FlagRegistry.RegisterFlag(meta)
+		_ = ctx.FlagRegistry.RegisterFlag(meta)
 	}
 
 	b.ResetTimer()
@@ -442,9 +711,9 @@ func BenchmarkCollectFlagParameters(b *testing.B) {
 		flag := &flags.StringFlag{}
 		flagName := strings.Repeat("flag", i+1)
 		shortName := string(rune('a' + i%26))
-		flag.Init(flagName, shortName, "测试标志", &value)
+		_ = flag.Init(flagName, shortName, "测试标志", &value)
 		meta := &flags.FlagMeta{Flag: flag}
-		ctx.FlagRegistry.RegisterFlag(meta)
+		_ = ctx.FlagRegistry.RegisterFlag(meta)
 	}
 
 	b.ResetTimer()
