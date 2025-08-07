@@ -13,6 +13,9 @@ import (
 
 // 导出子包类型和函数 //
 
+// Cmd 导出cmd包中的Cmd结构体
+type Cmd = cmd.Cmd
+
 // NewCmd 导出cmd包中的NewCmd函数
 var NewCmd = cmd.NewCmd
 
