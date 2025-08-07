@@ -11,6 +11,20 @@ import (
 	"gitee.com/MM-Q/qflag/internal/types"
 )
 
+// 补全脚本生成相关常量定义
+const (
+	// DefaultFlagParamsCapacity 预估的标志参数初始容量
+	// 基于常见CLI工具分析，大多数工具的标志数量在100-500之间
+	DefaultFlagParamsCapacity = 256
+
+	// NamesPerItem 每个标志/命令的名称数量(长名+短名)
+	NamesPerItem = 2
+
+	// MaxTraverseDepth 命令树遍历的最大深度限制
+	// 防止循环引用导致的无限递归，一般CLI工具很少超过20层
+	MaxTraverseDepth = 50
+)
+
 // FlagParam 表示标志参数及其需求类型和值类型
 type FlagParam struct {
 	CommandPath string   // 命令路径，如 "/cmd/subcmd"
@@ -22,14 +36,14 @@ type FlagParam struct {
 
 // 生成标志的注意事项
 var (
-	// completionNotesCN 中文版本注意事项
+	// CompletionNotesCN 中文版本注意事项
 	CompletionNotesCN = []string{
 		"Windows环境: 需要PowerShell 5.1或更高版本以支持Register-ArgumentCompleter",
 		"Linux环境: 需要bash 4.0或更高版本以支持关联数组特性",
 		"请确保您的环境满足上述版本要求，否则自动补全功能可能无法正常工作",
 	}
 
-	// completionNotesEN 英文版本注意事项
+	// CompletionNotesEN 英文版本注意事项
 	CompletionNotesEN = []string{
 		"Windows environment: Requires PowerShell 5.1 or higher to support Register-ArgumentCompleter",
 		"Linux environment: Requires bash 4.0 or higher to support associative array features",
@@ -194,19 +208,30 @@ func traverseCommandTree(buf *bytes.Buffer, rootPath string, cmdContexts []*type
 	}
 }
 
-// collectFlagParameters 收集所有命令标志参数需求，返回标志名称到参数需求类型的映射
+// collectFlagParameters 使用广度优先搜索收集整个命令树的所有标志参数信息
+//
+// 算法说明:
+// 1. 使用BFS遍历整个命令树，确保所有层级的标志都被收集
+// 2. 为每个标志生成唯一键(路径+标志名)，避免重复收集
+// 3. 同时收集长短名标志，因为shell补全需要支持两种形式
+// 4. 特殊处理枚举类型标志，提取可选值列表用于补全
 //
 // 参数:
-//   - ctx: 命令上下文
+//   - ctx: 根命令上下文，作为遍历起点
 //
-// 参数需求类型:
-//   - "required"
-//   - "optional"
-//   - "none"
+// 返回值:
+//   - []FlagParam: 包含所有标志参数信息的切片，每个元素包含:
+//   - CommandPath: 标志所属命令的路径
+//   - Name: 标志名称(包含前缀，如--verbose或-v)
+//   - Type: 参数需求类型("required"|"optional"|"none")
+//   - ValueType: 参数值类型("path"|"string"|"number"|"enum"|"bool")
+//   - EnumOptions: 枚举类型的可选值列表
 func collectFlagParameters(ctx *types.CmdContext) []FlagParam {
-	// 粗略估计：整棵树的 flag 总量
-	params := make([]FlagParam, 0, 256)
-	seen := make(map[string]struct{})
+	// 预分配切片容量，基于常见CLI工具的标志数量估算
+	params := make([]FlagParam, 0, DefaultFlagParamsCapacity)
+
+	// 使用map进行去重，键为"路径+标志名"的组合
+	seen := make(map[string]struct{}, DefaultFlagParamsCapacity)
 
 	// 队列 BFS
 	type node struct {
@@ -295,8 +320,9 @@ func collectCompletionOptions(ctx *types.CmdContext) []string {
 	// 获取所有标志数量(长标志+短标志)
 	flagCnt := ctx.FlagRegistry.GetAllFlagsCount()
 
-	// 计算总容量（标志数量+子命令数量*2）
-	capacity := flagCnt + len(ctx.SubCmds)*2
+	// 计算总容量（标志数量+子命令数量×每项名称数）
+	// 每个子命令都有长名和短名，所以乘以NamesPerItem
+	capacity := flagCnt + len(ctx.SubCmds)*NamesPerItem
 
 	// 创建一个用于存储标志选项和子命令名称的切片
 	seen := make(map[string]struct{}, capacity)
