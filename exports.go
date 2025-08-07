@@ -13,12 +13,6 @@ import (
 
 // 导出子包类型和函数 //
 
-// QCommandLine 导出cmd包的全局默认Command实例
-var QCommandLine = cmd.QCommandLine
-
-// cmd 导出cmd包中的Cmd结构体
-type Cmd = cmd.Cmd
-
 // NewCmd 导出cmd包中的NewCmd函数
 var NewCmd = cmd.NewCmd
 

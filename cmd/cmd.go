@@ -7,7 +7,6 @@ import (
 	"os"
 	"path/filepath"
 	"strings"
-	"sync"
 
 	"gitee.com/MM-Q/qflag/flags"
 	"gitee.com/MM-Q/qflag/internal/help"
@@ -18,29 +17,6 @@ import (
 
 // ExampleInfo 导出示例信息类型
 type ExampleInfo types.ExampleInfo
-
-var (
-	// QCommandLine 全局默认Command实例
-	QCommandLine *Cmd
-
-	// initOnce 确保全局默认Cmd实例只被初始化一次
-	initOnce sync.Once
-)
-
-// 在包初始化时创建全局默认Cmd实例
-func init() {
-	// 确保全局默认Cmd实例只被初始化一次
-	initOnce.Do(func() {
-		// 使用一致的命令名生成逻辑
-		cmdName := "myapp"
-		if len(os.Args) > 0 {
-			cmdName = filepath.Base(os.Args[0])
-		}
-
-		// 创建全局默认Cmd实例
-		QCommandLine = NewCmd(cmdName, "", flag.ExitOnError)
-	})
-}
 
 // Cmd 简化的命令结构体，作为适配器连接内部函数式API和外部面向对象API
 type Cmd struct {
@@ -221,6 +197,11 @@ func (c *Cmd) SubCmdMap() map[string]*Cmd {
 	c.ctx.Mutex.RLock()
 	defer c.ctx.Mutex.RUnlock()
 
+	// 检查子命令映射表是否为空
+	if len(c.ctx.SubCmdMap) == 0 {
+		return nil
+	}
+
 	// 返回map副本避免外部修改
 	subCmdMap := make(map[string]*Cmd, len(c.ctx.SubCmdMap))
 
@@ -238,6 +219,11 @@ func (c *Cmd) SubCmdMap() map[string]*Cmd {
 func (c *Cmd) SubCmds() []*Cmd {
 	c.ctx.Mutex.RLock()
 	defer c.ctx.Mutex.RUnlock()
+
+	// 检查子命令是否为空
+	if len(c.ctx.SubCmds) == 0 {
+		return nil
+	}
 
 	// 创建一个切片副本
 	result := make([]*Cmd, len(c.ctx.SubCmds))
@@ -548,6 +534,12 @@ func (c *Cmd) GetExamples() []ExampleInfo {
 func (c *Cmd) Args() []string {
 	c.ctx.Mutex.RLock()
 	defer c.ctx.Mutex.RUnlock()
+
+	// 检查参数是否为空
+	if len(c.ctx.Args) == 0 {
+		return nil
+	}
+
 	// 返回参数切片副本
 	args := make([]string, len(c.ctx.Args))
 	copy(args, c.ctx.Args)
@@ -564,6 +556,7 @@ func (c *Cmd) Args() []string {
 func (c *Cmd) Arg(i int) string {
 	c.ctx.Mutex.RLock()
 	defer c.ctx.Mutex.RUnlock()
+
 	// 返回参数
 	if i >= 0 && i < len(c.ctx.Args) {
 		return c.ctx.Args[i]

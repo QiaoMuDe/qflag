@@ -3,7 +3,10 @@
 package qflag
 
 import (
+	"flag"
 	"os"
+	"path/filepath"
+	"sync"
 
 	"gitee.com/MM-Q/qflag/cmd"
 	"gitee.com/MM-Q/qflag/flags"
@@ -13,12 +16,36 @@ import (
 项目地址: https://gitee.com/MM-Q/qflag
 */
 
+var (
+	// QCommandLine 全局默认Command实例（保持原名，与标准库flag对齐）
+	QCommandLine *cmd.Cmd
+
+	// qCommandLineOnce 确保全局默认Cmd实例只被初始化一次
+	qCommandLineOnce sync.Once
+)
+
+// getQCommandLine 获取全局默认命令实例（延迟初始化）
+// 内部函数，确保QCommandLine只会被初始化一次，线程安全
+func getQCommandLine() *cmd.Cmd {
+	qCommandLineOnce.Do(func() {
+		// 使用一致的命令名生成逻辑
+		cmdName := "myapp"
+		if len(os.Args) > 0 {
+			cmdName = filepath.Base(os.Args[0])
+		}
+
+		// 创建全局默认Cmd实例
+		QCommandLine = NewCmd(cmdName, "", flag.ExitOnError)
+	})
+	return QCommandLine
+}
+
 // SetVersion 为全局默认命令设置版本信息
 //
 // 参数说明：
 //   - version: 版本信息字符串，用于标识命令的版本。
 func SetVersion(version string) {
-	QCommandLine.SetVersion(version)
+	getQCommandLine().SetVersion(version)
 }
 
 // GetVersion 获取全局默认命令的版本信息
@@ -26,7 +53,7 @@ func SetVersion(version string) {
 // 返回值：
 //   - string: 版本信息字符串。
 func GetVersion() string {
-	return QCommandLine.GetVersion()
+	return getQCommandLine().GetVersion()
 }
 
 // Parse 完整解析命令行参数（含子命令处理）
@@ -48,7 +75,7 @@ func GetVersion() string {
 //   - 若检测到子命令，会将剩余参数传递给子命令的Parse方法
 //   - 处理内置标志执行逻辑
 func Parse() error {
-	return QCommandLine.Parse(os.Args[1:])
+	return getQCommandLine().Parse(os.Args[1:])
 }
 
 // ParseFlagsOnly 仅解析当前命令的标志参数（忽略子命令）
@@ -70,7 +97,7 @@ func Parse() error {
 //   - 不会处理任何子命令，所有参数均视为当前命令的标志或位置参数
 //   - 处理内置标志逻辑
 func ParseFlagsOnly() error {
-	return QCommandLine.ParseFlagsOnly(os.Args[1:])
+	return getQCommandLine().ParseFlagsOnly(os.Args[1:])
 }
 
 // AddSubCmd 向全局默认命令实例 `QCommandLine` 添加一个或多个子命令
@@ -83,7 +110,7 @@ func ParseFlagsOnly() error {
 // 返回值:
 //   - error: 若添加子命令过程中出现错误（如子命令为 `nil` 或存在循环引用），则返回错误信息；否则返回 `nil`。
 func AddSubCmd(subCmds ...*cmd.Cmd) error {
-	return QCommandLine.AddSubCmd(subCmds...)
+	return getQCommandLine().AddSubCmd(subCmds...)
 }
 
 // Args 获取全局默认命令实例 `QCommandLine` 解析后的非标志参数切片。
@@ -92,7 +119,7 @@ func AddSubCmd(subCmds ...*cmd.Cmd) error {
 // 返回值:
 //   - []string: 包含所有非标志参数的字符串切片。
 func Args() []string {
-	return QCommandLine.Args()
+	return getQCommandLine().Args()
 }
 
 // Arg 获取全局默认命令实例 `QCommandLine` 解析后的指定索引位置的非标志参数
@@ -104,7 +131,7 @@ func Args() []string {
 // 返回值:
 //   - string: 指定索引位置的非标志参数；若索引越界，则返回空字符串
 func Arg(i int) string {
-	return QCommandLine.Arg(i)
+	return getQCommandLine().Arg(i)
 }
 
 // NArg 获取全局默认命令实例 `QCommandLine` 解析后的非标志参数的数量
@@ -112,7 +139,7 @@ func Arg(i int) string {
 // 返回值:
 //   - int: 非标志参数的数量。
 func NArg() int {
-	return QCommandLine.NArg()
+	return getQCommandLine().NArg()
 }
 
 // NFlag 获取全局默认命令实例 `QCommandLine` 解析后已定义和使用的标志的数量
@@ -120,13 +147,13 @@ func NArg() int {
 // 返回值:
 //   - int: 标志的数量。
 func NFlag() int {
-	return QCommandLine.NFlag()
+	return getQCommandLine().NFlag()
 }
 
 // PrintHelp 输出全局默认命令实例 `QCommandLine` 的帮助信息。
 // 帮助信息通常包含命令的名称、可用的标志及其描述等内容。
 func PrintHelp() {
-	QCommandLine.PrintHelp()
+	getQCommandLine().PrintHelp()
 }
 
 // FlagExists 检查全局默认命令实例 `QCommandLine` 中是否存在指定名称的标志
@@ -138,7 +165,7 @@ func PrintHelp() {
 // 返回值:
 //   - bool: 若存在指定名称的标志，则返回 `true`；否则返回 `false`。
 func FlagExists(name string) bool {
-	return QCommandLine.FlagExists(name)
+	return getQCommandLine().FlagExists(name)
 }
 
 // Name 获取全局默认命令实例 `QCommandLine` 的名称
@@ -146,42 +173,42 @@ func FlagExists(name string) bool {
 // 返回值:
 //   - 优先返回长名称, 如果长名称不存在则返回短名称
 func Name() string {
-	return QCommandLine.Name()
+	return getQCommandLine().Name()
 }
 
 // LongName 获取命令长名称
 func LongName() string {
-	return QCommandLine.LongName()
+	return getQCommandLine().LongName()
 }
 
 // ShortName 获取命令短名称
 func ShortName() string {
-	return QCommandLine.ShortName()
+	return getQCommandLine().ShortName()
 }
 
 // GetDescription 获取命令描述信息
 func GetDescription() string {
-	return QCommandLine.GetDescription()
+	return getQCommandLine().GetDescription()
 }
 
 // SetDescription 设置命令描述信息
 func SetDescription(desc string) {
-	QCommandLine.SetDescription(desc)
+	getQCommandLine().SetDescription(desc)
 }
 
 // GetNotes 获取所有备注信息
 func GetNotes() []string {
-	return QCommandLine.GetNotes()
+	return getQCommandLine().GetNotes()
 }
 
 // SubCmds 获取所有已注册的子命令列表
 func SubCmds() []*cmd.Cmd {
-	return QCommandLine.SubCmds()
+	return getQCommandLine().SubCmds()
 }
 
 // SubCmdMap 获取所有已注册的子命令映射
 func SubCmdMap() map[string]*cmd.Cmd {
-	return QCommandLine.SubCmdMap()
+	return getQCommandLine().SubCmdMap()
 }
 
 // GetUseChinese 获取是否使用中文
@@ -190,7 +217,7 @@ func SubCmdMap() map[string]*cmd.Cmd {
 // 返回值:
 //   - bool: 如果使用中文, 则返回true; 否则返回false。
 func GetUseChinese() bool {
-	return QCommandLine.GetUseChinese()
+	return getQCommandLine().GetUseChinese()
 }
 
 // SetUseChinese 设置是否使用中文
@@ -199,7 +226,7 @@ func GetUseChinese() bool {
 // 参数:
 //   - useChinese: 如果使用中文,则传入true;否则传入false。
 func SetUseChinese(useChinese bool) {
-	QCommandLine.SetUseChinese(useChinese)
+	getQCommandLine().SetUseChinese(useChinese)
 }
 
 // AddNote 添加注意事项
@@ -208,7 +235,7 @@ func SetUseChinese(useChinese bool) {
 // 参数:
 //   - note: 注意事项内容，字符串类型。
 func AddNote(note string) {
-	QCommandLine.AddNote(note)
+	getQCommandLine().AddNote(note)
 }
 
 // AddExample 添加示例
@@ -218,7 +245,7 @@ func AddNote(note string) {
 //   - desc: 示例描述，字符串类型。
 //   - usage: 示例用法，字符串类型。
 func AddExample(desc, usage string) {
-	QCommandLine.AddExample(desc, usage)
+	getQCommandLine().AddExample(desc, usage)
 }
 
 // GetExamples 获取示例信息
@@ -227,7 +254,7 @@ func AddExample(desc, usage string) {
 // 返回值:
 //   - []cmd.ExampleInfo: 示例信息列表，每个元素为 ExampleInfo 类型。
 func GetExamples() []cmd.ExampleInfo {
-	return QCommandLine.GetExamples()
+	return getQCommandLine().GetExamples()
 }
 
 // GetHelp 返回全局默认命令实例 `QCommandLine` 的帮助信息
@@ -235,7 +262,7 @@ func GetExamples() []cmd.ExampleInfo {
 // 返回值:
 //   - string: 命令行帮助信息。
 func GetHelp() string {
-	return QCommandLine.GetHelp()
+	return getQCommandLine().GetHelp()
 }
 
 // SetHelp 配置全局默认命令实例 `QCommandLine` 的帮助信息
@@ -243,7 +270,7 @@ func GetHelp() string {
 // 参数:
 //   - help: 新的帮助信息，字符串类型。
 func SetHelp(help string) {
-	QCommandLine.SetHelp(help)
+	getQCommandLine().SetHelp(help)
 }
 
 // LoadHelp 从文件中加载帮助信息
@@ -258,7 +285,7 @@ func SetHelp(help string) {
 //
 //	qflag.LoadHelp("help.txt")
 func LoadHelp(filepath string) error {
-	return QCommandLine.LoadHelp(filepath)
+	return getQCommandLine().LoadHelp(filepath)
 }
 
 // SetUsageSyntax 配置全局默认命令实例 `QCommandLine` 的用法信息
@@ -270,7 +297,7 @@ func LoadHelp(filepath string) error {
 //
 //	qflag.SetUsageSyntax("Usage: qflag [options]")
 func SetUsageSyntax(usageSyntax string) {
-	QCommandLine.SetUsageSyntax(usageSyntax)
+	getQCommandLine().SetUsageSyntax(usageSyntax)
 }
 
 // GetUsageSyntax 获取全局默认命令实例 `QCommandLine` 的用法信息
@@ -278,7 +305,7 @@ func SetUsageSyntax(usageSyntax string) {
 // 返回值:
 //   - string: 命令行用法信息。
 func GetUsageSyntax() string {
-	return QCommandLine.GetUsageSyntax()
+	return getQCommandLine().GetUsageSyntax()
 }
 
 // SetLogoText 配置全局默认命令实例 `QCommandLine` 的 logo 文本
@@ -286,7 +313,7 @@ func GetUsageSyntax() string {
 // 参数:
 //   - logoText: 配置的 logo 文本，字符串类型。
 func SetLogoText(logoText string) {
-	QCommandLine.SetLogoText(logoText)
+	getQCommandLine().SetLogoText(logoText)
 }
 
 // GetLogoText 获取全局默认命令实例 `QCommandLine` 的 logo 文本
@@ -294,7 +321,7 @@ func SetLogoText(logoText string) {
 // 返回值:
 //   - string: 配置的 logo 文本。
 func GetLogoText() string {
-	return QCommandLine.GetLogoText()
+	return getQCommandLine().GetLogoText()
 }
 
 // SetModuleHelps 配置模块帮助信息
@@ -302,7 +329,7 @@ func GetLogoText() string {
 // 参数:
 //   - moduleHelps: 模块帮助信息，字符串类型。
 func SetModuleHelps(moduleHelps string) {
-	QCommandLine.SetModuleHelps(moduleHelps)
+	getQCommandLine().SetModuleHelps(moduleHelps)
 }
 
 // GetModuleHelps 获取模块帮助信息
@@ -310,7 +337,7 @@ func SetModuleHelps(moduleHelps string) {
 // 返回值:
 //   - string: 模块帮助信息。
 func GetModuleHelps() string {
-	return QCommandLine.GetModuleHelps()
+	return getQCommandLine().GetModuleHelps()
 }
 
 // SetExitOnBuiltinFlags 设置是否在解析内置参数时退出
@@ -319,7 +346,7 @@ func GetModuleHelps() string {
 // 参数:
 //   - exit: 是否退出
 func SetExitOnBuiltinFlags(exit bool) {
-	QCommandLine.SetExitOnBuiltinFlags(exit)
+	getQCommandLine().SetExitOnBuiltinFlags(exit)
 }
 
 // CmdExists 检查子命令是否存在
@@ -330,7 +357,7 @@ func SetExitOnBuiltinFlags(exit bool) {
 // 返回:
 //   - bool: 子命令是否存在
 func CmdExists(cmdName string) bool {
-	return QCommandLine.CmdExists(cmdName)
+	return getQCommandLine().CmdExists(cmdName)
 }
 
 // IsParsed 检查命令行参数是否已解析
@@ -338,7 +365,7 @@ func CmdExists(cmdName string) bool {
 // 返回:
 //   - bool: 是否已解析
 func IsParsed() bool {
-	return QCommandLine.IsParsed()
+	return getQCommandLine().IsParsed()
 }
 
 // FlagRegistry 获取标志注册表
@@ -346,7 +373,7 @@ func IsParsed() bool {
 // 返回值:
 //   - *flags.FlagRegistry: 标志注册表
 func FlagRegistry() *flags.FlagRegistry {
-	return QCommandLine.FlagRegistry()
+	return getQCommandLine().FlagRegistry()
 }
 
 // SetEnableCompletion 设置是否启用自动完成功能
@@ -354,5 +381,5 @@ func FlagRegistry() *flags.FlagRegistry {
 // 参数:
 //   - enable: 是否启用自动完成功能
 func SetEnableCompletion(enable bool) {
-	QCommandLine.SetEnableCompletion(enable)
+	getQCommandLine().SetEnableCompletion(enable)
 }
