@@ -90,6 +90,40 @@ func escapeSpecialChars(s string) string {
 			builder.WriteString("\\\"")
 		case ' ':
 			builder.WriteString("\\ ")
+		case '$':
+			builder.WriteString("\\$")
+		case '`':
+			builder.WriteString("\\`")
+		case '|':
+			builder.WriteString("\\|")
+		case '&':
+			builder.WriteString("\\&")
+		case ';':
+			builder.WriteString("\\;")
+		case '(':
+			builder.WriteString("\\(")
+		case ')':
+			builder.WriteString("\\)")
+		case '<':
+			builder.WriteString("\\<")
+		case '>':
+			builder.WriteString("\\>")
+		case '*':
+			builder.WriteString("\\*")
+		case '?':
+			builder.WriteString("\\?")
+		case '[':
+			builder.WriteString("\\[")
+		case ']':
+			builder.WriteString("\\]")
+		case '{':
+			builder.WriteString("\\{")
+		case '}':
+			builder.WriteString("\\}")
+		case '~':
+			builder.WriteString("\\~")
+		case '#':
+			builder.WriteString("\\#")
 		default:
 			builder.WriteRune(r)
 		}
@@ -108,16 +142,16 @@ const (
 	// Bash补全模板
 	BashFunctionHeader = `#!/usr/bin/env bash
 
-# Static command tree definition - Pre-initialized outside the function
+# 静态命令树定义 - 在函数外预初始化
 declare -A cmd_tree
 cmd_tree[/]="{{.RootCmdOpts}}"
 {{.CmdTreeEntries}}
 
-# Flag parameters definition - stores type and value type (type|valueType)
+# 标志参数定义 - 存储类型和值类型 (type|valueType)
 declare -A flag_params
 {{.FlagParams}}
 
-# Enum options definition - stores allowed values for enum flags
+# 枚举选项定义 - 存储枚举标志的允许值
 declare -A enum_options
 {{.EnumOptions}}
 
@@ -125,72 +159,115 @@ _{{.ProgramName}}() {
 	local cur prev words cword context opts i arg
 	COMPREPLY=()
 
-	# Use _get_comp_words_by_ref to get completion parameters for better robustness
-	if [[ -z "${_get_comp_words_by_ref}" ]]; then
-		# Compatibility with older versions of Bash completion environment
+	# 使用 _get_comp_words_by_ref 获取补全参数以提高健壮性
+	if declare -F _get_comp_words_by_ref >/dev/null 2>&1; then
+		_get_comp_words_by_ref -n =: cur prev words cword
+	else
+		# 与旧版本 Bash 补全环境的兼容性
 		words=("${COMP_WORDS[@]}")
 		cword=$COMP_CWORD
-	else
-		_get_comp_words_by_ref -n =: cur prev words cword
+		cur="${words[cword]}"
+		prev="${words[cword-1]}"
 	fi
 
-	cur="${words[cword]}"
-	prev="${words[cword-1]}"
+	# 输入验证
+	if [[ $cword -lt 0 || ${#words[@]} -eq 0 ]]; then
+		return 1
+	fi
 
-	# Find the current command context
+	# 查找当前命令上下文
 	local context="/"
 	local i
 	for ((i=1; i < cword; i++)); do
 		local arg="${words[i]}"
-		if [[ -n "${cmd_tree[$context$arg/]}" ]]; then
-			context="$context$arg/"
+		# 如果遇到标志，停止上下文构建
+		if [[ "$arg" =~ ^- ]]; then
+			break
+		fi
+		
+		local next_context="$context$arg/"
+		# 验证上下文是否存在
+		if [[ -n "${cmd_tree[$next_context]}" ]]; then
+			context="$next_context"
+		else
+			break
 		fi
 	done
 
-	# Get the available options for the current context
-	IFS='|' read -ra opts_arr <<< "${cmd_tree[$context]}"
-	opts=$(IFS=' '; echo "${opts_arr[*]}")
+	# 获取当前上下文的可用选项
+	local current_context_opts="${cmd_tree[$context]}"
+	if [[ -z "$current_context_opts" ]]; then
+		return 1
+	fi
 	
-	# Check if the previous parameter needs a value and get its type
-	prev_param_type=""
-	prev_value_type=""
+	# 安全地解析选项
+	local opts_arr
+	IFS='|' read -ra opts_arr <<< "$current_context_opts"
+	local opts
+	printf -v opts '%s ' "${opts_arr[@]}"
+	opts="${opts% }" # 移除尾部空格
+	
+	# 检查前一个参数是否需要值并获取其类型
+	local prev_param_type=""
+	local prev_value_type=""
 	if [[ $cword -gt 1 ]]; then
-		prev_arg="${words[cword-1]}"
-		key="${context}|${prev_arg}"
-		prev_param_info=${flag_params[$key]}
-		IFS='|' read -r prev_param_type prev_value_type <<< "${prev_param_info}"
+		local prev_arg="${words[cword-1]}"
+		local key="${context}|${prev_arg}"
+		local prev_param_info="${flag_params[$key]}"
+		
+		if [[ -n "$prev_param_info" ]]; then
+			IFS='|' read -r prev_param_type prev_value_type <<< "$prev_param_info"
+		fi
 	fi
 
-	# Dynamically generate completion based on parameter type
-	if [[ -n "$prev_param_type" && $prev_param_type == "required" ]]; then
+	# 根据参数类型动态生成补全
+	if [[ -n "$prev_param_type" && "$prev_param_type" == "required" ]]; then
 		case "$prev_value_type" in
 			enum)
-			# 当前单词为空且前一个参数是枚举标志 → 直接列出所有枚举值
-                if [[ -z "$cur" && "$prev_value_type" == "enum" ]]; then
-                    COMPREPLY=($(compgen -W "${enum_options[$key]}" -- ""))
-                    return 0
-                fi
+				local enum_key="${context}|${words[cword-1]}"
+				local enum_opts="${enum_options[$enum_key]}"
 				
-				# 前缀过滤（大小写不敏感）
-                COMPREPLY=($(compgen -W "${enum_options[$key]}" -- "${cur}"))
-                # 只保留以 $cur(忽略大小写)开头的
-                COMPREPLY=($(echo "${COMPREPLY[@]}" | grep -i "^${cur}"))
+				if [[ -n "$enum_opts" ]]; then
+					# 使用内置功能进行枚举补全，避免外部命令
+					local enum_arr
+					read -ra enum_arr <<< "$enum_opts"
+					
+					if [[ -z "$cur" ]]; then
+						# 当前单词为空 → 返回所有枚举值
+						COMPREPLY=("${enum_arr[@]}")
+					else
+						# 前缀过滤（大小写敏感，性能更好）
+						local matches=()
+						local opt
+						for opt in "${enum_arr[@]}"; do
+							if [[ "$opt" == "$cur"* ]]; then
+								matches+=("$opt")
+							fi
+						done
+						COMPREPLY=("${matches[@]}")
+					fi
+					return 0
+				fi
+				;;
+			string)
+				# 字符串类型 - 提供文件和目录路径补全
+				COMPREPLY=($(compgen -f -d -- "$cur"))
 				return 0
 				;;
 			*)
-                # Default value completion
-				COMPREPLY=($(compgen -W "${opts}" -- "${cur}"))
+				# 默认值补全 - 回退到标准选项
+				COMPREPLY=($(compgen -W "$opts" -- "$cur"))
 				return 0
 				;;
-			esac
+		esac
 	fi
 
-	# Flag parameter completion
-	COMPREPLY=($(compgen -W "${opts}" -- "${cur}"))
-
+	# 标志参数补全
+	COMPREPLY=($(compgen -W "$opts" -- "$cur"))
 	return 0
-	}
+}
 
+# 注册补全函数
 complete -F _{{.ProgramName}} {{.ProgramName}}
 `
 )

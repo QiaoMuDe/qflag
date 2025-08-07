@@ -143,6 +143,26 @@ func escapePwshString(s string) string {
 			buf = append(buf, '\'', '\'') // 单引号转义为两个单引号
 		case '\\':
 			buf = append(buf, '\\', '\\') // 反斜杠转义为两个反斜杠
+		case '$':
+			buf = append(buf, '`', '$') // 美元符号转义
+		case '`':
+			buf = append(buf, '`', '`') // 反引号转义
+		case '"':
+			buf = append(buf, '`', '"') // 双引号转义
+		case '&':
+			buf = append(buf, '`', '&') // 与符号转义
+		case '|':
+			buf = append(buf, '`', '|') // 管道符转义
+		case ';':
+			buf = append(buf, '`', ';') // 分号转义
+		case '<':
+			buf = append(buf, '`', '<') // 小于号转义
+		case '>':
+			buf = append(buf, '`', '>') // 大于号转义
+		case '(':
+			buf = append(buf, '`', '(') // 左括号转义
+		case ')':
+			buf = append(buf, '`', ')') // 右括号转义
 		default:
 			buf = append(buf, c)
 		}
@@ -183,79 +203,164 @@ $scriptBlock = {
         $cursorPosition
     )
 
-    # 1. Parse tokens
-    $tokens = $commandAst.CommandElements | ForEach-Object { $_.Extent.Text }
-    $currentIndex = $tokens.Count - 1
-    $prevElement = if ($currentIndex -ge 1) { $tokens[$currentIndex - 1] } else { $null }
-
-    # 2. Calculate the current command context
-    $context = "/"
-    for ($i = 1; $i -le $currentIndex; $i++) {
-        $elem = $tokens[$i]
-        if ($elem -match '^-') { break }
-        $nextContext = "$context$elem/"
-        $contextMatch = ${{{.SanitizedName}}_cmdTree} | Where-Object { $_.Context -eq $nextContext }
-        if ($contextMatch) {
-            $context = $nextContext
-        } else {
-            break
+    # 初始化缓存（仅在首次调用时创建）
+    if (-not $script:{{.SanitizedName}}_contextIndex) {
+        $script:{{.SanitizedName}}_contextIndex = @{}
+        $script:{{.SanitizedName}}_flagIndex = @{}
+        
+        # 构建上下文索引以提高查找性能
+        foreach ($item in ${{{.SanitizedName}}_cmdTree}) {
+            if ($item.Context) {
+                $script:{{.SanitizedName}}_contextIndex[$item.Context] = $item
+            }
         }
-    }
-
-    # 3. Available options in the current context
-    $currentOptions = (${{{.SanitizedName}}_cmdTree} | Where-Object { $_.Context -eq $context }).Options
-
-    # 4. First complete all options (subcommands + flags) at the current level
-    if ($currentOptions) {
-        $matchingOptions = $currentOptions | Where-Object {
-            $_ -like "$wordToComplete*"
-        }
-        if ($matchingOptions) {
-            return $matchingOptions | ForEach-Object {
-                if ($_ -match '^-') { $_ } else { "$_ " }
+        
+        # 构建标志索引以提高查找性能
+        foreach ($flag in ${{{.SanitizedName}}_flagParams}) {
+            if ($flag.Context -and $flag.Parameter) {
+                $key = "$($flag.Context)|$($flag.Parameter)"
+                $script:{{.SanitizedName}}_flagIndex[$key] = $flag
             }
         }
     }
 
-    # 5. Complete flags themselves (like --ty -> --type)
-    if ($wordToComplete -match '^-') {
-        $flagDefs = ${{{.SanitizedName}}_flagParams} | Where-Object { $_.Context -eq $context }
-        $flagMatches = $flagDefs | Where-Object {
-            $_.Parameter -like "$wordToComplete*"
-        } | ForEach-Object { $_.Parameter }
-        return $flagMatches
-    }
-
-    # 6. Enum/Preset value completion
-    # 6a Current token is empty → Complete all enum values of the previous flag
-    if (-not $wordToComplete -and $prevElement -match '^-') {
-        $paramDef = ${{{.SanitizedName}}_flagParams} | Where-Object {
-            $_.Context -eq $context -and $_.Parameter -eq $prevElement
+    try {
+        # 1. 解析令牌
+        $tokens = $commandAst.CommandElements | ForEach-Object { $_.Extent.Text }
+        if (-not $tokens -or $tokens.Count -eq 0) {
+            return @()
         }
-        if ($paramDef) {
-            switch ($paramDef.ValueType) {
-                'enum'   { return $paramDef.Options }
-                default  { return @() }
+        
+        $currentIndex = $tokens.Count - 1
+        $prevElement = if ($currentIndex -ge 1) { $tokens[$currentIndex - 1] } else { $null }
+
+        # 2. 计算当前命令上下文（优化版本）
+        $context = "/"
+        for ($i = 1; $i -le $currentIndex; $i++) {
+            $elem = $tokens[$i]
+            if ($elem -match '^-') { break }
+            
+            $nextContext = "$context$elem/"
+            # 使用索引进行O(1)查找
+            if ($script:{{.SanitizedName}}_contextIndex.ContainsKey($nextContext)) {
+                $context = $nextContext
+            } else {
+                break
             }
         }
-    }
 
-    # 6b The current token is not empty, and the previous token is a flag that requires a value → Filter with prefix
-    $flagForValue = $tokens[$currentIndex - 1]
-    if ($flagForValue -match '^-' -and $currentIndex -ge 1) {
-        $paramDef = ${{{.SanitizedName}}_flagParams} | Where-Object {
-            $_.Context -eq $context -and $_.Parameter -eq $flagForValue
-        }
-        if ($paramDef) {
-            switch ($paramDef.ValueType) {
-                'enum'   { return $paramDef.Options | Where-Object { $_ -like "$wordToComplete*" } }
-                default  { return @() }
+        # 3. 获取当前上下文的可用选项（优化版本）
+        $currentContextItem = $script:{{.SanitizedName}}_contextIndex[$context]
+        $currentOptions = if ($currentContextItem) { $currentContextItem.Options } else { @() }
+
+        # 4. 优先补全当前级别的所有选项（子命令 + 标志）
+        if ($currentOptions -and $currentOptions.Count -gt 0) {
+            $matchingOptions = @()
+            foreach ($option in $currentOptions) {
+                if ($option -like "$wordToComplete*") {
+                    $matchingOptions += if ($option -match '^-') { $option } else { "$option " }
+                }
+            }
+            if ($matchingOptions.Count -gt 0) {
+                return $matchingOptions
             }
         }
-    }
 
-    # 7. No match
-    return @()
+        # 5. 补全标志本身（如 --ty -> --type）
+        if ($wordToComplete -match '^-') {
+            $flagMatches = @()
+            foreach ($flag in ${{{.SanitizedName}}_flagParams}) {
+                if ($flag.Context -eq $context -and $flag.Parameter -like "$wordToComplete*") {
+                    $flagMatches += $flag.Parameter
+                }
+            }
+            if ($flagMatches.Count -gt 0) {
+                return $flagMatches
+            }
+        }
+
+        # 6. 枚举/预设值补全
+        if ($prevElement -match '^-') {
+            $flagKey = "$context|$prevElement"
+            $paramDef = $script:{{.SanitizedName}}_flagIndex[$flagKey]
+            
+            if ($paramDef) {
+                switch ($paramDef.ValueType) {
+                    'enum' {
+                        if (-not $wordToComplete) {
+                            # 当前单词为空 → 返回所有枚举值
+                            return $paramDef.Options
+                        } else {
+                            # 前缀过滤
+                            $enumMatches = @()
+                            foreach ($option in $paramDef.Options) {
+                                if ($option -like "$wordToComplete*") {
+                                    $enumMatches += $option
+                                }
+                            }
+                            return $enumMatches
+                        }
+                    }
+                    'string' {
+                        # 字符串类型 - 提供文件和目录路径补全
+                        $pathMatches = @()
+                        
+                        # 获取当前路径的目录部分
+                        $basePath = if ($wordToComplete -and (Split-Path $wordToComplete -Parent)) {
+                            Split-Path $wordToComplete -Parent
+                        } else {
+                            "."
+                        }
+                        
+                        # 获取文件名部分用于过滤
+                        $fileName = if ($wordToComplete) {
+                            Split-Path $wordToComplete -Leaf
+                        } else {
+                            ""
+                        }
+                        
+                        try {
+                            # 获取目录和文件
+                            $items = Get-ChildItem -Path $basePath -ErrorAction SilentlyContinue | Where-Object {
+                                $_.Name -like "$fileName*"
+                            }
+                            
+                            foreach ($item in $items) {
+                                $fullPath = if ($basePath -eq ".") {
+                                    $item.Name
+                                } else {
+                                    Join-Path $basePath $item.Name
+                                }
+                                
+                                # 目录添加路径分隔符
+                                if ($item.PSIsContainer) {
+                                    $pathMatches += "$fullPath/"
+                                } else {
+                                    $pathMatches += $fullPath
+                                }
+                            }
+                        }
+                        catch {
+                            # 路径访问失败时返回空数组
+                        }
+                        
+                        return $pathMatches
+                    }
+                    default {
+                        return @()
+                    }
+                }
+            }
+        }
+
+        # 7. 无匹配
+        return @()
+    }
+    catch {
+        # 错误处理：返回空数组而不是抛出异常
+        Write-Debug "PowerShell补全错误: $($_.Exception.Message)"
+        return @()
+    }
 }
 
 Register-ArgumentCompleter -CommandName ${{{.SanitizedName}}_commandName} -ScriptBlock $scriptBlock

@@ -54,7 +54,7 @@ func TestGeneratePwshCommandTreeEntry(t *testing.T) {
 			expected: []string{
 				"Context = \"/special/\"",
 				"'--path=''C:\\\\Program Files'''",
-				"'--quote=\"test\"'",
+				"'--quote=`\"test`\"'",
 			},
 		},
 	}
