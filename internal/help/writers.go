@@ -41,7 +41,9 @@ func writeModuleHelps(ctx *types.CmdContext, buf *bytes.Buffer) {
 
 	// 如果存在自定义模块帮助信息，则写入
 	if ctx.Config.ModuleHelps != "" {
-		buf.WriteString("\n" + ctx.Config.ModuleHelps + "\n")
+		buf.WriteString("\n")
+		buf.WriteString(ctx.Config.ModuleHelps)
+		buf.WriteString("\n")
 	}
 }
 
@@ -58,7 +60,8 @@ func writeLogoText(ctx *types.CmdContext, buf *bytes.Buffer) {
 
 	// 如果配置了Logo文本, 则写入
 	if ctx.Config.LogoText != "" {
-		buf.WriteString(ctx.Config.LogoText + "\n")
+		buf.WriteString(ctx.Config.LogoText)
+		buf.WriteString("\n")
 	}
 }
 
