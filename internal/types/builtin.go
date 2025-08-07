@@ -1,3 +1,6 @@
+// Package types 内置类型和数据结构定义
+// 本文件定义了qflag包内部使用的内置类型和数据结构，
+// 包括内置标志、配置选项等核心数据类型的定义。
 package types
 
 import (

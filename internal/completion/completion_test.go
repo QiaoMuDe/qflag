@@ -1,3 +1,6 @@
+// Package completion 自动补全测试
+// 本文件包含了自动补全系统的单元测试，测试标志补全、
+// 参数值补全等功能，为用户提供便捷的命令行交互体验。
 package completion
 
 import (

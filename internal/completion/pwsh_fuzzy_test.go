@@ -1,3 +1,6 @@
+// Package completion PowerShell模糊测试
+// 本文件包含了PowerShell补全功能的模糊测试用例，通过随机输入
+// 测试PowerShell补全系统的健壮性和异常处理能力。
 package completion
 
 import (

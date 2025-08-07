@@ -1,3 +1,6 @@
+// Package completion PowerShell 自动补全实现
+// 本文件实现了PowerShell环境下的命令行自动补全功能，
+// 生成PowerShell补全脚本，支持标志和子命令的智能补全。
 package completion
 
 import (

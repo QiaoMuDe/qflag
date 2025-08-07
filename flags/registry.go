@@ -1,3 +1,6 @@
+// Package flags 标志注册表和元数据管理
+// 本文件实现了FlagRegistry标志注册表，提供标志的注册、查找、索引管理等功能，
+// 支持按长名称、短名称进行标志查找和管理。
 package flags
 
 import (

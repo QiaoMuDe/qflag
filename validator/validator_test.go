@@ -1,5 +1,6 @@
-// validator_test.go
-// 验证器测试用例
+// Package validator 验证器功能测试
+// 本文件包含了各种验证器的单元测试，测试字符串长度验证、正则表达式验证、
+// 数值范围验证等功能，确保参数验证逻辑的正确性和可靠性。
 package validator
 
 import (

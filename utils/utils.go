@@ -1,4 +1,7 @@
 // utils 工具包
+// Package utils 通用工具函数集合
+// 本文件提供了qflag包使用的各种通用工具函数，包括字符串处理、类型转换、
+// 文件操作等辅助功能，为其他模块提供基础支持。
 package utils
 
 import (

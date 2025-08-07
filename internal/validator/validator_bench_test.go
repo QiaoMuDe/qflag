@@ -1,3 +1,6 @@
+// Package validator 内部验证器性能测试
+// 本文件包含了内部验证器的性能基准测试，测试验证器在高负载
+// 场景下的性能表现，为性能优化提供数据支持。
 package validator
 
 import (

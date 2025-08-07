@@ -1,3 +1,6 @@
+// Package completion Bash补全测试
+// 本文件包含了Bash自动补全功能的单元测试，测试Bash补全脚本
+// 生成和标志、子命令的智能补全功能的正确性。
 package completion
 
 import (

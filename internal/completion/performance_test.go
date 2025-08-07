@@ -1,3 +1,6 @@
+// Package completion 补全性能测试
+// 本文件包含了自动补全系统的性能基准测试，测试大量标志和
+// 子命令场景下的补全性能，为性能优化提供数据支持。
 package completion
 
 import (

@@ -1,4 +1,6 @@
-// internal/help/writers.go
+// Package help 帮助信息输出和格式化
+// 本文件实现了帮助信息的输出和格式化功能，包括不同格式的帮助信息写入器，
+// 支持多种输出格式和样式的帮助信息展示。
 package help
 
 import (

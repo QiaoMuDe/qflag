@@ -1,4 +1,6 @@
-// internal/help/sorter.go
+// Package help 帮助信息排序和组织
+// 本文件实现了帮助信息的排序和组织功能，包括标志排序、子命令排序等，
+// 确保帮助信息以合理的顺序展示给用户。
 package help
 
 import (

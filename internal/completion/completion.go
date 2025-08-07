@@ -1,3 +1,6 @@
+// Package completion 命令行自动补全功能
+// 本文件实现了命令行自动补全的核心功能，包括标志补全、子命令补全、
+// 参数值补全等，为用户提供便捷的命令行交互体验。
 package completion
 
 import (

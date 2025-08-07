@@ -1,4 +1,6 @@
-// cmd/cmd.go
+// Package cmd 命令结构体和核心功能实现
+// 本文件定义了Cmd结构体，提供命令行解析、子命令管理、标志注册等核心功能。
+// Cmd作为适配器连接内部函数式API和外部面向对象API。
 package cmd
 
 import (
@@ -236,23 +238,6 @@ func (c *Cmd) SubCmds() []*Cmd {
 	return result
 }
 
-// SetEnableCompletion 设置是否启用自动补全, 只能在根命令上启用
-//
-// 参数:
-//   - enable: true表示启用补全,false表示禁用
-func (c *Cmd) SetEnableCompletion(enable bool) {
-	c.ctx.Mutex.Lock()
-	defer c.ctx.Mutex.Unlock()
-
-	// 只在根命令上启用自动补全
-	if c.ctx.Parent != nil {
-		return
-	}
-
-	// 设置启用状态
-	c.ctx.Config.EnableCompletion = enable
-}
-
 // FlagRegistry 获取标志注册表的只读访问
 //
 // 返回值:
@@ -261,109 +246,6 @@ func (c *Cmd) FlagRegistry() *flags.FlagRegistry {
 	c.ctx.Mutex.RLock()
 	defer c.ctx.Mutex.RUnlock()
 	return c.ctx.FlagRegistry
-}
-
-// SetVersion 设置版本信息
-//
-// 参数:
-//   - version: 版本信息
-func (c *Cmd) SetVersion(version string) {
-	c.ctx.Mutex.Lock()
-	defer c.ctx.Mutex.Unlock()
-	c.ctx.Config.Version = version
-}
-
-// GetVersion 获取版本信息
-//
-// 返回值:
-// - string: 版本信息
-func (c *Cmd) GetVersion() string {
-	c.ctx.Mutex.RLock()
-	defer c.ctx.Mutex.RUnlock()
-	return c.ctx.Config.Version
-}
-
-// SetModuleHelps 设置自定义模块帮助信息
-//
-// 参数:
-//   - moduleHelps: 自定义模块帮助信息
-func (c *Cmd) SetModuleHelps(moduleHelps string) {
-	c.ctx.Mutex.Lock()
-	defer c.ctx.Mutex.Unlock()
-	c.ctx.Config.ModuleHelps = moduleHelps
-}
-
-// GetModuleHelps 获取自定义模块帮助信息
-//
-// 返回值:
-//   - string: 自定义模块帮助信息
-func (c *Cmd) GetModuleHelps() string {
-	c.ctx.Mutex.RLock()
-	defer c.ctx.Mutex.RUnlock()
-	return c.ctx.Config.ModuleHelps
-}
-
-// SetLogoText 设置logo文本
-//
-// 参数:
-//   - logoText: logo文本字符串
-func (c *Cmd) SetLogoText(logoText string) {
-	c.ctx.Mutex.Lock()
-	defer c.ctx.Mutex.Unlock()
-	c.ctx.Config.LogoText = logoText
-}
-
-// GetLogoText 获取logo文本
-//
-// 返回值:
-//   - string: logo文本字符串
-func (c *Cmd) GetLogoText() string {
-	c.ctx.Mutex.RLock()
-	defer c.ctx.Mutex.RUnlock()
-	return c.ctx.Config.LogoText
-}
-
-// GetUseChinese 获取是否使用中文帮助信息
-//
-// 返回值:
-//   - bool: 是否使用中文帮助信息
-func (c *Cmd) GetUseChinese() bool {
-	c.ctx.Mutex.RLock()
-	defer c.ctx.Mutex.RUnlock()
-	return c.ctx.Config.UseChinese
-}
-
-// SetUseChinese 设置是否使用中文帮助信息
-//
-// 参数:
-//   - useChinese: 是否使用中文帮助信息
-func (c *Cmd) SetUseChinese(useChinese bool) {
-	c.ctx.Mutex.Lock()
-	defer c.ctx.Mutex.Unlock()
-	c.ctx.Config.UseChinese = useChinese
-}
-
-// GetNotes 获取所有备注信息
-//
-// 返回:
-//   - 备注信息列表
-func (c *Cmd) GetNotes() []string {
-	c.ctx.Mutex.RLock()
-	defer c.ctx.Mutex.RUnlock()
-	// 返回切片副本而非原始引用
-	notes := make([]string, len(c.ctx.Config.Notes))
-	copy(notes, c.ctx.Config.Notes)
-	return notes
-}
-
-// AddNote 添加备注信息到命令
-//
-// 参数:
-//   - note: 备注信息
-func (c *Cmd) AddNote(note string) {
-	c.ctx.Mutex.Lock()
-	defer c.ctx.Mutex.Unlock()
-	c.ctx.Config.Notes = append(c.ctx.Config.Notes, note)
 }
 
 // Name 获取命令名称
@@ -392,140 +274,6 @@ func (c *Cmd) LongName() string { return c.ctx.LongName }
 // 返回值:
 //   - string: 命令短名称
 func (c *Cmd) ShortName() string { return c.ctx.ShortName }
-
-// GetDescription 返回命令描述
-//
-// 返回值:
-//   - string: 命令描述
-func (c *Cmd) GetDescription() string {
-	c.ctx.Mutex.RLock()
-	defer c.ctx.Mutex.RUnlock()
-	return c.ctx.Config.Description
-}
-
-// SetDescription 设置命令描述
-//
-// 参数:
-//   - desc: 命令描述
-func (c *Cmd) SetDescription(desc string) {
-	c.ctx.Mutex.Lock()
-	defer c.ctx.Mutex.Unlock()
-	c.ctx.Config.Description = desc
-}
-
-// GetHelp 返回命令用法帮助信息
-//
-// 返回值:
-//   - string: 命令用法帮助信息
-func (c *Cmd) GetHelp() string {
-	// 获取读锁
-	c.ctx.Mutex.RLock()
-	defer c.ctx.Mutex.RUnlock()
-
-	// 生成帮助信息或返回用户设置的帮助信息
-	return help.GenerateHelp(c.ctx)
-}
-
-// SetHelp 设置用户自定义命令帮助信息
-//
-// 参数:
-//   - help: 用户自定义命令帮助信息
-func (c *Cmd) SetHelp(help string) {
-	c.ctx.Mutex.Lock()
-	defer c.ctx.Mutex.Unlock()
-	c.ctx.Config.Help = help
-}
-
-// LoadHelp 从指定文件加载帮助信息
-//
-// 参数:
-//   - filePath: 帮助信息文件路径
-//
-// 返回值:
-//   - error: 如果文件不存在或读取文件失败，则返回错误信息
-func (c *Cmd) LoadHelp(filePath string) error {
-	// 检查是否为空
-	if filePath == "" {
-		return fmt.Errorf("file path cannot be empty")
-	}
-
-	// 清理路径并检查有效性
-	cleanPath := filepath.Clean(filePath)
-	if cleanPath == "" || strings.TrimSpace(cleanPath) == "" {
-		return fmt.Errorf("file path cannot be empty or contain only whitespace")
-	}
-
-	// 直接读取文件内容并处理可能的错误（包括文件不存在的情况）
-	content, err := os.ReadFile(cleanPath)
-	if err != nil {
-		if os.IsNotExist(err) {
-			return fmt.Errorf("file %s does not exist", filePath)
-		}
-		return fmt.Errorf("failed to read file %s: %w", filePath, err)
-	}
-
-	// 设置帮助信息
-	c.SetHelp(string(content))
-	return nil
-}
-
-// GetUsageSyntax 获取自定义命令用法
-//
-// 返回值:
-//   - string: 自定义命令用法
-func (c *Cmd) GetUsageSyntax() string {
-	c.ctx.Mutex.RLock()
-	defer c.ctx.Mutex.RUnlock()
-	return c.ctx.Config.UsageSyntax
-}
-
-// SetUsageSyntax 设置自定义命令用法
-//
-// 参数:
-//   - usageSyntax: 自定义命令用法
-func (c *Cmd) SetUsageSyntax(usageSyntax string) {
-	c.ctx.Mutex.Lock()
-	defer c.ctx.Mutex.Unlock()
-	c.ctx.Config.UsageSyntax = usageSyntax
-}
-
-// AddExample 为命令添加使用示例
-//
-// 参数:
-//   - desc: 示例描述
-//   - usage: 示例用法
-func (c *Cmd) AddExample(desc, usage string) {
-	c.ctx.Mutex.Lock()
-	defer c.ctx.Mutex.Unlock()
-
-	// 新建示例信息
-	e := types.ExampleInfo{
-		Description: desc,
-		Usage:       usage,
-	}
-
-	// 添加到使用示例列表中
-	c.ctx.Config.Examples = append(c.ctx.Config.Examples, e)
-}
-
-// GetExamples 获取所有使用示例
-//
-// 返回:
-//   - []ExampleInfo: 使用示例列表
-func (c *Cmd) GetExamples() []ExampleInfo {
-	c.ctx.Mutex.RLock()
-	defer c.ctx.Mutex.RUnlock()
-	examples := make([]ExampleInfo, len(c.ctx.Config.Examples))
-
-	for i, e := range c.ctx.Config.Examples {
-		examples[i] = ExampleInfo{
-			Description: e.Description,
-			Usage:       e.Usage,
-		}
-	}
-
-	return examples
-}
 
 // Args 获取非标志参数切片
 //
@@ -637,6 +385,119 @@ func (c *Cmd) IsParsed() bool {
 	return c.ctx.Parsed.Load()
 }
 
+// ================================================================================
+// Get 方法 - 获取配置信息
+// ================================================================================
+
+// GetVersion 获取版本信息
+//
+// 返回值:
+// - string: 版本信息
+func (c *Cmd) GetVersion() string {
+	c.ctx.Mutex.RLock()
+	defer c.ctx.Mutex.RUnlock()
+	return c.ctx.Config.Version
+}
+
+// GetModuleHelps 获取自定义模块帮助信息
+//
+// 返回值:
+//   - string: 自定义模块帮助信息
+func (c *Cmd) GetModuleHelps() string {
+	c.ctx.Mutex.RLock()
+	defer c.ctx.Mutex.RUnlock()
+	return c.ctx.Config.ModuleHelps
+}
+
+// GetLogoText 获取logo文本
+//
+// 返回值:
+//   - string: logo文本字符串
+func (c *Cmd) GetLogoText() string {
+	c.ctx.Mutex.RLock()
+	defer c.ctx.Mutex.RUnlock()
+	return c.ctx.Config.LogoText
+}
+
+// GetUseChinese 获取是否使用中文帮助信息
+//
+// 返回值:
+//   - bool: 是否使用中文帮助信息
+func (c *Cmd) GetUseChinese() bool {
+	c.ctx.Mutex.RLock()
+	defer c.ctx.Mutex.RUnlock()
+	return c.ctx.Config.UseChinese
+}
+
+// GetNotes 获取所有备注信息
+//
+// 返回:
+//   - 备注信息列表
+func (c *Cmd) GetNotes() []string {
+	c.ctx.Mutex.RLock()
+	defer c.ctx.Mutex.RUnlock()
+	// 返回切片副本而非原始引用
+	notes := make([]string, len(c.ctx.Config.Notes))
+	copy(notes, c.ctx.Config.Notes)
+	return notes
+}
+
+// GetDescription 返回命令描述
+//
+// 返回值:
+//   - string: 命令描述
+func (c *Cmd) GetDescription() string {
+	c.ctx.Mutex.RLock()
+	defer c.ctx.Mutex.RUnlock()
+	return c.ctx.Config.Description
+}
+
+// GetHelp 返回命令用法帮助信息
+//
+// 返回值:
+//   - string: 命令用法帮助信息
+func (c *Cmd) GetHelp() string {
+	// 获取读锁
+	c.ctx.Mutex.RLock()
+	defer c.ctx.Mutex.RUnlock()
+
+	// 生成帮助信息或返回用户设置的帮助信息
+	return help.GenerateHelp(c.ctx)
+}
+
+// GetUsageSyntax 获取自定义命令用法
+//
+// 返回值:
+//   - string: 自定义命令用法
+func (c *Cmd) GetUsageSyntax() string {
+	c.ctx.Mutex.RLock()
+	defer c.ctx.Mutex.RUnlock()
+	return c.ctx.Config.UsageSyntax
+}
+
+// GetExamples 获取所有使用示例
+//
+// 返回:
+//   - []ExampleInfo: 使用示例列表
+func (c *Cmd) GetExamples() []ExampleInfo {
+	c.ctx.Mutex.RLock()
+	defer c.ctx.Mutex.RUnlock()
+	examples := make([]ExampleInfo, len(c.ctx.Config.Examples))
+
+	for i, e := range c.ctx.Config.Examples {
+		examples[i] = ExampleInfo{
+			Description: e.Description,
+			Usage:       e.Usage,
+		}
+	}
+
+	return examples
+}
+
+// ================================================================================
+// Set 方法 - 设置配置信息
+// ================================================================================
+
 // SetExitOnBuiltinFlags 设置是否在解析内置参数时退出
 // 默认情况下为true, 当解析到内置参数时, QFlag将退出程序
 //
@@ -646,4 +507,329 @@ func (c *Cmd) SetExitOnBuiltinFlags(exit bool) {
 	c.ctx.Mutex.Lock()
 	defer c.ctx.Mutex.Unlock()
 	c.ctx.Config.ExitOnBuiltinFlags = exit
+}
+
+// SetEnableCompletion 设置是否启用自动补全, 只能在根命令上启用
+//
+// 参数:
+//   - enable: true表示启用补全,false表示禁用
+func (c *Cmd) SetEnableCompletion(enable bool) {
+	c.ctx.Mutex.Lock()
+	defer c.ctx.Mutex.Unlock()
+
+	// 只在根命令上启用自动补全
+	if c.ctx.Parent != nil {
+		return
+	}
+
+	// 设置启用状态
+	c.ctx.Config.EnableCompletion = enable
+}
+
+// SetVersion 设置版本信息
+//
+// 参数:
+//   - version: 版本信息
+func (c *Cmd) SetVersion(version string) {
+	c.ctx.Mutex.Lock()
+	defer c.ctx.Mutex.Unlock()
+
+	// 检查版本信息是否为空
+	if version == "" {
+		return
+	}
+
+	// 设置版本信息
+	c.ctx.Config.Version = version
+}
+
+// SetVersionf 设置版本信息
+//
+// 参数:
+//   - format: 版本信息格式字符串
+//   - args: 格式化参数
+func (c *Cmd) SetVersionf(format string, args ...any) {
+	c.SetVersion(fmt.Sprintf(format, args...))
+}
+
+// SetModuleHelps 设置自定义模块帮助信息
+//
+// 参数:
+//   - moduleHelps: 自定义模块帮助信息
+func (c *Cmd) SetModuleHelps(moduleHelps string) {
+	c.ctx.Mutex.Lock()
+	defer c.ctx.Mutex.Unlock()
+	c.ctx.Config.ModuleHelps = moduleHelps
+}
+
+// SetLogoText 设置logo文本
+//
+// 参数:
+//   - logoText: logo文本字符串
+func (c *Cmd) SetLogoText(logoText string) {
+	c.ctx.Mutex.Lock()
+	defer c.ctx.Mutex.Unlock()
+	c.ctx.Config.LogoText = logoText
+}
+
+// SetUseChinese 设置是否使用中文帮助信息
+//
+// 参数:
+//   - useChinese: 是否使用中文帮助信息
+func (c *Cmd) SetUseChinese(useChinese bool) {
+	c.ctx.Mutex.Lock()
+	defer c.ctx.Mutex.Unlock()
+	c.ctx.Config.UseChinese = useChinese
+}
+
+// SetDescription 设置命令描述
+//
+// 参数:
+//   - desc: 命令描述
+func (c *Cmd) SetDescription(desc string) {
+	c.ctx.Mutex.Lock()
+	defer c.ctx.Mutex.Unlock()
+	c.ctx.Config.Description = desc
+}
+
+// SetHelp 设置用户自定义命令帮助信息
+//
+// 参数:
+//   - help: 用户自定义命令帮助信息
+func (c *Cmd) SetHelp(help string) {
+	c.ctx.Mutex.Lock()
+	defer c.ctx.Mutex.Unlock()
+	c.ctx.Config.Help = help
+}
+
+// SetUsageSyntax 设置自定义命令用法
+//
+// 参数:
+//   - usageSyntax: 自定义命令用法
+func (c *Cmd) SetUsageSyntax(usageSyntax string) {
+	c.ctx.Mutex.Lock()
+	defer c.ctx.Mutex.Unlock()
+	c.ctx.Config.UsageSyntax = usageSyntax
+}
+
+// AddNote 添加备注信息到命令
+//
+// 参数:
+//   - note: 备注信息
+func (c *Cmd) AddNote(note string) {
+	c.ctx.Mutex.Lock()
+	defer c.ctx.Mutex.Unlock()
+	c.ctx.Config.Notes = append(c.ctx.Config.Notes, note)
+}
+
+// AddNotes 添加备注信息切片到命令
+//
+// 参数:
+//   - notes: 备注信息列表
+func (c *Cmd) AddNotes(notes []string) {
+	c.ctx.Mutex.Lock()
+	defer c.ctx.Mutex.Unlock()
+	c.ctx.Config.Notes = append(c.ctx.Config.Notes, notes...)
+}
+
+// AddExample 为命令添加使用示例
+//
+// 参数:
+//   - desc: 示例描述
+//   - usage: 示例用法
+func (c *Cmd) AddExample(desc, usage string) {
+	c.ctx.Mutex.Lock()
+	defer c.ctx.Mutex.Unlock()
+
+	// 新建示例信息
+	e := types.ExampleInfo{
+		Description: desc,
+		Usage:       usage,
+	}
+
+	// 添加到使用示例列表中
+	c.ctx.Config.Examples = append(c.ctx.Config.Examples, e)
+}
+
+// LoadHelp 从指定文件加载帮助信息
+//
+// 参数:
+//   - filePath: 帮助信息文件路径
+//
+// 返回值:
+//   - error: 如果文件不存在或读取文件失败，则返回错误信息
+func (c *Cmd) LoadHelp(filePath string) error {
+	// 检查是否为空
+	if filePath == "" {
+		return fmt.Errorf("file path cannot be empty")
+	}
+
+	// 清理路径并检查有效性
+	cleanPath := filepath.Clean(filePath)
+	if cleanPath == "" || strings.TrimSpace(cleanPath) == "" {
+		return fmt.Errorf("file path cannot be empty or contain only whitespace")
+	}
+
+	// 直接读取文件内容并处理可能的错误（包括文件不存在的情况）
+	content, err := os.ReadFile(cleanPath)
+	if err != nil {
+		if os.IsNotExist(err) {
+			return fmt.Errorf("file %s does not exist", filePath)
+		}
+		return fmt.Errorf("failed to read file %s: %w", filePath, err)
+	}
+
+	// 设置帮助信息
+	c.SetHelp(string(content))
+	return nil
+}
+
+// ================================================================================
+// 链式调用方法 - 用于构建器模式，提供更流畅的API体验
+// ================================================================================
+
+// WithDescription 设置命令描述（链式调用）
+//
+// 参数:
+//   - desc: 命令描述
+//
+// 返回值:
+//   - *Cmd: 返回命令实例，支持链式调用
+func (c *Cmd) WithDescription(desc string) *Cmd {
+	c.SetDescription(desc)
+	return c
+}
+
+// WithVersion 设置版本信息（链式调用）
+//
+// 参数:
+//   - version: 版本信息
+//
+// 返回值:
+//   - *Cmd: 返回命令实例，支持链式调用
+func (c *Cmd) WithVersion(version string) *Cmd {
+	c.SetVersion(version)
+	return c
+}
+
+// WithVersionf 设置版本信息（链式调用，支持格式化）
+//
+// 参数:
+//   - format: 版本信息格式字符串
+//   - args: 格式化参数
+//
+// 返回值:
+//   - *Cmd: 返回命令实例，支持链式调用
+func (c *Cmd) WithVersionf(format string, args ...any) *Cmd {
+	c.SetVersionf(format, args...)
+	return c
+}
+
+// WithUseChinese 设置是否使用中文帮助信息（链式调用）
+//
+// 参数:
+//   - useChinese: 是否使用中文帮助信息
+//
+// 返回值:
+//   - *Cmd: 返回命令实例，支持链式调用
+func (c *Cmd) WithUseChinese(useChinese bool) *Cmd {
+	c.SetUseChinese(useChinese)
+	return c
+}
+
+// WithUsageSyntax 设置自定义命令用法（链式调用）
+//
+// 参数:
+//   - usageSyntax: 自定义命令用法
+//
+// 返回值:
+//   - *Cmd: 返回命令实例，支持链式调用
+func (c *Cmd) WithUsageSyntax(usageSyntax string) *Cmd {
+	c.SetUsageSyntax(usageSyntax)
+	return c
+}
+
+// WithLogoText 设置logo文本（链式调用）
+//
+// 参数:
+//   - logoText: logo文本字符串
+//
+// 返回值:
+//   - *Cmd: 返回命令实例，支持链式调用
+func (c *Cmd) WithLogoText(logoText string) *Cmd {
+	c.SetLogoText(logoText)
+	return c
+}
+
+// WithHelp 设置用户自定义命令帮助信息（链式调用）
+//
+// 参数:
+//   - help: 用户自定义命令帮助信息
+//
+// 返回值:
+//   - *Cmd: 返回命令实例，支持链式调用
+func (c *Cmd) WithHelp(help string) *Cmd {
+	c.SetHelp(help)
+	return c
+}
+
+// WithNote 添加备注信息到命令（链式调用）
+//
+// 参数:
+//   - note: 备注信息
+//
+// 返回值:
+//   - *Cmd: 返回命令实例，支持链式调用
+func (c *Cmd) WithNote(note string) *Cmd {
+	c.AddNote(note)
+	return c
+}
+
+// WithExample 为命令添加使用示例（链式调用）
+//
+// 参数:
+//   - desc: 示例描述
+//   - usage: 示例用法
+//
+// 返回值:
+//   - *Cmd: 返回命令实例，支持链式调用
+func (c *Cmd) WithExample(desc, usage string) *Cmd {
+	c.AddExample(desc, usage)
+	return c
+}
+
+// WithExitOnBuiltinFlags 设置是否在解析内置参数时退出（链式调用）
+//
+// 参数:
+//   - exit: 是否退出
+//
+// 返回值:
+//   - *Cmd: 返回命令实例，支持链式调用
+func (c *Cmd) WithExitOnBuiltinFlags(exit bool) *Cmd {
+	c.SetExitOnBuiltinFlags(exit)
+	return c
+}
+
+// WithEnableCompletion 设置是否启用自动补全（链式调用）
+//
+// 参数:
+//   - enable: true表示启用补全,false表示禁用
+//
+// 返回值:
+//   - *Cmd: 返回命令实例，支持链式调用
+func (c *Cmd) WithEnableCompletion(enable bool) *Cmd {
+	c.SetEnableCompletion(enable)
+	return c
+}
+
+// WithModuleHelps 设置自定义模块帮助信息（链式调用）
+//
+// 参数:
+//   - moduleHelps: 自定义模块帮助信息
+//
+// 返回值:
+//   - *Cmd: 返回命令实例，支持链式调用
+func (c *Cmd) WithModuleHelps(moduleHelps string) *Cmd {
+	c.SetModuleHelps(moduleHelps)
+	return c
 }

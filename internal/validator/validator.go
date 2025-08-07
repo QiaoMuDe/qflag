@@ -1,4 +1,7 @@
 // internal/subcmd/validator.go
+// Package validator 内部验证器实现
+// 本文件实现了内部使用的验证器功能，提供命令和标志的验证逻辑，
+// 包括循环引用检测、命名冲突检查等内部验证机制。
 package validator
 
 import (

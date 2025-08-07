@@ -1,3 +1,6 @@
+// Package completion 自动补全内部实现
+// 本文件包含了自动补全功能的内部实现逻辑，提供补全算法、
+// 匹配策略等核心功能的底层支持。
 package completion
 
 import (

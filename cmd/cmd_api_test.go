@@ -1,3 +1,6 @@
+// Package cmd 命令API测试
+// 本文件包含了Cmd结构体API接口的单元测试，测试面向对象API
+// 与内部函数式API的适配功能，确保API设计的正确性。
 package cmd
 
 import (

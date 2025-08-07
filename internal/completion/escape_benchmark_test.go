@@ -1,3 +1,6 @@
+// Package completion 转义性能测试
+// 本文件包含了补全系统中字符转义功能的性能基准测试，
+// 测试特殊字符处理的性能表现，为优化提供数据支持。
 package completion
 
 import (

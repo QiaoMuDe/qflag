@@ -1,4 +1,6 @@
-// internal/help/generator.go
+// Package help 帮助信息生成器
+// 本文件实现了命令行帮助信息的自动生成功能，包括标志列表、用法说明、
+// 子命令信息等帮助内容的格式化和输出。
 package help
 
 import (

@@ -1,3 +1,6 @@
+// Package registry 注册表测试
+// 本文件包含了内部注册表的单元测试，测试组件注册、查找和
+// 管理机制的正确性，支持模块化的架构设计。
 package registry
 
 import (

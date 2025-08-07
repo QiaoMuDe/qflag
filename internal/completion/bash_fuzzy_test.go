@@ -1,3 +1,6 @@
+// Package completion Bash模糊测试
+// 本文件包含了Bash补全功能的模糊测试用例，通过随机输入
+// 测试补全系统的健壮性和异常处理能力。
 package completion
 
 import (

@@ -1,3 +1,6 @@
+// Package qflag 测试文件
+// 本文件包含了qflag包的单元测试，测试各种标志类型的创建、解析和验证功能，
+// 确保命令行参数解析的正确性和稳定性。
 package qflag
 
 import (

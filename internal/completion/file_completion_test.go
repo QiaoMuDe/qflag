@@ -1,3 +1,6 @@
+// Package completion 文件补全测试
+// 本文件包含了文件路径自动补全功能的单元测试，测试文件和
+// 目录路径的智能补全功能的正确性和稳定性。
 package completion
 
 import (

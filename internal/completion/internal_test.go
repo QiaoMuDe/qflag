@@ -1,3 +1,6 @@
+// Package completion 内部补全测试
+// 本文件包含了补全系统内部功能的单元测试，测试补全算法、
+// 匹配策略等核心功能的底层支持的正确性。
 package completion
 
 import (

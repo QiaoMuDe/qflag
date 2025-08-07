@@ -1,3 +1,6 @@
+// Package flags 基础标志综合测试
+// 本文件包含了BaseFlag结构体的全面测试用例，测试标志的初始化、
+// 值设置获取、验证器支持、环境变量绑定等核心功能的正确性。
 package flags
 
 import (

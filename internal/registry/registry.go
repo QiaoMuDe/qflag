@@ -1,4 +1,6 @@
-// internal/registry/registry.go
+// Package registry 内部注册表管理
+// 本文件实现了内部组件的注册表管理功能，提供统一的组件注册、
+// 查找和管理机制，支持模块化的架构设计。
 package registry
 
 import (

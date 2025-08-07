@@ -1,3 +1,6 @@
+// Package validator 内部验证器测试
+// 本文件包含了内部验证器的单元测试，测试循环引用检测、
+// 命名冲突检查等内部验证机制的正确性和完整性。
 package validator
 
 import (
