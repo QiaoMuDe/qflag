@@ -173,7 +173,9 @@ func traverseCommandTree(buf *bytes.Buffer, rootPath string, cmdContexts []*type
 		opts := collectCompletionOptions(cur.ctx)
 		switch shellType {
 		case flags.ShellBash: // Bash特定处理
-			generateBashCommandTreeEntry(buf, fullPath, opts)
+			// 需要传递程序名称参数
+			programName := filepath.Base(os.Args[0])
+			generateBashCommandTreeEntry(buf, fullPath, opts, programName)
 		case flags.ShellPwsh, flags.ShellPowershell: // Powershell特定处理
 			generatePwshCommandTreeEntry(buf, fullPath, opts)
 		}

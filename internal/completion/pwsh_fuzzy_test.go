@@ -37,11 +37,11 @@ func TestPwshFuzzyCompletionGeneration(t *testing.T) {
 	// 验证模糊补全配置参数是否存在
 	t.Run("配置参数检查", func(t *testing.T) {
 		expectedConfigs := []string{
-			"$script:FUZZY_COMPLETION_ENABLED = $true",
-			"$script:FUZZY_MAX_CANDIDATES = 120",
-			"$script:FUZZY_MIN_PATTERN_LENGTH = 2",
-			"$script:FUZZY_SCORE_THRESHOLD = 25",
-			"$script:FUZZY_MAX_RESULTS = 10",
+			"$script:testcli_FUZZY_COMPLETION_ENABLED = $true",
+			"$script:testcli_FUZZY_MAX_CANDIDATES = 120",
+			"$script:testcli_FUZZY_MIN_PATTERN_LENGTH = 2",
+			"$script:testcli_FUZZY_SCORE_THRESHOLD = 25",
+			"$script:testcli_FUZZY_MAX_RESULTS = 10",
 		}
 
 		for _, config := range expectedConfigs {
@@ -225,12 +225,12 @@ func TestPwshIntelligentMatchingStrategy(t *testing.T) {
 	// 验证性能保护机制
 	t.Run("性能保护机制检查", func(t *testing.T) {
 		protections := []string{
-			"if ($totalCandidates -gt $script:FUZZY_MAX_CANDIDATES)",
+			"if ($totalCandidates -gt $script:test_FUZZY_MAX_CANDIDATES)",
 			"# 回退到传统前缀匹配",
 			"if ($exactMatches.Count -gt 0 -and $exactMatches.Count -le 12)",
-			"if ($script:FUZZY_COMPLETION_ENABLED -and $patternLen -ge $script:FUZZY_MIN_PATTERN_LENGTH)",
-			"if ($score -ge $script:FUZZY_SCORE_THRESHOLD)",
-			"if ($count -ge $script:FUZZY_MAX_RESULTS)",
+			"if ($script:test_FUZZY_COMPLETION_ENABLED -and $patternLen -ge $script:test_FUZZY_MIN_PATTERN_LENGTH)",
+			"if ($score -ge $script:test_FUZZY_SCORE_THRESHOLD)",
+			"if ($count -ge $script:test_FUZZY_MAX_RESULTS)",
 		}
 
 		for _, protection := range protections {
@@ -265,7 +265,7 @@ func TestPwshCacheManagement(t *testing.T) {
 			"if ($script:test_fuzzyCache.ContainsKey($cacheKey))",
 			"return $script:test_fuzzyCache[$cacheKey]",
 			"$script:test_fuzzyCache[$cacheKey] = $score",
-			"if ($script:test_fuzzyCache.Count -gt 300)",
+			"if ($script:test_fuzzyCache.Count -gt $script:test_FUZZY_CACHE_MAX_SIZE)",
 			"$script:test_fuzzyCache.Clear()",
 		}
 
@@ -299,7 +299,7 @@ func TestPwshDebugFunctions(t *testing.T) {
 			"function Get-myappCompletionDebug",
 			"Write-Host \"=== myapp PowerShell补全系统诊断 ===\" -ForegroundColor Cyan",
 			"Write-Host \"PowerShell版本: $($PSVersionTable.PSVersion)\" -ForegroundColor Green",
-			"Write-Host \"模糊补全状态: $(if ($script:FUZZY_COMPLETION_ENABLED) { '启用' } else { '禁用' })\" -ForegroundColor Green",
+			"Write-Host \"模糊补全状态: $(if ($script:myapp_FUZZY_COMPLETION_ENABLED) { '启用' } else { '禁用' })\" -ForegroundColor Green",
 			"function Test-myappFuzzyMatch",
 			"$score = Get-FuzzyScoreFast -Pattern $Pattern -Candidate $Candidate",
 			"Write-Host \"模式: '$Pattern' 匹配候选: '$Candidate' 得分: $score\"",

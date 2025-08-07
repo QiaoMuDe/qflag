@@ -12,8 +12,9 @@ import (
 // - cmdTreeEntries: 命令树条目缓冲区
 // - cmdPath: 命令路径
 // - cmdOpts: 命令选项
-func generateBashCommandTreeEntry(cmdTreeEntries *bytes.Buffer, cmdPath string, cmdOpts []string) {
-	fmt.Fprintf(cmdTreeEntries, BashCommandTreeEntry, cmdPath, strings.Join(cmdOpts, "|"))
+// - programName: 程序名称
+func generateBashCommandTreeEntry(cmdTreeEntries *bytes.Buffer, cmdPath string, cmdOpts []string, programName string) {
+	fmt.Fprintf(cmdTreeEntries, "%s_cmd_tree[%s]=\"%s\"\n", programName, cmdPath, strings.Join(cmdOpts, "|"))
 }
 
 // generateBashCompletion 生成优化的Bash自动补全脚本
@@ -59,7 +60,8 @@ func generateBashCompletion(buf *bytes.Buffer, params []FlagParam, rootCmdOpts [
 
 		// 使用对象池构建完整的标志参数项，避免fmt.Fprintf的格式化开销
 		flagParamItem := buildString(func(builder *strings.Builder) {
-			builder.WriteString("flag_params[\"")
+			builder.WriteString(programName)
+			builder.WriteString("_flag_params[\"")
 			builder.WriteString(key)
 			builder.WriteString("\"]=\"")
 			builder.WriteString(paramValue)
@@ -79,7 +81,15 @@ func generateBashCompletion(buf *bytes.Buffer, params []FlagParam, rootCmdOpts [
 			options := strings.Join(escapedOpts, "|")
 
 			// 写入枚举选项
-			fmt.Fprintf(&enumOptionsBuf, BashEnumOptions, key, options)
+			enumOptionItem := buildString(func(builder *strings.Builder) {
+				builder.WriteString(programName)
+				builder.WriteString("_enum_options[\"")
+				builder.WriteString(key)
+				builder.WriteString("\"]=\"")
+				builder.WriteString(options)
+				builder.WriteString("\"\n")
+			})
+			enumOptionsBuf.WriteString(enumOptionItem)
 		}
 	}
 
@@ -146,9 +156,8 @@ func escapeSpecialChars(s string) string {
 }
 
 const (
-	BashCommandTreeEntry = "cmd_tree[%s]=\"%s\"\n" // 命令树条目格式
-	BashFlagParamItem    = "flag_params[%q]=%q\n"  // 标志参数项格式
-	BashEnumOptions      = "enum_options[%q]=%q\n" // 枚举选项格式
+	BashFlagParamItem = "{{.ProgramName}}_flag_params[%q]=%q\n"  // 标志参数项格式
+	BashEnumOptions   = "{{.ProgramName}}_enum_options[%q]=%q\n" // 枚举选项格式
 )
 
 const (
@@ -157,37 +166,41 @@ const (
 
 # ==================== 模糊补全配置参数 ====================
 # 模糊补全功能开关 (设置为0禁用，1启用)
-readonly FUZZY_COMPLETION_ENABLED=1
+readonly {{.ProgramName}}_FUZZY_COMPLETION_ENABLED=1
 
 # 启用模糊补全的最大候选项数量阈值
 # 超过此数量将回退到传统前缀匹配以保证性能
-readonly FUZZY_MAX_CANDIDATES=150
+readonly {{.ProgramName}}_FUZZY_MAX_CANDIDATES=150
 
 # 模糊匹配的最小输入长度 (小于此长度不启用模糊匹配)
-readonly FUZZY_MIN_PATTERN_LENGTH=2
+readonly {{.ProgramName}}_FUZZY_MIN_PATTERN_LENGTH=2
 
 # 模糊匹配分数阈值 (0-100，分数低于此值的匹配将被过滤)
-readonly FUZZY_SCORE_THRESHOLD=30
+readonly {{.ProgramName}}_FUZZY_SCORE_THRESHOLD=30
 
 # 模糊匹配最大返回结果数
-readonly FUZZY_MAX_RESULTS=8
+readonly {{.ProgramName}}_FUZZY_MAX_RESULTS=8
+
+# 缓存大小控制参数
+# 缓存条目数量超过此阈值时将清空缓存以防止内存无限增长
+readonly {{.ProgramName}}_FUZZY_CACHE_MAX_SIZE=500
 
 # ==================== 静态数据定义 ====================
 # 静态命令树定义 - 在函数外预初始化
-declare -A cmd_tree
-cmd_tree[/]="{{.RootCmdOpts}}"
+declare -A {{.ProgramName}}_cmd_tree
+{{.ProgramName}}_cmd_tree[/]="{{.RootCmdOpts}}"
 {{.CmdTreeEntries}}
 
 # 标志参数定义 - 存储类型和值类型 (type|valueType)
-declare -A flag_params
+declare -A {{.ProgramName}}_flag_params
 {{.FlagParams}}
 
 # 枚举选项定义 - 存储枚举标志的允许值
-declare -A enum_options
+declare -A {{.ProgramName}}_enum_options
 {{.EnumOptions}}
 
 # 模糊匹配结果缓存 (格式: "pattern|candidate" -> score)
-declare -A fuzzy_cache
+declare -A {{.ProgramName}}_fuzzy_cache
 
 # ==================== 模糊匹配核心算法 ====================
 # 高性能模糊评分函数 - 使用纯整数运算避免bc开销
@@ -296,14 +309,14 @@ _fuzzy_score_fast() {
 
 # 带缓存的模糊评分函数 - 避免重复计算提高性能
 # 参数: $1=输入模式, $2=候选字符串
-_fuzzy_score_cached() {
+_{{.ProgramName}}_fuzzy_score_cached() {
     local pattern="$1"
     local candidate="$2"
     local cache_key="${pattern}|${candidate}"
     
     # 缓存命中检查
-    if [[ -n "${fuzzy_cache[$cache_key]}" ]]; then
-        echo "${fuzzy_cache[$cache_key]}"
+    if [[ -n "${{{.ProgramName}}_fuzzy_cache[$cache_key]}" ]]; then
+        echo "${{{.ProgramName}}_fuzzy_cache[$cache_key]}"
         return
     fi
     
@@ -312,17 +325,17 @@ _fuzzy_score_cached() {
     score=$(_fuzzy_score_fast "$pattern" "$candidate")
     
     # 缓存大小控制 - 防止内存无限增长
-    if [[ ${#fuzzy_cache[@]} -gt 500 ]]; then
-        fuzzy_cache=()  # 清空缓存
+    if [[ ${#{{.ProgramName}}_fuzzy_cache[@]} -gt ${{.ProgramName}}_FUZZY_CACHE_MAX_SIZE ]]; then
+        {{.ProgramName}}_fuzzy_cache=()  # 清空缓存
     fi
     
-    fuzzy_cache[$cache_key]="$score"
+    {{.ProgramName}}_fuzzy_cache[$cache_key]="$score"
     echo "$score"
 }
 
 # 智能补全匹配函数 - 分级匹配策略
 # 参数: $1=输入模式, $2=候选选项字符串(用|分隔)
-_intelligent_match() {
+_{{.ProgramName}}_intelligent_match() {
     local pattern="$1"
     local options_str="$2"
     local pattern_len=${#pattern}
@@ -333,7 +346,7 @@ _intelligent_match() {
     local total_candidates=${#opts_arr[@]}
     
     # 性能保护: 候选项过多时禁用模糊匹配
-    if [[ $total_candidates -gt $FUZZY_MAX_CANDIDATES ]]; then
+    if [[ $total_candidates -gt ${{.ProgramName}}_FUZZY_MAX_CANDIDATES ]]; then
         # 回退到传统compgen前缀匹配
         local opts
         printf -v opts '%s ' "${opts_arr[@]}"
@@ -379,17 +392,17 @@ _intelligent_match() {
     fi
     
     # 第3级: 模糊匹配 (最慢，仅在必要时使用)
-    if [[ $FUZZY_COMPLETION_ENABLED -eq 1 && $pattern_len -ge $FUZZY_MIN_PATTERN_LENGTH ]]; then
+    if [[ ${{.ProgramName}}_FUZZY_COMPLETION_ENABLED -eq 1 && $pattern_len -ge ${{.ProgramName}}_FUZZY_MIN_PATTERN_LENGTH ]]; then
         local fuzzy_results=()
         local scored_matches=()
         
         # 对所有候选项进行模糊评分
         for opt in "${opts_arr[@]}"; do
             local score
-            score=$(_fuzzy_score_cached "$pattern" "$opt")
+            score=$(_{{.ProgramName}}_fuzzy_score_cached "$pattern" "$opt")
             
             # 只保留分数达到阈值的匹配
-            if [[ $score -ge $FUZZY_SCORE_THRESHOLD ]]; then
+            if [[ $score -ge ${{.ProgramName}}_FUZZY_SCORE_THRESHOLD ]]; then
                 scored_matches+=("$score:$opt")
             fi
         done
@@ -404,7 +417,7 @@ _intelligent_match() {
             local count=0
             local match
             for match in "${sorted_matches[@]}"; do
-                if [[ $count -ge $FUZZY_MAX_RESULTS ]]; then
+                if [[ $count -ge ${{.ProgramName}}_FUZZY_MAX_RESULTS ]]; then
                     break
                 fi
                 fuzzy_results+=("${match#*:}")  # 移除分数前缀
@@ -470,7 +483,7 @@ _{{.ProgramName}}() {
 		
 		local next_context="$context$arg/"
 		# 验证上下文是否存在
-		if [[ -n "${cmd_tree[$next_context]}" ]]; then
+		if [[ -n "${{{.ProgramName}}_cmd_tree[$next_context]}" ]]; then
 			context="$next_context"
 		else
 			break
@@ -478,7 +491,7 @@ _{{.ProgramName}}() {
 	done
 
 	# 获取当前上下文的可用选项
-	local current_context_opts="${cmd_tree[$context]}"
+	local current_context_opts="${{{.ProgramName}}_cmd_tree[$context]}"
 	if [[ -z "$current_context_opts" ]]; then
 		return 1
 	fi
@@ -489,7 +502,7 @@ _{{.ProgramName}}() {
 	if [[ $cword -gt 1 ]]; then
 		local prev_arg="${words[cword-1]}"
 		local key="${context}|${prev_arg}"
-		local prev_param_info="${flag_params[$key]}"
+		local prev_param_info="${{{.ProgramName}}_flag_params[$key]}"
 		
 		if [[ -n "$prev_param_info" ]]; then
 			IFS='|' read -r prev_param_type prev_value_type <<< "$prev_param_info"
@@ -501,11 +514,11 @@ _{{.ProgramName}}() {
 		case "$prev_value_type" in
 			enum)
 				local enum_key="${context}|${words[cword-1]}"
-				local enum_opts="${enum_options[$enum_key]}"
+				local enum_opts="${{{.ProgramName}}_enum_options[$enum_key]}"
 				
 				if [[ -n "$enum_opts" ]]; then
 					# 对枚举选项也使用智能匹配
-					_intelligent_match "$cur" "$enum_opts"
+					_{{.ProgramName}}_intelligent_match "$cur" "$enum_opts"
 					return 0
 				fi
 				;;
@@ -516,14 +529,14 @@ _{{.ProgramName}}() {
 				;;
 			*)
 				# 默认值补全 - 使用智能匹配
-				_intelligent_match "$cur" "$current_context_opts"
+				_{{.ProgramName}}_intelligent_match "$cur" "$current_context_opts"
 				return 0
 				;;
 		esac
 	fi
 
 	# 主要的标志和命令补全 - 使用智能匹配算法
-	_intelligent_match "$cur" "$current_context_opts"
+	_{{.ProgramName}}_intelligent_match "$cur" "$current_context_opts"
 	return 0
 }
 
@@ -533,12 +546,12 @@ _{{.ProgramName}}_completion_debug() {
     echo "=== {{.ProgramName}} 补全系统诊断 ==="
     echo "Bash版本: $BASH_VERSION"
     echo "补全函数状态: $(type -t _{{.ProgramName}})"
-    echo "命令树条目数: ${#cmd_tree[@]}"
-    echo "标志参数数: ${#flag_params[@]}"
-    echo "枚举选项数: ${#enum_options[@]}"
-    echo "模糊补全状态: $([ $FUZZY_COMPLETION_ENABLED -eq 1 ] && echo "启用" || echo "禁用")"
-    echo "候选项阈值: $FUZZY_MAX_CANDIDATES"
-    echo "缓存条目数: ${#fuzzy_cache[@]}"
+    echo "命令树条目数: ${#{{.ProgramName}}_cmd_tree[@]}"
+    echo "标志参数数: ${#{{.ProgramName}}_flag_params[@]}"
+    echo "枚举选项数: ${#{{.ProgramName}}_enum_options[@]}"
+    echo "模糊补全状态: $([ ${{.ProgramName}}_FUZZY_COMPLETION_ENABLED -eq 1 ] && echo "启用" || echo "禁用")"
+    echo "候选项阈值: ${{.ProgramName}}_FUZZY_MAX_CANDIDATES"
+    echo "缓存条目数: ${#{{.ProgramName}}_fuzzy_cache[@]}"
     echo ""
     echo "使用方法: 在命令行输入 '_{{.ProgramName}}_completion_debug' 查看此信息"
 }

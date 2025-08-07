@@ -204,20 +204,24 @@ ${{.SanitizedName}}_flagParams = @(
 
 # ==================== 模糊补全配置参数 ====================
 # 模糊补全功能开关 (设置为$false禁用，$true启用)
-$script:FUZZY_COMPLETION_ENABLED = $true
+$script:{{.SanitizedName}}_FUZZY_COMPLETION_ENABLED = $true
 
 # 启用模糊补全的最大候选项数量阈值
 # 超过此数量将回退到传统前缀匹配以保证性能
-$script:FUZZY_MAX_CANDIDATES = 120
+$script:{{.SanitizedName}}_FUZZY_MAX_CANDIDATES = 120
 
 # 模糊匹配的最小输入长度 (小于此长度不启用模糊匹配)
-$script:FUZZY_MIN_PATTERN_LENGTH = 2
+$script:{{.SanitizedName}}_FUZZY_MIN_PATTERN_LENGTH = 2
 
 # 模糊匹配分数阈值 (0-100，分数低于此值的匹配将被过滤)
-$script:FUZZY_SCORE_THRESHOLD = 25
+$script:{{.SanitizedName}}_FUZZY_SCORE_THRESHOLD = 25
 
 # 模糊匹配最大返回结果数
-$script:FUZZY_MAX_RESULTS = 10
+$script:{{.SanitizedName}}_FUZZY_MAX_RESULTS = 10
+
+# 缓存大小控制参数
+# 缓存条目数量超过此阈值时将清空缓存以防止内存无限增长
+$script:{{.SanitizedName}}_FUZZY_CACHE_MAX_SIZE = 500
 
 # 模糊匹配结果缓存 (格式: "pattern|candidate" -> score)
 $script:{{.SanitizedName}}_fuzzyCache = @{}
@@ -336,7 +340,7 @@ function Get-FuzzyScoreCached {
     $score = Get-FuzzyScoreFast -Pattern $Pattern -Candidate $Candidate
     
     # 缓存大小控制 - 防止内存无限增长
-    if ($script:{{.SanitizedName}}_fuzzyCache.Count -gt 300) {
+    if ($script:{{.SanitizedName}}_fuzzyCache.Count -gt $script:{{.SanitizedName}}_FUZZY_CACHE_MAX_SIZE) {
         $script:{{.SanitizedName}}_fuzzyCache.Clear()  # 清空缓存
     }
     
@@ -356,7 +360,7 @@ function Get-IntelligentMatches {
     $totalCandidates = $Options.Count
     
     # 性能保护: 候选项过多时禁用模糊匹配
-    if ($totalCandidates -gt $script:FUZZY_MAX_CANDIDATES) {
+    if ($totalCandidates -gt $script:{{.SanitizedName}}_FUZZY_MAX_CANDIDATES) {
         # 回退到传统前缀匹配
         $prefixMatches = @()
         foreach ($option in $Options) {
@@ -396,7 +400,7 @@ function Get-IntelligentMatches {
     }
     
     # 第3级: 模糊匹配 (最慢，仅在必要时使用)
-    if ($script:FUZZY_COMPLETION_ENABLED -and $patternLen -ge $script:FUZZY_MIN_PATTERN_LENGTH) {
+    if ($script:{{.SanitizedName}}_FUZZY_COMPLETION_ENABLED -and $patternLen -ge $script:{{.SanitizedName}}_FUZZY_MIN_PATTERN_LENGTH) {
         $scoredMatches = @()
         
         # 对所有候选项进行模糊评分
@@ -404,7 +408,7 @@ function Get-IntelligentMatches {
             $score = Get-FuzzyScoreCached -Pattern $Pattern -Candidate $option
             
             # 只保留分数达到阈值的匹配
-            if ($score -ge $script:FUZZY_SCORE_THRESHOLD) {
+            if ($score -ge $script:{{.SanitizedName}}_FUZZY_SCORE_THRESHOLD) {
                 $scoredMatches += @{
                     Option = $option
                     Score = $score
@@ -421,7 +425,7 @@ function Get-IntelligentMatches {
             $fuzzyResults = @()
             $count = 0
             foreach ($match in $sortedMatches) {
-                if ($count -ge $script:FUZZY_MAX_RESULTS) {
+                if ($count -ge $script:{{.SanitizedName}}_FUZZY_MAX_RESULTS) {
                     break
                 }
                 $fuzzyResults += $match.Option
@@ -629,8 +633,8 @@ function Get-{{.SanitizedName}}CompletionDebug {
     Write-Host "补全函数状态: $(if (Get-Command Register-ArgumentCompleter -ErrorAction SilentlyContinue) { '已注册' } else { '未注册' })" -ForegroundColor Green
     Write-Host "命令树条目数: $(${{{.SanitizedName}}_cmdTree}.Count)" -ForegroundColor Green
     Write-Host "标志参数数: $(${{{.SanitizedName}}_flagParams}.Count)" -ForegroundColor Green
-    Write-Host "模糊补全状态: $(if ($script:FUZZY_COMPLETION_ENABLED) { '启用' } else { '禁用' })" -ForegroundColor Green
-    Write-Host "候选项阈值: $script:FUZZY_MAX_CANDIDATES" -ForegroundColor Green
+    Write-Host "模糊补全状态: $(if ($script:{{.SanitizedName}}_FUZZY_COMPLETION_ENABLED) { '启用' } else { '禁用' })" -ForegroundColor Green
+    Write-Host "候选项阈值: $script:{{.SanitizedName}}_FUZZY_MAX_CANDIDATES" -ForegroundColor Green
     Write-Host "缓存条目数: $($script:{{.SanitizedName}}_fuzzyCache.Count)" -ForegroundColor Green
     Write-Host ""
     Write-Host "使用方法: 在PowerShell中输入 'Get-{{.SanitizedName}}CompletionDebug' 查看此信息" -ForegroundColor Yellow
@@ -653,7 +657,7 @@ function Test-{{.SanitizedName}}FuzzyMatch {
         Write-Host "匹配质量: 优秀" -ForegroundColor Green
     } elseif ($score -ge 50) {
         Write-Host "匹配质量: 良好" -ForegroundColor Yellow
-    } elseif ($score -ge $script:FUZZY_SCORE_THRESHOLD) {
+    } elseif ($score -ge $script:{{.SanitizedName}}_FUZZY_SCORE_THRESHOLD) {
         Write-Host "匹配质量: 可接受" -ForegroundColor DarkYellow
     } else {
         Write-Host "匹配质量: 不匹配" -ForegroundColor Red

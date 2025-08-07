@@ -43,11 +43,11 @@ func TestBashFuzzyCompletionGeneration(t *testing.T) {
 	// 验证模糊补全配置参数是否存在
 	t.Run("配置参数检查", func(t *testing.T) {
 		expectedConfigs := []string{
-			"FUZZY_COMPLETION_ENABLED=1",
-			"FUZZY_MAX_CANDIDATES=150",
-			"FUZZY_MIN_PATTERN_LENGTH=2",
-			"FUZZY_SCORE_THRESHOLD=30",
-			"FUZZY_MAX_RESULTS=8",
+			"testcli_FUZZY_COMPLETION_ENABLED=1",
+			"testcli_FUZZY_MAX_CANDIDATES=150",
+			"testcli_FUZZY_MIN_PATTERN_LENGTH=2",
+			"testcli_FUZZY_SCORE_THRESHOLD=30",
+			"testcli_FUZZY_MAX_RESULTS=8",
 		}
 
 		for _, config := range expectedConfigs {
@@ -61,8 +61,8 @@ func TestBashFuzzyCompletionGeneration(t *testing.T) {
 	t.Run("核心函数检查", func(t *testing.T) {
 		expectedFunctions := []string{
 			"_fuzzy_score_fast()",
-			"_fuzzy_score_cached()",
-			"_intelligent_match()",
+			"_testcli_fuzzy_score_cached()",
+			"_testcli_intelligent_match()",
 			"_testcli_completion_debug()",
 		}
 
@@ -94,17 +94,17 @@ func TestBashFuzzyCompletionGeneration(t *testing.T) {
 	// 验证数据结构是否正确
 	t.Run("数据结构检查", func(t *testing.T) {
 		// 检查命令树
-		if !strings.Contains(result, "cmd_tree[/]=\"--help|--verbose|--version|--validate|build|test\"") {
+		if !strings.Contains(result, "testcli_cmd_tree[/]=\"--help|--verbose|--version|--validate|build|test\"") {
 			t.Error("根命令选项未正确生成")
 		}
 
 		// 检查标志参数
-		if !strings.Contains(result, "flag_params[\"/|--validate\"]=\"required|enum\"") {
+		if !strings.Contains(result, "testcli_flag_params[\"/|--validate\"]=\"required|enum\"") {
 			t.Error("标志参数未正确生成")
 		}
 
 		// 检查枚举选项
-		if !strings.Contains(result, "enum_options[\"/|--validate\"]=\"strict|loose|none\"") {
+		if !strings.Contains(result, "testcli_enum_options[\"/|--validate\"]=\"strict|loose|none\"") {
 			t.Error("枚举选项未正确生成")
 		}
 	})
@@ -188,10 +188,10 @@ func TestBashCommandTreeEntry(t *testing.T) {
 	cmdPath := "/build/"
 	cmdOpts := []string{"--output", "--target", "--verbose"}
 
-	generateBashCommandTreeEntry(&buf, cmdPath, cmdOpts)
+	generateBashCommandTreeEntry(&buf, cmdPath, cmdOpts, "testprogram")
 
 	result := buf.String()
-	expected := "cmd_tree[/build/]=\"--output|--target|--verbose\"\n"
+	expected := "testprogram_cmd_tree[/build/]=\"--output|--target|--verbose\"\n"
 
 	if result != expected {
 		t.Errorf("命令树条目生成错误\n期望: %q\n实际: %q", expected, result)

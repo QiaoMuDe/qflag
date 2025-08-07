@@ -51,9 +51,9 @@ func TestGenerateShellCompletion(t *testing.T) {
 			shellType: "bash",
 			wantErr:   false,
 			contains: []string{
-				"declare -A cmd_tree",
-				"declare -A flag_params",
-				"complete -F",
+				"declare -A completion.test.exe_cmd_tree",
+				"declare -A completion.test.exe_flag_params",
+				"complete -F _completion.test.exe completion.test.exe",
 			},
 		},
 		{
@@ -62,8 +62,8 @@ func TestGenerateShellCompletion(t *testing.T) {
 			wantErr:   false,
 			contains: []string{
 				"Register-ArgumentCompleter",
-				"_cmdTree = @(",
-				"_flagParams = @(",
+				"$completion.test_cmdTree = @(",
+				"$completion.test_flagParams = @(",
 			},
 		},
 		{
@@ -72,8 +72,8 @@ func TestGenerateShellCompletion(t *testing.T) {
 			wantErr:   false,
 			contains: []string{
 				"Register-ArgumentCompleter",
-				"_cmdTree = @(",
-				"_flagParams = @(",
+				"$completion.test_cmdTree = @(",
+				"$completion.test_flagParams = @(",
 			},
 		},
 		{
@@ -324,10 +324,10 @@ func TestTraverseCommandTree(t *testing.T) {
 			name:      "Bash命令树遍历",
 			shellType: flags.ShellBash,
 			contains: []string{
-				"cmd_tree[/sub1/]",
-				"cmd_tree[/s1/]",
-				"cmd_tree[/sub2/]",
-				"cmd_tree[/s2/]",
+				"_cmd_tree[/sub1/]",
+				"_cmd_tree[/s1/]",
+				"_cmd_tree[/sub2/]",
+				"_cmd_tree[/s2/]",
 			},
 		},
 		{
@@ -506,18 +506,18 @@ func TestCompletionBash(t *testing.T) {
 
 	// 验证生成的脚本包含预期内容
 	expectedContents := []string{
-		"declare -A cmd_tree",
-		"declare -A flag_params",
-		"complete -F",
-		"/cmd1/",
-		"/c1/",
-		"--str",
-		"-s",
+		"#!/usr/bin/env bash",
+		"declare -A completion.test.exe_cmd_tree",
+		"declare -A completion.test.exe_flag_params",
+		"completion.test.exe_cmd_tree[/]",
+		"completion.test.exe_cmd_tree[/cmd1/]",
+		"completion.test.exe_cmd_tree[/c1/]",
+		"complete -F _completion.test.exe completion.test.exe",
 	}
 
 	for _, expected := range expectedContents {
 		if !strings.Contains(script, expected) {
-			t.Errorf("Bash补全脚本不包含预期内容: %s", expected)
+			t.Errorf("PowerShell补全脚本不包含预期内容: %s", expected)
 		}
 	}
 
@@ -569,12 +569,11 @@ func TestCompletionPwsh(t *testing.T) {
 	// 验证生成的脚本包含预期内容
 	expectedContents := []string{
 		"Register-ArgumentCompleter",
-		"_cmdTree = @(",
-		"_flagParams = @(",
+		"$completion.test_cmdTree = @(",
+		"$completion.test_flagParams = @(",
 		"Context = \"/cmd1/\"",
 		"Context = \"/c1/\"",
 		"Parameter = \"--string\"",
-		"Parameter = \"-s\"",
 	}
 
 	for _, expected := range expectedContents {

@@ -18,36 +18,38 @@ func TestGenerateBashCommandTreeEntry(t *testing.T) {
 			name:     "根命令条目",
 			cmdPath:  "/",
 			cmdOpts:  []string{"--help", "-h", "start", "stop"},
-			expected: `cmd_tree[/]="--help|-h|start|stop"`,
+			expected: `{{.ProgramName}}_cmd_tree[/]="--help|-h|start|stop"`,
 		},
 		{
 			name:     "子命令条目",
 			cmdPath:  "/start/",
 			cmdOpts:  []string{"--verbose", "-v", "--config", "-c"},
-			expected: `cmd_tree[/start/]="--verbose|-v|--config|-c"`,
+			expected: `{{.ProgramName}}_cmd_tree[/start/]="--verbose|-v|--config|-c"`,
 		},
 		{
 			name:     "空选项",
 			cmdPath:  "/empty/",
 			cmdOpts:  []string{},
-			expected: `cmd_tree[/empty/]=""`,
+			expected: `{{.ProgramName}}_cmd_tree[/empty/]=""`,
 		},
 		{
 			name:     "单个选项",
 			cmdPath:  "/single/",
 			cmdOpts:  []string{"--only"},
-			expected: `cmd_tree[/single/]="--only"`,
+			expected: `{{.ProgramName}}_cmd_tree[/single/]="--only"`,
 		},
 	}
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			var buf bytes.Buffer
-			generateBashCommandTreeEntry(&buf, tt.cmdPath, tt.cmdOpts)
+			generateBashCommandTreeEntry(&buf, tt.cmdPath, tt.cmdOpts, "testprog")
 
 			result := buf.String()
-			if !strings.Contains(result, tt.expected) {
-				t.Errorf("generateBashCommandTreeEntry() = %q, 期望包含 %q", result, tt.expected)
+			// 更新期望值以匹配实际的程序名
+			expectedWithProgName := strings.ReplaceAll(tt.expected, "{{.ProgramName}}", "testprog")
+			if !strings.Contains(result, expectedWithProgName) {
+				t.Errorf("generateBashCommandTreeEntry() = %q, 期望包含 %q", result, expectedWithProgName)
 			}
 		})
 	}
@@ -78,7 +80,7 @@ func TestGenerateBashCompletion(t *testing.T) {
 	}
 
 	rootCmdOpts := []string{"--help", "-h", "start", "stop"}
-	cmdTreeEntries := `cmd_tree[/start/]="--config|-c"`
+	cmdTreeEntries := `myapp_cmd_tree[/start/]="--config|-c"`
 	programName := "myapp"
 
 	var buf bytes.Buffer
@@ -86,16 +88,19 @@ func TestGenerateBashCompletion(t *testing.T) {
 
 	result := buf.String()
 
+	// 调试：输出实际生成的脚本内容
+	t.Logf("实际生成的脚本内容:\n%s", result)
+
 	// 检查必要的组件
 	expectedComponents := []string{
 		"#!/usr/bin/env bash",
-		"declare -A cmd_tree",
-		"declare -A flag_params",
-		"declare -A enum_options",
+		"declare -A myapp_cmd_tree",
+		"declare -A myapp_flag_params",
+		"declare -A myapp_enum_options",
 		"_myapp()",
 		"complete -F _myapp myapp",
-		`cmd_tree[/]="--help|-h|start|stop"`,
-		cmdTreeEntries,
+		`myapp_cmd_tree[/]="--help|-h|start|stop"`,
+		"myapp_cmd_tree[/start/]=\"--config|-c\"",
 	}
 
 	for _, component := range expectedComponents {
@@ -106,9 +111,9 @@ func TestGenerateBashCompletion(t *testing.T) {
 
 	// 检查标志参数
 	expectedFlags := []string{
-		`flag_params["/|--verbose"]="none|bool"`,
-		`flag_params["/|--mode"]="required|enum"`,
-		`flag_params["/start/|--config"]="required|string"`,
+		`myapp_flag_params["/|--verbose"]="none|bool"`,
+		`myapp_flag_params["/|--mode"]="required|enum"`,
+		`myapp_flag_params["/start/|--config"]="required|string"`,
 	}
 
 	for _, flag := range expectedFlags {
@@ -118,7 +123,7 @@ func TestGenerateBashCompletion(t *testing.T) {
 	}
 
 	// 检查枚举选项 - 适配新的格式（使用|分隔符）
-	expectedEnum := `enum_options["/|--mode"]="debug|release|test"`
+	expectedEnum := `myapp_enum_options["/|--mode"]="debug|release|test"`
 	if !strings.Contains(result, expectedEnum) {
 		t.Errorf("Bash补全脚本不包含枚举选项: %s", expectedEnum)
 	}
@@ -180,18 +185,13 @@ func TestEscapeSpecialChars(t *testing.T) {
 
 // TestBashTemplateConstants 测试Bash模板常量
 func TestBashTemplateConstants(t *testing.T) {
-	// 测试命令树条目格式
-	if BashCommandTreeEntry != "cmd_tree[%s]=\"%s\"\n" {
-		t.Errorf("BashCommandTreeEntry 格式错误: %s", BashCommandTreeEntry)
-	}
-
 	// 测试标志参数项格式
-	if BashFlagParamItem != "flag_params[%q]=%q\n" {
+	if BashFlagParamItem != "{{.ProgramName}}_flag_params[%q]=%q\n" {
 		t.Errorf("BashFlagParamItem 格式错误: %s", BashFlagParamItem)
 	}
 
 	// 测试枚举选项格式
-	if BashEnumOptions != "enum_options[%q]=%q\n" {
+	if BashEnumOptions != "{{.ProgramName}}_enum_options[%q]=%q\n" {
 		t.Errorf("BashEnumOptions 格式错误: %s", BashEnumOptions)
 	}
 
@@ -236,10 +236,10 @@ func TestBashCompletionWithComplexScenario(t *testing.T) {
 
 	rootCmdOpts := []string{"--help", "-h", "--verbose", "-v", "--config", "-c", "--mode", "-m", "start", "stop", "config"}
 
-	cmdTreeEntries := `cmd_tree[/start/]="--port|-p|--daemon|-d"
-cmd_tree[/stop/]="--force|-f"
-cmd_tree[/config/]="set|get|list"
-cmd_tree[/config/set/]="--key|--value"`
+	cmdTreeEntries := `complexapp_cmd_tree[/start/]="--port|-p|--daemon|-d"
+complexapp_cmd_tree[/stop/]="--force|-f"
+complexapp_cmd_tree[/config/]="set|get|list"
+complexapp_cmd_tree[/config/set/]="--key|--value"`
 
 	programName := "complexapp"
 
@@ -255,13 +255,13 @@ cmd_tree[/config/set/]="--key|--value"`
 	}{
 		{"程序名称", "_complexapp()"},
 		{"完成命令", "complete -F _complexapp complexapp"},
-		{"根命令选项", `cmd_tree[/]="--help|-h|--verbose|-v|--config|-c|--mode|-m|start|stop|config"`},
-		{"子命令树", `cmd_tree[/start/]="--port|-p|--daemon|-d"`},
-		{"深层命令树", `cmd_tree[/config/set/]="--key|--value"`},
-		{"根命令枚举", `enum_options["/|--mode"]="dev|prod|test"`},
-		{"根命令标志", `flag_params["/|--config"]="required|string"`},
-		{"子命令标志", `flag_params["/start/|--port"]="required|string"`},
-		{"深层标志", `flag_params["/config/set/|--key"]="required|string"`},
+		{"根命令选项", `complexapp_cmd_tree[/]="--help|-h|--verbose|-v|--config|-c|--mode|-m|start|stop|config"`},
+		{"子命令树", `complexapp_cmd_tree[/start/]="--port|-p|--daemon|-d"`},
+		{"深层命令树", `complexapp_cmd_tree[/config/set/]="--key|--value"`},
+		{"根命令枚举", `complexapp_enum_options["/|--mode"]="dev|prod|test"`},
+		{"根命令标志", `complexapp_flag_params["/|--config"]="required|string"`},
+		{"子命令标志", `complexapp_flag_params["/start/|--port"]="required|string"`},
+		{"深层标志", `complexapp_flag_params["/config/set/|--key"]="required|string"`},
 	}
 
 	for _, tt := range tests {
