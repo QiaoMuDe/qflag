@@ -113,7 +113,7 @@ func TestGeneratePwshCompletion(t *testing.T) {
 		"$myapp_cmdTree = @(",
 		"$myapp_flagParams = @(",
 		"Register-ArgumentCompleter",
-		"-CommandName ${myapp_commandName}",
+		"Register-ArgumentCompleter -CommandName $myapp_commandName",
 	}
 
 	for _, component := range expectedComponents {
@@ -333,7 +333,7 @@ func TestPwshCompletionWithComplexScenario(t *testing.T) {
 		{"根命令标志", `Context = "/"; Parameter = "--config"; ParamType = "required"; ValueType = "string"`},
 		{"子命令标志", `Context = "/start/"; Parameter = "--port"; ParamType = "required"; ValueType = "string"`},
 		{"深层标志", `Context = "/config/set/"; Parameter = "--key"; ParamType = "required"; ValueType = "string"`},
-		{"注册补全", "Register-ArgumentCompleter -CommandName ${complexapp_commandName}"},
+		{"注册补全", "Register-ArgumentCompleter -CommandName $complexapp_commandName"},
 	}
 
 	for _, tt := range tests {

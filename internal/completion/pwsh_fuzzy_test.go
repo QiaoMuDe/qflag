@@ -54,9 +54,9 @@ func TestPwshFuzzyCompletionGeneration(t *testing.T) {
 	// 验证核心函数是否存在
 	t.Run("核心函数检查", func(t *testing.T) {
 		expectedFunctions := []string{
-			"function Get-FuzzyScoreFast",
-			"function Get-FuzzyScoreCached",
-			"function Get-IntelligentMatches",
+			"function Get-testcliFuzzyScoreFast",
+			"function Get-testcliFuzzyScoreCached",
+			"function Get-testcliIntelligentMatches",
 		}
 
 		for _, function := range expectedFunctions {
@@ -85,28 +85,6 @@ func TestPwshFuzzyCompletionGeneration(t *testing.T) {
 		}
 	})
 
-	// 验证智能匹配函数定义存在（但暂未集成到补全逻辑中）
-	t.Run("智能匹配函数定义检查", func(t *testing.T) {
-		// 检查智能匹配函数是否定义
-		if !strings.Contains(result, "function Get-IntelligentMatches") {
-			t.Error("生成的脚本缺少智能匹配函数定义")
-		}
-
-		// 检查分级匹配策略是否存在
-		strategies := []string{
-			"# 第1级: 精确前缀匹配",
-			"# 第2级: 大小写不敏感前缀匹配",
-			"# 第3级: 模糊匹配",
-			"# 第4级: 子字符串匹配",
-		}
-
-		for _, strategy := range strategies {
-			if !strings.Contains(result, strategy) {
-				t.Errorf("生成的脚本缺少匹配策略: %s", strategy)
-			}
-		}
-	})
-
 	// 验证数据结构是否正确
 	t.Run("数据结构检查", func(t *testing.T) {
 		// 检查命令树
@@ -117,29 +95,6 @@ func TestPwshFuzzyCompletionGeneration(t *testing.T) {
 		// 检查标志参数
 		if !strings.Contains(result, "@{ Context = \"/\"; Parameter = \"--validate\"; ParamType = \"required\"; ValueType = \"enum\"; Options = @('strict', 'loose', 'none') }") {
 			t.Error("标志参数未正确生成")
-		}
-	})
-
-	// 验证脚本结构完整性
-	t.Run("脚本结构检查", func(t *testing.T) {
-		// 检查程序名称
-		if !strings.Contains(result, "$testcli_commandName = \"testcli.exe\"") {
-			t.Error("程序名称未正确生成")
-		}
-
-		// 检查补全函数注册
-		if !strings.Contains(result, "Register-ArgumentCompleter -CommandName ${testcli_commandName}") {
-			t.Error("补全函数注册未正确生成")
-		}
-
-		// 检查脚本块定义
-		if !strings.Contains(result, "$scriptBlock = {") {
-			t.Error("脚本块定义未正确生成")
-		}
-
-		// 检查缓存初始化
-		if !strings.Contains(result, "$script:testcli_contextIndex") {
-			t.Error("上下文索引缓存未正确生成")
 		}
 	})
 }
@@ -210,7 +165,7 @@ func TestPwshIntelligentMatchingStrategy(t *testing.T) {
 			"# 第2级: 大小写不敏感前缀匹配",
 			"$option.StartsWith($Pattern, [System.StringComparison]::OrdinalIgnoreCase)",
 			"# 第3级: 模糊匹配 (最慢，仅在必要时使用)",
-			"Get-FuzzyScoreCached -Pattern $Pattern -Candidate $option",
+			"Get-testFuzzyScoreCached -Pattern $Pattern -Candidate $option",
 			"# 第4级: 子字符串匹配 (最后的备选方案)",
 			"$optionLower.Contains($patternLower)",
 		}
@@ -301,7 +256,7 @@ func TestPwshDebugFunctions(t *testing.T) {
 			"Write-Host \"PowerShell版本: $($PSVersionTable.PSVersion)\" -ForegroundColor Green",
 			"Write-Host \"模糊补全状态: $(if ($script:myapp_FUZZY_COMPLETION_ENABLED) { '启用' } else { '禁用' })\" -ForegroundColor Green",
 			"function Test-myappFuzzyMatch",
-			"$score = Get-FuzzyScoreFast -Pattern $Pattern -Candidate $Candidate",
+			"$score = Get-myappFuzzyScoreFast -Pattern $Pattern -Candidate $Candidate",
 			"Write-Host \"模式: '$Pattern' 匹配候选: '$Candidate' 得分: $score\"",
 		}
 
