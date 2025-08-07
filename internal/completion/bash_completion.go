@@ -206,7 +206,7 @@ declare -A {{.ProgramName}}_fuzzy_cache
 # 高性能模糊评分函数 - 使用纯整数运算避免bc开销
 # 参数: $1=输入模式, $2=候选字符串
 # 返回: 0-100的整数分数 (通过echo输出)
-_fuzzy_score_fast() {
+_{{.ProgramName}}_fuzzy_score_fast() {
     local pattern="$1"
     local candidate="$2"
     local pattern_len=${#pattern}
@@ -315,14 +315,14 @@ _{{.ProgramName}}_fuzzy_score_cached() {
     local cache_key="${pattern}|${candidate}"
     
     # 缓存命中检查
-    if [[ -n "${{{.ProgramName}}_fuzzy_cache[$cache_key]}" ]]; then
-        echo "${{{.ProgramName}}_fuzzy_cache[$cache_key]}"
+    if [[ -n "${{.ProgramName}}_fuzzy_cache[$cache_key]" ]]; then
+        echo "${{.ProgramName}}_fuzzy_cache[$cache_key]"
         return
     fi
     
     # 计算分数并缓存
     local score
-    score=$(_fuzzy_score_fast "$pattern" "$candidate")
+    score=$(_{{.ProgramName}}_fuzzy_score_fast "$pattern" "$candidate")
     
     # 缓存大小控制 - 防止内存无限增长
     if [[ ${#{{.ProgramName}}_fuzzy_cache[@]} -gt ${{.ProgramName}}_FUZZY_CACHE_MAX_SIZE ]]; then
@@ -502,7 +502,7 @@ _{{.ProgramName}}() {
 	if [[ $cword -gt 1 ]]; then
 		local prev_arg="${words[cword-1]}"
 		local key="${context}|${prev_arg}"
-		local prev_param_info="${{{.ProgramName}}_flag_params[$key]}"
+		local prev_param_info="${{{.ProgramName}}_flag_params[$key]:-}"
 		
 		if [[ -n "$prev_param_info" ]]; then
 			IFS='|' read -r prev_param_type prev_value_type <<< "$prev_param_info"
@@ -514,7 +514,7 @@ _{{.ProgramName}}() {
 		case "$prev_value_type" in
 			enum)
 				local enum_key="${context}|${words[cword-1]}"
-				local enum_opts="${{{.ProgramName}}_enum_options[$enum_key]}"
+				local enum_opts="${{{.ProgramName}}_enum_options[$enum_key]:-}"
 				
 				if [[ -n "$enum_opts" ]]; then
 					# 对枚举选项也使用智能匹配

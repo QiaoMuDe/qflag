@@ -153,6 +153,9 @@ var pwshEscapeMap = map[byte][]byte{
 	'>':  {'`', '>'},   // 大于号转义
 	'(':  {'`', '('},   // 左括号转义
 	')':  {'`', ')'},   // 右括号转义
+	'\r': {'`', 'r'},   // 回车符转义
+	'\n': {'`', 'n'},   // 换行符转义
+	'\t': {'`', 't'},   // 制表符转义
 }
 
 // escapePwshString 转义PowerShell字符串中的特殊字符
@@ -231,7 +234,7 @@ $script:{{.SanitizedName}}_fuzzyCache = @{}
 # 高性能模糊评分函数 - 使用优化的字符串操作
 # 参数: $Pattern=输入模式, $Candidate=候选字符串
 # 返回: 0-100的整数分数
-function Get-FuzzyScoreFast {
+function Get-{{.SanitizedName}}FuzzyScoreFast {
     param(
         [string]$Pattern,
         [string]$Candidate
@@ -323,7 +326,7 @@ function Get-FuzzyScoreFast {
 
 # 带缓存的模糊评分函数 - 避免重复计算提高性能
 # 参数: $Pattern=输入模式, $Candidate=候选字符串
-function Get-FuzzyScoreCached {
+function Get-{{.SanitizedName}}FuzzyScoreCached {
     param(
         [string]$Pattern,
         [string]$Candidate
@@ -337,7 +340,7 @@ function Get-FuzzyScoreCached {
     }
     
     # 计算分数并缓存
-    $score = Get-FuzzyScoreFast -Pattern $Pattern -Candidate $Candidate
+    $score = Get-{{.SanitizedName}}FuzzyScoreFast -Pattern $Pattern -Candidate $Candidate
     
     # 缓存大小控制 - 防止内存无限增长
     if ($script:{{.SanitizedName}}_fuzzyCache.Count -gt $script:{{.SanitizedName}}_FUZZY_CACHE_MAX_SIZE) {
@@ -350,7 +353,7 @@ function Get-FuzzyScoreCached {
 
 # 智能补全匹配函数 - 分级匹配策略
 # 参数: $Pattern=输入模式, $Options=候选选项数组
-function Get-IntelligentMatches {
+function Get-{{.SanitizedName}}IntelligentMatches {
     param(
         [string]$Pattern,
         [array]$Options
@@ -371,48 +374,48 @@ function Get-IntelligentMatches {
         return $prefixMatches
     }
     
-    # 第1级: 精确前缀匹配 (最快，优先级最高)
-    $exactMatches = @()
+    # 第1级: 精确前缀匹配 (最快，优先级最高) - 使用ArrayList优化性能
+    $exactMatches = [System.Collections.ArrayList]::new()
     foreach ($option in $Options) {
         if ($option.StartsWith($Pattern, [System.StringComparison]::Ordinal)) {
-            $exactMatches += $option
+            [void]$exactMatches.Add($option)
         }
     }
     
     # 如果有精确匹配且数量合理，直接返回
     if ($exactMatches.Count -gt 0 -and $exactMatches.Count -le 12) {
-        return $exactMatches
+        return $exactMatches.ToArray()
     }
     
     # 第2级: 大小写不敏感前缀匹配
     if ($exactMatches.Count -eq 0) {
-        $caseInsensitiveMatches = @()
+        $caseInsensitiveMatches = [System.Collections.ArrayList]::new()
         foreach ($option in $Options) {
             if ($option.StartsWith($Pattern, [System.StringComparison]::OrdinalIgnoreCase)) {
-                $caseInsensitiveMatches += $option
+                [void]$caseInsensitiveMatches.Add($option)
             }
         }
         
         # 如果有大小写不敏感匹配，返回
         if ($caseInsensitiveMatches.Count -gt 0) {
-            return $caseInsensitiveMatches
+            return $caseInsensitiveMatches.ToArray()
         }
     }
     
-    # 第3级: 模糊匹配 (最慢，仅在必要时使用)
+    # 第3级: 模糊匹配 (最慢，仅在必要时使用) - 使用ArrayList优化性能
     if ($script:{{.SanitizedName}}_FUZZY_COMPLETION_ENABLED -and $patternLen -ge $script:{{.SanitizedName}}_FUZZY_MIN_PATTERN_LENGTH) {
-        $scoredMatches = @()
+        $scoredMatches = [System.Collections.ArrayList]::new()
         
         # 对所有候选项进行模糊评分
         foreach ($option in $Options) {
-            $score = Get-FuzzyScoreCached -Pattern $Pattern -Candidate $option
+            $score = Get-{{.SanitizedName}}FuzzyScoreCached -Pattern $Pattern -Candidate $option
             
             # 只保留分数达到阈值的匹配
             if ($score -ge $script:{{.SanitizedName}}_FUZZY_SCORE_THRESHOLD) {
-                $scoredMatches += @{
+                [void]$scoredMatches.Add(@{
                     Option = $option
                     Score = $score
-                }
+                })
             }
         }
         
@@ -421,34 +424,34 @@ function Get-IntelligentMatches {
             # 按分数降序排序
             $sortedMatches = $scoredMatches | Sort-Object Score -Descending
             
-            # 提取选项名称，限制返回数量
-            $fuzzyResults = @()
+            # 提取选项名称，限制返回数量 - 使用ArrayList优化
+            $fuzzyResults = [System.Collections.ArrayList]::new()
             $count = 0
             foreach ($match in $sortedMatches) {
                 if ($count -ge $script:{{.SanitizedName}}_FUZZY_MAX_RESULTS) {
                     break
                 }
-                $fuzzyResults += $match.Option
+                [void]$fuzzyResults.Add($match.Option)
                 $count++
             }
             
-            return $fuzzyResults
+            return $fuzzyResults.ToArray()
         }
     }
     
-    # 第4级: 子字符串匹配 (最后的备选方案)
-    $substringMatches = @()
+    # 第4级: 子字符串匹配 (最后的备选方案) - 使用ArrayList优化性能
+    $substringMatches = [System.Collections.ArrayList]::new()
     $patternLower = $Pattern.ToLowerInvariant()
     
     foreach ($option in $Options) {
         $optionLower = $option.ToLowerInvariant()
         if ($optionLower.Contains($patternLower)) {
-            $substringMatches += $option
+            [void]$substringMatches.Add($option)
         }
     }
     
     if ($substringMatches.Count -gt 0) {
-        return $substringMatches
+        return $substringMatches.ToArray()
     }
     
     # 如果所有匹配策略都失败，返回空数组
@@ -468,15 +471,18 @@ $scriptBlock = {
         $script:{{.SanitizedName}}_contextIndex = @{}
         $script:{{.SanitizedName}}_flagIndex = @{}
         
+        # 预编译正则表达式以提高性能
+        $script:{{.SanitizedName}}_flagRegex = [regex]::new('^-', [System.Text.RegularExpressions.RegexOptions]::Compiled)
+        
         # 构建上下文索引以提高查找性能
-        foreach ($item in ${{{.SanitizedName}}_cmdTree}) {
+        foreach ($item in ${{.SanitizedName}}_cmdTree) {
             if ($item.Context) {
                 $script:{{.SanitizedName}}_contextIndex[$item.Context] = $item
             }
         }
         
         # 构建标志索引以提高查找性能
-        foreach ($flag in ${{{.SanitizedName}}_flagParams}) {
+        foreach ($flag in ${{.SanitizedName}}_flagParams) {
             if ($flag.Context -and $flag.Parameter) {
                 $key = "$($flag.Context)|$($flag.Parameter)"
                 $script:{{.SanitizedName}}_flagIndex[$key] = $flag
@@ -498,7 +504,7 @@ $scriptBlock = {
         $context = "/"
         for ($i = 1; $i -le $currentIndex; $i++) {
             $elem = $tokens[$i]
-            if ($elem -match '^-') { break }
+            if ($script:{{.SanitizedName}}_flagRegex.IsMatch($elem)) { break }
             
             $nextContext = "$context$elem/"
             # 使用索引进行O(1)查找
@@ -515,30 +521,34 @@ $scriptBlock = {
 
         # 4. 优先补全当前级别的所有选项（子命令 + 标志）
         if ($currentOptions -and $currentOptions.Count -gt 0) {
-            $matchingOptions = @()
+            # 使用ArrayList提高数组操作性能
+            $matchingOptions = [System.Collections.ArrayList]::new()
+            $wordPattern = "$wordToComplete*"
+            
             foreach ($option in $currentOptions) {
-                if ($option -like "$wordToComplete*") {
-                    $matchingOptions += if ($option -match '^-') { $option } else { "$option " }
+                if ($option -like $wordPattern) {
+                    $result = if ($script:{{.SanitizedName}}_flagRegex.IsMatch($option)) { $option } else { "$option " }
+                    [void]$matchingOptions.Add($result)
                 }
             }
             if ($matchingOptions.Count -gt 0) {
-                return $matchingOptions
+                return $matchingOptions.ToArray()
             }
         }
 
         # 5. 补全标志本身（如 --ty -> --type）- 使用智能匹配
-        if ($wordToComplete -match '^-') {
-            # 收集当前上下文的所有标志
-            $contextFlags = @()
-            foreach ($flag in ${{{.SanitizedName}}_flagParams}) {
+        if ($script:{{.SanitizedName}}_flagRegex.IsMatch($wordToComplete)) {
+            # 收集当前上下文的所有标志 - 使用ArrayList优化性能
+            $contextFlags = [System.Collections.ArrayList]::new()
+            foreach ($flag in ${{.SanitizedName}}_flagParams) {
                 if ($flag.Context -eq $context) {
-                    $contextFlags += $flag.Parameter
+                    [void]$contextFlags.Add($flag.Parameter)
                 }
             }
             
             if ($contextFlags.Count -gt 0) {
                 # 使用智能匹配获取最佳标志匹配
-                $flagMatches = Get-IntelligentMatches -Pattern $wordToComplete -Options $contextFlags
+                $flagMatches = Get-{{.SanitizedName}}IntelligentMatches -Pattern $wordToComplete -Options $contextFlags.ToArray()
                 if ($flagMatches.Count -gt 0) {
                     return $flagMatches
                 }
@@ -546,7 +556,7 @@ $scriptBlock = {
         }
 
         # 6. 枚举/预设值补全
-        if ($prevElement -match '^-') {
+        if ($prevElement -and $script:{{.SanitizedName}}_flagRegex.IsMatch($prevElement)) {
             $flagKey = "$context|$prevElement"
             $paramDef = $script:{{.SanitizedName}}_flagIndex[$flagKey]
             
@@ -558,13 +568,13 @@ $scriptBlock = {
                             return $paramDef.Options
                         } else {
                             # 使用智能匹配进行枚举值补全
-                            $enumMatches = Get-IntelligentMatches -Pattern $wordToComplete -Options $paramDef.Options
+                            $enumMatches = Get-{{.SanitizedName}}IntelligentMatches -Pattern $wordToComplete -Options $paramDef.Options
                             return $enumMatches
                         }
                     }
                     'string' {
-                        # 字符串类型 - 提供文件和目录路径补全
-                        $pathMatches = @()
+                        # 字符串类型 - 提供文件和目录路径补全 - 使用ArrayList优化性能
+                        $pathMatches = [System.Collections.ArrayList]::new()
                         
                         # 获取当前路径的目录部分
                         $basePath = if ($wordToComplete -and (Split-Path $wordToComplete -Parent)) {
@@ -580,10 +590,13 @@ $scriptBlock = {
                             ""
                         }
                         
+                        # 预编译文件名匹配模式
+                        $filePattern = "$fileName*"
+                        
                         try {
                             # 获取目录和文件
                             $items = Get-ChildItem -Path $basePath -ErrorAction SilentlyContinue | Where-Object {
-                                $_.Name -like "$fileName*"
+                                $_.Name -like $filePattern
                             }
                             
                             foreach ($item in $items) {
@@ -595,9 +608,9 @@ $scriptBlock = {
                                 
                                 # 目录添加路径分隔符
                                 if ($item.PSIsContainer) {
-                                    $pathMatches += "$fullPath/"
+                                    [void]$pathMatches.Add("$fullPath/")
                                 } else {
-                                    $pathMatches += $fullPath
+                                    [void]$pathMatches.Add($fullPath)
                                 }
                             }
                         }
@@ -605,7 +618,7 @@ $scriptBlock = {
                             # 路径访问失败时返回空数组
                         }
                         
-                        return $pathMatches
+                        return $pathMatches.ToArray()
                     }
                     default {
                         return @()
@@ -631,8 +644,8 @@ function Get-{{.SanitizedName}}CompletionDebug {
     Write-Host "=== {{.SanitizedName}} PowerShell补全系统诊断 ===" -ForegroundColor Cyan
     Write-Host "PowerShell版本: $($PSVersionTable.PSVersion)" -ForegroundColor Green
     Write-Host "补全函数状态: $(if (Get-Command Register-ArgumentCompleter -ErrorAction SilentlyContinue) { '已注册' } else { '未注册' })" -ForegroundColor Green
-    Write-Host "命令树条目数: $(${{{.SanitizedName}}_cmdTree}.Count)" -ForegroundColor Green
-    Write-Host "标志参数数: $(${{{.SanitizedName}}_flagParams}.Count)" -ForegroundColor Green
+    Write-Host "命令树条目数: $(${{.SanitizedName}}_cmdTree.Count)" -ForegroundColor Green
+    Write-Host "标志参数数: $(${{.SanitizedName}}_flagParams.Count)" -ForegroundColor Green
     Write-Host "模糊补全状态: $(if ($script:{{.SanitizedName}}_FUZZY_COMPLETION_ENABLED) { '启用' } else { '禁用' })" -ForegroundColor Green
     Write-Host "候选项阈值: $script:{{.SanitizedName}}_FUZZY_MAX_CANDIDATES" -ForegroundColor Green
     Write-Host "缓存条目数: $($script:{{.SanitizedName}}_fuzzyCache.Count)" -ForegroundColor Green
@@ -649,7 +662,7 @@ function Test-{{.SanitizedName}}FuzzyMatch {
         [string]$Candidate
     )
     
-    $score = Get-FuzzyScoreFast -Pattern $Pattern -Candidate $Candidate
+    $score = Get-{{.SanitizedName}}FuzzyScoreFast -Pattern $Pattern -Candidate $Candidate
     Write-Host "模式: '$Pattern' 匹配候选: '$Candidate' 得分: $score" -ForegroundColor Cyan
     
     # 详细分析
@@ -666,6 +679,6 @@ function Test-{{.SanitizedName}}FuzzyMatch {
     return $score
 }
 
-Register-ArgumentCompleter -CommandName ${{{.SanitizedName}}_commandName} -ScriptBlock $scriptBlock
+Register-ArgumentCompleter -CommandName ${{.SanitizedName}}_commandName -ScriptBlock $scriptBlock
 `
 )
