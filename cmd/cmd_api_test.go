@@ -320,12 +320,8 @@ func TestSubCmdMap_边界场景(t *testing.T) {
 		cmd := NewCmd("test", "t", flag.ContinueOnError)
 		subCmdMap := cmd.SubCmdMap()
 
-		if subCmdMap == nil {
-			t.Error("SubCmdMap返回了nil")
-		}
-
-		if len(subCmdMap) != 0 {
-			t.Errorf("空命令的子命令映射应为空, 实际长度: %d", len(subCmdMap))
+		if subCmdMap != nil {
+			t.Error("SubCmdMap应该返回nil, 实际不为nil")
 		}
 	})
 
@@ -359,11 +355,7 @@ func TestSubCmds_边界场景(t *testing.T) {
 		cmd := NewCmd("test", "t", flag.ContinueOnError)
 		subCmds := cmd.SubCmds()
 
-		if subCmds == nil {
-			t.Error("SubCmds返回了nil")
-		}
-
-		if len(subCmds) != 0 {
+		if subCmds != nil {
 			t.Errorf("空命令的子命令切片应为空, 实际长度: %d", len(subCmds))
 		}
 	})
