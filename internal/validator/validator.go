@@ -7,6 +7,11 @@ import (
 	"gitee.com/MM-Q/qflag/internal/types"
 )
 
+const (
+	// 父子命令依赖检测最大深度
+	maxDepth = 10
+)
+
 // ValidateSubCommand 验证单个子命令的有效性
 //
 // 参数：
@@ -86,9 +91,9 @@ func HasCycleFast(parent, child *types.CmdContext) bool {
 	current := child.Parent
 
 	// 循环条件说明：
-	// - depth < 10: 限制最大深度，防止异常情况下的无限循环
+	// - depth < maxDepth: 限制最大深度，防止异常情况下的无限循环
 	// - current != nil: 当到达根命令时自然终止（根命令的Parent为nil）
-	for depth := 0; depth < 10 && current != nil; depth++ {
+	for depth := 0; depth < maxDepth && current != nil; depth++ {
 		// 循环检测：如果在child的祖先链中找到了parent
 		// 说明添加parent->child的边会形成循环
 		if current == parent {
