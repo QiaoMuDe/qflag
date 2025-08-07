@@ -117,8 +117,8 @@ func TestGenerateBashCompletion(t *testing.T) {
 		}
 	}
 
-	// 检查枚举选项
-	expectedEnum := `enum_options["/|--mode"]="debug release test"`
+	// 检查枚举选项 - 适配新的格式（使用|分隔符）
+	expectedEnum := `enum_options["/|--mode"]="debug|release|test"`
 	if !strings.Contains(result, expectedEnum) {
 		t.Errorf("Bash补全脚本不包含枚举选项: %s", expectedEnum)
 	}
@@ -258,7 +258,7 @@ cmd_tree[/config/set/]="--key|--value"`
 		{"根命令选项", `cmd_tree[/]="--help|-h|--verbose|-v|--config|-c|--mode|-m|start|stop|config"`},
 		{"子命令树", `cmd_tree[/start/]="--port|-p|--daemon|-d"`},
 		{"深层命令树", `cmd_tree[/config/set/]="--key|--value"`},
-		{"根命令枚举", `enum_options["/|--mode"]="dev prod test"`},
+		{"根命令枚举", `enum_options["/|--mode"]="dev|prod|test"`},
 		{"根命令标志", `flag_params["/|--config"]="required|string"`},
 		{"子命令标志", `flag_params["/start/|--port"]="required|string"`},
 		{"深层标志", `flag_params["/config/set/|--key"]="required|string"`},

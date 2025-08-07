@@ -202,6 +202,255 @@ ${{.SanitizedName}}_flagParams = @(
 
 # -----------------------------------------------------------------------------------
 
+# ==================== 模糊补全配置参数 ====================
+# 模糊补全功能开关 (设置为$false禁用，$true启用)
+$script:FUZZY_COMPLETION_ENABLED = $true
+
+# 启用模糊补全的最大候选项数量阈值
+# 超过此数量将回退到传统前缀匹配以保证性能
+$script:FUZZY_MAX_CANDIDATES = 120
+
+# 模糊匹配的最小输入长度 (小于此长度不启用模糊匹配)
+$script:FUZZY_MIN_PATTERN_LENGTH = 2
+
+# 模糊匹配分数阈值 (0-100，分数低于此值的匹配将被过滤)
+$script:FUZZY_SCORE_THRESHOLD = 25
+
+# 模糊匹配最大返回结果数
+$script:FUZZY_MAX_RESULTS = 10
+
+# 模糊匹配结果缓存 (格式: "pattern|candidate" -> score)
+$script:{{.SanitizedName}}_fuzzyCache = @{}
+
+# ==================== 模糊匹配核心算法 ====================
+
+# 高性能模糊评分函数 - 使用优化的字符串操作
+# 参数: $Pattern=输入模式, $Candidate=候选字符串
+# 返回: 0-100的整数分数
+function Get-FuzzyScoreFast {
+    param(
+        [string]$Pattern,
+        [string]$Candidate
+    )
+    
+    $patternLen = $Pattern.Length
+    $candidateLen = $Candidate.Length
+    
+    # 性能优化1: 长度预检查 - 候选项太短直接返回0
+    if ($candidateLen -lt $patternLen) {
+        return 0
+    }
+    
+    # 性能优化2: 完全匹配检查 - 避免不必要的复杂计算
+    if ($Candidate.StartsWith($Pattern, [System.StringComparison]::OrdinalIgnoreCase)) {
+        return 100  # 前缀完全匹配给最高分
+    }
+    
+    # 性能优化3: 字符存在性预检查 - 快速排除不可能的匹配
+    $patternLower = $Pattern.ToLowerInvariant()
+    $candidateLower = $Candidate.ToLowerInvariant()
+    
+    foreach ($char in $patternLower.ToCharArray()) {
+        if ($candidateLower.IndexOf($char) -eq -1) {
+            return 0  # 必需字符不存在，直接返回
+        }
+    }
+    
+    # 核心匹配算法 - 计算字符匹配度和连续性
+    $matched = 0           # 匹配的字符数
+    $consecutive = 0       # 当前连续匹配长度
+    $maxConsecutive = 0    # 最大连续匹配长度
+    $candidatePos = 0      # 候选字符串当前搜索位置
+    $startBonus = 0        # 起始位置奖励
+    
+    # 检查是否从开头匹配 (大小写不敏感)
+    if ($candidateLower.StartsWith($patternLower)) {
+        $startBonus = 20  # 起始匹配给20分奖励
+    }
+    
+    # 逐字符匹配算法
+    for ($i = 0; $i -lt $patternLen; $i++) {
+        $patternChar = $patternLower[$i]
+        $found = $false
+        
+        # 在候选字符串中查找当前模式字符
+        for ($j = $candidatePos; $j -lt $candidateLen; $j++) {
+            if ($candidateLower[$j] -eq $patternChar) {
+                $matched++
+                $found = $true
+                
+                # 连续性检查 - 连续匹配的字符得分更高
+                if ($j -eq $candidatePos) {
+                    $consecutive++
+                    if ($consecutive -gt $maxConsecutive) {
+                        $maxConsecutive = $consecutive
+                    }
+                } else {
+                    $consecutive = 1  # 重置连续计数
+                }
+                
+                $candidatePos = $j + 1  # 更新搜索位置
+                break
+            }
+        }
+        
+        # 如果某个字符未找到，重置连续计数
+        if (-not $found) {
+            $consecutive = 0
+        }
+    }
+    
+    # 评分计算 - 使用整数运算
+    # 基础分数: (匹配字符数 / 模式长度) * 60
+    $baseScore = [Math]::Floor(($matched * 60) / $patternLen)
+    
+    # 连续性奖励: (最大连续长度 / 模式长度) * 20
+    $consecutiveBonus = [Math]::Floor(($maxConsecutive * 20) / $patternLen)
+    
+    # 长度惩罚: 候选字符串越长，分数略微降低
+    $lengthPenalty = [Math]::Min(($candidateLen - $patternLen), 10)
+    
+    # 最终分数计算
+    $finalScore = $baseScore + $consecutiveBonus + $startBonus - $lengthPenalty
+    
+    # 确保分数在0-100范围内
+    return [Math]::Max(0, [Math]::Min(100, $finalScore))
+}
+
+# 带缓存的模糊评分函数 - 避免重复计算提高性能
+# 参数: $Pattern=输入模式, $Candidate=候选字符串
+function Get-FuzzyScoreCached {
+    param(
+        [string]$Pattern,
+        [string]$Candidate
+    )
+    
+    $cacheKey = "$Pattern|$Candidate"
+    
+    # 缓存命中检查
+    if ($script:{{.SanitizedName}}_fuzzyCache.ContainsKey($cacheKey)) {
+        return $script:{{.SanitizedName}}_fuzzyCache[$cacheKey]
+    }
+    
+    # 计算分数并缓存
+    $score = Get-FuzzyScoreFast -Pattern $Pattern -Candidate $Candidate
+    
+    # 缓存大小控制 - 防止内存无限增长
+    if ($script:{{.SanitizedName}}_fuzzyCache.Count -gt 300) {
+        $script:{{.SanitizedName}}_fuzzyCache.Clear()  # 清空缓存
+    }
+    
+    $script:{{.SanitizedName}}_fuzzyCache[$cacheKey] = $score
+    return $score
+}
+
+# 智能补全匹配函数 - 分级匹配策略
+# 参数: $Pattern=输入模式, $Options=候选选项数组
+function Get-IntelligentMatches {
+    param(
+        [string]$Pattern,
+        [array]$Options
+    )
+    
+    $patternLen = $Pattern.Length
+    $totalCandidates = $Options.Count
+    
+    # 性能保护: 候选项过多时禁用模糊匹配
+    if ($totalCandidates -gt $script:FUZZY_MAX_CANDIDATES) {
+        # 回退到传统前缀匹配
+        $prefixMatches = @()
+        foreach ($option in $Options) {
+            if ($option -like "$Pattern*") {
+                $prefixMatches += $option
+            }
+        }
+        return $prefixMatches
+    }
+    
+    # 第1级: 精确前缀匹配 (最快，优先级最高)
+    $exactMatches = @()
+    foreach ($option in $Options) {
+        if ($option.StartsWith($Pattern, [System.StringComparison]::Ordinal)) {
+            $exactMatches += $option
+        }
+    }
+    
+    # 如果有精确匹配且数量合理，直接返回
+    if ($exactMatches.Count -gt 0 -and $exactMatches.Count -le 12) {
+        return $exactMatches
+    }
+    
+    # 第2级: 大小写不敏感前缀匹配
+    if ($exactMatches.Count -eq 0) {
+        $caseInsensitiveMatches = @()
+        foreach ($option in $Options) {
+            if ($option.StartsWith($Pattern, [System.StringComparison]::OrdinalIgnoreCase)) {
+                $caseInsensitiveMatches += $option
+            }
+        }
+        
+        # 如果有大小写不敏感匹配，返回
+        if ($caseInsensitiveMatches.Count -gt 0) {
+            return $caseInsensitiveMatches
+        }
+    }
+    
+    # 第3级: 模糊匹配 (最慢，仅在必要时使用)
+    if ($script:FUZZY_COMPLETION_ENABLED -and $patternLen -ge $script:FUZZY_MIN_PATTERN_LENGTH) {
+        $scoredMatches = @()
+        
+        # 对所有候选项进行模糊评分
+        foreach ($option in $Options) {
+            $score = Get-FuzzyScoreCached -Pattern $Pattern -Candidate $option
+            
+            # 只保留分数达到阈值的匹配
+            if ($score -ge $script:FUZZY_SCORE_THRESHOLD) {
+                $scoredMatches += @{
+                    Option = $option
+                    Score = $score
+                }
+            }
+        }
+        
+        # 如果有模糊匹配结果，按分数排序并返回前N个
+        if ($scoredMatches.Count -gt 0) {
+            # 按分数降序排序
+            $sortedMatches = $scoredMatches | Sort-Object Score -Descending
+            
+            # 提取选项名称，限制返回数量
+            $fuzzyResults = @()
+            $count = 0
+            foreach ($match in $sortedMatches) {
+                if ($count -ge $script:FUZZY_MAX_RESULTS) {
+                    break
+                }
+                $fuzzyResults += $match.Option
+                $count++
+            }
+            
+            return $fuzzyResults
+        }
+    }
+    
+    # 第4级: 子字符串匹配 (最后的备选方案)
+    $substringMatches = @()
+    $patternLower = $Pattern.ToLowerInvariant()
+    
+    foreach ($option in $Options) {
+        $optionLower = $option.ToLowerInvariant()
+        if ($optionLower.Contains($patternLower)) {
+            $substringMatches += $option
+        }
+    }
+    
+    if ($substringMatches.Count -gt 0) {
+        return $substringMatches
+    }
+    
+    # 如果所有匹配策略都失败，返回空数组
+    return @()
+}
+
 # -------------------------- Completion Logic Implementation ------------------------
 $scriptBlock = {
     param(
@@ -210,7 +459,7 @@ $scriptBlock = {
         $cursorPosition
     )
 
-    # 初始化缓存（仅在首次调用时创建）
+    # 初始化缓存和索引（仅在首次调用时创建）
     if (-not $script:{{.SanitizedName}}_contextIndex) {
         $script:{{.SanitizedName}}_contextIndex = @{}
         $script:{{.SanitizedName}}_flagIndex = @{}
@@ -273,16 +522,22 @@ $scriptBlock = {
             }
         }
 
-        # 5. 补全标志本身（如 --ty -> --type）
+        # 5. 补全标志本身（如 --ty -> --type）- 使用智能匹配
         if ($wordToComplete -match '^-') {
-            $flagMatches = @()
+            # 收集当前上下文的所有标志
+            $contextFlags = @()
             foreach ($flag in ${{{.SanitizedName}}_flagParams}) {
-                if ($flag.Context -eq $context -and $flag.Parameter -like "$wordToComplete*") {
-                    $flagMatches += $flag.Parameter
+                if ($flag.Context -eq $context) {
+                    $contextFlags += $flag.Parameter
                 }
             }
-            if ($flagMatches.Count -gt 0) {
-                return $flagMatches
+            
+            if ($contextFlags.Count -gt 0) {
+                # 使用智能匹配获取最佳标志匹配
+                $flagMatches = Get-IntelligentMatches -Pattern $wordToComplete -Options $contextFlags
+                if ($flagMatches.Count -gt 0) {
+                    return $flagMatches
+                }
             }
         }
 
@@ -298,13 +553,8 @@ $scriptBlock = {
                             # 当前单词为空 → 返回所有枚举值
                             return $paramDef.Options
                         } else {
-                            # 前缀过滤
-                            $enumMatches = @()
-                            foreach ($option in $paramDef.Options) {
-                                if ($option -like "$wordToComplete*") {
-                                    $enumMatches += $option
-                                }
-                            }
+                            # 使用智能匹配进行枚举值补全
+                            $enumMatches = Get-IntelligentMatches -Pattern $wordToComplete -Options $paramDef.Options
                             return $enumMatches
                         }
                     }
@@ -368,6 +618,48 @@ $scriptBlock = {
         Write-Debug "PowerShell补全错误: $($_.Exception.Message)"
         return @()
     }
+}
+
+# ==================== 调试和诊断功能 ====================
+
+# 补全系统健康检查函数 (可选，用于调试)
+function Get-{{.SanitizedName}}CompletionDebug {
+    Write-Host "=== {{.SanitizedName}} PowerShell补全系统诊断 ===" -ForegroundColor Cyan
+    Write-Host "PowerShell版本: $($PSVersionTable.PSVersion)" -ForegroundColor Green
+    Write-Host "补全函数状态: $(if (Get-Command Register-ArgumentCompleter -ErrorAction SilentlyContinue) { '已注册' } else { '未注册' })" -ForegroundColor Green
+    Write-Host "命令树条目数: $(${{{.SanitizedName}}_cmdTree}.Count)" -ForegroundColor Green
+    Write-Host "标志参数数: $(${{{.SanitizedName}}_flagParams}.Count)" -ForegroundColor Green
+    Write-Host "模糊补全状态: $(if ($script:FUZZY_COMPLETION_ENABLED) { '启用' } else { '禁用' })" -ForegroundColor Green
+    Write-Host "候选项阈值: $script:FUZZY_MAX_CANDIDATES" -ForegroundColor Green
+    Write-Host "缓存条目数: $($script:{{.SanitizedName}}_fuzzyCache.Count)" -ForegroundColor Green
+    Write-Host ""
+    Write-Host "使用方法: 在PowerShell中输入 'Get-{{.SanitizedName}}CompletionDebug' 查看此信息" -ForegroundColor Yellow
+}
+
+# 模糊匹配测试函数 (用于调试和验证)
+function Test-{{.SanitizedName}}FuzzyMatch {
+    param(
+        [Parameter(Mandatory=$true)]
+        [string]$Pattern,
+        [Parameter(Mandatory=$true)]
+        [string]$Candidate
+    )
+    
+    $score = Get-FuzzyScoreFast -Pattern $Pattern -Candidate $Candidate
+    Write-Host "模式: '$Pattern' 匹配候选: '$Candidate' 得分: $score" -ForegroundColor Cyan
+    
+    # 详细分析
+    if ($score -ge 80) {
+        Write-Host "匹配质量: 优秀" -ForegroundColor Green
+    } elseif ($score -ge 50) {
+        Write-Host "匹配质量: 良好" -ForegroundColor Yellow
+    } elseif ($score -ge $script:FUZZY_SCORE_THRESHOLD) {
+        Write-Host "匹配质量: 可接受" -ForegroundColor DarkYellow
+    } else {
+        Write-Host "匹配质量: 不匹配" -ForegroundColor Red
+    }
+    
+    return $score
 }
 
 Register-ArgumentCompleter -CommandName ${{{.SanitizedName}}_commandName} -ScriptBlock $scriptBlock

@@ -76,13 +76,13 @@ func TestBashFunctionalityFix(t *testing.T) {
 		t.Log("注意: 脚本中未检测到特殊字符转义，可能是测试数据不包含特殊字符")
 	}
 
-	// 验证功能修复
+	// 验证功能修复 - 适配新的模糊补全实现
 	expectedFixes := []string{
-		"declare -F _get_comp_words_by_ref",
-		"输入验证",
-		"安全地解析选项",
-		"使用内置功能进行枚举补全",
-		"read -ra enum_arr",
+		"模糊补全配置",
+		"性能优化",
+		"模糊匹配结果缓存",
+		"分级匹配策略",
+		"FUZZY_COMPLETION_ENABLED",
 	}
 
 	for _, fix := range expectedFixes {
