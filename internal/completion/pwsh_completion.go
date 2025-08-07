@@ -125,8 +125,25 @@ func generatePwshCompletion(buf *bytes.Buffer, params []FlagParam, rootCmdOpts [
 	_, _ = buf.WriteString(completionReplacer.Replace(PwshFunctionHeader))
 }
 
+// pwshEscapeMap PowerShell特殊字符转义映射表
+// 使用全局map提高转义性能，避免重复的switch判断
+var pwshEscapeMap = map[byte][]byte{
+	'\'': {'\'', '\''}, // 单引号转义为两个单引号
+	'\\': {'\\', '\\'}, // 反斜杠转义为两个反斜杠
+	'$':  {'`', '$'},   // 美元符号转义
+	'`':  {'`', '`'},   // 反引号转义
+	'"':  {'`', '"'},   // 双引号转义
+	'&':  {'`', '&'},   // 与符号转义
+	'|':  {'`', '|'},   // 管道符转义
+	';':  {'`', ';'},   // 分号转义
+	'<':  {'`', '<'},   // 小于号转义
+	'>':  {'`', '>'},   // 大于号转义
+	'(':  {'`', '('},   // 左括号转义
+	')':  {'`', ')'},   // 右括号转义
+}
+
 // escapePwshString 转义PowerShell字符串中的特殊字符
-// 优化：单次循环处理所有转义，减少字符串分配
+// 优化版本：使用全局map进行O(1)查找，提升性能
 //
 // 参数:
 // - s: 需要转义的字符串
@@ -138,32 +155,9 @@ func escapePwshString(s string) string {
 	buf := make([]byte, 0, len(s)*2)
 	for i := 0; i < len(s); i++ {
 		c := s[i]
-		switch c {
-		case '\'':
-			buf = append(buf, '\'', '\'') // 单引号转义为两个单引号
-		case '\\':
-			buf = append(buf, '\\', '\\') // 反斜杠转义为两个反斜杠
-		case '$':
-			buf = append(buf, '`', '$') // 美元符号转义
-		case '`':
-			buf = append(buf, '`', '`') // 反引号转义
-		case '"':
-			buf = append(buf, '`', '"') // 双引号转义
-		case '&':
-			buf = append(buf, '`', '&') // 与符号转义
-		case '|':
-			buf = append(buf, '`', '|') // 管道符转义
-		case ';':
-			buf = append(buf, '`', ';') // 分号转义
-		case '<':
-			buf = append(buf, '`', '<') // 小于号转义
-		case '>':
-			buf = append(buf, '`', '>') // 大于号转义
-		case '(':
-			buf = append(buf, '`', '(') // 左括号转义
-		case ')':
-			buf = append(buf, '`', ')') // 右括号转义
-		default:
+		if escaped, exists := pwshEscapeMap[c]; exists {
+			buf = append(buf, escaped...)
+		} else {
 			buf = append(buf, c)
 		}
 	}

@@ -71,7 +71,33 @@ func generateBashCompletion(buf *bytes.Buffer, params []FlagParam, rootCmdOpts [
 	_, _ = tmpl.WriteString(buf, BashFunctionHeader)
 }
 
+// bashEscapeMap Bash特殊字符转义映射表
+// 使用全局map提高转义性能，避免重复的switch判断
+var bashEscapeMap = map[rune]string{
+	'\\': "\\\\", // 反斜杠
+	'"':  "\\\"", // 双引号
+	' ':  "\\ ",  // 空格
+	'$':  "\\$",  // 美元符号
+	'`':  "\\`",  // 反引号
+	'|':  "\\|",  // 管道符
+	'&':  "\\&",  // 与符号
+	';':  "\\;",  // 分号
+	'(':  "\\(",  // 左括号
+	')':  "\\)",  // 右括号
+	'<':  "\\<",  // 小于号
+	'>':  "\\>",  // 大于号
+	'*':  "\\*",  // 星号
+	'?':  "\\?",  // 问号
+	'[':  "\\[",  // 左方括号
+	']':  "\\]",  // 右方括号
+	'{':  "\\{",  // 左花括号
+	'}':  "\\}",  // 右花括号
+	'~':  "\\~",  // 波浪号
+	'#':  "\\#",  // 井号
+}
+
 // escapeSpecialChars 处理字符串中的特殊字符转义
+// 优化版本：使用全局map进行O(1)查找，提升性能
 //
 // 参数:
 //   - s: 需要处理的字符串
@@ -83,48 +109,9 @@ func escapeSpecialChars(s string) string {
 	builder.Grow(len(s) * 2) // 预分配容量以减少重新分配
 
 	for _, r := range s {
-		switch r {
-		case '\\':
-			builder.WriteString("\\\\")
-		case '"':
-			builder.WriteString("\\\"")
-		case ' ':
-			builder.WriteString("\\ ")
-		case '$':
-			builder.WriteString("\\$")
-		case '`':
-			builder.WriteString("\\`")
-		case '|':
-			builder.WriteString("\\|")
-		case '&':
-			builder.WriteString("\\&")
-		case ';':
-			builder.WriteString("\\;")
-		case '(':
-			builder.WriteString("\\(")
-		case ')':
-			builder.WriteString("\\)")
-		case '<':
-			builder.WriteString("\\<")
-		case '>':
-			builder.WriteString("\\>")
-		case '*':
-			builder.WriteString("\\*")
-		case '?':
-			builder.WriteString("\\?")
-		case '[':
-			builder.WriteString("\\[")
-		case ']':
-			builder.WriteString("\\]")
-		case '{':
-			builder.WriteString("\\{")
-		case '}':
-			builder.WriteString("\\}")
-		case '~':
-			builder.WriteString("\\~")
-		case '#':
-			builder.WriteString("\\#")
-		default:
+		if escaped, exists := bashEscapeMap[r]; exists {
+			builder.WriteString(escaped)
+		} else {
 			builder.WriteRune(r)
 		}
 	}
