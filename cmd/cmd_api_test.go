@@ -1060,7 +1060,6 @@ func TestExamples_边界场景(t *testing.T) {
 			usage string
 		}{
 			{"基本用法", "myapp file.txt"},
-			{"", "myapp --help"},
 			{"复杂用法", "myapp --config /path/to/config.json --verbose file1.txt file2.txt"},
 			{"包含特殊字符", "myapp 'file with spaces.txt'"},
 			{"多行用法", "myapp \\\n  --option1 value1 \\\n  --option2 value2"},
@@ -1088,6 +1087,48 @@ func TestExamples_边界场景(t *testing.T) {
 			if gotExamples[i].Usage != expectedExample.usage {
 				t.Errorf("第%d个示例用法不匹配: 期望 %q, 实际 %q", i, expectedExample.usage, gotExamples[i].Usage)
 			}
+		}
+	})
+
+	// 测试空值边界情况
+	t.Run("空值边界情况", func(t *testing.T) {
+		cmd := NewCmd("test", "t", flag.ContinueOnError)
+
+		// 测试空描述和空用法的情况
+		testCases := []struct {
+			name      string
+			desc      string
+			usage     string
+			shouldAdd bool
+		}{
+			{"空描述", "", "myapp --help", false},
+			{"空用法", "帮助示例", "", false},
+			{"都为空", "", "", false},
+			{"正常示例", "正常描述", "myapp file.txt", true},
+		}
+
+		addedCount := 0
+		for _, tc := range testCases {
+			initialCount := len(cmd.GetExamples())
+			cmd.AddExample(tc.desc, tc.usage)
+			finalCount := len(cmd.GetExamples())
+
+			if tc.shouldAdd {
+				if finalCount != initialCount+1 {
+					t.Errorf("%s: 应该添加示例但没有添加", tc.name)
+				} else {
+					addedCount++
+				}
+			} else {
+				if finalCount != initialCount {
+					t.Errorf("%s: 不应该添加示例但添加了", tc.name)
+				}
+			}
+		}
+
+		// 验证最终只添加了有效的示例
+		if addedCount != 1 {
+			t.Errorf("应该只添加1个有效示例，实际添加了%d个", addedCount)
 		}
 	})
 }

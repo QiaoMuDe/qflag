@@ -12,18 +12,13 @@ import (
 项目地址: https://gitee.com/MM-Q/qflag
 */
 
-// 导出子包类型和函数 //
-
-// Cmd 导出cmd包中的Cmd结构体
-type Cmd = cmd.Cmd
-
-// NewCmd 导出cmd包中的NewCmd函数
-var NewCmd = cmd.NewCmd
-
 // 导出标志类型 //
 
 // Flag 导出flag包中的Flag结构体
 type Flag = flags.Flag
+
+// ExampleInfo 导出示例信息类型
+type ExampleInfo = cmd.ExampleInfo
 
 // StringFlag 导出flag包中的StringFlag结构体
 type StringFlag = flags.StringFlag

@@ -11,7 +11,6 @@ import (
 
 	"gitee.com/MM-Q/qflag/cmd"
 	"gitee.com/MM-Q/qflag/flags"
-	"gitee.com/MM-Q/qflag/internal/types"
 )
 
 /*
@@ -37,7 +36,7 @@ func getQCommandLine() *cmd.Cmd {
 		}
 
 		// 创建全局默认Cmd实例
-		QCommandLine = NewCmd(cmdName, "", flag.ExitOnError)
+		QCommandLine = cmd.NewCmd(cmdName, "", flag.ExitOnError)
 	})
 	return QCommandLine
 }
@@ -177,12 +176,12 @@ func ShortName() string {
 }
 
 // SubCmds 获取所有已注册的子命令列表
-func SubCmds() []*Cmd {
+func SubCmds() []*cmd.Cmd {
 	return getQCommandLine().SubCmds()
 }
 
 // SubCmdMap 获取所有已注册的子命令映射
-func SubCmdMap() map[string]*Cmd {
+func SubCmdMap() map[string]*cmd.Cmd {
 	return getQCommandLine().SubCmdMap()
 }
 
@@ -248,8 +247,8 @@ func GetUseChinese() bool {
 // 该函数用于获取命令行标志的示例信息列表
 //
 // 返回值:
-//   - []types.ExampleInfo: 示例信息列表，每个元素为 ExampleInfo 类型。
-func GetExamples() []types.ExampleInfo {
+//   - []ExampleInfo: 示例信息列表，每个元素为 ExampleInfo 类型。
+func GetExamples() []ExampleInfo {
 	return getQCommandLine().GetExamples()
 }
 
@@ -352,8 +351,8 @@ func AddExample(desc, usage string) {
 // 该函数用于添加命令行标志的示例，这些示例将在命令行帮助信息中显示
 //
 // 参数:
-//   - examples: 示例列表，每个元素为 types.ExampleInfo 类型。
-func AddExamples(examples []types.ExampleInfo) {
+//   - examples: 示例列表，每个元素为 ExampleInfo 类型。
+func AddExamples(examples []ExampleInfo) {
 	getQCommandLine().AddExamples(examples)
 }
 
@@ -423,4 +422,164 @@ func SetExitOnBuiltinFlags(exit bool) {
 //   - enable: 是否启用自动完成功能
 func SetEnableCompletion(enable bool) {
 	getQCommandLine().SetEnableCompletion(enable)
+}
+
+// ================================================================================
+// 链式调用方法 - 用于构建器模式，提供更流畅的API体验 (14个)
+// ================================================================================
+
+// WithDescription 设置命令描述（链式调用）
+//
+// 参数:
+//   - desc: 命令描述
+//
+// 返回值:
+//   - *cmd.Cmd: 返回命令实例，支持链式调用
+func WithDescription(desc string) *cmd.Cmd {
+	return getQCommandLine().WithDescription(desc)
+}
+
+// WithVersion 设置版本信息（链式调用）
+//
+// 参数:
+//   - version: 版本信息
+//
+// 返回值:
+//   - *cmd.Cmd: 返回命令实例，支持链式调用
+func WithVersion(version string) *cmd.Cmd {
+	return getQCommandLine().WithVersion(version)
+}
+
+// WithVersionf 设置版本信息（链式调用，支持格式化）
+//
+// 参数:
+//   - format: 版本信息格式字符串
+//   - args: 格式化参数
+//
+// 返回值:
+//   - *cmd.Cmd: 返回命令实例，支持链式调用
+func WithVersionf(format string, args ...any) *cmd.Cmd {
+	return getQCommandLine().WithVersionf(format, args...)
+}
+
+// WithUseChinese 设置是否使用中文帮助信息（链式调用）
+//
+// 参数:
+//   - useChinese: 是否使用中文帮助信息
+//
+// 返回值:
+//   - *cmd.Cmd: 返回命令实例，支持链式调用
+func WithUseChinese(useChinese bool) *cmd.Cmd {
+	return getQCommandLine().WithUseChinese(useChinese)
+}
+
+// WithUsageSyntax 设置自定义命令用法（链式调用）
+//
+// 参数:
+//   - usageSyntax: 自定义命令用法
+//
+// 返回值:
+//   - *cmd.Cmd: 返回命令实例，支持链式调用
+func WithUsageSyntax(usageSyntax string) *cmd.Cmd {
+	return getQCommandLine().WithUsageSyntax(usageSyntax)
+}
+
+// WithLogoText 设置logo文本（链式调用）
+//
+// 参数:
+//   - logoText: logo文本字符串
+//
+// 返回值:
+//   - *cmd.Cmd: 返回命令实例，支持链式调用
+func WithLogoText(logoText string) *cmd.Cmd {
+	return getQCommandLine().WithLogoText(logoText)
+}
+
+// WithHelp 设置用户自定义命令帮助信息（链式调用）
+//
+// 参数:
+//   - help: 用户自定义命令帮助信息
+//
+// 返回值:
+//   - *cmd.Cmd: 返回命令实例，支持链式调用
+func WithHelp(help string) *cmd.Cmd {
+	return getQCommandLine().WithHelp(help)
+}
+
+// WithNote 添加备注信息到命令（链式调用）
+//
+// 参数:
+//   - note: 备注信息
+//
+// 返回值:
+//   - *cmd.Cmd: 返回命令实例，支持链式调用
+func WithNote(note string) *cmd.Cmd {
+	return getQCommandLine().WithNote(note)
+}
+
+// WithNotes 添加备注信息切片到命令（链式调用）
+//
+// 参数:
+//   - notes: 备注信息列表
+//
+// 返回值:
+//   - *cmd.Cmd: 返回命令实例，支持链式调用
+func WithNotes(notes []string) *cmd.Cmd {
+	return getQCommandLine().WithNotes(notes)
+}
+
+// WithExample 为命令添加使用示例（链式调用）
+//
+// 参数:
+//   - desc: 示例描述
+//   - usage: 示例用法
+//
+// 返回值:
+//   - *cmd.Cmd: 返回命令实例，支持链式调用
+func WithExample(desc, usage string) *cmd.Cmd {
+	return getQCommandLine().WithExample(desc, usage)
+}
+
+// WithExamples 添加使用示例列表到命令（链式调用）
+//
+// 参数:
+//   - examples: 示例信息列表
+//
+// 返回值:
+//   - *cmd.Cmd: 返回命令实例，支持链式调用
+func WithExamples(examples []ExampleInfo) *cmd.Cmd {
+	return getQCommandLine().WithExamples(examples)
+}
+
+// WithExitOnBuiltinFlags 设置是否在解析内置参数时退出（链式调用）
+//
+// 参数:
+//   - exit: 是否退出
+//
+// 返回值:
+//   - *cmd.Cmd: 返回命令实例，支持链式调用
+func WithExitOnBuiltinFlags(exit bool) *cmd.Cmd {
+	return getQCommandLine().WithExitOnBuiltinFlags(exit)
+}
+
+// WithEnableCompletion 设置是否启用自动补全（链式调用）
+//
+// 参数:
+//   - enable: true表示启用补全,false表示禁用
+//
+// 返回值:
+//   - *cmd.Cmd: 返回命令实例，支持链式调用
+func WithEnableCompletion(enable bool) *cmd.Cmd {
+	return getQCommandLine().WithEnableCompletion(enable)
+}
+
+// WithModuleHelps 设置自定义模块帮助信息（链式调用）
+//
+// 参数:
+//   - moduleHelps: 自定义模块帮助信息
+//
+// 返回值:
+//   - *cmd.Cmd: 返回命令实例，支持链式调用
+func WithModuleHelps(moduleHelps string) *cmd.Cmd {
+	return getQCommandLine().WithModuleHelps(moduleHelps)
 }

@@ -17,6 +17,9 @@ import (
 	"gitee.com/MM-Q/qflag/qerr"
 )
 
+// ExampleInfo 导出示例信息类型
+type ExampleInfo = types.ExampleInfo
+
 // Cmd 简化的命令结构体，作为适配器连接内部函数式API和外部面向对象API
 type Cmd struct {
 	ctx *types.CmdContext // 内部上下文，包含所有状态
@@ -486,16 +489,13 @@ func (c *Cmd) GetUsageSyntax() string {
 //
 // 返回:
 //   - []ExampleInfo: 使用示例列表
-func (c *Cmd) GetExamples() []types.ExampleInfo {
+func (c *Cmd) GetExamples() []ExampleInfo {
 	c.ctx.Mutex.RLock()
 	defer c.ctx.Mutex.RUnlock()
-	examples := make([]types.ExampleInfo, len(c.ctx.Config.Examples))
+	examples := make([]ExampleInfo, len(c.ctx.Config.Examples))
 
 	for i, e := range c.ctx.Config.Examples {
-		examples[i] = types.ExampleInfo{
-			Description: e.Description,
-			Usage:       e.Usage,
-		}
+		examples[i] = ExampleInfo(e)
 	}
 
 	return examples
@@ -654,7 +654,7 @@ func (c *Cmd) AddExample(desc, usage string) {
 	}
 
 	// 新建示例信息
-	e := types.ExampleInfo{
+	e := ExampleInfo{
 		Description: desc,
 		Usage:       usage,
 	}
@@ -667,7 +667,7 @@ func (c *Cmd) AddExample(desc, usage string) {
 //
 // 参数:
 //   - examples: 示例信息列表
-func (c *Cmd) AddExamples(examples []types.ExampleInfo) {
+func (c *Cmd) AddExamples(examples []ExampleInfo) {
 	c.ctx.Mutex.Lock()
 	defer c.ctx.Mutex.Unlock()
 
@@ -846,7 +846,7 @@ func (c *Cmd) WithExample(desc, usage string) *Cmd {
 //
 // 返回值:
 //   - *Cmd: 返回命令实例，支持链式调用
-func (c *Cmd) WithExamples(examples []types.ExampleInfo) *Cmd {
+func (c *Cmd) WithExamples(examples []ExampleInfo) *Cmd {
 	c.AddExamples(examples)
 	return c
 }
