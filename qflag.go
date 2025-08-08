@@ -247,8 +247,8 @@ func GetUseChinese() bool {
 // 该函数用于获取命令行标志的示例信息列表
 //
 // 返回值:
-//   - []ExampleInfo: 示例信息列表，每个元素为 ExampleInfo 类型。
-func GetExamples() []ExampleInfo {
+//   - []cmd.ExampleInfo: 示例信息列表，每个元素为 ExampleInfo 类型。
+func GetExamples() []cmd.ExampleInfo {
 	return getQCommandLine().GetExamples()
 }
 
@@ -352,7 +352,7 @@ func AddExample(desc, usage string) {
 //
 // 参数:
 //   - examples: 示例列表，每个元素为 ExampleInfo 类型。
-func AddExamples(examples []ExampleInfo) {
+func AddExamples(examples []cmd.ExampleInfo) {
 	getQCommandLine().AddExamples(examples)
 }
 
@@ -543,11 +543,11 @@ func WithExample(desc, usage string) *cmd.Cmd {
 // WithExamples 添加使用示例列表到命令（链式调用）
 //
 // 参数:
-//   - examples: 示例信息列表
+//   - examples: 示例信息列表，每个元素为 ExampleInfo 类型。
 //
 // 返回值:
 //   - *cmd.Cmd: 返回命令实例，支持链式调用
-func WithExamples(examples []ExampleInfo) *cmd.Cmd {
+func WithExamples(examples []cmd.ExampleInfo) *cmd.Cmd {
 	return getQCommandLine().WithExamples(examples)
 }
 

@@ -4,7 +4,6 @@
 package qflag
 
 import (
-	"gitee.com/MM-Q/qflag/cmd"
 	"gitee.com/MM-Q/qflag/flags"
 )
 
@@ -16,9 +15,6 @@ import (
 
 // Flag 导出flag包中的Flag结构体
 type Flag = flags.Flag
-
-// ExampleInfo 导出示例信息类型
-type ExampleInfo = cmd.ExampleInfo
 
 // StringFlag 导出flag包中的StringFlag结构体
 type StringFlag = flags.StringFlag
