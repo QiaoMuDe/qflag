@@ -17,9 +17,6 @@ import (
 	"gitee.com/MM-Q/qflag/qerr"
 )
 
-// ExampleInfo 导出示例信息类型
-type ExampleInfo types.ExampleInfo
-
 // Cmd 简化的命令结构体，作为适配器连接内部函数式API和外部面向对象API
 type Cmd struct {
 	ctx *types.CmdContext // 内部上下文，包含所有状态
@@ -27,6 +24,10 @@ type Cmd struct {
 
 // New 创建新的命令实例(NewCmd的简写)
 var New = NewCmd
+
+// ================================================================================
+// 操作方法 - 解析与管理 (17个)
+// ================================================================================
 
 // NewCmd 创建新的命令实例
 //
@@ -372,6 +373,12 @@ func (c *Cmd) PrintHelp() {
 func (c *Cmd) CmdExists(cmdName string) bool {
 	c.ctx.Mutex.RLock()
 	defer c.ctx.Mutex.RUnlock()
+
+	// 检查子命令名称是否为空
+	if cmdName == "" {
+		return false
+	}
+
 	// 检查子命令是否存在
 	_, ok := c.ctx.SubCmdMap[cmdName]
 	return ok
@@ -386,7 +393,7 @@ func (c *Cmd) IsParsed() bool {
 }
 
 // ================================================================================
-// Get 方法 - 获取配置信息
+// Get 方法 - 获取配置信息(9个)
 // ================================================================================
 
 // GetVersion 获取版本信息
@@ -479,13 +486,13 @@ func (c *Cmd) GetUsageSyntax() string {
 //
 // 返回:
 //   - []ExampleInfo: 使用示例列表
-func (c *Cmd) GetExamples() []ExampleInfo {
+func (c *Cmd) GetExamples() []types.ExampleInfo {
 	c.ctx.Mutex.RLock()
 	defer c.ctx.Mutex.RUnlock()
-	examples := make([]ExampleInfo, len(c.ctx.Config.Examples))
+	examples := make([]types.ExampleInfo, len(c.ctx.Config.Examples))
 
 	for i, e := range c.ctx.Config.Examples {
-		examples[i] = ExampleInfo{
+		examples[i] = types.ExampleInfo{
 			Description: e.Description,
 			Usage:       e.Usage,
 		}
@@ -495,7 +502,7 @@ func (c *Cmd) GetExamples() []ExampleInfo {
 }
 
 // ================================================================================
-// Set 方法 - 设置配置信息
+// Set 方法 - 设置配置信息(15个)
 // ================================================================================
 
 // SetExitOnBuiltinFlags 设置是否在解析内置参数时退出
@@ -641,6 +648,11 @@ func (c *Cmd) AddExample(desc, usage string) {
 	c.ctx.Mutex.Lock()
 	defer c.ctx.Mutex.Unlock()
 
+	// 检查描述和用法是否为空
+	if desc == "" || usage == "" {
+		return
+	}
+
 	// 新建示例信息
 	e := types.ExampleInfo{
 		Description: desc,
@@ -649,6 +661,23 @@ func (c *Cmd) AddExample(desc, usage string) {
 
 	// 添加到使用示例列表中
 	c.ctx.Config.Examples = append(c.ctx.Config.Examples, e)
+}
+
+// AddExamples 为命令添加使用示例列表
+//
+// 参数:
+//   - examples: 示例信息列表
+func (c *Cmd) AddExamples(examples []types.ExampleInfo) {
+	c.ctx.Mutex.Lock()
+	defer c.ctx.Mutex.Unlock()
+
+	// 检查示例信息列表是否为空
+	if len(examples) == 0 {
+		return
+	}
+
+	// 添加到使用示例列表中
+	c.ctx.Config.Examples = append(c.ctx.Config.Examples, examples...)
 }
 
 // LoadHelp 从指定文件加载帮助信息
@@ -685,7 +714,7 @@ func (c *Cmd) LoadHelp(filePath string) error {
 }
 
 // ================================================================================
-// 链式调用方法 - 用于构建器模式，提供更流畅的API体验
+// 链式调用方法 - 用于构建器模式，提供更流畅的API体验(14个)
 // ================================================================================
 
 // WithDescription 设置命令描述（链式调用）
@@ -785,6 +814,18 @@ func (c *Cmd) WithNote(note string) *Cmd {
 	return c
 }
 
+// WithNotes 添加备注信息切片到命令（链式调用）
+//
+// 参数:
+//   - notes: 备注信息列表
+//
+// 返回值:
+//   - *Cmd: 返回命令实例，支持链式调用
+func (c *Cmd) WithNotes(notes []string) *Cmd {
+	c.AddNotes(notes)
+	return c
+}
+
 // WithExample 为命令添加使用示例（链式调用）
 //
 // 参数:
@@ -795,6 +836,18 @@ func (c *Cmd) WithNote(note string) *Cmd {
 //   - *Cmd: 返回命令实例，支持链式调用
 func (c *Cmd) WithExample(desc, usage string) *Cmd {
 	c.AddExample(desc, usage)
+	return c
+}
+
+// WithExamples 添加使用示例列表到命令（链式调用）
+//
+// 参数:
+//   - examples: 示例信息列表
+//
+// 返回值:
+//   - *Cmd: 返回命令实例，支持链式调用
+func (c *Cmd) WithExamples(examples []types.ExampleInfo) *Cmd {
+	c.AddExamples(examples)
 	return c
 }
 

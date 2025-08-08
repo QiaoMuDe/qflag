@@ -11,6 +11,7 @@ import (
 
 	"gitee.com/MM-Q/qflag/cmd"
 	"gitee.com/MM-Q/qflag/flags"
+	"gitee.com/MM-Q/qflag/internal/types"
 )
 
 /*
@@ -41,21 +42,9 @@ func getQCommandLine() *cmd.Cmd {
 	return QCommandLine
 }
 
-// SetVersion 为全局默认命令设置版本信息
-//
-// 参数说明：
-//   - version: 版本信息字符串，用于标识命令的版本。
-func SetVersion(version string) {
-	getQCommandLine().SetVersion(version)
-}
-
-// GetVersion 获取全局默认命令的版本信息
-//
-// 返回值：
-//   - string: 版本信息字符串。
-func GetVersion() string {
-	return getQCommandLine().GetVersion()
-}
+// ================================================================================
+// 操作方法 - 解析与管理 (17个)
+// ================================================================================
 
 // Parse 完整解析命令行参数（含子命令处理）
 // 主要功能：
@@ -187,29 +176,63 @@ func ShortName() string {
 	return getQCommandLine().ShortName()
 }
 
+// SubCmds 获取所有已注册的子命令列表
+func SubCmds() []*Cmd {
+	return getQCommandLine().SubCmds()
+}
+
+// SubCmdMap 获取所有已注册的子命令映射
+func SubCmdMap() map[string]*Cmd {
+	return getQCommandLine().SubCmdMap()
+}
+
+// CmdExists 检查子命令是否存在
+//
+// 参数:
+//   - cmdName: 子命令名称
+//
+// 返回:
+//   - bool: 子命令是否存在
+func CmdExists(cmdName string) bool {
+	return getQCommandLine().CmdExists(cmdName)
+}
+
+// IsParsed 检查命令行参数是否已解析
+//
+// 返回:
+//   - bool: 是否已解析
+func IsParsed() bool {
+	return getQCommandLine().IsParsed()
+}
+
+// FlagRegistry 获取标志注册表
+//
+// 返回值:
+//   - *flags.FlagRegistry: 标志注册表
+func FlagRegistry() *flags.FlagRegistry {
+	return getQCommandLine().FlagRegistry()
+}
+
+// ================================================================================
+// Get 方法 - 获取配置信息
+// ================================================================================
+
+// GetVersion 获取全局默认命令的版本信息
+//
+// 返回值：
+//   - string: 版本信息字符串。
+func GetVersion() string {
+	return getQCommandLine().GetVersion()
+}
+
 // GetDescription 获取命令描述信息
 func GetDescription() string {
 	return getQCommandLine().GetDescription()
 }
 
-// SetDescription 设置命令描述信息
-func SetDescription(desc string) {
-	getQCommandLine().SetDescription(desc)
-}
-
 // GetNotes 获取所有备注信息
 func GetNotes() []string {
 	return getQCommandLine().GetNotes()
-}
-
-// SubCmds 获取所有已注册的子命令列表
-func SubCmds() []*cmd.Cmd {
-	return getQCommandLine().SubCmds()
-}
-
-// SubCmdMap 获取所有已注册的子命令映射
-func SubCmdMap() map[string]*cmd.Cmd {
-	return getQCommandLine().SubCmdMap()
 }
 
 // GetUseChinese 获取是否使用中文
@@ -219,6 +242,73 @@ func SubCmdMap() map[string]*cmd.Cmd {
 //   - bool: 如果使用中文, 则返回true; 否则返回false。
 func GetUseChinese() bool {
 	return getQCommandLine().GetUseChinese()
+}
+
+// GetExamples 获取示例信息
+// 该函数用于获取命令行标志的示例信息列表
+//
+// 返回值:
+//   - []types.ExampleInfo: 示例信息列表，每个元素为 ExampleInfo 类型。
+func GetExamples() []types.ExampleInfo {
+	return getQCommandLine().GetExamples()
+}
+
+// GetHelp 返回全局默认命令实例 `QCommandLine` 的帮助信息
+//
+// 返回值:
+//   - string: 命令行帮助信息。
+func GetHelp() string {
+	return getQCommandLine().GetHelp()
+}
+
+// GetLogoText 获取全局默认命令实例 `QCommandLine` 的 logo 文本
+//
+// 返回值:
+//   - string: 配置的 logo 文本。
+func GetLogoText() string {
+	return getQCommandLine().GetLogoText()
+}
+
+// GetUsageSyntax 获取全局默认命令实例 `QCommandLine` 的用法信息
+//
+// 返回值:
+//   - string: 命令行用法信息。
+func GetUsageSyntax() string {
+	return getQCommandLine().GetUsageSyntax()
+}
+
+// GetModuleHelps 获取模块帮助信息
+//
+// 返回值:
+//   - string: 模块帮助信息。
+func GetModuleHelps() string {
+	return getQCommandLine().GetModuleHelps()
+}
+
+// ================================================================================
+// Set 方法 - 设置配置信息(14个)
+// ================================================================================
+
+// SetVersion 为全局默认命令设置版本信息
+//
+// 参数说明：
+//   - version: 版本信息字符串，用于标识命令的版本。
+func SetVersion(version string) {
+	getQCommandLine().SetVersion(version)
+}
+
+// SetVersionf 为全局默认命令设置版本信息
+//
+// 参数说明：
+//   - format: 格式化字符串，用于标识命令的版本。
+//   - args: 可变参数列表，用于替换格式化字符串中的占位符。
+func SetVersionf(format string, args ...any) {
+	getQCommandLine().SetVersionf(format, args...)
+}
+
+// SetDescription 设置命令描述信息
+func SetDescription(desc string) {
+	getQCommandLine().SetDescription(desc)
 }
 
 // SetUseChinese 设置是否使用中文
@@ -239,6 +329,15 @@ func AddNote(note string) {
 	getQCommandLine().AddNote(note)
 }
 
+// AddNotes 添加注意事项
+// 该函数用于添加命令行标志的注意事项，这些注意事项将在命令行帮助信息中显示
+//
+// 参数:
+//   - notes: 注意事项内容，字符串切片，每个元素为一个注意事项。
+func AddNotes(notes []string) {
+	getQCommandLine().AddNotes(notes)
+}
+
 // AddExample 添加示例
 // 该函数用于添加命令行标志的示例，这些示例将在命令行帮助信息中显示
 //
@@ -249,21 +348,13 @@ func AddExample(desc, usage string) {
 	getQCommandLine().AddExample(desc, usage)
 }
 
-// GetExamples 获取示例信息
-// 该函数用于获取命令行标志的示例信息列表
+// AddExamples 添加示例
+// 该函数用于添加命令行标志的示例，这些示例将在命令行帮助信息中显示
 //
-// 返回值:
-//   - []cmd.ExampleInfo: 示例信息列表，每个元素为 ExampleInfo 类型。
-func GetExamples() []cmd.ExampleInfo {
-	return getQCommandLine().GetExamples()
-}
-
-// GetHelp 返回全局默认命令实例 `QCommandLine` 的帮助信息
-//
-// 返回值:
-//   - string: 命令行帮助信息。
-func GetHelp() string {
-	return getQCommandLine().GetHelp()
+// 参数:
+//   - examples: 示例列表，每个元素为 types.ExampleInfo 类型。
+func AddExamples(examples []types.ExampleInfo) {
+	getQCommandLine().AddExamples(examples)
 }
 
 // SetHelp 配置全局默认命令实例 `QCommandLine` 的帮助信息
@@ -301,28 +392,12 @@ func SetUsageSyntax(usageSyntax string) {
 	getQCommandLine().SetUsageSyntax(usageSyntax)
 }
 
-// GetUsageSyntax 获取全局默认命令实例 `QCommandLine` 的用法信息
-//
-// 返回值:
-//   - string: 命令行用法信息。
-func GetUsageSyntax() string {
-	return getQCommandLine().GetUsageSyntax()
-}
-
 // SetLogoText 配置全局默认命令实例 `QCommandLine` 的 logo 文本
 //
 // 参数:
 //   - logoText: 配置的 logo 文本，字符串类型。
 func SetLogoText(logoText string) {
 	getQCommandLine().SetLogoText(logoText)
-}
-
-// GetLogoText 获取全局默认命令实例 `QCommandLine` 的 logo 文本
-//
-// 返回值:
-//   - string: 配置的 logo 文本。
-func GetLogoText() string {
-	return getQCommandLine().GetLogoText()
 }
 
 // SetModuleHelps 配置模块帮助信息
@@ -333,14 +408,6 @@ func SetModuleHelps(moduleHelps string) {
 	getQCommandLine().SetModuleHelps(moduleHelps)
 }
 
-// GetModuleHelps 获取模块帮助信息
-//
-// 返回值:
-//   - string: 模块帮助信息。
-func GetModuleHelps() string {
-	return getQCommandLine().GetModuleHelps()
-}
-
 // SetExitOnBuiltinFlags 设置是否在解析内置参数时退出
 // 默认情况下为true，当解析到内置参数时，QFlag将退出程序
 //
@@ -348,33 +415,6 @@ func GetModuleHelps() string {
 //   - exit: 是否退出
 func SetExitOnBuiltinFlags(exit bool) {
 	getQCommandLine().SetExitOnBuiltinFlags(exit)
-}
-
-// CmdExists 检查子命令是否存在
-//
-// 参数:
-//   - cmdName: 子命令名称
-//
-// 返回:
-//   - bool: 子命令是否存在
-func CmdExists(cmdName string) bool {
-	return getQCommandLine().CmdExists(cmdName)
-}
-
-// IsParsed 检查命令行参数是否已解析
-//
-// 返回:
-//   - bool: 是否已解析
-func IsParsed() bool {
-	return getQCommandLine().IsParsed()
-}
-
-// FlagRegistry 获取标志注册表
-//
-// 返回值:
-//   - *flags.FlagRegistry: 标志注册表
-func FlagRegistry() *flags.FlagRegistry {
-	return getQCommandLine().FlagRegistry()
 }
 
 // SetEnableCompletion 设置是否启用自动完成功能
