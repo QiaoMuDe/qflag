@@ -869,20 +869,6 @@ IsParsed 检查命令是否已完成解析
 
 #### 帮助和配置方法
 
-##### LoadHelp
-
-```go
-func (c *Cmd) LoadHelp(filePath string) error
-```
-
-LoadHelp 从指定文件加载帮助信息
-
-**参数:**
-- `filePath`: 帮助信息文件路径
-
-**返回值:**
-- `error`: 如果文件不存在或读取文件失败，则返回错误信息
-
 ##### PrintHelp
 
 ```go

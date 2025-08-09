@@ -7,8 +7,6 @@ import (
 	"flag"
 	"fmt"
 	"os"
-	"path/filepath"
-	"strings"
 
 	"gitee.com/MM-Q/qflag/flags"
 	"gitee.com/MM-Q/qflag/internal/help"
@@ -678,39 +676,6 @@ func (c *Cmd) AddExamples(examples []ExampleInfo) {
 
 	// 添加到使用示例列表中
 	c.ctx.Config.Examples = append(c.ctx.Config.Examples, examples...)
-}
-
-// LoadHelp 从指定文件加载帮助信息
-//
-// 参数:
-//   - filePath: 帮助信息文件路径
-//
-// 返回值:
-//   - error: 如果文件不存在或读取文件失败，则返回错误信息
-func (c *Cmd) LoadHelp(filePath string) error {
-	// 检查是否为空
-	if filePath == "" {
-		return fmt.Errorf("file path cannot be empty")
-	}
-
-	// 清理路径并检查有效性
-	cleanPath := filepath.Clean(filePath)
-	if cleanPath == "" || strings.TrimSpace(cleanPath) == "" {
-		return fmt.Errorf("file path cannot be empty or contain only whitespace")
-	}
-
-	// 直接读取文件内容并处理可能的错误（包括文件不存在的情况）
-	content, err := os.ReadFile(cleanPath)
-	if err != nil {
-		if os.IsNotExist(err) {
-			return fmt.Errorf("file %s does not exist", filePath)
-		}
-		return fmt.Errorf("failed to read file %s: %w", filePath, err)
-	}
-
-	// 设置帮助信息
-	c.SetHelp(string(content))
-	return nil
 }
 
 // ================================================================================

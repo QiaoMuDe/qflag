@@ -364,21 +364,6 @@ func SetHelp(help string) {
 	getQCommandLine().SetHelp(help)
 }
 
-// LoadHelp 从文件中加载帮助信息
-//
-// 参数:
-//   - filepath: 文件路径，字符串类型。
-//
-// 返回值:
-//   - error: 如果加载失败，则返回错误信息；否则返回 nil。
-//
-// 示例:
-//
-//	qflag.LoadHelp("help.txt")
-func LoadHelp(filepath string) error {
-	return getQCommandLine().LoadHelp(filepath)
-}
-
 // SetUsageSyntax 配置全局默认命令实例 `QCommandLine` 的用法信息
 //
 // 参数:

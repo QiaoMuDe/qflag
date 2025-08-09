@@ -8,7 +8,6 @@ import (
 	"fmt"
 	"io"
 	"os"
-	"path/filepath"
 	"reflect"
 	"strings"
 	"sync"
@@ -864,126 +863,6 @@ func TestHelp_边界场景(t *testing.T) {
 			if tt.customHelp != "" {
 				if !strings.Contains(gotHelp, tt.customHelp) {
 					t.Errorf("帮助信息应包含自定义内容: %q", tt.customHelp)
-				}
-			}
-		})
-	}
-}
-
-// TestLoadHelp_边界场景 测试LoadHelp方法的边界场景
-func TestLoadHelp_边界场景(t *testing.T) {
-	// 创建临时目录
-	tmpDir := t.TempDir()
-
-	tests := []struct {
-		name        string
-		setupFile   func() string
-		expectError bool
-		errorMsg    string
-		description string
-	}{
-		{
-			name: "正常加载帮助文件",
-			setupFile: func() string {
-				filePath := filepath.Join(tmpDir, "help.txt")
-				content := "这是从文件加载的帮助信息"
-				err := os.WriteFile(filePath, []byte(content), 0644)
-				if err != nil {
-					t.Fatalf("创建测试文件失败: %v", err)
-				}
-				return filePath
-			},
-			expectError: false,
-			description: "正常加载存在的帮助文件",
-		},
-		{
-			name: "空文件路径",
-			setupFile: func() string {
-				return ""
-			},
-			expectError: true,
-			errorMsg:    "file path cannot be empty",
-			description: "传入空的文件路径",
-		},
-		{
-			name: "只包含空白字符的路径",
-			setupFile: func() string {
-				return "   \t\n   "
-			},
-			expectError: true,
-			errorMsg:    "file path cannot be empty or contain only whitespace",
-			description: "传入只包含空白字符的路径",
-		},
-		{
-			name: "不存在的文件",
-			setupFile: func() string {
-				return filepath.Join(tmpDir, "nonexistent.txt")
-			},
-			expectError: true,
-			errorMsg:    "does not exist",
-			description: "尝试加载不存在的文件",
-		},
-		{
-			name: "空文件",
-			setupFile: func() string {
-				filePath := filepath.Join(tmpDir, "empty.txt")
-				err := os.WriteFile(filePath, []byte(""), 0644)
-				if err != nil {
-					t.Fatalf("创建空测试文件失败: %v", err)
-				}
-				return filePath
-			},
-			expectError: false,
-			description: "加载空的帮助文件",
-		},
-		{
-			name: "大文件",
-			setupFile: func() string {
-				filePath := filepath.Join(tmpDir, "large.txt")
-				content := strings.Repeat("这是一行很长的帮助信息。\n", 1000)
-				err := os.WriteFile(filePath, []byte(content), 0644)
-				if err != nil {
-					t.Fatalf("创建大测试文件失败: %v", err)
-				}
-				return filePath
-			},
-			expectError: false,
-			description: "加载大的帮助文件",
-		},
-	}
-
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			cmd := NewCmd("test", "t", flag.ContinueOnError)
-			filePath := tt.setupFile()
-
-			err := cmd.LoadHelp(filePath)
-
-			if tt.expectError {
-				if err == nil {
-					t.Error("期望错误但没有返回错误")
-					return
-				}
-				if tt.errorMsg != "" && !strings.Contains(err.Error(), tt.errorMsg) {
-					t.Errorf("错误信息不匹配: 期望包含 %q, 实际 %q", tt.errorMsg, err.Error())
-				}
-			} else {
-				if err != nil {
-					t.Errorf("意外的错误: %v", err)
-					return
-				}
-
-				// 验证帮助内容是否正确加载
-				if filePath != "" {
-					expectedContent, readErr := os.ReadFile(filePath)
-					if readErr != nil {
-						t.Fatalf("读取测试文件失败: %v", readErr)
-					}
-
-					gotHelp := cmd.GetHelp()
-					if !strings.Contains(gotHelp, string(expectedContent)) {
-						t.Error("加载的帮助内容不正确")
-					}
 				}
 			}
 		})

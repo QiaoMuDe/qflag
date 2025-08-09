@@ -435,9 +435,6 @@ func main() {
     // 设置中文帮助信息
     qflag.SetUseChinese(true)
     
-    // 从文件加载自定义帮助信息
-    // qflag.LoadHelp("help.txt")
-    
     // 定义标志...
     name := qflag.String("name", "n", "world", "要问候的名称")
     

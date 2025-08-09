@@ -440,25 +440,6 @@ IsParsed 检查命令行参数是否已解析。
 **返回值:**
 - `bool`: 是否已解析
 
-### LoadHelp
-
-```go
-func LoadHelp(filepath string) error
-```
-
-LoadHelp 从文件中加载帮助信息。
-
-**参数:**
-- `filepath`: 文件路径，字符串类型
-
-**返回值:**
-- `error`: 如果加载失败，则返回错误信息；否则返回 nil
-
-**示例:**
-```go
-qflag.LoadHelp("help.txt")
-```
-
 ### LongName
 
 ```go
