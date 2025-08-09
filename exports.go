@@ -4,12 +4,16 @@
 package qflag
 
 import (
+	"gitee.com/MM-Q/qflag/cmd"
 	"gitee.com/MM-Q/qflag/flags"
 )
 
 /*
 项目地址: https://gitee.com/MM-Q/qflag
 */
+
+// NewCmd 导出cmd包中的NewCmd函数
+var NewCmd = cmd.NewCmd
 
 // 导出标志类型 //
 
