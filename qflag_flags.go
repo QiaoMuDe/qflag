@@ -21,7 +21,7 @@ import (
 // 返回值：
 //   - *flags.StringFlag: 指向新创建的字符串标志对象的指针。
 func String(longName, shortName, defValue, usage string) *flags.StringFlag {
-	return QCommandLine.String(longName, shortName, defValue, usage)
+	return getQCommandLine().String(longName, shortName, defValue, usage)
 }
 
 // Int 为全局默认命令创建一个整数类型的命令行标志。
@@ -36,7 +36,7 @@ func String(longName, shortName, defValue, usage string) *flags.StringFlag {
 // 返回值：
 //   - *flags.IntFlag: 指向新创建的整数标志对象的指针。
 func Int(longName, shortName string, defValue int, usage string) *flags.IntFlag {
-	return QCommandLine.Int(longName, shortName, defValue, usage)
+	return getQCommandLine().Int(longName, shortName, defValue, usage)
 }
 
 // Bool 为全局默认命令创建一个布尔类型的命令行标志。
@@ -51,7 +51,7 @@ func Int(longName, shortName string, defValue int, usage string) *flags.IntFlag 
 // 返回值：
 //   - *flags.BoolFlag: 指向新创建的布尔标志对象的指针。
 func Bool(longName, shortName string, defValue bool, usage string) *flags.BoolFlag {
-	return QCommandLine.Bool(longName, shortName, defValue, usage)
+	return getQCommandLine().Bool(longName, shortName, defValue, usage)
 }
 
 // Float64 为全局默认命令创建一个浮点数类型的命令行标志。
@@ -66,7 +66,7 @@ func Bool(longName, shortName string, defValue bool, usage string) *flags.BoolFl
 // 返回值：
 //   - *flags.FloatFlag: 指向新创建的浮点数标志对象的指针。
 func Float64(longName, shortName string, defValue float64, usage string) *flags.Float64Flag {
-	return QCommandLine.Float64(longName, shortName, defValue, usage)
+	return getQCommandLine().Float64(longName, shortName, defValue, usage)
 }
 
 // StringVar 函数的作用是将一个字符串类型的命令行标志绑定到全局默认命令的 `StringFlag` 指针上。
@@ -80,7 +80,7 @@ func Float64(longName, shortName string, defValue float64, usage string) *flags.
 //   - defValue: 该命令行标志的默认值，当用户在命令行中未指定该标志时，会使用此默认值。
 //   - usage: 该命令行标志的帮助说明信息，会在显示帮助信息时展示给用户，用于解释该标志的用途。
 func StringVar(f *flags.StringFlag, longName, shortName, defValue, usage string) {
-	QCommandLine.StringVar(f, longName, shortName, defValue, usage)
+	getQCommandLine().StringVar(f, longName, shortName, defValue, usage)
 }
 
 // IntVar 函数的作用是将整数类型的命令行标志绑定到全局默认命令的 `IntFlag` 指针上。
@@ -94,7 +94,7 @@ func StringVar(f *flags.StringFlag, longName, shortName, defValue, usage string)
 //   - defValue: 该命令行标志的默认值。当用户在命令行中未指定该标志时，会采用此默认值。
 //   - usage: 该命令行标志的帮助说明信息，在显示帮助信息时会呈现给用户，用以解释该标志的具体用途。
 func IntVar(f *flags.IntFlag, longName, shortName string, defValue int, usage string) {
-	QCommandLine.IntVar(f, longName, shortName, defValue, usage)
+	getQCommandLine().IntVar(f, longName, shortName, defValue, usage)
 }
 
 // BoolVar 函数的作用是将布尔类型的命令行标志绑定到全局默认命令实例 `QCommandLine` 中。
@@ -108,7 +108,7 @@ func IntVar(f *flags.IntFlag, longName, shortName string, defValue int, usage st
 //   - defValue: 标志的默认值，当命令行未指定该标志时，会使用此默认值。
 //   - usage: 标志的帮助说明信息，用于在显示帮助信息时展示给用户，解释该标志的用途。
 func BoolVar(f *flags.BoolFlag, longName, shortName string, defValue bool, usage string) {
-	QCommandLine.BoolVar(f, longName, shortName, defValue, usage)
+	getQCommandLine().BoolVar(f, longName, shortName, defValue, usage)
 }
 
 // Float64Var 为全局默认命令绑定一个浮点数类型的命令行标志到指定的 `FloatFlag` 指针。
@@ -122,7 +122,7 @@ func BoolVar(f *flags.BoolFlag, longName, shortName string, defValue bool, usage
 //   - defValue: 该命令行标志的默认值，当用户在命令行中未指定该标志时，会使用此默认值。
 //   - usage: 该命令行标志的帮助说明信息，会在显示帮助信息时展示给用户，用于解释该标志的用途。
 func Float64Var(f *flags.Float64Flag, longName, shortName string, defValue float64, usage string) {
-	QCommandLine.Float64Var(f, longName, shortName, defValue, usage)
+	getQCommandLine().Float64Var(f, longName, shortName, defValue, usage)
 }
 
 // Enum 为全局默认命令定义一个枚举类型的命令行标志。
@@ -138,7 +138,7 @@ func Float64Var(f *flags.Float64Flag, longName, shortName string, defValue float
 // 返回值：
 //   - *flags.EnumFlag: 指向新创建的枚举类型标志对象的指针。
 func Enum(longName, shortName string, defValue string, usage string, enumValues []string) *flags.EnumFlag {
-	return QCommandLine.Enum(longName, shortName, defValue, usage, enumValues)
+	return getQCommandLine().Enum(longName, shortName, defValue, usage, enumValues)
 }
 
 // EnumVar 为全局默认命令将一个枚举类型的命令行标志绑定到指定的 `EnumFlag` 指针。
@@ -153,7 +153,7 @@ func Enum(longName, shortName string, defValue string, usage string, enumValues 
 //   - usage: 该命令行标志的帮助说明信息，在显示帮助信息时会呈现给用户，用以解释该标志的具体用途。
 //   - enumValues: 枚举值的集合，用于指定标志可接受的取值范围。
 func EnumVar(f *flags.EnumFlag, longName, shortName string, defValue string, usage string, enumValues []string) {
-	QCommandLine.EnumVar(f, longName, shortName, defValue, usage, enumValues)
+	getQCommandLine().EnumVar(f, longName, shortName, defValue, usage, enumValues)
 }
 
 // Duration 为全局默认命令定义一个时间间隔类型的命令行标志。
@@ -168,7 +168,7 @@ func EnumVar(f *flags.EnumFlag, longName, shortName string, defValue string, usa
 // 返回值：
 //   - *flags.DurationFlag: 指向新创建的时间间隔类型标志对象的指针。
 func Duration(longName, shortName string, defValue time.Duration, usage string) *flags.DurationFlag {
-	return QCommandLine.Duration(longName, shortName, defValue, usage)
+	return getQCommandLine().Duration(longName, shortName, defValue, usage)
 }
 
 // DurationVar 为全局默认命令将一个时间间隔类型的命令行标志绑定到指定的 `DurationFlag` 指针。
@@ -182,7 +182,7 @@ func Duration(longName, shortName string, defValue time.Duration, usage string) 
 //   - defValue: 该命令行标志的默认值。当用户在命令行中未指定该标志时，会采用此默认值。该值会被复制一份，避免外部修改影响内部状态。
 //   - usage: 该命令行标志的帮助说明信息，在显示帮助信息时会呈现给用户，用以解释该标志的具体用途。
 func DurationVar(f *flags.DurationFlag, longName, shortName string, defValue time.Duration, usage string) {
-	QCommandLine.DurationVar(f, longName, shortName, defValue, usage)
+	getQCommandLine().DurationVar(f, longName, shortName, defValue, usage)
 }
 
 // Slice 为全局默认命令定义一个字符串切片类型的命令行标志。
@@ -197,7 +197,7 @@ func DurationVar(f *flags.DurationFlag, longName, shortName string, defValue tim
 // 返回值：
 //   - *flags.SliceFlag: 指向新创建的字符串切片类型标志对象的指针。
 func Slice(longName, shortName string, defValue []string, usage string) *flags.SliceFlag {
-	return QCommandLine.Slice(longName, shortName, defValue, usage)
+	return getQCommandLine().Slice(longName, shortName, defValue, usage)
 }
 
 // SliceVar 为全局默认命令将一个字符串切片类型的命令行标志绑定到指定的 `SliceFlag` 指针。
@@ -210,7 +210,7 @@ func Slice(longName, shortName string, defValue []string, usage string) *flags.S
 //   - defValue: 该命令行标志的默认值。当用户在命令行中未指定该标志时，会采用此默认值。该值会被复制一份，避免外部修改影响内部状态。
 //   - usage: 该命令行标志的帮助说明信息，在显示帮助信息时会呈现给用户，用以解释该标志的具体用途。
 func SliceVar(f *flags.SliceFlag, longName, shortName string, defValue []string, usage string) {
-	QCommandLine.SliceVar(f, longName, shortName, defValue, usage)
+	getQCommandLine().SliceVar(f, longName, shortName, defValue, usage)
 }
 
 // Int64 为全局默认命令定义一个64位整数类型的命令行标志。
@@ -225,7 +225,7 @@ func SliceVar(f *flags.SliceFlag, longName, shortName string, defValue []string,
 // 返回值：
 //   - *flags.Int64Flag: 指向新创建的64位整数类型标志对象的指针。
 func Int64(longName, shortName string, defValue int64, usage string) *flags.Int64Flag {
-	return QCommandLine.Int64(longName, shortName, defValue, usage)
+	return getQCommandLine().Int64(longName, shortName, defValue, usage)
 }
 
 // Int64Var 函数创建一个64位整数类型标志，并将其绑定到指定的 `Int64Flag` 指针
@@ -238,7 +238,7 @@ func Int64(longName, shortName string, defValue int64, usage string) *flags.Int6
 //   - defValue: 命令行标志的默认值。
 //   - usage: 命令行标志的用法说明。
 func Int64Var(f *flags.Int64Flag, longName, shortName string, defValue int64, usage string) {
-	QCommandLine.Int64Var(f, longName, shortName, defValue, usage)
+	getQCommandLine().Int64Var(f, longName, shortName, defValue, usage)
 }
 
 // Uint16 为全局默认命令定义一个无符号16位整数类型的命令行标志。
@@ -253,7 +253,7 @@ func Int64Var(f *flags.Int64Flag, longName, shortName string, defValue int64, us
 // 返回值：
 //   - *flags.Uint16Flag: 指向新创建的无符号16位整数类型标志对象的指针。
 func Uint16(longName, shortName string, defValue uint16, usage string) *flags.Uint16Flag {
-	return QCommandLine.Uint16(longName, shortName, defValue, usage)
+	return getQCommandLine().Uint16(longName, shortName, defValue, usage)
 }
 
 // Uint16Var 函数创建一个无符号16位整数类型标志，并将其绑定到指定的 `Uint16Flag` 指针
@@ -266,7 +266,7 @@ func Uint16(longName, shortName string, defValue uint16, usage string) *flags.Ui
 //   - defValue: 命令行标志的默认值。
 //   - usage: 命令行标志的用法说明。
 func Uint16Var(f *flags.Uint16Flag, longName, shortName string, defValue uint16, usage string) {
-	QCommandLine.Uint16Var(f, longName, shortName, defValue, usage)
+	getQCommandLine().Uint16Var(f, longName, shortName, defValue, usage)
 }
 
 // Time 为全局默认命令定义一个时间类型的命令行标志。
@@ -288,7 +288,7 @@ func Uint16Var(f *flags.Uint16Flag, longName, shortName string, defValue uint16,
 //   - "2006-01-02", "2006-01-02 15:04:05" : 绝对时间格式
 //   - RFC3339等标准格式
 func Time(longName, shortName string, defValue string, usage string) *flags.TimeFlag {
-	return QCommandLine.Time(longName, shortName, defValue, usage)
+	return getQCommandLine().Time(longName, shortName, defValue, usage)
 }
 
 // TimeVar 为全局默认命令定义一个时间类型的命令行标志，并将其绑定到指定的 `TimeFlag` 指针。
@@ -308,7 +308,7 @@ func Time(longName, shortName string, defValue string, usage string) *flags.Time
 //   - "2006-01-02", "2006-01-02 15:04:05" : 绝对时间格式
 //   - RFC3339等标准格式
 func TimeVar(f *flags.TimeFlag, longName, shortName string, defValue string, usage string) {
-	QCommandLine.TimeVar(f, longName, shortName, defValue, usage)
+	getQCommandLine().TimeVar(f, longName, shortName, defValue, usage)
 }
 
 // Map 为全局默认命令创建一个键值对类型的命令行标志。
@@ -323,7 +323,7 @@ func TimeVar(f *flags.TimeFlag, longName, shortName string, defValue string, usa
 // 返回值：
 //   - *flags.MapFlag: 指向新创建的键值对标志对象的指针。
 func Map(longName, shortName string, defValue map[string]string, usage string) *flags.MapFlag {
-	return QCommandLine.Map(longName, shortName, defValue, usage)
+	return getQCommandLine().Map(longName, shortName, defValue, usage)
 }
 
 // MapVar 为全局默认命令将一个键值对类型的命令行标志绑定到指定的 MapFlag 指针。
@@ -337,7 +337,7 @@ func Map(longName, shortName string, defValue map[string]string, usage string) *
 //   - defValue: 该命令行标志的默认值，当用户在命令行中未指定该标志时，会使用此默认值。
 //   - usage: 该命令行标志的帮助说明信息，会在显示帮助信息时展示给用户。
 func MapVar(f *flags.MapFlag, longName, shortName string, defValue map[string]string, usage string) {
-	QCommandLine.MapVar(f, longName, shortName, defValue, usage)
+	getQCommandLine().MapVar(f, longName, shortName, defValue, usage)
 }
 
 // Uint32 为全局默认命令创建一个无符号32位整数类型的命令行标志。
@@ -352,7 +352,7 @@ func MapVar(f *flags.MapFlag, longName, shortName string, defValue map[string]st
 // 返回值：
 //   - *flags.Uint32Flag: 指向新创建的无符号32位整数标志对象的指针。
 func Uint32(longName, shortName string, defValue uint32, usage string) *flags.Uint32Flag {
-	return QCommandLine.Uint32(longName, shortName, defValue, usage)
+	return getQCommandLine().Uint32(longName, shortName, defValue, usage)
 }
 
 // Uint32Var 创建并绑定一个无符号32位整数标志。
@@ -364,7 +364,7 @@ func Uint32(longName, shortName string, defValue uint32, usage string) *flags.Ui
 //   - defValue: 该命令行标志的默认值，当用户在命令行中未指定该标志时，会使用此默认值
 //   - usage: 该命令行标志的帮助说明信息，会在显示帮助信息时展示给用户。
 func Uint32Var(f *flags.Uint32Flag, longName, shortName string, defValue uint32, usage string) {
-	QCommandLine.Uint32Var(f, longName, shortName, defValue, usage)
+	getQCommandLine().Uint32Var(f, longName, shortName, defValue, usage)
 }
 
 // Uint64 为全局默认命令创建一个无符号64位整数类型的命令行标志。
@@ -379,7 +379,7 @@ func Uint32Var(f *flags.Uint32Flag, longName, shortName string, defValue uint32,
 // 返回值：
 //   - *flags.Uint64Flag: 指向新创建的无符号64位整数标志对象的指针。
 func Uint64(longName, shortName string, defValue uint64, usage string) *flags.Uint64Flag {
-	return QCommandLine.Uint64(longName, shortName, defValue, usage)
+	return getQCommandLine().Uint64(longName, shortName, defValue, usage)
 }
 
 // Uint64Var 为全局默认命令将一个无符号64位整数类型的命令行标志绑定到指定的 Uint64Flag 指针。
@@ -393,5 +393,5 @@ func Uint64(longName, shortName string, defValue uint64, usage string) *flags.Ui
 //   - defValue: 该命令行标志的默认值，当用户在命令行中未指定该标志时，会使用此默认值。
 //   - usage: 该命令行标志的帮助说明信息，会在显示帮助信息时展示给用户。
 func Uint64Var(f *flags.Uint64Flag, longName, shortName string, defValue uint64, usage string) {
-	QCommandLine.Uint64Var(f, longName, shortName, defValue, usage)
+	getQCommandLine().Uint64Var(f, longName, shortName, defValue, usage)
 }

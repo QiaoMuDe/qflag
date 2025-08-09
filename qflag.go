@@ -18,15 +18,15 @@ import (
 */
 
 var (
-	// QCommandLine 全局默认Command实例（保持原名，与标准库flag对齐）
-	QCommandLine *cmd.Cmd
+	// qCommandLine 全局默认Command实例（保持原名，与标准库flag对齐）
+	qCommandLine *cmd.Cmd
 
 	// qCommandLineOnce 确保全局默认Cmd实例只被初始化一次
 	qCommandLineOnce sync.Once
 )
 
 // getQCommandLine 获取全局默认命令实例（延迟初始化）
-// 内部函数，确保QCommandLine只会被初始化一次，线程安全
+// 内部函数, 确保QCommandLine只会被初始化一次, 线程安全
 func getQCommandLine() *cmd.Cmd {
 	qCommandLineOnce.Do(func() {
 		// 使用一致的命令名生成逻辑
@@ -36,9 +36,9 @@ func getQCommandLine() *cmd.Cmd {
 		}
 
 		// 创建全局默认Cmd实例
-		QCommandLine = cmd.NewCmd(cmdName, "", flag.ExitOnError)
+		qCommandLine = cmd.NewCmd(cmdName, "", flag.ExitOnError)
 	})
-	return QCommandLine
+	return qCommandLine
 }
 
 // ================================================================================
@@ -52,12 +52,10 @@ func getQCommandLine() *cmd.Cmd {
 //  3. 验证枚举类型标志的有效性
 //
 // 参数：
-//
-//	args: 原始命令行参数切片（包含可能的子命令及参数）
+//   - args: 原始命令行参数切片（包含可能的子命令及参数）
 //
 // 返回值：
-//
-//	解析过程中遇到的错误（如标志格式错误、子命令解析失败等）
+//   - err: 解析过程中遇到的错误（如标志格式错误、子命令解析失败等）
 //
 // 注意事项：
 //   - 每个Cmd实例仅会被解析一次（线程安全）
@@ -74,12 +72,10 @@ func Parse() error {
 //  3. 明确忽略所有子命令及后续参数
 //
 // 参数：
-//
-//	args: 原始命令行参数切片（子命令及后续参数会被忽略）
+//   - args: 原始命令行参数切片（子命令及后续参数会被忽略）
 //
 // 返回值：
-//
-//	解析过程中遇到的错误（如标志格式错误等）
+//   - err: 解析过程中遇到的错误（如标志格式错误等）
 //
 // 注意事项：
 //   - 每个Cmd实例仅会被解析一次（线程安全）

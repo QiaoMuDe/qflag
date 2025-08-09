@@ -12,8 +12,8 @@ Package qflag 全局标志函数定义文件。本文件提供了全局默认命
 
 ```go
 var (
-    // QCommandLine 全局默认Command实例（保持原名，与标准库flag对齐）
-    QCommandLine *cmd.Cmd
+    // qCommandLine 全局默认Command实例（保持原名，与标准库flag对齐）
+    qCommandLine *cmd.Cmd
 )
 ```
 
