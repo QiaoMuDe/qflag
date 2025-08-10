@@ -168,15 +168,15 @@ func TestCompletionBash(t *testing.T) {
 		"#!/usr/bin/env bash",
 		"declare -A completion.test.exe_cmd_tree",
 		"declare -A completion.test.exe_flag_params",
-		"completion.test.exe_cmd_tree[/]",
-		"completion.test.exe_cmd_tree[/cmd1/]",
-		"completion.test.exe_cmd_tree[/c1/]",
+		"completion.test.exe_cmd_tree[\"/\"]",
+		"completion.test.exe_cmd_tree[\"/cmd1/\"]",
+		"completion.test.exe_cmd_tree[\"/c1/\"]",
 		"complete -F _completion.test.exe completion.test.exe",
 	}
 
 	for _, expected := range expectedContents {
 		if !strings.Contains(script, expected) {
-			t.Errorf("PowerShell补全脚本不包含预期内容: %s", expected)
+			t.Errorf("bash补全脚本不包含预期内容: %s", expected)
 		}
 	}
 
