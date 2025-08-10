@@ -555,10 +555,10 @@ func TestTraverseCommandTree(t *testing.T) {
 			name:      "Bash命令树遍历",
 			shellType: flags.ShellBash,
 			contains: []string{
-				"_cmd_tree[/sub1/]",
-				"_cmd_tree[/s1/]",
-				"_cmd_tree[/sub2/]",
-				"_cmd_tree[/s2/]",
+				"_cmd_tree[\"/sub1/\"]",
+				"_cmd_tree[\"/s1/\"]",
+				"_cmd_tree[\"/sub2/\"]",
+				"_cmd_tree[\"/s2/\"]",
 			},
 		},
 		{
