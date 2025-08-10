@@ -97,7 +97,7 @@ func TestBashFuzzyCompletionGeneration(t *testing.T) {
 	// 验证数据结构是否正确
 	t.Run("数据结构检查", func(t *testing.T) {
 		// 检查命令树
-		if !strings.Contains(result, "testcli_cmd_tree[/]=\"--help|--verbose|--version|--validate|build|test\"") {
+		if !strings.Contains(result, "testcli_cmd_tree[\"/\"]=\"--help|--verbose|--version|--validate|build|test\"") {
 			t.Error("根命令选项未正确生成")
 		}
 
@@ -194,7 +194,7 @@ func TestBashCommandTreeEntry(t *testing.T) {
 	generateBashCommandTreeEntry(&buf, cmdPath, cmdOpts, "testprogram")
 
 	result := buf.String()
-	expected := "testprogram_cmd_tree[/build/]=\"--output|--target|--verbose\"\n"
+	expected := "testprogram_cmd_tree[\"/build/\"]=\"--output|--target|--verbose\"\n"
 
 	if result != expected {
 		t.Errorf("命令树条目生成错误\n期望: %q\n实际: %q", expected, result)
