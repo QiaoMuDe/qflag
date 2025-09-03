@@ -41,6 +41,12 @@ type Int64Flag = flags.Int64Flag
 // StringSliceFlag 导出flag包中的StringSliceFlag结构体
 type StringSliceFlag = flags.StringSliceFlag
 
+// IntSliceFlag 导出flag包中的IntSliceFlag结构体
+type IntSliceFlag = flags.IntSliceFlag
+
+// Int64SliceFlag 导出flag包中的Int64SliceFlag结构体
+type Int64SliceFlag = flags.Int64SliceFlag
+
 // EnumFlag 导出flag包中的EnumFlag结构体
 type EnumFlag = flags.EnumFlag
 
