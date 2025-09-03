@@ -543,13 +543,13 @@ EnumVar 绑定枚举类型标志到指针并内部注册Flag对象
 - `usage`: string - 帮助说明
 - `options`: []string - 限制该标志取值的枚举值切片
 
-##### Slice
+##### StringSlice
 
 ```go
-func (c *Cmd) Slice(longName, shortName string, defValue []string, usage string) *flags.SliceFlag
+func (c *Cmd) StringSlice(longName, shortName string, defValue []string, usage string) *flags.StringSliceFlag
 ```
 
-Slice 绑定字符串切片类型标志并内部注册Flag对象
+StringSlice 绑定字符串切片类型标志并内部注册Flag对象
 
 **参数值:**
 - `longName`: 长标志名
@@ -558,18 +558,82 @@ Slice 绑定字符串切片类型标志并内部注册Flag对象
 - `usage`: 帮助说明
 
 **返回值:**
-- `*flags.SliceFlag`: 字符串切片标志对象指针
+- `*flags.StringSliceFlag`: 字符串切片标志对象指针
 
-##### SliceVar
+##### StringSliceVar
 
 ```go
-func (c *Cmd) SliceVar(f *flags.SliceFlag, longName, shortName string, defValue []string, usage string)
+func (c *Cmd) StringSliceVar(f *flags.StringSliceFlag, longName, shortName string, defValue []string, usage string)
 ```
 
-SliceVar 绑定字符串切片类型标志到指针并内部注册Flag对象
+StringSliceVar 绑定字符串切片类型标志到指针并内部注册Flag对象
 
 **参数值:**
 - `f`: 字符串切片标志指针
+- `longName`: 长标志名
+- `shortName`: 短标志名
+- `defValue`: 默认值
+- `usage`: 帮助说明
+
+##### IntSlice
+
+```go
+func (c *Cmd) IntSlice(longName, shortName string, defValue []int, usage string) *flags.IntSliceFlag
+```
+
+IntSlice 绑定整数切片类型标志并内部注册Flag对象
+
+**参数值:**
+- `longName`: 长标志名
+- `shortName`: 短标志名
+- `defValue`: 默认值
+- `usage`: 帮助说明
+
+**返回值:**
+- `*flags.IntSliceFlag`: 整数切片标志对象指针
+
+##### IntSliceVar
+
+```go
+func (c *Cmd) IntSliceVar(f *flags.IntSliceFlag, longName, shortName string, defValue []int, usage string)
+```
+
+IntSliceVar 绑定整数切片类型标志到指针并内部注册Flag对象
+
+**参数值:**
+- `f`: 整数切片标志指针
+- `longName`: 长标志名
+- `shortName`: 短标志名
+- `defValue`: 默认值
+- `usage`: 帮助说明
+
+##### Int64Slice
+
+```go
+func (c *Cmd) Int64Slice(longName, shortName string, defValue []int64, usage string) *flags.Int64SliceFlag
+```
+
+Int64Slice 绑定64位整数切片类型标志并内部注册Flag对象
+
+**参数值:**
+- `longName`: 长标志名
+- `shortName`: 短标志名
+- `defValue`: 默认值
+- `usage`: 帮助说明
+
+**返回值:**
+- `*flags.Int64SliceFlag`: 64位整数切片标志对象指针
+
+##### Int64SliceVar
+
+```go
+func (c *Cmd) Int64SliceVar(f *flags.Int64SliceFlag, longName, shortName string, defValue []int64, usage string)
+```
+
+Int64SliceVar 绑定64位整数切片类型标志到指针并内部注册Flag对象
+
+**参数值:**
+- `f`: 64位整数切片标志指针
 - `longName`: 长标志名
 - `shortName`: 短标志名
 - `defValue`: 默认值
