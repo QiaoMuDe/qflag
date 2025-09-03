@@ -26,7 +26,6 @@ const (
 	FlagTypeStringSlice                 // 字符串切片类型
 	FlagTypeIntSlice                    // []int 切片类型
 	FlagTypeInt64Slice                  // []int64 切片类型
-	FlagTypeAnySlice                    // []any 切片类型
 )
 
 // 内置标志名称
@@ -165,7 +164,7 @@ func FlagTypeToString(flagType FlagType) string {
 		return "<time>"
 	case FlagTypeMap:
 		return "<k=v,k=v,...>"
-	case FlagTypeStringSlice, FlagTypeIntSlice, FlagTypeInt64Slice, FlagTypeAnySlice:
+	case FlagTypeStringSlice, FlagTypeIntSlice, FlagTypeInt64Slice:
 		return "<value,value,...>"
 	default:
 		return "<value>"
