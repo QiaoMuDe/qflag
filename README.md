@@ -73,7 +73,9 @@ import "gitee.com/MM-Q/qflag/validator"
 | `Float64Flag` | `Float64()` | `Float64Var()` | 64位浮点数 | `--threshold 0.95` |
 | **高级类型** |
 | `EnumFlag` | `Enum()` | `EnumVar()` | 枚举类型 | `--mode "debug"` |
-| `SliceFlag` | `Slice()` | `SliceVar()` | 字符串切片 | `--files file1,file2` |
+| `StringSliceFlag` | `StringSlice()` | `StringSliceVar()` | 字符串切片 | `--files file1,file2` |
+| `IntSliceFlag` | `IntSlice()` | `IntSliceVar()` | 整数切片 | `--ports 8080,9000,3000` |
+| `Int64SliceFlag` | `Int64Slice()` | `Int64SliceVar()` | 64位整数切片 | `--sizes 1024,2048,4096` |
 | `DurationFlag` | `Duration()` | `DurationVar()` | 时间间隔 | `--timeout 30s` |
 | `TimeFlag` | `Time()` | `TimeVar()` | 时间类型 | `--start "2024-01-01T00:00:00"` |
 | `MapFlag` | `Map()` | `MapVar()` | 键值对映射 | `--config key=value,key2=value2` |
@@ -221,11 +223,18 @@ import (
 )
 
 func main() {
-    // 创建切片标志
-    files := qflag.Slice("files", "f", []string{}, "要处理的文件列表")
+    // 创建字符串切片标志
+    files := qflag.StringSlice("files", "f", []string{}, "要处理的文件列表")
+    
+    // 创建整数切片标志
+    ports := qflag.IntSlice("ports", "p", []int{8080}, "服务端口列表")
+    
+    // 创建64位整数切片标志
+    sizes := qflag.Int64Slice("sizes", "s", []int64{}, "文件大小列表")
     
     // 自定义分隔符（默认为逗号）
-    files.SetSeparator(";")
+    files.SetDelimiters([]string{";"})
+    ports.SetDelimiters([]string{","})
     
     if err := qflag.Parse(); err != nil {
         fmt.Printf("解析参数错误: %v\n", err)
@@ -233,10 +242,15 @@ func main() {
     }
     
     fmt.Printf("要处理的文件: %v\n", files.Get())
+    fmt.Printf("服务端口: %v\n", ports.Get())
+    fmt.Printf("文件大小: %v\n", sizes.Get())
 }
 ```
 
-使用方式：`./app --files file1.txt;file2.txt;file3.txt`
+使用方式：
+```bash
+./app --files file1.txt;file2.txt;file3.txt --ports 8080,9000,3000 --sizes 1024,2048,4096
+```
 
 ### 3. 映射类型标志
 
