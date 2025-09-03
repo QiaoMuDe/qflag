@@ -26,6 +26,7 @@ const (
 	FlagTypeStringSlice                 // 字符串切片类型
 	FlagTypeIntSlice                    // []int 切片类型
 	FlagTypeInt64Slice                  // []int64 切片类型
+	FlagTypeSize                        // 大小类型
 )
 
 // 内置标志名称
