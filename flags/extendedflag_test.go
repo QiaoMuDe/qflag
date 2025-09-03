@@ -317,7 +317,7 @@ func TestMapFlag_Errors(t *testing.T) {
 
 // TestSliceFlag_BasicParsing 测试基本切片解析功能
 func TestSliceFlag_BasicParsing(t *testing.T) {
-	flag := &SliceFlag{
+	flag := &StringSliceFlag{
 		BaseFlag: BaseFlag[[]string]{
 			initialValue: []string{},
 			value:        new([]string),
@@ -354,7 +354,7 @@ func TestSliceFlag_BasicParsing(t *testing.T) {
 // TestSliceFlag_SkipEmpty 测试空元素过滤功能
 func TestSliceFlag_SkipEmpty(t *testing.T) {
 	// 测试SkipEmpty=true情况
-	flag := &SliceFlag{
+	flag := &StringSliceFlag{
 		BaseFlag: BaseFlag[[]string]{
 			initialValue: []string{},
 			value:        new([]string),
@@ -373,7 +373,7 @@ func TestSliceFlag_SkipEmpty(t *testing.T) {
 	}
 
 	// 测试SkipEmpty=false情况
-	flag = &SliceFlag{
+	flag = &StringSliceFlag{
 		BaseFlag: BaseFlag[[]string]{
 			initialValue: []string{},
 			value:        new([]string),
@@ -394,7 +394,7 @@ func TestSliceFlag_SkipEmpty(t *testing.T) {
 
 // TestSliceFlag_LenAndContains 测试Len和Contains方法
 func TestSliceFlag_LenAndContains(t *testing.T) {
-	flag := &SliceFlag{
+	flag := &StringSliceFlag{
 		BaseFlag: BaseFlag[[]string]{
 			initialValue: []string{"x", "y"},
 			value:        new([]string),
@@ -426,7 +426,7 @@ func TestSliceFlag_LenAndContains(t *testing.T) {
 
 // TestSliceFlag_ClearAndRemove 测试Clear和Remove方法
 func TestSliceFlag_ClearAndRemove(t *testing.T) {
-	flag := &SliceFlag{
+	flag := &StringSliceFlag{
 		BaseFlag: BaseFlag[[]string]{
 			initialValue: []string{},
 			value:        new([]string),
@@ -460,7 +460,7 @@ func TestSliceFlag_ClearAndRemove(t *testing.T) {
 
 // TestSliceFlag_Sort 测试Sort方法
 func TestSliceFlag_Sort(t *testing.T) {
-	flag := &SliceFlag{
+	flag := &StringSliceFlag{
 		BaseFlag: BaseFlag[[]string]{
 			initialValue: []string{},
 			value:        new([]string),
@@ -487,7 +487,7 @@ func TestSliceFlag_Sort(t *testing.T) {
 func TestSliceFlag(t *testing.T) {
 	// 测试基本切片解析功能
 	t.Run("BasicSliceParsing", func(t *testing.T) {
-		flag := &SliceFlag{
+		flag := &StringSliceFlag{
 			BaseFlag: BaseFlag[[]string]{
 				initialValue: []string{},
 				value:        new([]string),
@@ -519,7 +519,7 @@ func TestSliceFlag(t *testing.T) {
 	// 测试空元素过滤功能
 	t.Run("EmptyElementFiltering", func(t *testing.T) {
 		// 测试SkipEmpty=true情况
-		flag := &SliceFlag{
+		flag := &StringSliceFlag{
 			BaseFlag: BaseFlag[[]string]{
 				initialValue: []string{},
 				value:        new([]string),
@@ -538,7 +538,7 @@ func TestSliceFlag(t *testing.T) {
 		}
 
 		// 测试SkipEmpty=false情况
-		flag = &SliceFlag{
+		flag = &StringSliceFlag{
 			BaseFlag: BaseFlag[[]string]{
 				initialValue: []string{},
 				value:        new([]string),
@@ -559,7 +559,7 @@ func TestSliceFlag(t *testing.T) {
 
 	// 测试SetSkipEmpty方法
 	t.Run("SetSkipEmptyMethod", func(t *testing.T) {
-		flag := &SliceFlag{
+		flag := &StringSliceFlag{
 			BaseFlag: BaseFlag[[]string]{
 				initialValue: []string{},
 				value:        new([]string),
@@ -592,7 +592,7 @@ func TestSliceFlag(t *testing.T) {
 
 	// 测试错误情况
 	t.Run("ErrorHandling", func(t *testing.T) {
-		flag := &SliceFlag{
+		flag := &StringSliceFlag{
 			BaseFlag: BaseFlag[[]string]{
 				initialValue: []string{},
 				value:        new([]string),
@@ -610,7 +610,7 @@ func TestSliceFlag(t *testing.T) {
 
 	// 测试新增的Len方法返回长度是否符合预期
 	t.Run("Len", func(t *testing.T) {
-		flag := &SliceFlag{
+		flag := &StringSliceFlag{
 			BaseFlag: BaseFlag[[]string]{
 				initialValue: []string{"a", "b", "c"},
 				value:        new([]string),

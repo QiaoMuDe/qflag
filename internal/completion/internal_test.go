@@ -50,7 +50,7 @@ func TestGetValueTypeByFlagType(t *testing.T) {
 		},
 		{
 			name:     "切片类型",
-			flagType: flags.FlagTypeSlice,
+			flagType: flags.FlagTypeStringSlice,
 			expected: "string",
 		},
 		{
@@ -119,7 +119,7 @@ func TestGetParamTypeByFlagType(t *testing.T) {
 		},
 		{
 			name:     "切片类型",
-			flagType: flags.FlagTypeSlice,
+			flagType: flags.FlagTypeStringSlice,
 			expected: "required",
 		},
 		{
@@ -243,7 +243,7 @@ func BenchmarkGetValueTypeByFlagType(b *testing.B) {
 		flags.FlagTypeEnum,
 		flags.FlagTypeFloat64,
 		flags.FlagTypeDuration,
-		flags.FlagTypeSlice,
+		flags.FlagTypeStringSlice,
 		flags.FlagTypeTime,
 		flags.FlagTypeMap,
 	}
@@ -265,7 +265,7 @@ func BenchmarkGetParamTypeByFlagType(b *testing.B) {
 		flags.FlagTypeEnum,
 		flags.FlagTypeFloat64,
 		flags.FlagTypeDuration,
-		flags.FlagTypeSlice,
+		flags.FlagTypeStringSlice,
 		flags.FlagTypeTime,
 		flags.FlagTypeMap,
 	}

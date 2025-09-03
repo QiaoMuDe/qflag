@@ -467,7 +467,6 @@ qflag 采用模块化设计，主要包含以下包：
 - **[flags 包文档](./flags/APIDOC.md)** - 标志类型定义和使用方法
 - **[validator 包文档](./validator/APIDOC.md)** - 参数验证器接口和实现
 - **[qerr 包文档](./qerr/APIDOC.md)** - 错误处理相关 API
-- **[utils 包文档](./utils/APIDOC.md)** - 工具函数文档
 
 ## 性能特性
 

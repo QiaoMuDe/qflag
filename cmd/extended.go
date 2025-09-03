@@ -501,7 +501,7 @@ func (c *Cmd) Map(longName, shortName string, defValue map[string]string, usage 
 // 切片类型标志
 // =============================================================================
 
-// Slice 绑定字符串切片类型标志并内部注册Flag对象
+// StringSlice 绑定字符串切片类型标志并内部注册Flag对象
 //
 // 参数值:
 //   - longName: 长标志名
@@ -510,14 +510,14 @@ func (c *Cmd) Map(longName, shortName string, defValue map[string]string, usage 
 //   - usage: 帮助说明
 //
 // 返回值:
-//   - *flags.SliceFlag: 字符串切片标志对象指针
-func (c *Cmd) Slice(longName, shortName string, defValue []string, usage string) *flags.SliceFlag {
-	f := &flags.SliceFlag{}
-	c.SliceVar(f, longName, shortName, defValue, usage)
+//   - *flags.StringSliceFlag: 字符串切片标志对象指针
+func (c *Cmd) StringSlice(longName, shortName string, defValue []string, usage string) *flags.StringSliceFlag {
+	f := &flags.StringSliceFlag{}
+	c.StringSliceVar(f, longName, shortName, defValue, usage)
 	return f
 }
 
-// SliceVar 绑定字符串切片类型标志到指针并内部注册Flag对象
+// StringSliceVar 绑定字符串切片类型标志到指针并内部注册Flag对象
 //
 // 参数值:
 //   - f: 字符串切片标志指针
@@ -525,7 +525,7 @@ func (c *Cmd) Slice(longName, shortName string, defValue []string, usage string)
 //   - shortName: 短标志名
 //   - defValue: 默认值
 //   - usage: 帮助说明
-func (c *Cmd) SliceVar(f *flags.SliceFlag, longName, shortName string, defValue []string, usage string) {
+func (c *Cmd) StringSliceVar(f *flags.StringSliceFlag, longName, shortName string, defValue []string, usage string) {
 	c.ctx.Mutex.Lock()
 	defer c.ctx.Mutex.Unlock()
 

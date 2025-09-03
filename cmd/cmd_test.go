@@ -6,42 +6,9 @@ package cmd
 import (
 	"flag"
 	"fmt"
-	"os"
 	"testing"
 	"time"
 )
-
-// TestMain 全局测试入口，控制非verbose模式下的输出重定向
-func TestMain(m *testing.M) {
-	flag.Parse() // 解析命令行参数
-	// 保存原始标准输出和错误输出
-	originalStdout := os.Stdout
-	originalStderr := os.Stderr
-	var nullFile *os.File
-	var err error
-
-	// 非verbose模式下重定向到空设备
-	if !testing.Verbose() {
-		nullFile, err = os.OpenFile(os.DevNull, os.O_WRONLY, 0666)
-		if err != nil {
-			panic("无法打开空设备文件: " + err.Error())
-		}
-		os.Stdout = nullFile
-		os.Stderr = nullFile
-	}
-
-	// 运行所有测试
-	exitCode := m.Run()
-
-	// 恢复原始输出
-	if !testing.Verbose() {
-		os.Stdout = originalStdout
-		os.Stderr = originalStderr
-		_ = nullFile.Close()
-	}
-
-	os.Exit(exitCode)
-}
 
 // 测试嵌套子命令生成的帮助信息样式
 func TestNestedCommandHelp(t *testing.T) {
@@ -64,7 +31,7 @@ func TestNestedCommandHelp(t *testing.T) {
 	rootCmd.Enum("log-level", "l", "info", "日志级别", []string{"debug", "info", "warn", "error"})
 	rootCmd.Duration("retry-interval", "", 5*time.Second, "重试间隔")
 	rootCmd.Time("start-time", "", "now", "开始时间")
-	rootCmd.Slice("tags", "", []string{"default"}, "标签列表")
+	rootCmd.StringSlice("tags", "", []string{"default"}, "标签列表")
 	rootCmd.Map("env", "e", map[string]string{"NODE_ENV": "production"}, "环境变量")
 
 	// 创建5个二级命令
@@ -100,7 +67,7 @@ func TestNestedCommandHelp(t *testing.T) {
 			level2Commands[i].Int("max-connections", "m", 10, "最大连接数")
 		case 3: // monitor
 			level2Commands[i].Duration("interval", "i", 60*time.Second, "监控间隔")
-			level2Commands[i].Slice("metrics", "m", []string{"cpu", "memory"}, "监控指标")
+			level2Commands[i].StringSlice("metrics", "m", []string{"cpu", "memory"}, "监控指标")
 			level2Commands[i].Bool("alert", "a", true, "启用告警")
 		case 4: // deploy
 			level2Commands[i].String("target", "t", "production", "部署目标")

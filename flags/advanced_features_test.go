@@ -104,7 +104,7 @@ func TestMapFlag_AdvancedFeatures(t *testing.T) {
 // TestSliceFlag_AdvancedFeatures 测试SliceFlag的高级功能
 func TestSliceFlag_AdvancedFeatures(t *testing.T) {
 	t.Run("多分隔符支持", func(t *testing.T) {
-		flag := &SliceFlag{
+		flag := &StringSliceFlag{
 			BaseFlag: BaseFlag[[]string]{
 				initialValue: []string{},
 				value:        new([]string),
@@ -137,7 +137,7 @@ func TestSliceFlag_AdvancedFeatures(t *testing.T) {
 	})
 
 	t.Run("动态修改分隔符", func(t *testing.T) {
-		flag := &SliceFlag{
+		flag := &StringSliceFlag{
 			BaseFlag: BaseFlag[[]string]{
 				initialValue: []string{},
 				value:        new([]string),
@@ -166,7 +166,7 @@ func TestSliceFlag_AdvancedFeatures(t *testing.T) {
 	})
 
 	t.Run("复杂元素处理", func(t *testing.T) {
-		flag := &SliceFlag{
+		flag := &StringSliceFlag{
 			BaseFlag: BaseFlag[[]string]{
 				initialValue: []string{},
 				value:        new([]string),
@@ -189,7 +189,7 @@ func TestSliceFlag_AdvancedFeatures(t *testing.T) {
 	})
 
 	t.Run("获取分隔符", func(t *testing.T) {
-		flag := &SliceFlag{}
+		flag := &StringSliceFlag{}
 		customDelimiters := []string{",", ";", "|"}
 		flag.SetDelimiters(customDelimiters)
 
@@ -465,7 +465,7 @@ func TestDurationFlag_AdvancedFeatures(t *testing.T) {
 // TestSliceFlag_EdgeCases 测试SliceFlag的边界情况
 func TestSliceFlag_EdgeCases(t *testing.T) {
 	t.Run("空分隔符处理", func(t *testing.T) {
-		flag := &SliceFlag{
+		flag := &StringSliceFlag{
 			BaseFlag: BaseFlag[[]string]{
 				initialValue: []string{},
 				value:        new([]string),
@@ -482,7 +482,7 @@ func TestSliceFlag_EdgeCases(t *testing.T) {
 	})
 
 	t.Run("单个元素无分隔符", func(t *testing.T) {
-		flag := &SliceFlag{
+		flag := &StringSliceFlag{
 			BaseFlag: BaseFlag[[]string]{
 				initialValue: []string{},
 				value:        new([]string),
@@ -503,7 +503,7 @@ func TestSliceFlag_EdgeCases(t *testing.T) {
 	})
 
 	t.Run("移除不存在的元素", func(t *testing.T) {
-		flag := &SliceFlag{
+		flag := &StringSliceFlag{
 			BaseFlag: BaseFlag[[]string]{
 				initialValue: []string{},
 				value:        new([]string),
@@ -531,7 +531,7 @@ func TestSliceFlag_EdgeCases(t *testing.T) {
 	})
 
 	t.Run("排序空切片", func(t *testing.T) {
-		flag := &SliceFlag{
+		flag := &StringSliceFlag{
 			BaseFlag: BaseFlag[[]string]{
 				initialValue: []string{},
 				value:        new([]string),

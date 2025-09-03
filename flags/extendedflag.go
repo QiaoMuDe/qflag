@@ -393,9 +393,9 @@ func (f *MapFlag) SetDelimiters(keyDelimiter, valueDelimiter string) {
 // 切片类型标志
 // =============================================================================
 
-// SliceFlag 切片类型标志结构体
+// StringSliceFlag 切片类型标志结构体
 // 继承BaseFlag[[]string]泛型结构体,实现Flag接口
-type SliceFlag struct {
+type StringSliceFlag struct {
 	BaseFlag[[]string]              // 基类
 	delimiters         []string     // 分隔符
 	mu                 sync.RWMutex // 读写锁
@@ -403,10 +403,10 @@ type SliceFlag struct {
 }
 
 // Type 返回标志类型
-func (f *SliceFlag) Type() FlagType { return FlagTypeSlice }
+func (f *StringSliceFlag) Type() FlagType { return FlagTypeStringSlice }
 
 // String 实现flag.Value接口, 返回当前值的字符串表示
-func (f *SliceFlag) String() string {
+func (f *StringSliceFlag) String() string {
 	return strings.Join(f.Get(), ",")
 }
 
@@ -418,7 +418,7 @@ func (f *SliceFlag) String() string {
 // 注意:
 //   - 如果切片中包含分隔符,则根据分隔符进行分割, 否则将整个值作为单个元素
 //   - 例如: "a,b,c" -> ["a", "b", "c"]
-func (f *SliceFlag) Set(value string) error {
+func (f *StringSliceFlag) Set(value string) error {
 	// 加读锁保护分隔符切片访问
 	f.mu.Lock()
 	defer f.mu.Unlock()
@@ -470,7 +470,7 @@ func (f *SliceFlag) Set(value string) error {
 //
 // 参数:
 //   - delimiters 分隔符列表
-func (f *SliceFlag) SetDelimiters(delimiters []string) {
+func (f *StringSliceFlag) SetDelimiters(delimiters []string) {
 	f.mu.Lock()
 	defer f.mu.Unlock()
 
@@ -485,7 +485,7 @@ func (f *SliceFlag) SetDelimiters(delimiters []string) {
 }
 
 // GetDelimiters 获取当前分隔符列表
-func (f *SliceFlag) GetDelimiters() []string {
+func (f *StringSliceFlag) GetDelimiters() []string {
 	f.mu.RLock()
 	defer f.mu.RUnlock()
 	// 返回拷贝避免外部修改内部切片
@@ -500,7 +500,7 @@ func (f *SliceFlag) GetDelimiters() []string {
 //   - skip - 为true时跳过空元素, 为false时保留空元素
 //
 // 线程安全的空元素跳过更新
-func (f *SliceFlag) SetSkipEmpty(skip bool) {
+func (f *StringSliceFlag) SetSkipEmpty(skip bool) {
 	f.mu.Lock()
 	defer f.mu.Unlock()
 	f.skipEmpty = skip
@@ -510,7 +510,7 @@ func (f *SliceFlag) SetSkipEmpty(skip bool) {
 //
 // 返回:
 //   - 获取切片长度
-func (f *SliceFlag) Len() int {
+func (f *StringSliceFlag) Len() int {
 	// 返回切片长度
 	return len(f.Get())
 }
@@ -525,7 +525,7 @@ func (f *SliceFlag) Len() int {
 //
 // 注意:
 //   - 当切片未设置值时,将使用默认值进行检查
-func (f *SliceFlag) Contains(element string) bool {
+func (f *StringSliceFlag) Contains(element string) bool {
 	// 通过Get()获取当前值(已处理nil情况和线程安全)
 	current := f.Get()
 
@@ -549,7 +549,7 @@ func (f *SliceFlag) Contains(element string) bool {
 //
 // 注意：
 //   - 该方法会改变切片的指针
-func (f *SliceFlag) Clear() error {
+func (f *StringSliceFlag) Clear() error {
 	// 使用BaseFlag的Set方法确保线程安全
 	return f.BaseFlag.Set([]string{})
 }
@@ -561,7 +561,7 @@ func (f *SliceFlag) Clear() error {
 //
 // 返回值:
 //   - 操作成功返回nil, 否则返回错误信息
-func (f *SliceFlag) Remove(element string) error {
+func (f *StringSliceFlag) Remove(element string) error {
 	// 获取当前切片
 	current := f.Get()
 
@@ -591,7 +591,7 @@ func (f *SliceFlag) Remove(element string) error {
 //
 // 返回值：
 //   - 排序成功返回nil, 若排序过程中发生错误则返回错误信息
-func (f *SliceFlag) Sort() error {
+func (f *StringSliceFlag) Sort() error {
 	current := f.Get()
 	sort.Strings(current)
 	return f.BaseFlag.Set(current)
@@ -607,7 +607,7 @@ func (f *SliceFlag) Sort() error {
 //
 // 返回值:
 //   - error: 初始化错误信息
-func (f *SliceFlag) Init(longName, shortName string, defValue []string, usage string) error {
+func (f *StringSliceFlag) Init(longName, shortName string, defValue []string, usage string) error {
 	// 确保默认值不为nil
 	if defValue == nil {
 		defValue = []string{}

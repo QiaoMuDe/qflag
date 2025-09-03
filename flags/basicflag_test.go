@@ -502,7 +502,7 @@ func TestIsSetMethods(t *testing.T) {
 		// SliceFlag测试用例
 		{
 			name: "SliceFlag未设置值",
-			f: &SliceFlag{
+			f: &StringSliceFlag{
 				BaseFlag: BaseFlag[[]string]{
 					longName:     "sliceFlag",
 					shortName:    "sl",
@@ -514,7 +514,7 @@ func TestIsSetMethods(t *testing.T) {
 		},
 		{
 			name: "SliceFlag已设置值",
-			f: &SliceFlag{
+			f: &StringSliceFlag{
 				BaseFlag: BaseFlag[[]string]{
 					longName:     "sliceFlag",
 					shortName:    "sl",
@@ -522,7 +522,7 @@ func TestIsSetMethods(t *testing.T) {
 					usage:        "切片标志测试",
 				},
 			},
-			setValue: func(f Flag) error { return f.(*SliceFlag).Set("item1,item2") },
+			setValue: func(f Flag) error { return f.(*StringSliceFlag).Set("item1,item2") },
 		},
 	}
 

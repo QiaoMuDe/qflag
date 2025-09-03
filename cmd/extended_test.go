@@ -925,7 +925,7 @@ func TestCmd_Slice(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			cmd := tt.setupCmd()
-			flag := cmd.Slice(tt.longName, tt.shortName, tt.defValue, tt.usage)
+			flag := cmd.StringSlice(tt.longName, tt.shortName, tt.defValue, tt.usage)
 
 			if flag == nil {
 				t.Error("Slice() 返回nil")
@@ -942,8 +942,8 @@ func TestCmd_Slice(t *testing.T) {
 			} else if !reflect.DeepEqual(got, tt.defValue) {
 				t.Errorf("Get() = %v, 期望 %v", got, tt.defValue)
 			}
-			if flag.Type() != flags.FlagTypeSlice {
-				t.Errorf("Type() = %v, 期望 %v", flag.Type(), flags.FlagTypeSlice)
+			if flag.Type() != flags.FlagTypeStringSlice {
+				t.Errorf("Type() = %v, 期望 %v", flag.Type(), flags.FlagTypeStringSlice)
 			}
 		})
 	}
@@ -952,13 +952,13 @@ func TestCmd_Slice(t *testing.T) {
 func TestCmd_SliceVar(t *testing.T) {
 	tests := []struct {
 		name        string
-		flag        *flags.SliceFlag
+		flag        *flags.StringSliceFlag
 		expectPanic bool
 		panicMsg    string
 	}{
 		{
 			name: "正常绑定切片标志",
-			flag: &flags.SliceFlag{},
+			flag: &flags.StringSliceFlag{},
 		},
 		{
 			name:        "nil标志指针",
@@ -984,7 +984,7 @@ func TestCmd_SliceVar(t *testing.T) {
 				}
 			}()
 
-			cmd.SliceVar(tt.flag, "test", "t", []string{"item1", "item2"}, "测试切片")
+			cmd.StringSliceVar(tt.flag, "test", "t", []string{"item1", "item2"}, "测试切片")
 		})
 	}
 }
@@ -1013,7 +1013,7 @@ func TestCmd_ConcurrentFlagCreation(t *testing.T) {
 			cmd.Time(fmt.Sprintf("time-%d", id), fmt.Sprintf("t%d", id), "now", "测试时间")
 			cmd.Duration(fmt.Sprintf("duration-%d", id), fmt.Sprintf("d%d", id), time.Duration(id)*time.Second, "测试时间间隔")
 			cmd.Map(fmt.Sprintf("map-%d", id), fmt.Sprintf("m%d", id), map[string]string{"key": fmt.Sprintf("value-%d", id)}, "测试键值对")
-			cmd.Slice(fmt.Sprintf("slice-%d", id), fmt.Sprintf("s%d", id), []string{fmt.Sprintf("item-%d", id)}, "测试切片")
+			cmd.StringSlice(fmt.Sprintf("slice-%d", id), fmt.Sprintf("s%d", id), []string{fmt.Sprintf("item-%d", id)}, "测试切片")
 		}(i)
 	}
 
@@ -1173,7 +1173,7 @@ func BenchmarkCmd_SliceCreation(b *testing.B) {
 
 	b.ResetTimer()
 	for i := 0; i < b.N; i++ {
-		cmd.Slice(fmt.Sprintf("slice-%d", i), fmt.Sprintf("s%d", i), defaultSlice, "基准测试切片")
+		cmd.StringSlice(fmt.Sprintf("slice-%d", i), fmt.Sprintf("s%d", i), defaultSlice, "基准测试切片")
 	}
 }
 
@@ -1193,7 +1193,7 @@ func TestCmd_ExtendedIntegration(t *testing.T) {
 		timeFlag := cmd.Time("start", "st", "now", "开始时间")
 		durationFlag := cmd.Duration("timeout", "t", 30*time.Second, "超时")
 		mapFlag := cmd.Map("config", "c", map[string]string{"key": "value"}, "配置")
-		sliceFlag := cmd.Slice("files", "fl", []string{"file1", "file2"}, "文件列表")
+		sliceFlag := cmd.StringSlice("files", "fl", []string{"file1", "file2"}, "文件列表")
 
 		// 验证所有标志都已创建
 		flags := [...]interface{}{enumFlag, uint16Flag, uint32Flag, uint64Flag, timeFlag, durationFlag, mapFlag, sliceFlag}

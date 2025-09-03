@@ -185,8 +185,8 @@ func DurationVar(f *flags.DurationFlag, longName, shortName string, defValue tim
 	getQCommandLine().DurationVar(f, longName, shortName, defValue, usage)
 }
 
-// Slice 为全局默认命令定义一个字符串切片类型的命令行标志。
-// 该函数会调用全局默认命令实例 `QCommandLine` 的 `Slice` 方法，为命令行添加支持长短标志的字符串切片类型参数，
+// StringSlice 为全局默认命令定义一个字符串切片类型的命令行标志。
+// 该函数会调用全局默认命令实例 `QCommandLine` 的 `StringSlice` 方法，为命令行添加支持长短标志的字符串切片类型参数，
 //
 // 参数值：
 //   - longName: 命令行标志的长名称，在命令行中使用时需遵循 `--longName` 的格式。
@@ -195,13 +195,13 @@ func DurationVar(f *flags.DurationFlag, longName, shortName string, defValue tim
 //   - usage: 该命令行标志的帮助说明信息，在显示帮助信息时会呈现给用户，用以解释该标志的具体用途。
 //
 // 返回值：
-//   - *flags.SliceFlag: 指向新创建的字符串切片类型标志对象的指针。
-func Slice(longName, shortName string, defValue []string, usage string) *flags.SliceFlag {
-	return getQCommandLine().Slice(longName, shortName, defValue, usage)
+//   - *flags.StringSliceFlag: 指向新创建的字符串切片类型标志对象的指针。
+func StringSlice(longName, shortName string, defValue []string, usage string) *flags.StringSliceFlag {
+	return getQCommandLine().StringSlice(longName, shortName, defValue, usage)
 }
 
-// SliceVar 为全局默认命令将一个字符串切片类型的命令行标志绑定到指定的 `SliceFlag` 指针。
-// 该函数会调用全局默认命令实例 `QCommandLine` 的 `SliceVar` 方法，为命令行添加支持长短标志的字符串切片类型参数，
+// StringSliceVar 为全局默认命令将一个字符串切片类型的命令行标志绑定到指定的 `StringSliceFlag` 指针。
+// 该函数会调用全局默认命令实例 `QCommandLine` 的 `StringSliceVar` 方法，为命令行添加支持长短标志的字符串切片类型参数，
 //
 // 参数值：
 //   - f: 指向要绑定的 `SliceFlag` 对象的指针。
@@ -209,8 +209,8 @@ func Slice(longName, shortName string, defValue []string, usage string) *flags.S
 //   - shortName: 命令行标志的短名称，在命令行中使用时需遵循 `-shortName` 的格式。
 //   - defValue: 该命令行标志的默认值。当用户在命令行中未指定该标志时，会采用此默认值。该值会被复制一份，避免外部修改影响内部状态。
 //   - usage: 该命令行标志的帮助说明信息，在显示帮助信息时会呈现给用户，用以解释该标志的具体用途。
-func SliceVar(f *flags.SliceFlag, longName, shortName string, defValue []string, usage string) {
-	getQCommandLine().SliceVar(f, longName, shortName, defValue, usage)
+func StringSliceVar(f *flags.StringSliceFlag, longName, shortName string, defValue []string, usage string) {
+	getQCommandLine().StringSliceVar(f, longName, shortName, defValue, usage)
 }
 
 // Int64 为全局默认命令定义一个64位整数类型的命令行标志。

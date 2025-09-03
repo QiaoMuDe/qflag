@@ -25,7 +25,7 @@ func TestFlagTypeToString(t *testing.T) {
 		{FlagTypeDuration, "<duration>"},
 		{FlagTypeTime, "<time>"},
 		{FlagTypeMap, "<k=v,k=v,...>"},
-		{FlagTypeSlice, "<value,value,...>"},
+		{FlagTypeStringSlice, "<value,value,...>"},
 		{FlagTypeUnknown, "<value>"},
 		{FlagType(999), "<value>"}, // 测试未知类型
 	}
