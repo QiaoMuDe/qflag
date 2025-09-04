@@ -119,6 +119,7 @@ import "gitee.com/MM-Q/qflag/validator"
 | `DurationFlag` | `Duration()` | `DurationVar()` | 时间间隔 | `--timeout 30s` |
 | `TimeFlag` | `Time()` | `TimeVar()` | 时间类型 | `--start "2024-01-01T00:00:00"` |
 | `MapFlag` | `Map()` | `MapVar()` | 键值对映射 | `--config key=value,key2=value2` |
+| `SizeFlag` | `Size()` | `SizeVar()` | 大小类型 | `--max-size 1024MB` |
 
 ## 快速开始
 
