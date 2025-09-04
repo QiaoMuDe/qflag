@@ -639,6 +639,54 @@ Int64SliceVar 绑定64位整数切片类型标志到指针并内部注册Flag对
 - `defValue`: 默认值
 - `usage`: 帮助说明
 
+##### Size
+
+```go
+func (c *Cmd) Size(longName, shortName string, defValue int64, usage string) *flags.SizeFlag
+```
+
+Size 添加大小类型标志, 返回标志对象指针
+
+**参数值:**
+- `longName`: string - 长标志名
+- `shortName`: string - 短标志名
+- `defValue`: int64 - 默认值(单位为字节)
+- `usage`: string - 帮助说明
+
+**返回值:**
+- `*flags.SizeFlag` - 大小标志对象指针
+
+**支持的单位格式:**
+- 字节: "B", "b", "byte", "bytes"
+- 十进制: "KB", "MB", "GB", "TB", "PB" 或简写 "K", "M", "G", "T", "P"
+- 二进制: "KiB", "MiB", "GiB", "TiB", "PiB"
+- 支持小数: "1.5GB", "2.5MB"
+- 支持负数: "-1GB", "-500MB"
+- 特殊值: "0" (零值特例)
+
+##### SizeVar
+
+```go
+func (c *Cmd) SizeVar(f *flags.SizeFlag, longName, shortName string, defValue int64, usage string)
+```
+
+SizeVar 绑定大小类型标志到指针并内部注册Flag对象
+
+**参数值:**
+- `f`: *flags.SizeFlag - 大小标志对象指针
+- `longName`: string - 长标志名
+- `shortName`: string - 短标志名
+- `defValue`: int64 - 默认值(单位为字节)
+- `usage`: string - 帮助说明
+
+**支持的单位格式:**
+- 字节: "B", "b", "byte", "bytes"
+- 十进制: "KB", "MB", "GB", "TB", "PB" 或简写 "K", "M", "G", "T", "P"
+- 二进制: "KiB", "MiB", "GiB", "TiB", "PiB"
+- 支持小数: "1.5GB", "2.5MB"
+- 支持负数: "-1GB", "-500MB"
+- 特殊值: "0" (零值特例)
+
 ##### Time
 
 ```go

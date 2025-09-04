@@ -657,6 +657,7 @@ const (
     FlagTypeStringSlice              // 字符串切片类型
     FlagTypeIntSlice                 // 整数切片类型
     FlagTypeInt64Slice               // 64位整数切片类型
+    FlagTypeSize                     // 大小类型
     FlagTypeTime                     // 时间类型
     FlagTypeMap                      // 映射类型
 )
@@ -875,6 +876,163 @@ type Int64SliceFlag struct {
 ```
 
 Int64SliceFlag 是64位整数切片类型标志结构体，继承 BaseFlag[[]int64] 泛型结构体，实现 Flag 接口。
+
+### SizeFlag 大小类型标志结构体
+
+```go
+type SizeFlag struct {
+    BaseFlag[int64]
+    // Has unexported fields.
+}
+```
+
+SizeFlag 是大小类型标志结构体，继承 BaseFlag[int64] 泛型结构体，实现 Flag 接口。
+
+#### 方法
+
+```go
+func (f *SizeFlag) Init(longName, shortName string, defValue int64, usage string) error
+```
+
+初始化大小标志。
+
+- 参数:
+  - `longName` - 长标志名称
+  - `shortName` - 短标志字符
+  - `defValue` - 默认值（字节数）
+  - `usage` - 帮助说明
+- 返回值: `error` - 初始化错误信息
+
+```go
+func (f *SizeFlag) Set(value string) error
+```
+
+实现 `flag.Value` 接口，解析并设置大小值。
+
+- 参数: `value` - 待设置的值
+- 返回值: `error` - 解析或验证失败时返回错误信息
+
+```go
+func (f *SizeFlag) String() string
+```
+
+实现 `flag.Value` 接口，返回当前值的字符串表示。
+
+- 返回值: `string` - 当前值的字符串表示
+
+```go
+func (f *SizeFlag) Type() FlagType
+```
+
+返回标志类型。
+
+- 返回值: `FlagType` - 标志类型枚举值
+
+```go
+func (f *SizeFlag) SetAllowDecimal(allow bool) *SizeFlag
+```
+
+设置是否允许小数。
+
+- 参数: `allow` - `true` 表示允许小数，`false` 表示不允许
+- 返回值: `*SizeFlag` - 返回自身以支持链式调用
+
+```go
+func (f *SizeFlag) SetAllowNegative(allow bool) *SizeFlag
+```
+
+设置是否允许负数。
+
+- 参数: `allow` - `true` 表示允许负数，`false` 表示不允许
+- 返回值: `*SizeFlag` - 返回自身以支持链式调用
+
+```go
+func (f *SizeFlag) GetBytes() int64
+```
+
+获取字节数。
+
+- 返回值: `int64` - 字节数
+
+```go
+func (f *SizeFlag) GetKiB() float64
+```
+
+获取KiB数。
+
+- 返回值: `float64` - KiB数
+
+```go
+func (f *SizeFlag) GetMiB() float64
+```
+
+获取MiB数。
+
+- 返回值: `float64` - MiB数
+
+```go
+func (f *SizeFlag) GetGiB() float64
+```
+
+获取GiB数。
+
+- 返回值: `float64` - GiB数
+
+```go
+func (f *SizeFlag) GetTiB() float64
+```
+
+获取TiB数。
+
+- 返回值: `float64` - TiB数
+
+```go
+func (f *SizeFlag) GetPiB() float64
+```
+
+获取PiB数。
+
+- 返回值: `float64` - PiB数
+
+```go
+func (f *SizeFlag) IsZero() bool
+```
+
+检查是否为零。
+
+- 返回值: `bool` - `true` 表示为零，`false` 表示非零
+
+```go
+func (f *SizeFlag) IsPositive() bool
+```
+
+检查是否为正数。
+
+- 返回值: `bool` - `true` 表示为正数，`false` 表示非正数
+
+```go
+func (f *SizeFlag) IsNegative() bool
+```
+
+检查是否为负数。
+
+- 返回值: `bool` - `true` 表示为负数，`false` 表示非负数
+
+```go
+func (f *SizeFlag) GetAllowDecimal() bool
+```
+
+获取是否允许小数设置。
+
+- 返回值: `bool` - `true` 表示允许小数，`false` 表示不允许
+
+```go
+func (f *SizeFlag) GetAllowNegative() bool
+```
+
+获取是否允许负数设置。
+
+- 返回值: `bool` - `true` 表示允许负数，`false` 表示不允许
 
 #### StringSliceFlag 方法
 
