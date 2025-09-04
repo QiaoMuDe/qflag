@@ -120,7 +120,9 @@ func TestSizeFlagBasicUnits(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			flag := &SizeFlag{}
-			flag.Init("size", "s", 0, "test")
+			if err := flag.Init("size", "s", 0, "test"); err != nil {
+				t.Fatalf("flag.Init failed: %v", err)
+			}
 
 			err := flag.Set(tt.input)
 			if err != nil {
@@ -152,7 +154,9 @@ func TestSizeFlagDecimalValues(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			flag := &SizeFlag{}
-			flag.Init("size", "s", 0, "test")
+			if err := flag.Init("size", "s", 0, "test"); err != nil {
+				t.Fatalf("flag.Init failed: %v", err)
+			}
 			flag.SetAllowDecimal(true)
 
 			err := flag.Set(tt.input)
@@ -183,7 +187,9 @@ func TestSizeFlagNegativeValues(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			flag := &SizeFlag{}
-			flag.Init("size", "s", 0, "test")
+			if err := flag.Init("size", "s", 0, "test"); err != nil {
+				t.Fatalf("flag.Init failed: %v", err)
+			}
 			flag.SetAllowNegative(true)
 
 			err := flag.Set(tt.input)
@@ -216,7 +222,9 @@ func TestSizeFlagZeroValue(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			flag := &SizeFlag{}
-			flag.Init("size", "s", 100, "test") // 设置非零默认值
+			if err := flag.Init("size", "s", 100, "test"); err != nil { // 设置非零默认值
+				t.Fatalf("flag.Init failed: %v", err)
+			}
 
 			err := flag.Set(tt.input)
 			if err != nil {
@@ -250,7 +258,9 @@ func TestSizeFlagCaseInsensitive(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			flag := &SizeFlag{}
-			flag.Init("size", "s", 0, "test")
+			if err := flag.Init("size", "s", 0, "test"); err != nil {
+				t.Fatalf("flag.Init failed: %v", err)
+			}
 
 			err := flag.Set(tt.input)
 			if err != nil {
@@ -280,7 +290,9 @@ func TestSizeFlagSpaceHandling(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			flag := &SizeFlag{}
-			flag.Init("size", "s", 0, "test")
+			if err := flag.Init("size", "s", 0, "test"); err != nil {
+				t.Fatalf("flag.Init failed: %v", err)
+			}
 
 			err := flag.Set(tt.input)
 			if err != nil {
@@ -314,7 +326,7 @@ func TestSizeFlagInvalidInputs(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			flag := &SizeFlag{}
-			flag.Init("size", "s", 0, "test")
+			_ = flag.Init("size", "s", 0, "test")
 
 			err := flag.Set(tt.input)
 			if err == nil {
@@ -327,7 +339,7 @@ func TestSizeFlagInvalidInputs(t *testing.T) {
 // TestSizeFlagDecimalRestriction 测试小数限制
 func TestSizeFlagDecimalRestriction(t *testing.T) {
 	flag := &SizeFlag{}
-	flag.Init("size", "s", 0, "test")
+	_ = flag.Init("size", "s", 0, "test")
 	flag.SetAllowDecimal(false) // 不允许小数
 
 	tests := []string{"1.5GB", "2.0MB", "0.5KB"}
@@ -345,7 +357,7 @@ func TestSizeFlagDecimalRestriction(t *testing.T) {
 // TestSizeFlagNegativeRestriction 测试负数限制
 func TestSizeFlagNegativeRestriction(t *testing.T) {
 	flag := &SizeFlag{}
-	flag.Init("size", "s", 0, "test")
+	_ = flag.Init("size", "s", 0, "test")
 	flag.SetAllowNegative(false) // 不允许负数
 
 	tests := []string{"-1GB", "-500MB", "-1KB"}
@@ -374,7 +386,7 @@ func TestSizeFlagOverflow(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			flag := &SizeFlag{}
-			flag.Init("size", "s", 0, "test")
+			_ = flag.Init("size", "s", 0, "test")
 			flag.SetAllowNegative(true)
 
 			err := flag.Set(tt.input)
@@ -415,7 +427,7 @@ func TestSizeFlagString(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			flag := &SizeFlag{}
-			flag.Init("size", "s", tt.value, "test")
+			_ = flag.Init("size", "s", tt.value, "test")
 
 			result := flag.String()
 			if result != tt.expected {
@@ -428,7 +440,7 @@ func TestSizeFlagString(t *testing.T) {
 // TestSizeFlagGetters 测试各种获取方法
 func TestSizeFlagGetters(t *testing.T) {
 	flag := &SizeFlag{}
-	flag.Init("size", "s", 2048, "test") // 2KiB
+	_ = flag.Init("size", "s", 2048, "test") // 2KiB
 
 	tests := []struct {
 		name     string
@@ -468,7 +480,7 @@ func TestSizeFlagGetters(t *testing.T) {
 // TestSizeFlagZeroGetters 测试零值的获取方法
 func TestSizeFlagZeroGetters(t *testing.T) {
 	flag := &SizeFlag{}
-	flag.Init("size", "s", 0, "test")
+	_ = flag.Init("size", "s", 0, "test")
 
 	if !flag.IsZero() {
 		t.Error("IsZero() 应该返回 true")
@@ -484,7 +496,7 @@ func TestSizeFlagZeroGetters(t *testing.T) {
 // TestSizeFlagNegativeGetters 测试负值的获取方法
 func TestSizeFlagNegativeGetters(t *testing.T) {
 	flag := &SizeFlag{}
-	flag.Init("size", "s", -1024, "test")
+	_ = flag.Init("size", "s", -1024, "test")
 
 	if flag.IsZero() {
 		t.Error("IsZero() 应该返回 false")
@@ -508,7 +520,7 @@ func TestSizeFlagType(t *testing.T) {
 // TestSizeFlagChainedSetters 测试链式设置
 func TestSizeFlagChainedSetters(t *testing.T) {
 	flag := &SizeFlag{}
-	flag.Init("size", "s", 0, "test")
+	_ = flag.Init("size", "s", 0, "test")
 
 	// 测试链式调用
 	result := flag.SetAllowDecimal(true).SetAllowNegative(true)
@@ -528,7 +540,7 @@ func TestSizeFlagChainedSetters(t *testing.T) {
 // TestSizeFlagConcurrency 测试并发安全
 func TestSizeFlagConcurrency(t *testing.T) {
 	flag := &SizeFlag{}
-	flag.Init("size", "s", 0, "test")
+	_ = flag.Init("size", "s", 0, "test")
 
 	// 启动多个 goroutine 同时设置值
 	done := make(chan bool, 10)
@@ -558,7 +570,7 @@ func TestSizeFlagConcurrency(t *testing.T) {
 // BenchmarkSizeFlagSet 性能测试
 func BenchmarkSizeFlagSet(b *testing.B) {
 	flag := &SizeFlag{}
-	flag.Init("size", "s", 0, "test")
+	_ = flag.Init("size", "s", 0, "test")
 
 	inputs := []string{"1GB", "512MB", "1.5TB", "2048KB", "1PB"}
 
@@ -575,7 +587,7 @@ func BenchmarkSizeFlagSet(b *testing.B) {
 // BenchmarkSizeFlagString 字符串格式化性能测试
 func BenchmarkSizeFlagString(b *testing.B) {
 	flag := &SizeFlag{}
-	flag.Init("size", "s", 1500000000, "test") // 1.5GB
+	_ = flag.Init("size", "s", 1500000000, "test") // 1.5GB
 
 	b.ResetTimer()
 	for i := 0; i < b.N; i++ {

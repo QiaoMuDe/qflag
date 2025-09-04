@@ -1196,7 +1196,9 @@ func BenchmarkCmd_SizeParsing(b *testing.B) {
 	b.ResetTimer()
 	for i := 0; i < b.N; i++ {
 		value := testValues[i%len(testValues)]
-		flag.Set(value)
+		if err := flag.Set(value); err != nil {
+			b.Fatalf("Set(%q) failed: %v", value, err)
+		}
 	}
 }
 
