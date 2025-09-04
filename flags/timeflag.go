@@ -39,6 +39,7 @@ type TimeFlag struct {
 	BaseFlag[time.Time]
 	outputFormat string     // 自定义输出格式
 	mu           sync.Mutex // 保护outputFormat和value的并发访问
+	initOnce     sync.Once  // 确保只初始化一次
 }
 
 // Type 返回标志类型
@@ -109,7 +110,7 @@ func (f *TimeFlag) SetOutputFormat(format string) {
 	f.outputFormat = format
 }
 
-// Init 初始化时间类型标志，支持字符串类型默认值
+// Init 初始化时间类型标志（使用 sync.Once 确保只初始化一次）
 //
 // 参数:
 //   - longName: 长标志名称
@@ -126,22 +127,29 @@ func (f *TimeFlag) SetOutputFormat(format string) {
 //   - "1h", "30m", "-2h" : 相对时间（基于当前时间的偏移）
 //   - "2006-01-02", "2006-01-02 15:04:05" : 绝对时间格式
 //   - RFC3339等标准格式
+//
+// 注意: 重复调用此方法是安全的，后续调用将被忽略
 func (f *TimeFlag) Init(longName, shortName string, defValue string, usage string) error {
-	f.mu.Lock()
-	defer f.mu.Unlock()
+	var initErr error
+	f.initOnce.Do(func() {
+		f.mu.Lock()
+		defer f.mu.Unlock()
 
-	// 解析字符串默认值为 time.Time
-	parsedTime, err := f.parseTimeString(defValue)
-	if err != nil {
-		return qerr.NewValidationErrorf("invalid default time value '%s': %v", defValue, err)
-	}
+		// 解析字符串默认值为 time.Time
+		parsedTime, err := f.parseTimeString(defValue)
+		if err != nil {
+			initErr = qerr.NewValidationErrorf("invalid default time value '%s': %v", defValue, err)
+			return
+		}
 
-	// 创建时间值指针
-	timePtr := new(time.Time)
-	*timePtr = parsedTime
+		// 创建时间值指针
+		timePtr := new(time.Time)
+		*timePtr = parsedTime
 
-	// 调用基类的 Init 方法
-	return f.BaseFlag.Init(longName, shortName, usage, timePtr)
+		// 调用基类的 Init 方法
+		initErr = f.BaseFlag.Init(longName, shortName, usage, timePtr)
+	})
+	return initErr
 }
 
 // parseTimeString 解析时间字符串为 time.Time

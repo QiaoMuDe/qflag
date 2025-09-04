@@ -19,6 +19,7 @@ type StringSliceFlag struct {
 	delimiters         []string     // 分隔符
 	mu                 sync.RWMutex // 读写锁
 	skipEmpty          bool         // 是否跳过空元素
+	initOnce           sync.Once    // 确保只初始化一次
 }
 
 // Type 返回标志类型
@@ -218,26 +219,31 @@ func (f *StringSliceFlag) Sort() error {
 //
 // 返回值:
 //   - error: 初始化错误信息
+//
+// 注意: 重复调用此方法是安全的，后续调用将被忽略
 func (f *StringSliceFlag) Init(longName, shortName string, defValue []string, usage string) error {
-	// 确保默认值不为nil
-	if defValue == nil {
-		defValue = []string{}
-	}
+	var initErr error
+	f.initOnce.Do(func() {
+		// 确保默认值不为nil
+		if defValue == nil {
+			defValue = []string{}
+		}
 
-	// 1. 初始化值指针（切片需创建副本避免外部修改影响）
-	valueCopy := make([]string, len(defValue))
-	copy(valueCopy, defValue)
-	valuePtr := &valueCopy
+		// 1. 初始化值指针（切片需创建副本避免外部修改影响）
+		valueCopy := make([]string, len(defValue))
+		copy(valueCopy, defValue)
+		valuePtr := &valueCopy
 
-	// 2. 调用基类初始化通用字段
-	if err := f.BaseFlag.Init(longName, shortName, usage, valuePtr); err != nil {
-		return err
-	}
+		// 2. 调用基类初始化通用字段
+		if err := f.BaseFlag.Init(longName, shortName, usage, valuePtr); err != nil {
+			initErr = err
+			return
+		}
 
-	// 3. 初始化切片特有字段(通过SetDelimiters保证线程安全)
-	f.SetDelimiters(FlagSplitSlice)
-
-	return nil
+		// 3. 初始化切片特有字段(通过SetDelimiters保证线程安全)
+		f.SetDelimiters(FlagSplitSlice)
+	})
+	return initErr
 }
 
 // =============================================================================
@@ -251,6 +257,7 @@ type Int64SliceFlag struct {
 	delimiters        []string     // 分隔符
 	mu                sync.RWMutex // 读写锁
 	skipEmpty         bool         // 是否跳过空元素
+	initOnce          sync.Once    // 确保只初始化一次
 }
 
 // Type 返回标志类型
@@ -470,26 +477,31 @@ func (f *Int64SliceFlag) Sort() error {
 //
 // 返回值:
 //   - error: 初始化错误信息
+//
+// 注意: 重复调用此方法是安全的，后续调用将被忽略
 func (f *Int64SliceFlag) Init(longName, shortName string, defValue []int64, usage string) error {
-	// 确保默认值不为nil
-	if defValue == nil {
-		defValue = []int64{}
-	}
+	var initErr error
+	f.initOnce.Do(func() {
+		// 确保默认值不为nil
+		if defValue == nil {
+			defValue = []int64{}
+		}
 
-	// 1. 初始化值指针（切片需创建副本避免外部修改影响）
-	valueCopy := make([]int64, len(defValue))
-	copy(valueCopy, defValue)
-	valuePtr := &valueCopy
+		// 1. 初始化值指针（切片需创建副本避免外部修改影响）
+		valueCopy := make([]int64, len(defValue))
+		copy(valueCopy, defValue)
+		valuePtr := &valueCopy
 
-	// 2. 调用基类初始化通用字段
-	if err := f.BaseFlag.Init(longName, shortName, usage, valuePtr); err != nil {
-		return err
-	}
+		// 2. 调用基类初始化通用字段
+		if err := f.BaseFlag.Init(longName, shortName, usage, valuePtr); err != nil {
+			initErr = err
+			return
+		}
 
-	// 3. 初始化切片特有字段(通过SetDelimiters保证线程安全)
-	f.SetDelimiters(FlagSplitSlice)
-
-	return nil
+		// 3. 初始化切片特有字段(通过SetDelimiters保证线程安全)
+		f.SetDelimiters(FlagSplitSlice)
+	})
+	return initErr
 }
 
 // =============================================================================
@@ -503,6 +515,7 @@ type IntSliceFlag struct {
 	delimiters      []string     // 分隔符
 	mu              sync.RWMutex // 读写锁
 	skipEmpty       bool         // 是否跳过空元素
+	initOnce        sync.Once    // 确保只初始化一次
 }
 
 // Type 返回标志类型
@@ -720,24 +733,30 @@ func (f *IntSliceFlag) Sort() error {
 //
 // 返回值:
 //   - error: 初始化错误信息
+//
+// 注意: 重复调用此方法是安全的，后续调用将被忽略
 func (f *IntSliceFlag) Init(longName, shortName string, defValue []int, usage string) error {
-	// 确保默认值不为nil
-	if defValue == nil {
-		defValue = []int{}
-	}
+	var initErr error
+	f.initOnce.Do(func() {
+		// 确保默认值不为nil
+		if defValue == nil {
+			defValue = []int{}
+		}
 
-	// 1. 初始化值指针（切片需创建副本避免外部修改影响）
-	valueCopy := make([]int, len(defValue))
-	copy(valueCopy, defValue)
-	valuePtr := &valueCopy
+		// 1. 初始化值指针（切片需创建副本避免外部修改影响）
+		valueCopy := make([]int, len(defValue))
+		copy(valueCopy, defValue)
+		valuePtr := &valueCopy
 
-	// 2. 调用基类初始化通用字段
-	if err := f.BaseFlag.Init(longName, shortName, usage, valuePtr); err != nil {
-		return err
-	}
+		// 2. 调用基类初始化通用字段
+		if err := f.BaseFlag.Init(longName, shortName, usage, valuePtr); err != nil {
+			initErr = err
+			return
+		}
 
-	// 3. 初始化切片特有字段(通过SetDelimiters保证线程安全)
-	f.SetDelimiters(FlagSplitSlice)
+		// 3. 初始化切片特有字段(通过SetDelimiters保证线程安全)
+		f.SetDelimiters(FlagSplitSlice)
+	})
 
-	return nil
+	return initErr
 }

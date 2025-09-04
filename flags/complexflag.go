@@ -168,6 +168,7 @@ type EnumFlag struct {
 	originalOptions []string        // 原始选项(未处理)
 	caseSensitive   bool            // 是否区分大小写
 	mu              sync.RWMutex    // 读写锁
+	initOnce        sync.Once       // 确保只初始化一次
 }
 
 // Type 返回标志类型
@@ -266,7 +267,7 @@ func (f *EnumFlag) Set(value string) error {
 //   - string: 当前值的字符串表示
 func (f *EnumFlag) String() string { return f.Get() }
 
-// Init 初始化枚举类型标志, 无需显式调用, 仅在创建标志对象时自动调用
+// Init 初始化枚举类型标志（使用 sync.Once 确保只初始化一次）
 //
 // 参数:
 //   - longName: 长标志名称
@@ -277,58 +278,65 @@ func (f *EnumFlag) String() string { return f.Get() }
 //
 // 返回值:
 //   - error: 初始化错误信息
+//
+// 注意: 重复调用此方法是安全的，后续调用将被忽略
 func (f *EnumFlag) Init(longName, shortName string, defValue string, usage string, options []string) error {
-	f.mu.Lock()
-	defer f.mu.Unlock()
+	var initErr error
+	f.initOnce.Do(func() {
+		f.mu.Lock()
+		defer f.mu.Unlock()
 
-	// 初始化枚举值
-	if options == nil {
-		options = make([]string, 0)
-	}
-
-	// 1. 初始化基类字段
-	valuePtr := new(string)
-
-	// 根据大小写敏感设置处理默认值
-	if !f.caseSensitive {
-		*valuePtr = strings.ToLower(defValue)
-	} else {
-		*valuePtr = defValue
-	}
-
-	// 调用基类方法初始化字段
-	if err := f.BaseFlag.Init(longName, shortName, usage, valuePtr); err != nil {
-		return err
-	}
-
-	// 2. 初始化枚举optionMap（仅在Init阶段修改，无需额外锁）
-	// 注意：无需额外锁，因BaseFlag.Init已保证单例初始化
-	f.optionMap = make(map[string]bool)                 // 枚举值映射
-	f.originalOptions = make([]string, 0, len(options)) // 原始选项切片
-	for _, opt := range options {
-		if opt == "" {
-			return qerr.NewValidationError("enum option cannot be empty")
+		// 初始化枚举值
+		if options == nil {
+			options = make([]string, 0)
 		}
-		f.originalOptions = append(f.originalOptions, opt) // 保存原始选项
 
-		// 如果不区分大小写，则将枚举值转换为小写
-		key := opt
+		// 1. 初始化基类字段
+		valuePtr := new(string)
+
+		// 根据大小写敏感设置处理默认值
 		if !f.caseSensitive {
-			key = strings.ToLower(opt)
+			*valuePtr = strings.ToLower(defValue)
+		} else {
+			*valuePtr = defValue
 		}
-		f.optionMap[key] = true
-	}
 
-	// 3. 验证默认值有效性
-	checkValue := defValue // 根据大小写敏感设置处理默认值
-	if !f.caseSensitive {
-		checkValue = strings.ToLower(checkValue)
-	}
-	if len(options) > 0 && !f.optionMap[checkValue] {
-		return qerr.NewValidationErrorf("default value '%s' not in enum options %v", defValue, options)
-	}
+		// 调用基类方法初始化字段
+		if err := f.BaseFlag.Init(longName, shortName, usage, valuePtr); err != nil {
+			initErr = err
+			return
+		}
 
-	return nil
+		// 2. 初始化枚举optionMap（仅在Init阶段修改，无需额外锁）
+		// 注意：无需额外锁，因BaseFlag.Init已保证单例初始化
+		f.optionMap = make(map[string]bool)                 // 枚举值映射
+		f.originalOptions = make([]string, 0, len(options)) // 原始选项切片
+		for _, opt := range options {
+			if opt == "" {
+				initErr = qerr.NewValidationError("enum option cannot be empty")
+				return
+			}
+			f.originalOptions = append(f.originalOptions, opt) // 保存原始选项
+
+			// 如果不区分大小写，则将枚举值转换为小写
+			key := opt
+			if !f.caseSensitive {
+				key = strings.ToLower(opt)
+			}
+			f.optionMap[key] = true
+		}
+
+		// 3. 验证默认值有效性
+		checkValue := defValue // 根据大小写敏感设置处理默认值
+		if !f.caseSensitive {
+			checkValue = strings.ToLower(checkValue)
+		}
+		if len(options) > 0 && !f.optionMap[checkValue] {
+			initErr = qerr.NewValidationErrorf("default value '%s' not in enum options %v", defValue, options)
+			return
+		}
+	})
+	return initErr
 }
 
 // GetOptions 返回枚举的所有可选值
