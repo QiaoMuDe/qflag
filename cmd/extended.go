@@ -709,3 +709,85 @@ func (c *Cmd) Int64SliceVar(f *flags.Int64SliceFlag, longName, shortName string,
 		panic(registerErr)
 	}
 }
+
+// =============================================================================
+// 大小类型标志
+// =============================================================================
+
+// Size 添加大小类型标志, 返回标志对象指针
+//
+// 参数值:
+//   - longName: string - 长标志名
+//   - shortName: string - 短标志名
+//   - defValue: int64 - 默认值(单位为字节)
+//   - usage: string - 帮助说明
+//
+// 返回值:
+//   - *flags.SizeFlag - 大小标志对象指针
+//
+// 支持的单位格式:
+//   - 字节: "B", "b", "byte", "bytes"
+//   - 十进制: "KB", "MB", "GB", "TB", "PB" 或简写 "K", "M", "G", "T", "P"
+//   - 二进制: "KiB", "MiB", "GiB", "TiB", "PiB"
+//   - 支持小数: "1.5GB", "2.5MB"
+//   - 支持负数: "-1GB", "-500MB"
+//   - 特殊值: "0" (零值特例)
+func (c *Cmd) Size(longName, shortName string, defValue int64, usage string) *flags.SizeFlag {
+	f := &flags.SizeFlag{}
+	c.SizeVar(f, longName, shortName, defValue, usage)
+	return f
+}
+
+// SizeVar 绑定大小类型标志到指针并内部注册Flag对象
+//
+// 参数值:
+//   - f: *flags.SizeFlag - 大小标志对象指针
+//   - longName: string - 长标志名
+//   - shortName: string - 短标志名
+//   - defValue: int64 - 默认值(单位为字节)
+//   - usage: string - 帮助说明
+//
+// 支持的单位格式:
+//   - 字节: "B", "b", "byte", "bytes"
+//   - 十进制: "KB", "MB", "GB", "TB", "PB" 或简写 "K", "M", "G", "T", "P"
+//   - 二进制: "KiB", "MiB", "GiB", "TiB", "PiB"
+//   - 支持小数: "1.5GB", "2.5MB"
+//   - 支持负数: "-1GB", "-500MB"
+//   - 特殊值: "0" (零值特例)
+func (c *Cmd) SizeVar(f *flags.SizeFlag, longName, shortName string, defValue int64, usage string) {
+	c.ctx.Mutex.Lock()
+	defer c.ctx.Mutex.Unlock()
+
+	// 检查指针是否为nil
+	if f == nil {
+		panic("SizeFlag pointer cannot be nil")
+	}
+
+	// 检查标志是否为内置标志
+	if ok := c.ctx.BuiltinFlags.IsBuiltinFlag(longName); ok {
+		panic(fmt.Errorf("flag long name %s is reserved", longName))
+	}
+	if ok := c.ctx.BuiltinFlags.IsBuiltinFlag(shortName); ok {
+		panic(fmt.Errorf("flag short name %s is reserved", shortName))
+	}
+
+	// 初始化Flag对象
+	if initErr := f.Init(longName, shortName, defValue, usage); initErr != nil {
+		panic(initErr)
+	}
+
+	// 绑定短标志
+	if shortName != "" {
+		c.ctx.FlagSet.Var(f, shortName, usage)
+	}
+
+	// 绑定长标志
+	if longName != "" {
+		c.ctx.FlagSet.Var(f, longName, usage)
+	}
+
+	// 注册Flag对象
+	if registerErr := c.ctx.FlagRegistry.RegisterFlag(&flags.FlagMeta{Flag: f}); registerErr != nil {
+		panic(registerErr)
+	}
+}

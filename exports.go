@@ -64,3 +64,6 @@ type Uint32Flag = flags.Uint32Flag
 
 // Uint64Flag 导出flag包中的Uint64Flag结构体
 type Uint64Flag = flags.Uint64Flag
+
+// SizeFlag 导出flag包中的SizeFlag结构体
+type SizeFlag = flags.SizeFlag

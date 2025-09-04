@@ -1014,13 +1014,14 @@ func TestCmd_ConcurrentFlagCreation(t *testing.T) {
 			cmd.Duration(fmt.Sprintf("duration-%d", id), fmt.Sprintf("d%d", id), time.Duration(id)*time.Second, "测试时间间隔")
 			cmd.Map(fmt.Sprintf("map-%d", id), fmt.Sprintf("m%d", id), map[string]string{"key": fmt.Sprintf("value-%d", id)}, "测试键值对")
 			cmd.StringSlice(fmt.Sprintf("slice-%d", id), fmt.Sprintf("s%d", id), []string{fmt.Sprintf("item-%d", id)}, "测试切片")
+			cmd.Size(fmt.Sprintf("size-%d", id), fmt.Sprintf("z%d", id), int64(id*1024*1024), "测试大小")
 		}(i)
 	}
 
 	wg.Wait()
 
 	// 验证所有标志都已正确创建
-	expectedFlags := numGoroutines * 8 // 每个goroutine创建8个标志
+	expectedFlags := numGoroutines * 9 // 每个goroutine创建9个标志
 	actualFlags := cmd.NFlag()
 	if actualFlags != expectedFlags+1 { // +1 for built-in help flag
 		t.Errorf("期望创建 %d 个标志，实际创建 %d 个", expectedFlags+1, actualFlags)
@@ -1177,6 +1178,477 @@ func BenchmarkCmd_SliceCreation(b *testing.B) {
 	}
 }
 
+func BenchmarkCmd_SizeCreation(b *testing.B) {
+	cmd := createExtendedTestCmd()
+
+	b.ResetTimer()
+	for i := 0; i < b.N; i++ {
+		cmd.Size(fmt.Sprintf("size-%d", i), fmt.Sprintf("z%d", i), int64(i*1024*1024), "基准测试大小")
+	}
+}
+
+func BenchmarkCmd_SizeParsing(b *testing.B) {
+	cmd := createExtendedTestCmd()
+	flag := cmd.Size("benchmark-size", "bs", 0, "基准测试大小解析")
+
+	testValues := []string{"1KB", "5MB", "2GB", "1.5GB", "512MiB", "1024KiB"}
+
+	b.ResetTimer()
+	for i := 0; i < b.N; i++ {
+		value := testValues[i%len(testValues)]
+		flag.Set(value)
+	}
+}
+
+// =============================================================================
+// 大小类型标志测试
+// =============================================================================
+
+func TestCmd_Size(t *testing.T) {
+	tests := []struct {
+		name        string
+		longName    string
+		shortName   string
+		defValue    int64
+		usage       string
+		expectPanic bool
+		panicMsg    string
+		setupCmd    func() *Cmd
+	}{
+		{
+			name:      "正常创建大小标志",
+			longName:  "max-size",
+			shortName: "s",
+			defValue:  1024 * 1024, // 1MB
+			usage:     "最大文件大小",
+			setupCmd:  createExtendedTestCmd,
+		},
+		{
+			name:      "零值大小标志",
+			longName:  "min-size",
+			shortName: "m",
+			defValue:  0,
+			usage:     "最小文件大小",
+			setupCmd:  createExtendedTestCmd,
+		},
+		{
+			name:      "大值大小标志",
+			longName:  "cache-size",
+			shortName: "c",
+			defValue:  10 * 1024 * 1024 * 1024, // 10GB
+			usage:     "缓存大小",
+			setupCmd:  createExtendedTestCmd,
+		},
+
+		{
+			name:      "仅长名称大小标志",
+			longName:  "buffer-size",
+			shortName: "",
+			defValue:  4096,
+			usage:     "缓冲区大小",
+			setupCmd:  createExtendedTestCmd,
+		},
+		{
+			name:      "仅短名称大小标志",
+			longName:  "",
+			shortName: "b",
+			defValue:  2048,
+			usage:     "块大小",
+			setupCmd:  createExtendedTestCmd,
+		},
+		{
+			name:        "使用保留的长名称",
+			longName:    "help",
+			shortName:   "s",
+			defValue:    1024,
+			usage:       "测试保留名称",
+			expectPanic: true,
+			panicMsg:    "flag long name help is reserved",
+			setupCmd:    createExtendedTestCmdWithBuiltins,
+		},
+		{
+			name:        "使用保留的短名称",
+			longName:    "size",
+			shortName:   "h",
+			defValue:    1024,
+			usage:       "测试保留名称",
+			expectPanic: true,
+			panicMsg:    "flag short name h is reserved",
+			setupCmd:    createExtendedTestCmdWithBuiltins,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			cmd := tt.setupCmd()
+
+			defer func() {
+				if r := recover(); r != nil {
+					if !tt.expectPanic {
+						t.Errorf("Size() 意外的panic: %v", r)
+					} else if tt.panicMsg != "" && !strings.Contains(fmt.Sprintf("%v", r), tt.panicMsg) {
+						t.Errorf("Size() panic信息 = %v, 期望包含 %v", r, tt.panicMsg)
+					}
+				} else if tt.expectPanic {
+					t.Error("Size() 期望panic但未发生")
+				}
+			}()
+
+			flag := cmd.Size(tt.longName, tt.shortName, tt.defValue, tt.usage)
+
+			if !tt.expectPanic {
+				if flag == nil {
+					t.Error("Size() 返回nil")
+					return
+				}
+
+				// 验证标志属性
+				if flag.LongName() != tt.longName {
+					t.Errorf("LongName() = %v, 期望 %v", flag.LongName(), tt.longName)
+				}
+				if flag.ShortName() != tt.shortName {
+					t.Errorf("ShortName() = %v, 期望 %v", flag.ShortName(), tt.shortName)
+				}
+				if flag.Usage() != tt.usage {
+					t.Errorf("Usage() = %v, 期望 %v", flag.Usage(), tt.usage)
+				}
+				if flag.GetBytes() != tt.defValue {
+					t.Errorf("GetBytes() = %v, 期望 %v", flag.GetBytes(), tt.defValue)
+				}
+				if flag.Type() != flags.FlagTypeSize {
+					t.Errorf("Type() = %v, 期望 %v", flag.Type(), flags.FlagTypeSize)
+				}
+			}
+		})
+	}
+}
+
+func TestCmd_SizeVar(t *testing.T) {
+	tests := []struct {
+		name        string
+		flag        *flags.SizeFlag
+		longName    string
+		shortName   string
+		defValue    int64
+		usage       string
+		expectPanic bool
+		panicMsg    string
+		setupCmd    func() *Cmd
+	}{
+		{
+			name:      "正常绑定大小标志",
+			flag:      &flags.SizeFlag{},
+			longName:  "file-size",
+			shortName: "f",
+			defValue:  512 * 1024, // 512KB
+			usage:     "文件大小限制",
+			setupCmd:  createExtendedTestCmd,
+		},
+		{
+			name:      "零值绑定大小标志",
+			flag:      &flags.SizeFlag{},
+			longName:  "zero-size",
+			shortName: "z",
+			defValue:  0,
+			usage:     "零大小测试",
+			setupCmd:  createExtendedTestCmd,
+		},
+
+		{
+			name:        "nil标志指针",
+			flag:        nil,
+			longName:    "test",
+			shortName:   "t",
+			defValue:    1024,
+			usage:       "测试",
+			expectPanic: true,
+			panicMsg:    "SizeFlag pointer cannot be nil",
+			setupCmd:    createExtendedTestCmd,
+		},
+		{
+			name:        "使用保留的长名称",
+			flag:        &flags.SizeFlag{},
+			longName:    "version",
+			shortName:   "s",
+			defValue:    1024,
+			usage:       "测试保留名称",
+			expectPanic: true,
+			panicMsg:    "flag long name version is reserved",
+			setupCmd:    createExtendedTestCmdWithBuiltins,
+		},
+		{
+			name:        "使用保留的短名称",
+			flag:        &flags.SizeFlag{},
+			longName:    "size",
+			shortName:   "v",
+			defValue:    1024,
+			usage:       "测试保留名称",
+			expectPanic: true,
+			panicMsg:    "flag short name v is reserved",
+			setupCmd:    createExtendedTestCmdWithBuiltins,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			cmd := tt.setupCmd()
+
+			defer func() {
+				if r := recover(); r != nil {
+					if !tt.expectPanic {
+						t.Errorf("SizeVar() 意外的panic: %v", r)
+					} else if tt.panicMsg != "" && !strings.Contains(fmt.Sprintf("%v", r), tt.panicMsg) {
+						t.Errorf("SizeVar() panic信息 = %v, 期望包含 %v", r, tt.panicMsg)
+					}
+				} else if tt.expectPanic {
+					t.Error("SizeVar() 期望panic但未发生")
+				}
+			}()
+
+			cmd.SizeVar(tt.flag, tt.longName, tt.shortName, tt.defValue, tt.usage)
+
+			if !tt.expectPanic && tt.flag != nil {
+				// 验证标志属性
+				if tt.flag.LongName() != tt.longName {
+					t.Errorf("LongName() = %v, 期望 %v", tt.flag.LongName(), tt.longName)
+				}
+				if tt.flag.ShortName() != tt.shortName {
+					t.Errorf("ShortName() = %v, 期望 %v", tt.flag.ShortName(), tt.shortName)
+				}
+				if tt.flag.Usage() != tt.usage {
+					t.Errorf("Usage() = %v, 期望 %v", tt.flag.Usage(), tt.usage)
+				}
+				if tt.flag.GetBytes() != tt.defValue {
+					t.Errorf("GetBytes() = %v, 期望 %v", tt.flag.GetBytes(), tt.defValue)
+				}
+			}
+		})
+	}
+}
+
+func TestCmd_SizeFlagParsing(t *testing.T) {
+	tests := []struct {
+		name        string
+		input       string
+		expected    int64
+		expectError bool
+	}{
+		{
+			name:     "解析KB单位",
+			input:    "1KB",
+			expected: 1000,
+		},
+		{
+			name:     "解析MB单位",
+			input:    "5MB",
+			expected: 5 * 1000 * 1000,
+		},
+		{
+			name:     "解析GB单位",
+			input:    "2GB",
+			expected: 2 * 1000 * 1000 * 1000,
+		},
+		{
+			name:     "解析KiB单位",
+			input:    "1KiB",
+			expected: 1024,
+		},
+		{
+			name:     "解析MiB单位",
+			input:    "3MiB",
+			expected: 3 * 1024 * 1024,
+		},
+		{
+			name:     "解析GiB单位",
+			input:    "1GiB",
+			expected: 1024 * 1024 * 1024,
+		},
+		{
+			name:     "解析字节单位",
+			input:    "512B",
+			expected: 512,
+		},
+		{
+			name:     "解析小数值",
+			input:    "1.5GB",
+			expected: int64(1.5 * 1000 * 1000 * 1000),
+		},
+		{
+			name:        "拒绝负数值",
+			input:       "-1MB",
+			expectError: true,
+		},
+		{
+			name:     "解析零值特例",
+			input:    "0",
+			expected: 0,
+		},
+		{
+			name:        "拒绝纯数字",
+			input:       "1024",
+			expectError: true,
+		},
+		{
+			name:        "拒绝无效单位",
+			input:       "1XB",
+			expectError: true,
+		},
+		{
+			name:        "拒绝无效格式",
+			input:       "invalid",
+			expectError: true,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			cmd := createExtendedTestCmd()
+			flag := cmd.Size("test-size", "t", 0, "测试大小解析")
+
+			err := flag.Set(tt.input)
+			if tt.expectError {
+				if err == nil {
+					t.Errorf("Set(%s) 期望错误但未发生", tt.input)
+				}
+			} else {
+				if err != nil {
+					t.Errorf("Set(%s) 意外错误: %v", tt.input, err)
+				} else if flag.GetBytes() != tt.expected {
+					t.Errorf("Set(%s) 结果 = %d, 期望 %d", tt.input, flag.GetBytes(), tt.expected)
+				}
+			}
+		})
+	}
+}
+
+func TestCmd_SizeFlagStringFormatting(t *testing.T) {
+	tests := []struct {
+		name     string
+		bytes    int64
+		expected string
+	}{
+		{
+			name:     "零值格式化",
+			bytes:    0,
+			expected: "0B",
+		},
+		{
+			name:     "字节格式化",
+			bytes:    512,
+			expected: "512B",
+		},
+		{
+			name:     "KB格式化",
+			bytes:    1000,
+			expected: "1KB",
+		},
+		{
+			name:     "MB格式化",
+			bytes:    1000 * 1000,
+			expected: "1MB",
+		},
+		{
+			name:     "GB格式化",
+			bytes:    1000 * 1000 * 1000,
+			expected: "1GB",
+		},
+		{
+			name:     "小数KB格式化",
+			bytes:    1500,
+			expected: "1.5KB",
+		},
+		{
+			name:     "小数MB格式化",
+			bytes:    1500000,
+			expected: "1.5MB",
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			cmd := createExtendedTestCmd()
+			flag := cmd.Size("test-size", "t", tt.bytes, "测试大小格式化")
+
+			result := flag.String()
+			if result != tt.expected {
+				t.Errorf("String() = %s, 期望 %s", result, tt.expected)
+			}
+		})
+	}
+}
+
+func TestCmd_SizeFlagGetters(t *testing.T) {
+	cmd := createExtendedTestCmd()
+	flag := cmd.Size("test-size", "t", 2*1024*1024*1024, "测试大小获取器") // 2GB
+
+	// 测试 GetBytes (返回 int64)
+	t.Run("GetBytes", func(t *testing.T) {
+		expected := int64(2 * 1024 * 1024 * 1024)
+		result := flag.GetBytes()
+		if result != expected {
+			t.Errorf("GetBytes() = %d, 期望 %d", result, expected)
+		}
+	})
+
+	// 测试 GetKiB (返回 float64)
+	t.Run("GetKiB", func(t *testing.T) {
+		expected := float64(2 * 1024 * 1024)
+		result := flag.GetKiB()
+		if result != expected {
+			t.Errorf("GetKiB() = %f, 期望 %f", result, expected)
+		}
+	})
+
+	// 测试 GetMiB (返回 float64)
+	t.Run("GetMiB", func(t *testing.T) {
+		expected := float64(2 * 1024)
+		result := flag.GetMiB()
+		if result != expected {
+			t.Errorf("GetMiB() = %f, 期望 %f", result, expected)
+		}
+	})
+
+	// 测试 GetGiB (返回 float64)
+	t.Run("GetGiB", func(t *testing.T) {
+		expected := float64(2)
+		result := flag.GetGiB()
+		if result != expected {
+			t.Errorf("GetGiB() = %f, 期望 %f", result, expected)
+		}
+	})
+
+	// 测试状态检查方法
+	t.Run("IsZero", func(t *testing.T) {
+		zeroFlag := cmd.Size("zero-size", "z", 0, "零值测试")
+		if !zeroFlag.IsZero() {
+			t.Error("IsZero() 应该返回 true")
+		}
+		if flag.IsZero() {
+			t.Error("IsZero() 应该返回 false")
+		}
+	})
+
+	t.Run("IsPositive", func(t *testing.T) {
+		if !flag.IsPositive() {
+			t.Error("IsPositive() 应该返回 true")
+		}
+		zeroFlag := cmd.Size("zero-size2", "z2", 0, "零值测试")
+		if zeroFlag.IsPositive() {
+			t.Error("零值的 IsPositive() 应该返回 false")
+		}
+	})
+
+	t.Run("IsNegative", func(t *testing.T) {
+		if flag.IsNegative() {
+			t.Error("IsNegative() 应该返回 false")
+		}
+		zeroFlag := cmd.Size("zero-size3", "z3", 0, "零值测试")
+		if zeroFlag.IsNegative() {
+			t.Error("零值的 IsNegative() 应该返回 false")
+		}
+	})
+}
+
 // =============================================================================
 // 集成测试
 // =============================================================================
@@ -1194,9 +1666,10 @@ func TestCmd_ExtendedIntegration(t *testing.T) {
 		durationFlag := cmd.Duration("timeout", "t", 30*time.Second, "超时")
 		mapFlag := cmd.Map("config", "c", map[string]string{"key": "value"}, "配置")
 		sliceFlag := cmd.StringSlice("files", "fl", []string{"file1", "file2"}, "文件列表")
+		sizeFlag := cmd.Size("max-size", "ms", 1024*1024*1024, "最大文件大小") // 1GB
 
 		// 验证所有标志都已创建
-		flags := [...]interface{}{enumFlag, uint16Flag, uint32Flag, uint64Flag, timeFlag, durationFlag, mapFlag, sliceFlag}
+		flags := [...]interface{}{enumFlag, uint16Flag, uint32Flag, uint64Flag, timeFlag, durationFlag, mapFlag, sliceFlag, sizeFlag}
 		for i, flag := range flags {
 			if flag == nil {
 				t.Errorf("标志 %d 创建失败", i)
