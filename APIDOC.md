@@ -78,6 +78,30 @@ AddSubCmd 向全局默认命令实例 `QCommandLine` 添加一个或多个子命
 **返回值:**
 - `error`: 若添加子命令过程中出现错误（如子命令为 `nil` 或存在循环引用），则返回错误信息；否则返回 `nil`
 
+### AddSubCmds
+
+```go
+func AddSubCmds(subCmds []*cmd.Cmd) error
+```
+
+AddSubCmds 向全局默认命令实例 `QCommandLine` 添加子命令切片的便捷函数。该函数是 AddSubCmd 的便捷包装，专门用于处理子命令切片，内部直接调用全局默认命令实例的 `AddSubCmds` 方法，具有相同的验证逻辑和并发安全特性。
+
+**参数:**
+- `subCmds`: 子命令切片，包含要添加的所有子命令实例指针
+
+**返回值:**
+- `error`: 添加过程中的错误信息，与 AddSubCmd 返回的错误类型相同
+
+**使用场景对比:**
+```go
+// 使用 AddSubCmd - 适合已知数量的子命令
+qflag.AddSubCmd(subCmd1, subCmd2, subCmd3)
+
+// 使用 AddSubCmds - 适合动态生成的子命令切片
+subCmds := []*qflag.Cmd{subCmd1, subCmd2, subCmd3}
+qflag.AddSubCmds(subCmds)
+```
+
 ### Arg
 
 ```go

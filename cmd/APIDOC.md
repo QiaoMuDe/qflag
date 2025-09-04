@@ -133,13 +133,41 @@ GetNotes 获取所有备注信息
 func (c *Cmd) AddSubCmd(subCmds ...*Cmd) error
 ```
 
-AddSubCmd 添加外部子命令到当前命令。支持批量添加多个子命令, 遇到错误时收集所有错误并返回
+向当前命令添加一个或多个子命令。此方法会对所有子命令进行完整性验证，包括名称冲突检查、循环依赖检测等。操作过程中会自动设置子命令的父命令引用，确保命令树结构的完整性。
 
 **参数:**
-- `subCmds`: 一个或多个子命令实例指针
+- `subCmds`: 要添加的子命令实例指针，支持传入多个子命令进行批量添加
 
 **返回值:**
-- 错误信息, 如果所有子命令添加成功则返回nil
+- `error`: 添加过程中的错误信息。如果任何子命令验证失败，将返回包含所有错误详情的聚合错误；如果所有子命令成功添加，返回 nil
+
+**并发安全:** 使用互斥锁保护，可安全地在多个 goroutine 中并发调用
+
+##### AddSubCmds
+
+```go
+func (c *Cmd) AddSubCmds(subCmds []*Cmd) error
+```
+
+向当前命令添加子命令切片的便捷方法。此方法是 AddSubCmd 的便捷包装，专门用于处理子命令切片，内部直接调用 AddSubCmd 方法，具有相同的验证逻辑和并发安全特性。
+
+**参数:**
+- `subCmds`: 子命令切片，包含要添加的所有子命令实例指针
+
+**返回值:**
+- `error`: 添加过程中的错误信息，与 AddSubCmd 返回的错误类型相同
+
+**并发安全:** 通过调用 AddSubCmd 实现，继承其互斥锁保护特性
+
+**使用示例:**
+```go
+// 使用 AddSubCmd - 适合已知数量的子命令
+cmd.AddSubCmd(subCmd1, subCmd2, subCmd3)
+
+// 使用 AddSubCmds - 适合动态生成的子命令切片
+subCmds := []*qflag.Cmd{subCmd1, subCmd2, subCmd3}
+cmd.AddSubCmds(subCmds)
+```
 
 ##### CmdExists
 
