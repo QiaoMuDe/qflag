@@ -790,7 +790,7 @@ func TestCommandAndFlagRegistration(t *testing.T) {
 		}
 
 		// 检查标志显示
-		if !strings.Contains(help, "--config, -c") {
+		if !strings.Contains(help, "-c, --config") {
 			t.Error("Flag with both names display incorrect")
 		}
 		if !strings.Contains(help, "--output") {

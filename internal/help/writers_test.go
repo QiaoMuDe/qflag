@@ -225,7 +225,7 @@ func TestWriteOptions(t *testing.T) {
 	}
 
 	// 验证包含各种标志格式
-	if !strings.Contains(result, "--verbose, -v") {
+	if !strings.Contains(result, " -v, --verbose") {
 		t.Error("结果应包含长短标志格式")
 	}
 	if !strings.Contains(result, "--output") {

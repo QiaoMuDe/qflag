@@ -103,7 +103,7 @@ func TestGenerateHelp_WithFlags(t *testing.T) {
 	if !strings.Contains(result, "选项:") {
 		t.Error("结果应包含选项标题")
 	}
-	if !strings.Contains(result, "--verbose, -v") {
+	if !strings.Contains(result, " -v, --verbose") {
 		t.Error("结果应包含标志信息")
 	}
 }

@@ -62,7 +62,7 @@ func TestNestedCommandHelp(t *testing.T) {
 			level2Commands[i].Duration("timeout", "t", 30*time.Second, "请求超时")
 			level2Commands[i].Int("retries", "r", 3, "重试次数")
 		case 2: // database
-			level2Commands[i].String("driver", "d", "mysql", "数据库驱动")
+			level2Commands[i].String("", "d", "mysql", "数据库驱动")
 			level2Commands[i].String("dsn", "", "user:pass@tcp(localhost:3306)/db", "数据源名称")
 			level2Commands[i].Int("max-connections", "m", 10, "最大连接数")
 		case 3: // monitor
