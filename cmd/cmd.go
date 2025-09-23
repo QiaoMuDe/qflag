@@ -154,7 +154,7 @@ func (c *Cmd) AddSubCmd(subCmds ...*Cmd) error {
 	var errors []error
 	validCmds := make([]*Cmd, 0, len(subCmds)) // 预分配空间
 
-	// 验证所有子命令（无锁操作）
+	// 验证所有子命令(无锁操作)
 	for cmdIndex, cmd := range subCmds {
 		// 检查子命令是否为nil
 		if cmd == nil {
@@ -162,7 +162,7 @@ func (c *Cmd) AddSubCmd(subCmds ...*Cmd) error {
 			continue
 		}
 
-		// 执行子命令的验证方法（无锁操作）
+		// 执行子命令的验证方法(无锁操作)
 		if err := validator.ValidateSubCommand(c.ctx, cmd.ctx); err != nil {
 			errors = append(errors, fmt.Errorf("invalid subcommand %s: %w", validator.GetCmdIdentifier(cmd.ctx), err))
 			continue
@@ -730,7 +730,7 @@ func (c *Cmd) AddExamples(examples []ExampleInfo) {
 // 链式调用方法 - 用于构建器模式，提供更流畅的API体验(14个)
 // ================================================================================
 
-// WithDescription 设置命令描述（链式调用）
+// WithDescription 设置命令描述(链式调用)
 //
 // 参数:
 //   - desc: 命令描述
@@ -742,7 +742,7 @@ func (c *Cmd) WithDescription(desc string) *Cmd {
 	return c
 }
 
-// WithVersion 设置版本信息（链式调用）
+// WithVersion 设置版本信息(链式调用)
 //
 // 参数:
 //   - version: 版本信息
@@ -754,7 +754,7 @@ func (c *Cmd) WithVersion(version string) *Cmd {
 	return c
 }
 
-// WithVersionf 设置版本信息（链式调用，支持格式化）
+// WithVersionf 设置版本信息(链式调用，支持格式化)
 //
 // 参数:
 //   - format: 版本信息格式字符串
@@ -767,7 +767,7 @@ func (c *Cmd) WithVersionf(format string, args ...any) *Cmd {
 	return c
 }
 
-// WithUseChinese 设置是否使用中文帮助信息（链式调用）
+// WithUseChinese 设置是否使用中文帮助信息(链式调用)
 //
 // 参数:
 //   - useChinese: 是否使用中文帮助信息
@@ -779,7 +779,7 @@ func (c *Cmd) WithUseChinese(useChinese bool) *Cmd {
 	return c
 }
 
-// WithUsageSyntax 设置自定义命令用法（链式调用）
+// WithUsageSyntax 设置自定义命令用法(链式调用)
 //
 // 参数:
 //   - usageSyntax: 自定义命令用法
@@ -791,7 +791,7 @@ func (c *Cmd) WithUsageSyntax(usageSyntax string) *Cmd {
 	return c
 }
 
-// WithLogoText 设置logo文本（链式调用）
+// WithLogoText 设置logo文本(链式调用)
 //
 // 参数:
 //   - logoText: logo文本字符串
@@ -803,7 +803,7 @@ func (c *Cmd) WithLogoText(logoText string) *Cmd {
 	return c
 }
 
-// WithHelp 设置用户自定义命令帮助信息（链式调用）
+// WithHelp 设置用户自定义命令帮助信息(链式调用)
 //
 // 参数:
 //   - help: 用户自定义命令帮助信息
@@ -815,7 +815,7 @@ func (c *Cmd) WithHelp(help string) *Cmd {
 	return c
 }
 
-// WithNote 添加备注信息到命令（链式调用）
+// WithNote 添加备注信息到命令(链式调用)
 //
 // 参数:
 //   - note: 备注信息
@@ -827,7 +827,7 @@ func (c *Cmd) WithNote(note string) *Cmd {
 	return c
 }
 
-// WithNotes 添加备注信息切片到命令（链式调用）
+// WithNotes 添加备注信息切片到命令(链式调用)
 //
 // 参数:
 //   - notes: 备注信息列表
@@ -839,7 +839,7 @@ func (c *Cmd) WithNotes(notes []string) *Cmd {
 	return c
 }
 
-// WithExample 为命令添加使用示例（链式调用）
+// WithExample 为命令添加使用示例(链式调用)
 //
 // 参数:
 //   - desc: 示例描述
@@ -852,7 +852,7 @@ func (c *Cmd) WithExample(desc, usage string) *Cmd {
 	return c
 }
 
-// WithExamples 添加使用示例列表到命令（链式调用）
+// WithExamples 添加使用示例列表到命令(链式调用)
 //
 // 参数:
 //   - examples: 示例信息列表
@@ -864,7 +864,7 @@ func (c *Cmd) WithExamples(examples []ExampleInfo) *Cmd {
 	return c
 }
 
-// WithExitOnBuiltinFlags 设置是否在解析内置参数时退出（链式调用）
+// WithExitOnBuiltinFlags 设置是否在解析内置参数时退出(链式调用)
 //
 // 参数:
 //   - exit: 是否退出
@@ -876,7 +876,7 @@ func (c *Cmd) WithExitOnBuiltinFlags(exit bool) *Cmd {
 	return c
 }
 
-// WithEnableCompletion 设置是否启用自动补全（链式调用）
+// WithEnableCompletion 设置是否启用自动补全(链式调用)
 //
 // 参数:
 //   - enable: true表示启用补全,false表示禁用
@@ -888,7 +888,7 @@ func (c *Cmd) WithEnableCompletion(enable bool) *Cmd {
 	return c
 }
 
-// WithModuleHelps 设置自定义模块帮助信息（链式调用）
+// WithModuleHelps 设置自定义模块帮助信息(链式调用)
 //
 // 参数:
 //   - moduleHelps: 自定义模块帮助信息
