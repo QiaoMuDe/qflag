@@ -456,7 +456,7 @@ qflag 支持为 Bash 和 PowerShell 生成自动补全脚本：
 
 ```bash
 # 生成 Bash 补全脚本
-./your-app --generate-shell-completion bash > your-app-completion.sh
+./your-app --completion bash > your-app-completion.sh
 
 # 安装补全脚本
 sudo cp your-app-completion.sh /etc/profile.d/
@@ -467,7 +467,7 @@ source /etc/profile.d/your-app-completion.sh
 
 ```powershell
 # 生成 PowerShell 补全脚本
-./your-app.exe --generate-shell-completion pwsh > your-app-completion.ps1
+./your-app.exe --completion pwsh > your-app-completion.ps1
 
 # 安装补全脚本
 . ./your-app-completion.ps1

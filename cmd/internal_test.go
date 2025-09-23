@@ -142,7 +142,7 @@ func TestCmd_parseCommon(t *testing.T) {
 		{
 			name:             "启用补全功能解析",
 			setupCmd:         createInternalTestCmdWithCompletion,
-			args:             []string{"--generate-shell-completion", "bash"},
+			args:             []string{"--completion", "bash"},
 			parseSubcommands: true,
 			expectShouldExit: true,
 			expectError:      false,
@@ -413,11 +413,8 @@ func TestCmd_registerBuiltinFlags(t *testing.T) {
 
 			// 验证补全标志
 			if tt.expectCompletionFlag {
-				if _, ok := cmd.ctx.BuiltinFlags.NameMap.Load("generate-shell-completion"); !ok {
-					t.Error("期望注册generate-shell-completion标志但未找到")
-				}
-				if _, ok := cmd.ctx.BuiltinFlags.NameMap.Load("gsc"); !ok {
-					t.Error("期望注册gsc标志但未找到")
+				if _, ok := cmd.ctx.BuiltinFlags.NameMap.Load("completion"); !ok {
+					t.Error("期望注册completion标志但未找到")
 				}
 			}
 
@@ -802,7 +799,7 @@ func TestCmd_Internal_Integration(t *testing.T) {
 			{
 				name:        "补全",
 				setupCmd:    createInternalTestCmdWithCompletion,
-				args:        []string{"--generate-shell-completion", "bash"},
+				args:        []string{"--completion", "bash"},
 				expectExit:  true,
 				expectError: false,
 			},

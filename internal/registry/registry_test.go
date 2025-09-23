@@ -77,7 +77,7 @@ func createTestContext() *types.CmdContext {
 	}
 
 	// 标记内置标志名称
-	ctx.BuiltinFlags.MarkAsBuiltin("help", "h", "version", "v", "generate-shell-completion", "gsc")
+	ctx.BuiltinFlags.MarkAsBuiltin("help", "h", "version", "v", "completion")
 
 	return ctx
 }

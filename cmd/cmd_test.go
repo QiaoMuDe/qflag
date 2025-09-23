@@ -18,6 +18,7 @@ func TestNestedCommandHelp(t *testing.T) {
 	rootCmd.SetVersion("1.0.0")
 	rootCmd.SetUseChinese(true)
 	rootCmd.SetExitOnBuiltinFlags(false)
+	rootCmd.SetEnableCompletion(true)
 
 	// 为根命令添加所有13种类型的标志
 	rootCmd.Bool("verbose", "vv", false, "启用详细输出")
