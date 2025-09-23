@@ -34,7 +34,7 @@ func createInternalTestCmdWithVersion() *Cmd {
 // createInternalTestCmdWithCompletion 创建启用补全功能的测试命令
 func createInternalTestCmdWithCompletion() *Cmd {
 	cmd := NewCmd("internal-test", "it", flag.ContinueOnError)
-	cmd.SetEnableCompletion(true)
+	cmd.SetCompletion(true)
 	return cmd
 }
 
@@ -105,7 +105,7 @@ func TestCmd_parseCommon(t *testing.T) {
 			expectError:      false,
 			setupSubcommands: func(cmd *Cmd) {
 				subCmd := NewCmd("subcmd", "sc", flag.ContinueOnError)
-				subCmd.SetExitOnBuiltinFlags(false) // 设置子命令不在内置标志时退出
+				subCmd.SetAutoExit(false) // 设置子命令不在内置标志时退出
 				err := cmd.AddSubCmd(subCmd)
 				if err != nil {
 					t.Fatalf("添加子命令失败: %v", err)
@@ -366,7 +366,7 @@ func TestCmd_registerBuiltinFlags(t *testing.T) {
 			name: "中文环境的补全功能",
 			setupCmd: func() *Cmd {
 				cmd := createInternalTestCmdWithCompletion()
-				cmd.SetUseChinese(true)
+				cmd.SetChinese(true)
 				return cmd
 			},
 			expectCompletionFlag: true,
@@ -544,7 +544,7 @@ func TestCmd_handleBuiltinFlags(t *testing.T) {
 			name: "ExitOnBuiltinFlags为false时不退出",
 			setupCmd: func() *Cmd {
 				cmd := createInternalTestCmd()
-				cmd.SetExitOnBuiltinFlags(false)
+				cmd.SetAutoExit(false)
 				return cmd
 			},
 			setupFlags: func(cmd *Cmd) {
@@ -835,12 +835,12 @@ func TestCmd_Internal_Integration(t *testing.T) {
 	t.Run("多语言支持", func(t *testing.T) {
 		// 测试中文环境
 		cmdCN := createInternalTestCmdWithCompletion()
-		cmdCN.SetUseChinese(true)
+		cmdCN.SetChinese(true)
 		cmdCN.registerBuiltinFlags()
 
 		// 测试英文环境
 		cmdEN := createInternalTestCmdWithCompletion()
-		cmdEN.SetUseChinese(false)
+		cmdEN.SetChinese(false)
 		cmdEN.registerBuiltinFlags()
 
 		// 验证注意事项的语言差异

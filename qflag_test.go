@@ -463,7 +463,7 @@ func TestHelpFlag(t *testing.T) {
 	}()
 
 	cmd := NewCmd("test", "t", flag.ContinueOnError)
-	cmd.SetExitOnBuiltinFlags(false)
+	cmd.SetAutoExit(false)
 	cmd.String("string-flag", "s", "", "测试字符串标志")
 
 	// 测试帮助标志
@@ -494,8 +494,8 @@ func TestCmd_Usage(t *testing.T) {
 	cmd := NewCmd("test", "t", flag.ContinueOnError)
 	usage := "测试用法"
 	cmd.SetHelp(usage)
-	if cmd.GetHelp() != usage {
-		t.Errorf("GetHelp() 返回 %q，期望为 %q", cmd.GetHelp(), usage)
+	if cmd.Help() != usage {
+		t.Errorf("Help() 返回 %q，期望为 %q", cmd.Help(), usage)
 	}
 }
 
@@ -705,16 +705,16 @@ func TestFloatFlag_Methods(t *testing.T) {
 func TestPrintUsage(t *testing.T) {
 	// 测试自定义用法信息
 	cmd1 := NewCmd("test", "t", flag.ExitOnError)
-	cmd1.SetUseChinese(true)
-	cmd1.SetUsageSyntax("自定义用法信息\n")
+	cmd1.SetChinese(true)
+	cmd1.SetUsage("自定义用法信息\n")
 	if testing.Verbose() {
 		cmd1.PrintHelp()
 	}
 
 	// 测试自动生成的用法信息
 	cmd2 := NewCmd("test2", "t2", flag.ExitOnError)
-	cmd2.SetExitOnBuiltinFlags(false)
-	cmd2.SetDescription("测试描述")
+	cmd2.SetAutoExit(false)
+	cmd2.SetDesc("测试描述")
 	cmd2.Bool("verbose", "v", false, "详细输出")
 	cmd2.Int("count", "cc", 0, "重复次数")
 	if testing.Verbose() {
@@ -723,9 +723,9 @@ func TestPrintUsage(t *testing.T) {
 
 	// 测试带子命令的用法信息
 	cmd3 := NewCmd("parent", "0t", flag.ExitOnError)
-	cmd3.SetExitOnBuiltinFlags(false)
+	cmd3.SetAutoExit(false)
 	subCmd := NewCmd("child", "xd", flag.ExitOnError)
-	subCmd.SetExitOnBuiltinFlags(false)
+	subCmd.SetAutoExit(false)
 	if err := cmd3.AddSubCmd(subCmd); err != nil {
 		t.Errorf("添加子命令时出错: %v", err)
 	}
@@ -738,13 +738,13 @@ func TestCommandAndFlagRegistration(t *testing.T) {
 	// 测试用例1: 只有长名称的命令
 	t.Run("Command with long name only", func(t *testing.T) {
 		cmd := NewCmd("longcmd", "", flag.ContinueOnError)
-		cmd.SetDescription("This command has only long name")
+		cmd.SetDesc("This command has only long name")
 
 		// 添加只有长名称的标志
 		cmd.String("aconfig", "", "Config file path", "/etc/app.conf")
 
 		// 验证帮助信息生成
-		help := cmd.GetHelp()
+		help := cmd.Help()
 		if !strings.Contains(help, "longcmd") {
 			t.Error("Command long name not found in help")
 		}
@@ -756,13 +756,13 @@ func TestCommandAndFlagRegistration(t *testing.T) {
 	// 测试用例2: 只有短名称的命令
 	t.Run("Command with short name only", func(t *testing.T) {
 		cmd := NewCmd("", "s", flag.ContinueOnError)
-		cmd.SetDescription("This command has only short name")
+		cmd.SetDesc("This command has only short name")
 
 		// 添加只有短名称的标志
 		cmd.String("", "c", "Config file path", "/etc/app.conf")
 
 		// 验证帮助信息生成
-		help := cmd.GetHelp()
+		help := cmd.Help()
 		if !strings.Contains(help, "-c") {
 			t.Error("Command short name not found in help")
 		}
@@ -774,7 +774,7 @@ func TestCommandAndFlagRegistration(t *testing.T) {
 	// 测试用例3: 混合名称的命令和标志
 	t.Run("Mixed name command and flags", func(t *testing.T) {
 		cmd := NewCmd("mixed", "m", flag.ContinueOnError)
-		cmd.SetDescription("This command has both long and short names")
+		cmd.SetDesc("This command has both long and short names")
 
 		// 添加各种组合的标志
 		cmd.String("config", "c", "Config file path", "/etc/app.conf")
@@ -782,7 +782,7 @@ func TestCommandAndFlagRegistration(t *testing.T) {
 		cmd.String("", "v", "Verbose mode", "false")
 
 		// 验证帮助信息生成
-		help := cmd.GetHelp()
+		help := cmd.Help()
 
 		// 检查命令名称显示
 		if !strings.Contains(help, "mixed, m") {

@@ -388,14 +388,14 @@ func TestSubCmds_边界场景(t *testing.T) {
 	})
 }
 
-// TestSetEnableCompletion_边界场景 测试SetEnableCompletion的边界场景
-func TestSetEnableCompletion_边界场景(t *testing.T) {
+// TestSetCompletion_边界场景 测试SetCompletion的边界场景
+func TestSetCompletion_边界场景(t *testing.T) {
 	// 测试根命令启用补全
 	t.Run("根命令启用补全", func(t *testing.T) {
 		cmd := NewCmd("root", "r", flag.ContinueOnError)
 
 		// 启用补全
-		cmd.SetEnableCompletion(true)
+		cmd.SetCompletion(true)
 
 		// 由于没有公开的getter方法，我们通过内部状态验证
 		if !cmd.ctx.Config.EnableCompletion {
@@ -403,7 +403,7 @@ func TestSetEnableCompletion_边界场景(t *testing.T) {
 		}
 
 		// 禁用补全
-		cmd.SetEnableCompletion(false)
+		cmd.SetCompletion(false)
 		if cmd.ctx.Config.EnableCompletion {
 			t.Error("根命令禁用补全失败")
 		}
@@ -420,7 +420,7 @@ func TestSetEnableCompletion_边界场景(t *testing.T) {
 		}
 
 		// 尝试在子命令上启用补全
-		child.SetEnableCompletion(true)
+		child.SetCompletion(true)
 
 		// 验证子命令的补全状态未改变
 		if child.ctx.Config.EnableCompletion {
@@ -476,7 +476,7 @@ func TestVersionMethods_边界场景(t *testing.T) {
 			cmd.SetVersion(tt.version)
 
 			// 获取版本并验证
-			gotVersion := cmd.GetVersion()
+			gotVersion := cmd.Version()
 			if gotVersion != tt.version {
 				t.Errorf("版本不匹配: 期望 %q, 实际 %q", tt.version, gotVersion)
 			}
@@ -523,10 +523,10 @@ func TestModuleHelps_边界场景(t *testing.T) {
 			cmd := NewCmd("test", "t", flag.ContinueOnError)
 
 			// 设置模块帮助
-			cmd.SetModuleHelps(tt.moduleHelps)
+			cmd.SetModules(tt.moduleHelps)
 
 			// 获取模块帮助并验证
-			gotHelps := cmd.GetModuleHelps()
+			gotHelps := cmd.Modules()
 			if gotHelps != tt.moduleHelps {
 				t.Errorf("模块帮助不匹配: 期望 %q, 实际 %q", tt.moduleHelps, gotHelps)
 			}
@@ -573,10 +573,10 @@ func TestLogoText_边界场景(t *testing.T) {
 			cmd := NewCmd("test", "t", flag.ContinueOnError)
 
 			// 设置Logo文本
-			cmd.SetLogoText(tt.logoText)
+			cmd.SetLogo(tt.logoText)
 
 			// 获取Logo文本并验证
-			gotLogo := cmd.GetLogoText()
+			gotLogo := cmd.Logo()
 			if gotLogo != tt.logoText {
 				t.Errorf("Logo文本不匹配: 期望 %q, 实际 %q", tt.logoText, gotLogo)
 			}
@@ -589,27 +589,27 @@ func TestUseChinese_边界场景(t *testing.T) {
 	cmd := NewCmd("test", "t", flag.ContinueOnError)
 
 	// 测试默认值
-	defaultUseChinese := cmd.GetUseChinese()
+	defaultUseChinese := cmd.Chinese()
 	t.Logf("默认中文设置: %v", defaultUseChinese)
 
 	// 测试设置为true
-	cmd.SetUseChinese(true)
-	if !cmd.GetUseChinese() {
+	cmd.SetChinese(true)
+	if !cmd.Chinese() {
 		t.Error("设置中文为true失败")
 	}
 
 	// 测试设置为false
-	cmd.SetUseChinese(false)
-	if cmd.GetUseChinese() {
+	cmd.SetChinese(false)
+	if cmd.Chinese() {
 		t.Error("设置中文为false失败")
 	}
 
 	// 测试多次切换
 	for i := 0; i < 10; i++ {
 		expected := i%2 == 0
-		cmd.SetUseChinese(expected)
-		if cmd.GetUseChinese() != expected {
-			t.Errorf("第%d次切换失败: 期望 %v, 实际 %v", i, expected, cmd.GetUseChinese())
+		cmd.SetChinese(expected)
+		if cmd.Chinese() != expected {
+			t.Errorf("第%d次切换失败: 期望 %v, 实际 %v", i, expected, cmd.Chinese())
 		}
 	}
 }
@@ -619,7 +619,7 @@ func TestNotes_边界场景(t *testing.T) {
 	// 测试空备注列表
 	t.Run("空备注列表", func(t *testing.T) {
 		cmd := NewCmd("test", "t", flag.ContinueOnError)
-		notes := cmd.GetNotes()
+		notes := cmd.Notes()
 
 		if notes == nil {
 			t.Error("GetNotes返回了nil")
@@ -650,7 +650,7 @@ func TestNotes_边界场景(t *testing.T) {
 		}
 
 		// 获取备注并验证
-		gotNotes := cmd.GetNotes()
+		gotNotes := cmd.Notes()
 		if len(gotNotes) != len(testNotes) {
 			t.Errorf("备注数量不匹配: 期望 %d, 实际 %d", len(testNotes), len(gotNotes))
 		}
@@ -671,8 +671,8 @@ func TestNotes_边界场景(t *testing.T) {
 		cmd := NewCmd("test", "t", flag.ContinueOnError)
 		cmd.AddNote("原始备注")
 
-		notes1 := cmd.GetNotes()
-		notes2 := cmd.GetNotes()
+		notes1 := cmd.Notes()
+		notes2 := cmd.Notes()
 
 		// 修改第一个切片
 		if len(notes1) > 0 {
@@ -809,10 +809,10 @@ func TestDescription_边界场景(t *testing.T) {
 			cmd := NewCmd("test", "t", flag.ContinueOnError)
 
 			// 设置描述
-			cmd.SetDescription(tt.description)
+			cmd.SetDesc(tt.description)
 
 			// 获取描述并验证
-			gotDesc := cmd.GetDescription()
+			gotDesc := cmd.Desc()
 			if gotDesc != tt.description {
 				t.Errorf("描述不匹配: 期望 %q, 实际 %q", tt.description, gotDesc)
 			}
@@ -857,7 +857,7 @@ func TestHelp_边界场景(t *testing.T) {
 			cmd.SetHelp(tt.customHelp)
 
 			// 获取帮助信息
-			gotHelp := cmd.GetHelp()
+			gotHelp := cmd.Help()
 
 			// 如果设置了自定义帮助，应该返回自定义内容
 			if tt.customHelp != "" {
@@ -903,10 +903,10 @@ func TestUsageSyntax_边界场景(t *testing.T) {
 			cmd := NewCmd("test", "t", flag.ContinueOnError)
 
 			// 设置用法语法
-			cmd.SetUsageSyntax(tt.usageSyntax)
+			cmd.SetUsage(tt.usageSyntax)
 
 			// 获取用法语法并验证
-			gotUsage := cmd.GetUsageSyntax()
+			gotUsage := cmd.Usage()
 			if gotUsage != tt.usageSyntax {
 				t.Errorf("用法语法不匹配: 期望 %q, 实际 %q", tt.usageSyntax, gotUsage)
 			}
@@ -919,10 +919,10 @@ func TestExamples_边界场景(t *testing.T) {
 	// 测试空示例列表
 	t.Run("空示例列表", func(t *testing.T) {
 		cmd := NewCmd("test", "t", flag.ContinueOnError)
-		examples := cmd.GetExamples()
+		examples := cmd.Examples()
 
 		if examples == nil {
-			t.Error("GetExamples返回了nil")
+			t.Error("Examples返回了nil")
 		}
 
 		if len(examples) != 0 {
@@ -950,7 +950,7 @@ func TestExamples_边界场景(t *testing.T) {
 		}
 
 		// 获取示例并验证
-		gotExamples := cmd.GetExamples()
+		gotExamples := cmd.Examples()
 		if len(gotExamples) != len(testExamples) {
 			t.Errorf("示例数量不匹配: 期望 %d, 实际 %d", len(testExamples), len(gotExamples))
 		}
@@ -988,9 +988,9 @@ func TestExamples_边界场景(t *testing.T) {
 
 		addedCount := 0
 		for _, tc := range testCases {
-			initialCount := len(cmd.GetExamples())
+			initialCount := len(cmd.Examples())
 			cmd.AddExample(tc.desc, tc.usage)
-			finalCount := len(cmd.GetExamples())
+			finalCount := len(cmd.Examples())
 
 			if tc.shouldAdd {
 				if finalCount != initialCount+1 {
@@ -1289,13 +1289,13 @@ func TestSetExitOnBuiltinFlags_边界场景(t *testing.T) {
 	t.Logf("默认ExitOnBuiltinFlags值: %v", defaultValue)
 
 	// 测试设置为false
-	cmd.SetExitOnBuiltinFlags(false)
+	cmd.SetAutoExit(false)
 	if cmd.ctx.Config.ExitOnBuiltinFlags {
 		t.Error("设置ExitOnBuiltinFlags为false失败")
 	}
 
 	// 测试设置为true
-	cmd.SetExitOnBuiltinFlags(true)
+	cmd.SetAutoExit(true)
 	if !cmd.ctx.Config.ExitOnBuiltinFlags {
 		t.Error("设置ExitOnBuiltinFlags为true失败")
 	}
@@ -1303,7 +1303,7 @@ func TestSetExitOnBuiltinFlags_边界场景(t *testing.T) {
 	// 测试多次切换
 	for i := 0; i < 10; i++ {
 		expected := i%2 == 0
-		cmd.SetExitOnBuiltinFlags(expected)
+		cmd.SetAutoExit(expected)
 		if cmd.ctx.Config.ExitOnBuiltinFlags != expected {
 			t.Errorf("第%d次切换失败: 期望 %v, 实际 %v", i, expected, cmd.ctx.Config.ExitOnBuiltinFlags)
 		}
@@ -1355,7 +1355,7 @@ func TestPrintHelp_边界场景(t *testing.T) {
 
 	// 测试打印帮助
 	cmd := NewCmd("test", "t", flag.ContinueOnError)
-	cmd.SetDescription("测试命令描述")
+	cmd.SetDesc("测试命令描述")
 	cmd.SetHelp("自定义帮助信息")
 
 	cmd.PrintHelp()
@@ -1390,7 +1390,7 @@ func TestConcurrency_并发安全测试(t *testing.T) {
 			for j := 0; j < numOperations; j++ {
 				version := fmt.Sprintf("v%d.%d.%d", id, j, time.Now().Nanosecond()%1000)
 				cmd.SetVersion(version)
-				_ = cmd.GetVersion()
+				_ = cmd.Version()
 			}
 		}(i)
 	}
@@ -1402,8 +1402,8 @@ func TestConcurrency_并发安全测试(t *testing.T) {
 			defer wg.Done()
 			for j := 0; j < numOperations; j++ {
 				desc := fmt.Sprintf("描述_%d_%d", id, j)
-				cmd.SetDescription(desc)
-				_ = cmd.GetDescription()
+				cmd.SetDesc(desc)
+				_ = cmd.Desc()
 			}
 		}(i)
 	}
@@ -1416,7 +1416,7 @@ func TestConcurrency_并发安全测试(t *testing.T) {
 			for j := 0; j < numOperations; j++ {
 				note := fmt.Sprintf("备注_%d_%d", id, j)
 				cmd.AddNote(note)
-				_ = cmd.GetNotes()
+				_ = cmd.Notes()
 			}
 		}(i)
 	}
@@ -1430,7 +1430,7 @@ func TestConcurrency_并发安全测试(t *testing.T) {
 				desc := fmt.Sprintf("示例描述_%d_%d", id, j)
 				usage := fmt.Sprintf("示例用法_%d_%d", id, j)
 				cmd.AddExample(desc, usage)
-				_ = cmd.GetExamples()
+				_ = cmd.Examples()
 			}
 		}(i)
 	}
@@ -1438,10 +1438,10 @@ func TestConcurrency_并发安全测试(t *testing.T) {
 	wg.Wait()
 
 	// 验证最终状态的一致性
-	version := cmd.GetVersion()
-	description := cmd.GetDescription()
-	notes := cmd.GetNotes()
-	examples := cmd.GetExamples()
+	version := cmd.Version()
+	description := cmd.Desc()
+	notes := cmd.Notes()
+	examples := cmd.Examples()
 
 	t.Logf("并发测试完成 - 版本: %s, 描述: %s, 备注数: %d, 示例数: %d",
 		version, description, len(notes), len(examples))

@@ -4,7 +4,7 @@
 
 **功能强大的 Go 语言命令行参数解析库**
 
-[![Go Version](https://img.shields.io/badge/Go-1.24.4-blue.svg)](https://golang.org/)
+[![Go Version](https://img.shields.io/badge/Go-1.25.0-blue.svg)](https://golang.org/)
 [![MIT License](https://img.shields.io/badge/License-MIT-green.svg)](https://opensource.org/licenses/MIT)
 [![Gitee](https://img.shields.io/badge/Gitee-qflag-red.svg)](https://gitee.com/MM-Q/qflag)
 [![GitHub](https://img.shields.io/badge/GitHub-qflag-black.svg)](https://github.com/QiaoMuDe/qflag)
@@ -186,7 +186,7 @@ func main() {
   
     // 创建子命令
     startCmd := qflag.NewCmd("start", "s", flag.ExitOnError)
-    startCmd.SetDescription("启动服务")
+    startCmd.SetDesc("启动服务")
   
     // 为子命令添加标志
     port := startCmd.Int("port", "p", 8080, "服务端口")
@@ -194,7 +194,7 @@ func main() {
   
     // 创建另一个子命令
     stopCmd := qflag.NewCmd("stop", "st", flag.ExitOnError)
-    stopCmd.SetDescription("停止服务")
+    stopCmd.SetDesc("停止服务")
   
     pidFile := stopCmd.String("pid-file", "f", "/var/run/app.pid", "PID文件路径")
   
@@ -485,8 +485,8 @@ import (
 func main() {
     // 设置应用信息
     qflag.SetVersion("1.0.0")
-    qflag.SetDescription("这是一个示例应用程序")
-    qflag.SetUsageSyntax("myapp [选项] <命令> [参数...]")
+    qflag.SetDesc("这是一个示例应用程序")
+    qflag.SetUsage("myapp [选项] <命令> [参数...]")
   
     // 添加使用示例
     qflag.AddExample("启动服务", "myapp start --port 8080")
@@ -497,7 +497,7 @@ func main() {
     qflag.AddNote("日志文件位置: /var/log/myapp.log")
   
     // 设置中文帮助信息
-    qflag.SetUseChinese(true)
+    qflag.SetChinese(true)
   
     // 定义标志...
     name := qflag.String("name", "n", "world", "要问候的名称")
@@ -541,7 +541,7 @@ qflag 采用模块化设计，主要包含以下包：
 
 ## 兼容性
 
-- **Go 版本**：要求 Go 1.24+ （支持泛型）
+- **Go 版本**：要求 Go 1.25+ （支持泛型）
 - **操作系统**：支持 Windows、Linux、macOS
 - **Shell 支持**：Bash、PowerShell
 
