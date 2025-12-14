@@ -13,11 +13,13 @@ import (
 func TestNewCmdConfig_基本功能(t *testing.T) {
 	config := NewCmdConfig()
 
+	//nolint:all
 	if config == nil {
 		t.Fatal("NewCmdConfig返回了nil")
 	}
 
 	// 验证默认值
+	//nolint:all
 	if config.Version != "" {
 		t.Errorf("Version默认值应为空字符串, 实际: %q", config.Version)
 	}

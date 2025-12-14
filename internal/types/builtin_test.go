@@ -16,38 +16,46 @@ import (
 func TestNewBuiltinFlags_基本功能(t *testing.T) {
 	bf := NewBuiltinFlags()
 
+	//nolint:all
 	if bf == nil {
 		t.Fatal("NewBuiltinFlags返回了nil")
 	}
 
 	// 验证所有字段都已初始化
+	//nolint:all
 	if bf.Help == nil {
 		t.Error("Help字段未初始化")
 	}
 
+	//nolint:all
 	if bf.Version == nil {
 		t.Error("Version字段未初始化")
 	}
 
+	//nolint:all
 	if bf.Completion == nil {
 		t.Error("Completion字段未初始化")
 	}
 
 	// 验证字段类型
+	//nolint:all
 	if reflect.TypeOf(bf.Help) != reflect.TypeOf(&flags.BoolFlag{}) {
 		t.Error("Help字段类型不正确")
 	}
 
+	//nolint:all
 	if reflect.TypeOf(bf.Version) != reflect.TypeOf(&flags.BoolFlag{}) {
 		t.Error("Version字段类型不正确")
 	}
 
+	//nolint:all
 	if reflect.TypeOf(bf.Completion) != reflect.TypeOf(&flags.EnumFlag{}) {
 		t.Error("Completion字段类型不正确")
 	}
 
 	// 验证NameMap初始为空
 	count := 0
+	//nolint:all
 	bf.NameMap.Range(func(key, value interface{}) bool {
 		count++
 		return true

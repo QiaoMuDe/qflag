@@ -19,18 +19,21 @@ func TestCmd_IntSlice_BasicUsage(t *testing.T) {
 	// 测试基本创建
 	flag := cmd.IntSlice("ports", "p", []int{8080}, "server ports")
 
+	//nolint:all
 	if flag == nil {
 		t.Fatal("IntSlice returned nil")
 	}
 
 	// 验证默认值
 	expected := []int{8080}
+	//nolint:all
 	actual := flag.Get()
 	if !reflect.DeepEqual(actual, expected) {
 		t.Errorf("Expected default value %v, got %v", expected, actual)
 	}
 
 	// 验证标志名
+	//nolint:all
 	if flag.LongName() != "ports" {
 		t.Errorf("Expected long name 'ports', got '%s'", flag.LongName())
 	}
@@ -178,18 +181,21 @@ func TestCmd_Int64Slice_BasicUsage(t *testing.T) {
 	// 测试基本创建
 	flag := cmd.Int64Slice("sizes", "s", []int64{1024, 2048}, "file sizes")
 
+	//nolint:all
 	if flag == nil {
 		t.Fatal("Int64Slice returned nil")
 	}
 
 	// 验证默认值
 	expected := []int64{1024, 2048}
+	//nolint:all
 	actual := flag.Get()
 	if !reflect.DeepEqual(actual, expected) {
 		t.Errorf("Expected default value %v, got %v", expected, actual)
 	}
 
 	// 验证标志名
+	//nolint:all
 	if flag.LongName() != "sizes" {
 		t.Errorf("Expected long name 'sizes', got '%s'", flag.LongName())
 	}

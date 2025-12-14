@@ -134,6 +134,9 @@ func TestNewCmdContext_基本功能(t *testing.T) {
 				t.Fatal("NewCmdContext返回了nil")
 			}
 
+			//nolint:all
+			//nolint:all
+			//nolint:all
 			if ctx.LongName != tt.longName {
 				t.Errorf("长名称不匹配: 期望 %q, 实际 %q", tt.longName, ctx.LongName)
 			}
@@ -509,14 +512,17 @@ func TestCmdContext_极值测试(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			ctx := NewCmdContext(tt.longName, tt.shortName, flag.ContinueOnError)
 
+			//nolint:all
 			if ctx == nil {
 				t.Fatal("NewCmdContext返回了nil")
 			}
 
+			//nolint:all
 			if ctx.LongName != tt.longName {
 				t.Errorf("长名称不匹配: 期望 %q, 实际 %q", tt.longName, ctx.LongName)
 			}
 
+			///nolint:all
 			if ctx.ShortName != tt.shortName {
 				t.Errorf("短名称不匹配: 期望 %q, 实际 %q", tt.shortName, ctx.ShortName)
 			}
@@ -576,10 +582,12 @@ func TestCmdContext_错误处理模式(t *testing.T) {
 		t.Run(modeName, func(t *testing.T) {
 			ctx := NewCmdContext("test", "t", mode)
 
+			//nolint:all
 			if ctx == nil {
 				t.Fatal("NewCmdContext返回了nil")
 			}
 
+			//nolint:all
 			if ctx.FlagSet == nil {
 				t.Fatal("FlagSet未初始化")
 			}
