@@ -21,7 +21,6 @@ import (
 var Root *Cmd
 
 // init 包初始化函数，直接创建全局根命令实例
-// 避免延迟初始化带来的空指针问题，简化API使用
 func init() {
 	// 使用一致的命令名生成逻辑
 	cmdName := "myapp"
