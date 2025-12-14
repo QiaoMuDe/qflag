@@ -168,25 +168,24 @@ const (
 	BashFunctionHeader = `#!/usr/bin/env bash
 
 # ==================== 模糊补全配置参数 ====================
-# 模糊补全功能开关 (设置为0禁用，1启用)
-readonly {{.ProgramName}}_FUZZY_COMPLETION_ENABLED=1
+# 模糊补全功能开关 (设置为0禁用, 1启用)
+{{.ProgramName}}_FUZZY_COMPLETION_ENABLED=1
 
 # 启用模糊补全的最大候选项数量阈值
 # 超过此数量将回退到传统前缀匹配以保证性能
-readonly {{.ProgramName}}_FUZZY_MAX_CANDIDATES=150
+{{.ProgramName}}_FUZZY_MAX_CANDIDATES=150
 
 # 模糊匹配的最小输入长度 (小于此长度不启用模糊匹配)
-readonly {{.ProgramName}}_FUZZY_MIN_PATTERN_LENGTH=2
+{{.ProgramName}}_FUZZY_MIN_PATTERN_LENGTH=2
 
-# 模糊匹配分数阈值 (0-100，分数低于此值的匹配将被过滤)
-readonly {{.ProgramName}}_FUZZY_SCORE_THRESHOLD=30
+# 模糊匹配分数阈值 (0-100, 分数低于此值的匹配将被过滤)
+{{.ProgramName}}_FUZZY_SCORE_THRESHOLD=30
 
 # 模糊匹配最大返回结果数
-readonly {{.ProgramName}}_FUZZY_MAX_RESULTS=8
+{{.ProgramName}}_FUZZY_MAX_RESULTS=8
 
-# 缓存大小控制参数
-# 缓存条目数量超过此阈值时将清空缓存以防止内存无限增长
-readonly {{.ProgramName}}_FUZZY_CACHE_MAX_SIZE=500
+# 缓存大小控制参数, 超过此阈值时将清空缓存以防止内存无限增长
+{{.ProgramName}}_FUZZY_CACHE_MAX_SIZE=500
 
 # ==================== 静态数据定义 ====================
 # 静态命令树定义 - 在函数外预初始化
