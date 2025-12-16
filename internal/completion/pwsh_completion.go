@@ -583,6 +583,11 @@ $scriptBlock = {
         $currentIndex = $tokens.Count - 1
         $prevElement = if ($currentIndex -ge 1) { $tokens[$currentIndex - 1] } else { $null }
 
+        # 快速路径：如果当前输入看起来像是路径，优先提供路径补全
+        if ($wordToComplete -match '[/\~\.]' -or $wordToComplete -like './*' -or $wordToComplete -like '../*') {
+            return Get-{{.SanitizedName}}PathCompletions -WordToComplete $wordToComplete
+        }
+
         # 2. 计算当前命令上下文 (优化版本) 
         $context = "/"
         for ($i = 1; $i -le $currentIndex; $i++) {
