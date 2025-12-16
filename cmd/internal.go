@@ -7,7 +7,9 @@ package cmd
 import (
 	"fmt"
 	"os"
+	"runtime"
 	"runtime/debug"
+	"strings"
 
 	"gitee.com/MM-Q/qflag/flags"
 	"gitee.com/MM-Q/qflag/internal/completion"
@@ -205,19 +207,46 @@ func (c *Cmd) registerBuiltinFlags() {
 		// 注册到内置的标志名称映射
 		c.ctx.BuiltinFlags.NameMap.Store(flags.CompletionShellFlagLongName, true)
 
-		// 添加自动补全子命令的注意事项
-		c.ctx.Config.Notes = append(c.ctx.Config.Notes, langConfig.notes...)
+		// 添加自动补全子命令的注意事项（根据平台过滤）
+		if runtime.GOOS == "windows" {
+			// Windows平台只添加Windows相关的注意事项
+			for _, note := range langConfig.notes {
+				if strings.Contains(note, "Windows") {
+					c.ctx.Config.Notes = append(c.ctx.Config.Notes, note)
+				}
+			}
+		} else {
+			// Linux/macOS平台只添加Linux相关的注意事项
+			for _, note := range langConfig.notes {
+				if strings.Contains(note, "Linux") {
+					c.ctx.Config.Notes = append(c.ctx.Config.Notes, note)
+				}
+			}
+		}
 
 		// 获取运行的程序名
 		cmdName := os.Args[0]
 
-		// 添加自动补全子命令的示例
+		// 添加自动补全子命令的示例（根据平台过滤）
 		for _, ex := range langConfig.examples {
-			// 直接添加到底层切片中
-			c.ctx.Config.Examples = append(c.ctx.Config.Examples, types.ExampleInfo{
-				Description: ex.Description,
-				Usage:       fmt.Sprintf(ex.Usage, cmdName),
-			})
+			// 根据平台过滤示例
+			if runtime.GOOS == "windows" {
+				// Windows平台只添加Windows相关的示例
+				if strings.Contains(ex.Description, "Windows") {
+					c.ctx.Config.Examples = append(c.ctx.Config.Examples, types.ExampleInfo{
+						Description: ex.Description,
+						Usage:       fmt.Sprintf(ex.Usage, cmdName),
+					})
+				}
+			} else {
+				// Linux/macOS平台只添加Linux相关的示例
+				if strings.Contains(ex.Description, "Linux") {
+					c.ctx.Config.Examples = append(c.ctx.Config.Examples, types.ExampleInfo{
+						Description: ex.Description,
+						Usage:       fmt.Sprintf(ex.Usage, cmdName),
+					})
+				}
+			}
 		}
 	}
 
