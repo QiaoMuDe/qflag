@@ -246,6 +246,11 @@ function Get-{{.SanitizedName}}FuzzyScoreFast {
     $patternLen = $Pattern.Length
     $candidateLen = $Candidate.Length
     
+    # 快速路径1: 空模式检查
+    if ($patternLen -eq 0) {
+        return 100
+    }
+    
     # 性能优化1: 长度预检查 - 候选项太短直接返回0
     if ($candidateLen -lt $patternLen) {
         return 0
@@ -256,12 +261,33 @@ function Get-{{.SanitizedName}}FuzzyScoreFast {
         return 100  # 前缀完全匹配给最高分
     }
     
-    # 性能优化3: 字符存在性预检查 - 快速排除不可能的匹配
+    # 内存访问优化: 预转换字符数组，避免重复字符串索引访问
     $patternLower = $Pattern.ToLowerInvariant()
     $candidateLower = $Candidate.ToLowerInvariant()
+    $patternChars = $patternLower.ToCharArray()
+    $candidateChars = $candidateLower.ToCharArray()
     
-    foreach ($char in $patternLower.ToCharArray()) {
-        if ($candidateLower.IndexOf($char) -eq -1) {
+    # 快速路径2: 单字符匹配优化
+    if ($patternLen -eq 1) {
+        for ($i = 0; $i -lt $candidateLen; $i++) {
+            if ($candidateChars[$i] -eq $patternChars[0]) {
+                return 100 - $i  # 位置越靠前分数越高
+            }
+        }
+        return 0
+    }
+    
+    # 性能优化3: 字符存在性预检查 - 快速排除不可能的匹配
+    # 使用字符数组访问而非字符串索引，减少内存开销
+    foreach ($char in $patternChars) {
+        $found = $false
+        foreach ($candidateChar in $candidateChars) {
+            if ($candidateChar -eq $char) {
+                $found = $true
+                break
+            }
+        }
+        if (-not $found) {
             return 0  # 必需字符不存在, 直接返回
         }
     }
@@ -273,19 +299,28 @@ function Get-{{.SanitizedName}}FuzzyScoreFast {
     $candidatePos = 0      # 候选字符串当前搜索位置
     $startBonus = 0        # 起始位置奖励
     
-    # 检查是否从开头匹配 (大小写不敏感)
-    if ($candidateLower.StartsWith($patternLower)) {
-        $startBonus = 20  # 起始匹配给20分奖励
+    # 检查是否从开头匹配 (大小写不敏感) - 使用字符数组更高效
+    $startsWithPattern = $true
+    if ($patternLen -le $candidateLen) {
+        for ($i = 0; $i -lt $patternLen; $i++) {
+            if ($patternChars[$i] -ne $candidateChars[$i]) {
+                $startsWithPattern = $false
+                break
+            }
+        }
+        if ($startsWithPattern) {
+            $startBonus = 20  # 起始匹配给20分奖励
+        }
     }
     
-    # 逐字符匹配算法
+    # 逐字符匹配算法 - 使用预转换的字符数组，减少内存访问开销
     for ($i = 0; $i -lt $patternLen; $i++) {
-        $patternChar = $patternLower[$i]
+        $patternChar = $patternChars[$i]
         $found = $false
         
         # 在候选字符串中查找当前模式字符
         for ($j = $candidatePos; $j -lt $candidateLen; $j++) {
-            if ($candidateLower[$j] -eq $patternChar) {
+            if ($candidateChars[$j] -eq $patternChar) {
                 $matched++
                 $found = $true
                 
@@ -653,32 +688,6 @@ function Get-{{.SanitizedName}}CompletionDebug {
     Write-Host "缓存条目数: $($script:{{.SanitizedName}}_fuzzyCache.Count)" -ForegroundColor Green
     Write-Host ""
     Write-Host "使用方法: 在PowerShell中输入 'Get-{{.SanitizedName}}CompletionDebug' 查看此信息" -ForegroundColor Yellow
-}
-
-# 模糊匹配测试函数 (用于调试和验证)
-function Test-{{.SanitizedName}}FuzzyMatch {
-    param(
-        [Parameter(Mandatory=$true)]
-        [string]$Pattern,
-        [Parameter(Mandatory=$true)]
-        [string]$Candidate
-    )
-    
-    $score = Get-{{.SanitizedName}}FuzzyScoreFast -Pattern $Pattern -Candidate $Candidate
-    Write-Host "模式: '$Pattern' 匹配候选: '$Candidate' 得分: $score" -ForegroundColor Cyan
-    
-    # 详细分析
-    if ($score -ge 80) {
-        Write-Host "匹配质量: 优秀" -ForegroundColor Green
-    } elseif ($score -ge 50) {
-        Write-Host "匹配质量: 良好" -ForegroundColor Yellow
-    } elseif ($score -ge $script:{{.SanitizedName}}_FUZZY_SCORE_THRESHOLD) {
-        Write-Host "匹配质量: 可接受" -ForegroundColor DarkYellow
-    } else {
-        Write-Host "匹配质量: 不匹配" -ForegroundColor Red
-    }
-    
-    return $score
 }
 
 # 注册补全函数-带原始名称 (可能包含扩展名) 
