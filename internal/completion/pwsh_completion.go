@@ -1,6 +1,6 @@
 // Package completion PowerShell 自动补全实现
-// 本文件实现了PowerShell环境下的命令行自动补全功能，
-// 生成PowerShell补全脚本，支持标志和子命令的智能补全。
+// 本文件实现了PowerShell环境下的命令行自动补全功能,
+// 生成PowerShell补全脚本, 支持标志和子命令的智能补全。
 package completion
 
 import (
@@ -22,7 +22,7 @@ func formatOptions(buf *bytes.Buffer, options []string, escape func(string) stri
 			continue
 		}
 
-		// 如果不是第一个选项，则添加逗号
+		// 如果不是第一个选项, 则添加逗号
 		if i > 0 {
 			buf.WriteString(", ")
 		}
@@ -35,20 +35,20 @@ func formatOptions(buf *bytes.Buffer, options []string, escape func(string) stri
 }
 
 // generatePwshCommandTreeEntry 生成PowerShell命令树条目
-// 使用对象池优化内存分配，避免创建临时缓冲区和Replacer
+// 使用对象池优化内存分配, 避免创建临时缓冲区和Replacer
 //
 // 参数:
 // - cmdTreeEntries: 命令树条目缓冲区
 // - cmdPath: 命令路径
 // - cmdOpts: 命令选项
 func generatePwshCommandTreeEntry(cmdTreeEntries *bytes.Buffer, cmdPath string, cmdOpts []string) {
-	// 使用对象池构建命令树条目，避免创建临时缓冲区和strings.NewReplacer的开销
+	// 使用对象池构建命令树条目, 避免创建临时缓冲区和strings.NewReplacer的开销
 	cmdTreeItem := buildString(func(builder *strings.Builder) {
 		builder.WriteString("\t@{ Context = \"")
 		builder.WriteString(cmdPath)
 		builder.WriteString("\"; Options = @(")
 
-		// 直接在builder中格式化选项，避免额外的字符串分配
+		// 直接在builder中格式化选项, 避免额外的字符串分配
 		first := true
 		for _, opt := range cmdOpts {
 			if opt == "" {
@@ -107,13 +107,13 @@ func generatePwshCompletion(buf *bytes.Buffer, params []FlagParam, rootCmdOpts [
 		)
 		flagParamsBuf.WriteString(flagReplacer.Replace(PwshFlagParamItem))
 
-		// 条目之间添加逗号，非最后一个条目
+		// 条目之间添加逗号, 非最后一个条目
 		if i < len(params)-1 {
 			flagParamsBuf.WriteString(",\n")
 		}
 	}
 
-	// 清理程序名，去除可能的后缀
+	// 清理程序名, 去除可能的后缀
 	sanitizedProgramName := strings.TrimSuffix(programName, filepath.Ext(programName))
 
 	// 生成根命令条目
@@ -124,7 +124,7 @@ func generatePwshCompletion(buf *bytes.Buffer, params []FlagParam, rootCmdOpts [
 	// 生成根命令条目
 	rootCmdEntry := rootReplacer.Replace(PwshCmdTreeItem)
 
-	// 如果命令树条目不为空，则添加逗号
+	// 如果命令树条目不为空, 则添加逗号
 	if cmdTreeEntries != "" {
 		rootCmdEntry += ",\n" + cmdTreeEntries
 	}
@@ -142,7 +142,7 @@ func generatePwshCompletion(buf *bytes.Buffer, params []FlagParam, rootCmdOpts [
 }
 
 // pwshEscapeMap PowerShell特殊字符转义映射表
-// 使用全局map提高转义性能，避免重复的switch判断
+// 使用全局map提高转义性能, 避免重复的switch判断
 var pwshEscapeMap = map[byte][]byte{
 	'\'': {'\'', '\''}, // 单引号转义为两个单引号
 	'\\': {'\\', '\\'}, // 反斜杠转义为两个反斜杠
@@ -162,7 +162,7 @@ var pwshEscapeMap = map[byte][]byte{
 }
 
 // escapePwshString 转义PowerShell字符串中的特殊字符
-// 优化版本：使用全局map进行O(1)查找，提升性能
+// 优化版本：使用全局map进行O(1)查找, 提升性能
 //
 // 参数:
 // - s: 需要转义的字符串
@@ -209,7 +209,7 @@ ${{.SanitizedName}}_flagParams = @(
 # -----------------------------------------------------------------------------------
 
 # ==================== 模糊补全配置参数 ====================
-# 模糊补全功能开关 (设置为$false禁用，$true启用)
+# 模糊补全功能开关 (设置为$false禁用, $true启用)
 $script:{{.SanitizedName}}_FUZZY_COMPLETION_ENABLED = $true
 
 # 启用模糊补全的最大候选项数量阈值
@@ -219,7 +219,7 @@ $script:{{.SanitizedName}}_FUZZY_MAX_CANDIDATES = 120
 # 模糊匹配的最小输入长度 (小于此长度不启用模糊匹配)
 $script:{{.SanitizedName}}_FUZZY_MIN_PATTERN_LENGTH = 2
 
-# 模糊匹配分数阈值 (0-100，分数低于此值的匹配将被过滤)
+# 模糊匹配分数阈值 (0-100, 分数低于此值的匹配将被过滤)
 $script:{{.SanitizedName}}_FUZZY_SCORE_THRESHOLD = 25
 
 # 模糊匹配最大返回结果数
@@ -262,7 +262,7 @@ function Get-{{.SanitizedName}}FuzzyScoreFast {
     
     foreach ($char in $patternLower.ToCharArray()) {
         if ($candidateLower.IndexOf($char) -eq -1) {
-            return 0  # 必需字符不存在，直接返回
+            return 0  # 必需字符不存在, 直接返回
         }
     }
     
@@ -304,7 +304,7 @@ function Get-{{.SanitizedName}}FuzzyScoreFast {
             }
         }
         
-        # 如果某个字符未找到，重置连续计数
+        # 如果某个字符未找到, 重置连续计数
         if (-not $found) {
             $consecutive = 0
         }
@@ -317,7 +317,7 @@ function Get-{{.SanitizedName}}FuzzyScoreFast {
     # 连续性奖励: (最大连续长度 / 模式长度) * 20
     $consecutiveBonus = [Math]::Floor(($maxConsecutive * 20) / $patternLen)
     
-    # 长度惩罚: 候选字符串越长，分数略微降低
+    # 长度惩罚: 候选字符串越长, 分数略微降低
     $lengthPenalty = [Math]::Min(($candidateLen - $patternLen), 10)
     
     # 最终分数计算
@@ -354,8 +354,8 @@ function Get-{{.SanitizedName}}FuzzyScoreCached {
     return $score
 }
 
-# 智能补全匹配函数 - 分级匹配策略
-# 参数: $Pattern=输入模式, $Options=候选选项数组
+# 智能补全匹配函数 - 重构版匹配策略
+# 参数: $Pattern=输入模式, $Options=候选选项数组  
 function Get-{{.SanitizedName}}IntelligentMatches {
     param(
         [string]$Pattern,
@@ -365,56 +365,62 @@ function Get-{{.SanitizedName}}IntelligentMatches {
     $patternLen = $Pattern.Length
     $totalCandidates = $Options.Count
     
-    # 性能保护: 候选项过多时禁用模糊匹配
-    if ($totalCandidates -gt $script:{{.SanitizedName}}_FUZZY_MAX_CANDIDATES) {
-        # 回退到传统前缀匹配
-        $prefixMatches = @()
-        foreach ($option in $Options) {
-            if ($option -like "$Pattern*") {
-                $prefixMatches += $option
-            }
-        }
-        return $prefixMatches
+    # 空模式时返回所有选项 (用于Tab补全初始状态) 
+    if ([string]::IsNullOrEmpty($Pattern)) {
+        return $Options
     }
     
-    # 第1级: 精确前缀匹配 (最快，优先级最高) - 使用ArrayList优化性能
-    $exactMatches = [System.Collections.ArrayList]::new()
+    # 🔥 新的智能匹配策略：多层级渐进式匹配
+    
+    # 第1级: 精确前缀匹配 (最高优先级) 
+    $exactPrefixMatches = [System.Collections.ArrayList]::new()
     foreach ($option in $Options) {
         if ($option.StartsWith($Pattern, [System.StringComparison]::Ordinal)) {
-            [void]$exactMatches.Add($option)
+            [void]$exactPrefixMatches.Add($option)
         }
     }
     
-    # 如果有精确匹配且数量合理，直接返回
-    if ($exactMatches.Count -gt 0 -and $exactMatches.Count -le 12) {
-        return $exactMatches.ToArray()
+    # 精确前缀匹配如果有结果, 优先返回 (但不过度限制数量) 
+    if ($exactPrefixMatches.Count -gt 0) {
+        return $exactPrefixMatches.ToArray()
     }
     
     # 第2级: 大小写不敏感前缀匹配
-    if ($exactMatches.Count -eq 0) {
-        $caseInsensitiveMatches = [System.Collections.ArrayList]::new()
-        foreach ($option in $Options) {
-            if ($option.StartsWith($Pattern, [System.StringComparison]::OrdinalIgnoreCase)) {
-                [void]$caseInsensitiveMatches.Add($option)
-            }
-        }
-        
-        # 如果有大小写不敏感匹配，返回
-        if ($caseInsensitiveMatches.Count -gt 0) {
-            return $caseInsensitiveMatches.ToArray()
+    $caseInsensitiveMatches = [System.Collections.ArrayList]::new()
+    foreach ($option in $Options) {
+        if ($option.StartsWith($Pattern, [System.StringComparison]::OrdinalIgnoreCase)) {
+            [void]$caseInsensitiveMatches.Add($option)
         }
     }
     
-    # 第3级: 模糊匹配 (最慢，仅在必要时使用) - 使用ArrayList优化性能
-    if ($script:{{.SanitizedName}}_FUZZY_COMPLETION_ENABLED -and $patternLen -ge $script:{{.SanitizedName}}_FUZZY_MIN_PATTERN_LENGTH) {
+    # 大小写不敏感匹配如果有结果, 返回
+    if ($caseInsensitiveMatches.Count -gt 0) {
+        return $caseInsensitiveMatches.ToArray()
+    }
+    
+    # 第3级: 子字符串匹配 (基本模糊匹配) 🔥重新加入
+    $substringMatches = [System.Collections.ArrayList]::new()
+    $patternLower = $Pattern.ToLowerInvariant()
+    foreach ($option in $Options) {
+        if ($option.ToLowerInvariant().Contains($patternLower)) {
+            [void]$substringMatches.Add($option)
+        }
+    }
+    
+    # 子字符串匹配如果有结果, 返回
+    if ($substringMatches.Count -gt 0) {
+        return $substringMatches.ToArray()
+    }
+    
+    # 第4级: 智能模糊匹配 (高级模糊匹配) 
+    if ($script:{{.SanitizedName}}_FUZZY_COMPLETION_ENABLED -and $patternLen -ge $script:{{.SanitizedName}}_FUZZY_MIN_PATTERN_LENGTH -and $totalCandidates -le $script:{{.SanitizedName}}_FUZZY_MAX_CANDIDATES) {
         $scoredMatches = [System.Collections.ArrayList]::new()
         
-        # 对所有候选项进行模糊评分
         foreach ($option in $Options) {
             $score = Get-{{.SanitizedName}}FuzzyScoreCached -Pattern $Pattern -Candidate $option
             
-            # 只保留分数达到阈值的匹配
-            if ($score -ge $script:{{.SanitizedName}}_FUZZY_SCORE_THRESHOLD) {
+            # 🔥降低阈值, 提高匹配率 (原阈值可能太高) 
+            if ($score -ge ($script:{{.SanitizedName}}_FUZZY_SCORE_THRESHOLD * 0.7)) {
                 [void]$scoredMatches.Add(@{
                     Option = $option
                     Score = $score
@@ -422,18 +428,14 @@ function Get-{{.SanitizedName}}IntelligentMatches {
             }
         }
         
-        # 如果有模糊匹配结果，按分数排序并返回前N个
         if ($scoredMatches.Count -gt 0) {
-            # 按分数降序排序
+            # 按分数排序, 返回前N个最佳匹配
             $sortedMatches = $scoredMatches | Sort-Object Score -Descending
             
-            # 提取选项名称，限制返回数量 - 使用ArrayList优化
             $fuzzyResults = [System.Collections.ArrayList]::new()
             $count = 0
             foreach ($match in $sortedMatches) {
-                if ($count -ge $script:{{.SanitizedName}}_FUZZY_MAX_RESULTS) {
-                    break
-                }
+                if ($count -ge $script:{{.SanitizedName}}_FUZZY_MAX_RESULTS) { break }
                 [void]$fuzzyResults.Add($match.Option)
                 $count++
             }
@@ -442,23 +444,66 @@ function Get-{{.SanitizedName}}IntelligentMatches {
         }
     }
     
-    # 第4级: 子字符串匹配 (最后的备选方案) - 使用ArrayList优化性能
-    $substringMatches = [System.Collections.ArrayList]::new()
-    $patternLower = $Pattern.ToLowerInvariant()
+    # 🔥 最终 fallback：返回空数组 (让用户知道没有匹配到) 
+    return @()
+}
+
+# ==================== 文件路径补全核心函数 ====================
+
+# 专用文件路径补全函数 - 为{{.SanitizedName}}提供智能路径补全
+# 参数: $WordToComplete=当前输入的单词
+# 返回: 匹配的文件和目录路径数组
+function Get-{{.SanitizedName}}PathCompletions {
+    param(
+        [string]$WordToComplete
+    )
     
-    foreach ($option in $Options) {
-        $optionLower = $option.ToLowerInvariant()
-        if ($optionLower.Contains($patternLower)) {
-            [void]$substringMatches.Add($option)
+    $pathMatches = [System.Collections.ArrayList]::new()
+    
+    # 获取当前路径的目录部分
+    $basePath = if ($WordToComplete -and (Split-Path $WordToComplete -Parent)) {
+        Split-Path $WordToComplete -Parent
+    } else {
+        "."
+    }
+    
+    # 获取文件名部分用于过滤
+    $fileName = if ($WordToComplete) {
+        Split-Path $WordToComplete -Leaf
+    } else {
+        ""
+    }
+    
+    # 预编译文件名匹配模式
+    $filePattern = "$fileName*"
+    
+    try {
+        # 获取目录和文件
+        $items = Get-ChildItem -Path $basePath -ErrorAction SilentlyContinue | Where-Object {
+            $_.Name -like $filePattern
+        }
+        
+        foreach ($item in $items) {
+            $fullPath = if ($basePath -eq ".") {
+                $item.Name
+            } else {
+                Join-Path $basePath $item.Name
+            }
+            
+            # 目录添加路径分隔符
+            if ($item.PSIsContainer) {
+                [void]$pathMatches.Add("$fullPath/")
+            } else {
+                [void]$pathMatches.Add($fullPath)
+            }
         }
     }
-    
-    if ($substringMatches.Count -gt 0) {
-        return $substringMatches.ToArray()
+    catch {
+        # 路径访问失败时返回空数组 - 静默处理错误
+        Write-Debug "路径访问失败: $($_.Exception.Message)"
     }
     
-    # 如果所有匹配策略都失败，返回空数组
-    return @()
+    return $pathMatches.ToArray()
 }
 
 # -------------------------- Completion Logic Implementation ------------------------
@@ -469,7 +514,7 @@ $scriptBlock = {
         $cursorPosition
     )
 
-    # 初始化缓存和索引（仅在首次调用时创建）
+    # 初始化缓存和索引 (仅在首次调用时创建) 
     if (-not $script:{{.SanitizedName}}_contextIndex) {
         $script:{{.SanitizedName}}_contextIndex = @{}
         $script:{{.SanitizedName}}_flagIndex = @{}
@@ -503,7 +548,7 @@ $scriptBlock = {
         $currentIndex = $tokens.Count - 1
         $prevElement = if ($currentIndex -ge 1) { $tokens[$currentIndex - 1] } else { $null }
 
-        # 2. 计算当前命令上下文（优化版本）
+        # 2. 计算当前命令上下文 (优化版本) 
         $context = "/"
         for ($i = 1; $i -le $currentIndex; $i++) {
             $elem = $tokens[$i]
@@ -518,11 +563,11 @@ $scriptBlock = {
             }
         }
 
-        # 3. 获取当前上下文的可用选项（优化版本）
+        # 3. 获取当前上下文的可用选项 (优化版本) 
         $currentContextItem = $script:{{.SanitizedName}}_contextIndex[$context]
         $currentOptions = if ($currentContextItem) { $currentContextItem.Options } else { @() }
 
-        # 4. 优先补全当前级别的所有选项（子命令 + 标志）- 使用智能匹配
+        # 4. 优先补全当前级别的所有选项 (子命令 + 标志) - 使用智能匹配
         if ($currentOptions -and $currentOptions.Count -gt 0) {
             # 使用智能匹配获取最佳选项匹配 - 这是关键修复！
             $intelligentMatches = Get-{{.SanitizedName}}IntelligentMatches -Pattern $wordToComplete -Options $currentOptions
@@ -540,7 +585,32 @@ $scriptBlock = {
             }
         }
 
-        # 5. 补全标志本身（如 --ty -> --type）- 使用智能匹配
+        # 5. 枚举/预设值补全
+        if ($prevElement -and $script:{{.SanitizedName}}_flagRegex.IsMatch($prevElement)) {
+            $flagKey = "$context|$prevElement"
+            $paramDef = $script:{{.SanitizedName}}_flagIndex[$flagKey]
+            
+            if ($paramDef) {
+                switch ($paramDef.ValueType) {
+                    'enum' {
+                        # 统一使用智能匹配进行枚举值补全
+                        # 空值时会智能返回所有枚举值, 有值时进行智能匹配
+                        $enumMatches = Get-{{.SanitizedName}}IntelligentMatches -Pattern $wordToComplete -Options $paramDef.Options
+                        return $enumMatches
+                    }
+                    'string' {
+                        # 字符串类型 - 使用专用函数提供文件和目录路径补全
+                        return Get-{{.SanitizedName}}PathCompletions -WordToComplete $wordToComplete
+                    }
+                    default {
+                        # bool类型或其他非字符串类型标志后, 用户可能要输入新参数或路径, 使用专用函数提供文件路径补全
+                        return Get-{{.SanitizedName}}PathCompletions -WordToComplete $wordToComplete
+                    }
+                }
+            }
+        }
+
+         # 6. 补全标志本身 (如 --ty -> --type) - 使用智能匹配
         if ($script:{{.SanitizedName}}_flagRegex.IsMatch($wordToComplete)) {
             # 收集当前上下文的所有标志 - 使用ArrayList优化性能
             $contextFlags = [System.Collections.ArrayList]::new()
@@ -559,78 +629,6 @@ $scriptBlock = {
             }
         }
 
-        # 6. 枚举/预设值补全
-        if ($prevElement -and $script:{{.SanitizedName}}_flagRegex.IsMatch($prevElement)) {
-            $flagKey = "$context|$prevElement"
-            $paramDef = $script:{{.SanitizedName}}_flagIndex[$flagKey]
-            
-            if ($paramDef) {
-                switch ($paramDef.ValueType) {
-                    'enum' {
-                        if (-not $wordToComplete) {
-                            # 当前单词为空 → 返回所有枚举值
-                            return $paramDef.Options
-                        } else {
-                            # 使用智能匹配进行枚举值补全
-                            $enumMatches = Get-{{.SanitizedName}}IntelligentMatches -Pattern $wordToComplete -Options $paramDef.Options
-                            return $enumMatches
-                        }
-                    }
-                    'string' {
-                        # 字符串类型 - 提供文件和目录路径补全 - 使用ArrayList优化性能
-                        $pathMatches = [System.Collections.ArrayList]::new()
-                        
-                        # 获取当前路径的目录部分
-                        $basePath = if ($wordToComplete -and (Split-Path $wordToComplete -Parent)) {
-                            Split-Path $wordToComplete -Parent
-                        } else {
-                            "."
-                        }
-                        
-                        # 获取文件名部分用于过滤
-                        $fileName = if ($wordToComplete) {
-                            Split-Path $wordToComplete -Leaf
-                        } else {
-                            ""
-                        }
-                        
-                        # 预编译文件名匹配模式
-                        $filePattern = "$fileName*"
-                        
-                        try {
-                            # 获取目录和文件
-                            $items = Get-ChildItem -Path $basePath -ErrorAction SilentlyContinue | Where-Object {
-                                $_.Name -like $filePattern
-                            }
-                            
-                            foreach ($item in $items) {
-                                $fullPath = if ($basePath -eq ".") {
-                                    $item.Name
-                                } else {
-                                    Join-Path $basePath $item.Name
-                                }
-                                
-                                # 目录添加路径分隔符
-                                if ($item.PSIsContainer) {
-                                    [void]$pathMatches.Add("$fullPath/")
-                                } else {
-                                    [void]$pathMatches.Add($fullPath)
-                                }
-                            }
-                        }
-                        catch {
-                            # 路径访问失败时返回空数组
-                        }
-                        
-                        return $pathMatches.ToArray()
-                    }
-                    default {
-                        return @()
-                    }
-                }
-            }
-        }
-
         # 7. 无匹配
         return @()
     }
@@ -643,7 +641,7 @@ $scriptBlock = {
 
 # ==================== 调试和诊断功能 ====================
 
-# 补全系统健康检查函数 (可选，用于调试)
+# 补全系统健康检查函数 (可选, 用于调试)
 function Get-{{.SanitizedName}}CompletionDebug {
     Write-Host "=== {{.SanitizedName}} PowerShell补全系统诊断 ===" -ForegroundColor Cyan
     Write-Host "PowerShell版本: $($PSVersionTable.PSVersion)" -ForegroundColor Green
@@ -683,6 +681,13 @@ function Test-{{.SanitizedName}}FuzzyMatch {
     return $score
 }
 
+# 注册补全函数-带原始名称 (可能包含扩展名) 
 Register-ArgumentCompleter -CommandName ${{.SanitizedName}}_commandName -ScriptBlock $scriptBlock
+
+# 注册补全函数-不带扩展名 (仅当与原始名称不同时才注册) 
+${{.SanitizedName}}_withoutExt = [System.IO.Path]::GetFileNameWithoutExtension("{{.ProgramName}}")
+if (${{.SanitizedName}}_withoutExt -ne ${{.SanitizedName}}_commandName) {
+    Register-ArgumentCompleter -CommandName ${{.SanitizedName}}_withoutExt -ScriptBlock $scriptBlock
+}
 `
 )

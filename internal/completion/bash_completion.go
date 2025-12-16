@@ -1,5 +1,5 @@
 // Package completion Bash Shell 自动补全实现
-// 本文件实现了Bash Shell环境下的命令行自动补全功能, 
+// 本文件实现了Bash Shell环境下的命令行自动补全功能,
 // 生成Bash补全脚本, 支持标志和子命令的智能补全。
 package completion
 
@@ -512,26 +512,30 @@ _{{.ProgramName}}() {
 	fi
 
 	# 根据参数类型动态生成补全
-	if [[ -n "$prev_param_type" && "$prev_param_type" == "required" ]]; then
-		case "$prev_value_type" in
-			enum)
-				local enum_key="${context}|${words[cword-1]}"
-				local enum_opts="${{{.ProgramName}}_enum_options[$enum_key]:-}"
-				
-				if [[ -n "$enum_opts" ]]; then
-					# 对枚举选项也使用智能匹配
-					_{{.ProgramName}}_intelligent_match "$cur" "$enum_opts"
-					return 0
-				fi
+	if [[ -n "$prev_param_type" ]]; then
+		case "$prev_param_type" in
+			required)
+				case "$prev_value_type" in
+					enum)
+						local enum_key="${context}|${words[cword-1]}"
+						local enum_opts="${{{.ProgramName}}_enum_options[$enum_key]:-}"
+						
+						if [[ -n "$enum_opts" ]]; then
+							# 对枚举选项使用智能匹配
+							_{{.ProgramName}}_intelligent_match "$cur" "$enum_opts"
+							return 0
+						fi
+						;;
+					*)
+						# 非枚举类型 - 统一使用文件和目录路径补全
+						COMPREPLY=($(compgen -f -d -- "$cur"))
+						return 0
+						;;
+				esac
 				;;
-			string)
-				# 字符串类型 - 提供文件和目录路径补全
+			none)
+				# bool类型标志后, 用户可能要输入新参数或路径, 提供文件路径补全
 				COMPREPLY=($(compgen -f -d -- "$cur"))
-				return 0
-				;;
-			*)
-				# 默认值补全 - 使用智能匹配
-				_{{.ProgramName}}_intelligent_match "$cur" "$current_context_opts"
 				return 0
 				;;
 		esac
