@@ -139,11 +139,11 @@ func (c *Cmd) AddSubCmds(subCmds []*Cmd) error
             log.Fatal(err)
         }
 
-func (c *Cmd) ApplyConfig(config *CmdConfig)
+func (c *Cmd) ApplyConfig(config CmdConfig)
     ApplyConfig 批量设置命令配置 通过传入一个CmdConfig结构体来一次性设置多个配置项
 
     参数:
-      - config: 包含所有配置项的CmdConfig结构体指针
+      - config: 包含所有配置项的CmdConfig结构体
 
 func (c *Cmd) Arg(i int) string
     Arg 获取指定索引的非标志参数
@@ -502,12 +502,6 @@ func (c *Cmd) PrintHelp()
     注意:
       - 打印帮助信息时, 不会自动退出程序
 
-func (c *Cmd) SetNoBuiltinExit(exit bool)
-    SetNoBuiltinExit 设置是否在解析内置参数时退出 默认情况下为true, 当解析到内置参数时, QFlag将退出程序
-
-    参数:
-      - exit: 是否退出
-
 func (c *Cmd) SetChinese(useChinese bool)
     SetChinese 设置是否使用中文帮助信息
 
@@ -543,6 +537,12 @@ func (c *Cmd) SetModules(moduleHelps string)
 
     参数:
       - moduleHelps: 自定义模块帮助信息
+
+func (c *Cmd) SetNoBuiltinExit(exit bool)
+    SetNoBuiltinExit 设置禁用内置标志自动退出 默认情况下为false, 当解析到内置参数时, QFlag将退出程序
+
+    参数:
+      - exit: 是否退出
 
 func (c *Cmd) SetUsage(usageSyntax string)
     SetUsage 设置自定义命令用法

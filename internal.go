@@ -45,6 +45,7 @@ func (c *Cmd) parseCommon(args []string, parseSubcommands bool) (shouldExit bool
 		return false, validationErr
 	}
 
+	// 只解析一次
 	c.ctx.ParseOnce.Do(func() {
 		defer c.ctx.Parsed.Store(true) // 在返回时, 无论成功失败均标记为已解析
 
@@ -72,7 +73,7 @@ func (c *Cmd) parseCommon(args []string, parseSubcommands bool) (shouldExit bool
 			return
 		}
 
-		// 如果不禁用退出，则需要退出程序
+		// 默认情况下，当NoBuiltinExit为false时，表示不禁用退出，需要退出程序
 		if !noBuiltinExit {
 			shouldExit = true
 			return
@@ -85,6 +86,8 @@ func (c *Cmd) parseCommon(args []string, parseSubcommands bool) (shouldExit bool
 				err = parseErr
 				return
 			}
+
+			// 如果子命令解析返回退出信号，则需要退出程序
 			if exit {
 				shouldExit = true
 				return
@@ -98,6 +101,8 @@ func (c *Cmd) parseCommon(args []string, parseSubcommands bool) (shouldExit bool
 				err = hookErr
 				return
 			}
+
+			// 如果钩子返回退出信号，则需要退出程序
 			if hookExit {
 				shouldExit = true
 				return
@@ -105,6 +110,7 @@ func (c *Cmd) parseCommon(args []string, parseSubcommands bool) (shouldExit bool
 		}
 	})
 
+	// 如果解析过程中没有错误, 则不需要主动退出程序
 	return shouldExit, err
 }
 

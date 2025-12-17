@@ -73,6 +73,8 @@ func NewCmd(longName, shortName string, errorHandling ErrorHandling) *Cmd {
 //   - 处理内置标志执行逻辑
 func (c *Cmd) Parse(args []string) (err error) {
 	shouldExit, err := c.parseCommon(args, true)
+
+	// 如果返回了退出信号, 则需要主动退出程序, 否则通过返回的错误判断是否需要退出
 	if shouldExit {
 		os.Exit(0)
 	}
@@ -98,6 +100,8 @@ func (c *Cmd) Parse(args []string) (err error) {
 //   - 处理内置标志逻辑
 func (c *Cmd) ParseFlagsOnly(args []string) (err error) {
 	shouldExit, err := c.parseCommon(args, false)
+
+	// 如果返回了退出信号, 则需要主动退出程序, 否则通过返回的错误判断是否需要退出
 	if shouldExit {
 		os.Exit(0)
 	}
