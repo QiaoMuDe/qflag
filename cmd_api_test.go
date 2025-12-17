@@ -388,13 +388,13 @@ func TestSetCompletion_边界场景(t *testing.T) {
 		cmd.SetCompletion(true)
 
 		// 由于没有公开的getter方法，我们通过内部状态验证
-		if !cmd.ctx.Config.EnableCompletion {
+		if !cmd.ctx.Config.Completion {
 			t.Error("根命令启用补全失败")
 		}
 
 		// 禁用补全
 		cmd.SetCompletion(false)
-		if cmd.ctx.Config.EnableCompletion {
+		if cmd.ctx.Config.Completion {
 			t.Error("根命令禁用补全失败")
 		}
 	})
@@ -413,7 +413,7 @@ func TestSetCompletion_边界场景(t *testing.T) {
 		child.SetCompletion(true)
 
 		// 验证子命令的补全状态未改变
-		if child.ctx.Config.EnableCompletion {
+		if child.ctx.Config.Completion {
 			t.Error("子命令不应该能够启用补全")
 		}
 	})
@@ -1270,32 +1270,32 @@ func TestIsParsed_边界场景(t *testing.T) {
 	})
 }
 
-// TestSetExitOnBuiltinFlags_边界场景 测试SetExitOnBuiltinFlags方法的边界场景
-func TestSetExitOnBuiltinFlags_边界场景(t *testing.T) {
+// TestSetNoBuiltinExit_边界场景 测试SetNoBuiltinExit方法的边界场景
+func TestSetNoBuiltinExit_边界场景(t *testing.T) {
 	cmd := NewCmd("test", "t", flag.ContinueOnError)
 
 	// 测试默认值
-	defaultValue := cmd.ctx.Config.ExitOnBuiltinFlags
-	t.Logf("默认ExitOnBuiltinFlags值: %v", defaultValue)
+	defaultValue := cmd.ctx.Config.NoBuiltinExit
+	t.Logf("默认NoBuiltinExit值: %v", defaultValue)
 
 	// 测试设置为false
 	cmd.SetAutoExit(false)
-	if cmd.ctx.Config.ExitOnBuiltinFlags {
-		t.Error("设置ExitOnBuiltinFlags为false失败")
+	if cmd.ctx.Config.NoBuiltinExit {
+		t.Error("设置NoBuiltinExit为false失败")
 	}
 
 	// 测试设置为true
 	cmd.SetAutoExit(true)
-	if !cmd.ctx.Config.ExitOnBuiltinFlags {
-		t.Error("设置ExitOnBuiltinFlags为true失败")
+	if !cmd.ctx.Config.NoBuiltinExit {
+		t.Error("设置NoBuiltinExit为true失败")
 	}
 
 	// 测试多次切换
 	for i := 0; i < 10; i++ {
 		expected := i%2 == 0
 		cmd.SetAutoExit(expected)
-		if cmd.ctx.Config.ExitOnBuiltinFlags != expected {
-			t.Errorf("第%d次切换失败: 期望 %v, 实际 %v", i, expected, cmd.ctx.Config.ExitOnBuiltinFlags)
+		if cmd.ctx.Config.NoBuiltinExit != expected {
+			t.Errorf("第%d次切换失败: 期望 %v, 实际 %v", i, expected, cmd.ctx.Config.NoBuiltinExit)
 		}
 	}
 }

@@ -126,10 +126,10 @@ type CmdConfig struct {
     UseChinese bool
 
     // 控制内置标志是否自动退出
-    ExitOnBuiltinFlags bool
+    NoBuiltinExit bool
 
     // 控制是否启用自动补全功能
-    EnableCompletion bool
+    Completion bool
 }
 ```
 
@@ -151,8 +151,8 @@ CmdConfig 命令行配置结构体，包含命令的所有配置选项。
 
 **行为控制:**
 - `UseChinese`: 是否使用中文帮助信息
-- `ExitOnBuiltinFlags`: 内置标志是否自动退出程序
-- `EnableCompletion`: 是否启用自动补全功能
+- `NoBuiltinExit`: 是否禁用内置标志自动退出
+- `Completion`: 是否启用自动补全功能
 
 #### 构造函数
 

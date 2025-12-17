@@ -139,7 +139,7 @@ func (c *Cmd) AddSubCmd(subCmds ...*Cmd) error {
 		return qerr.NewValidationError("subCmds list cannot be empty")
 	}
 
-	// 🔒 提前获取锁，覆盖整个验证和添加过程
+	// 提前获取锁，覆盖整个验证和添加过程
 	c.ctx.Mutex.Lock()
 	defer c.ctx.Mutex.Unlock()
 
@@ -544,15 +544,15 @@ func (c *Cmd) Examples() []ExampleInfo {
 // Set 方法 - 设置配置信息(16个)
 // ================================================================================
 
-// SetAutoExit 设置是否在解析内置参数时退出
-// 默认情况下为true, 当解析到内置参数时, QFlag将退出程序
+// SetAutoExit 设置禁用内置标志自动退出
+// 默认情况下为false, 当解析到内置参数时, QFlag将退出程序
 //
 // 参数:
 //   - exit: 是否退出
 func (c *Cmd) SetAutoExit(exit bool) {
 	c.ctx.Mutex.Lock()
 	defer c.ctx.Mutex.Unlock()
-	c.ctx.Config.ExitOnBuiltinFlags = exit
+	c.ctx.Config.NoBuiltinExit = exit
 }
 
 // SetCompletion 设置是否启用自动补全, 只能在根命令上启用
@@ -569,7 +569,7 @@ func (c *Cmd) SetCompletion(enable bool) {
 	}
 
 	// 设置启用状态
-	c.ctx.Config.EnableCompletion = enable
+	c.ctx.Config.Completion = enable
 }
 
 // SetVersion 设置版本信息
@@ -662,12 +662,8 @@ func (c *Cmd) SetUsage(usageSyntax string) {
 // 通过传入一个CmdConfig结构体来一次性设置多个配置项
 //
 // 参数:
-//   - config: 包含所有配置项的CmdConfig结构体指针
-func (c *Cmd) ApplyConfig(config *CmdConfig) {
-	if config == nil {
-		panic("config cannot be nil")
-	}
-
+//   - config: 包含所有配置项的CmdConfig结构体
+func (c *Cmd) ApplyConfig(config CmdConfig) {
 	c.ctx.Mutex.Lock()
 	defer c.ctx.Mutex.Unlock()
 
@@ -715,11 +711,11 @@ func (c *Cmd) ApplyConfig(config *CmdConfig) {
 	c.ctx.Config.UseChinese = config.UseChinese
 
 	// 设置内置标志是否自动退出
-	c.ctx.Config.ExitOnBuiltinFlags = config.ExitOnBuiltinFlags
+	c.ctx.Config.NoBuiltinExit = config.NoBuiltinExit
 
 	// 设置是否启用自动补全功能(只允许在根命令上设置)
 	if c.ctx.Parent == nil {
-		c.ctx.Config.EnableCompletion = config.EnableCompletion
+		c.ctx.Config.Completion = config.Completion
 	}
 }
 

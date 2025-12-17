@@ -64,12 +64,12 @@ func TestNewCmdConfig_基本功能(t *testing.T) {
 		t.Errorf("UseChinese默认值应为false, 实际: %v", config.UseChinese)
 	}
 
-	if config.ExitOnBuiltinFlags != true {
-		t.Errorf("ExitOnBuiltinFlags默认值应为true, 实际: %v", config.ExitOnBuiltinFlags)
+	if config.NoBuiltinExit != false {
+		t.Errorf("NoBuiltinExit默认值应为false, 实际: %v", config.NoBuiltinExit)
 	}
 
-	if config.EnableCompletion != false {
-		t.Errorf("EnableCompletion默认值应为false, 实际: %v", config.EnableCompletion)
+	if config.Completion != false {
+		t.Errorf("Completion默认值应为false, 实际: %v", config.Completion)
 	}
 }
 
@@ -145,14 +145,14 @@ func TestCmdConfig_字段赋值(t *testing.T) {
 			getValue:  func() bool { return config.UseChinese },
 		},
 		{
-			fieldName: "ExitOnBuiltinFlags",
+			fieldName: "NoBuiltinExit",
 			setValue:  false,
-			getValue:  func() bool { return config.ExitOnBuiltinFlags },
+			getValue:  func() bool { return config.NoBuiltinExit },
 		},
 		{
-			fieldName: "EnableCompletion",
+			fieldName: "Completion",
 			setValue:  true,
-			getValue:  func() bool { return config.EnableCompletion },
+			getValue:  func() bool { return config.Completion },
 		},
 	}
 
@@ -442,17 +442,17 @@ func TestCmdConfig_字段完整性(t *testing.T) {
 	typ := v.Type()
 
 	expectedFields := map[string]reflect.Kind{
-		"Version":            reflect.String,
-		"Description":        reflect.String,
-		"Help":               reflect.String,
-		"UsageSyntax":        reflect.String,
-		"ModuleHelps":        reflect.String,
-		"LogoText":           reflect.String,
-		"Notes":              reflect.Slice,
-		"Examples":           reflect.Slice,
-		"UseChinese":         reflect.Bool,
-		"ExitOnBuiltinFlags": reflect.Bool,
-		"EnableCompletion":   reflect.Bool,
+		"Version":       reflect.String,
+		"Description":   reflect.String,
+		"Help":          reflect.String,
+		"UsageSyntax":   reflect.String,
+		"ModuleHelps":   reflect.String,
+		"LogoText":      reflect.String,
+		"Notes":         reflect.Slice,
+		"Examples":      reflect.Slice,
+		"UseChinese":    reflect.Bool,
+		"NoBuiltinExit": reflect.Bool,
+		"Completion":    reflect.Bool,
 	}
 
 	// 检查所有期望的字段是否存在

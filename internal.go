@@ -174,7 +174,7 @@ func (c *Cmd) registerBuiltinFlags() {
 	}
 
 	// 如果启用了自动补全功能
-	if c.ctx.Config.EnableCompletion {
+	if c.ctx.Config.Completion {
 		// 语言配置结构体：集中管理所有语言相关资源
 		type languageConfig struct {
 			notes     []string            // 注意事项
@@ -270,7 +270,7 @@ func (c *Cmd) handleBuiltinFlags() (bool, error) {
 	// 检查是否使用-h/--help标志
 	if c.ctx.BuiltinFlags.Help.Get() {
 		c.PrintHelp()
-		if c.ctx.Config.ExitOnBuiltinFlags {
+		if !c.ctx.Config.NoBuiltinExit {
 			return true, nil // 标记需要退出
 		}
 		return false, nil
@@ -281,7 +281,7 @@ func (c *Cmd) handleBuiltinFlags() (bool, error) {
 		// 检查是否使用-v/--version标志
 		if c.ctx.BuiltinFlags.Version.Get() && c.ctx.Config.Version != "" {
 			fmt.Println(c.ctx.Config.Version)
-			if c.ctx.Config.ExitOnBuiltinFlags {
+			if !c.ctx.Config.NoBuiltinExit {
 				return true, nil // 标记需要退出
 			}
 			return false, nil
@@ -289,7 +289,7 @@ func (c *Cmd) handleBuiltinFlags() (bool, error) {
 	}
 
 	// 检查是否启用补全功能
-	if c.ctx.Config.EnableCompletion {
+	if c.ctx.Config.Completion {
 		// 获取shell类型
 		shell := c.ctx.BuiltinFlags.Completion.Get()
 
@@ -300,7 +300,7 @@ func (c *Cmd) handleBuiltinFlags() (bool, error) {
 				return false, err
 			}
 			fmt.Println(completion)
-			return c.ctx.Config.ExitOnBuiltinFlags, nil
+			return c.ctx.Config.NoBuiltinExit, nil
 		}
 	}
 

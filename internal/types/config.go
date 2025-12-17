@@ -32,11 +32,11 @@ type CmdConfig struct {
 	// 是否使用中文帮助信息
 	UseChinese bool
 
-	// 控制内置标志是否自动退出
-	ExitOnBuiltinFlags bool
+	// 禁用内置标志自动退出
+	NoBuiltinExit bool
 
 	// 控制是否启用自动补全功能
-	EnableCompletion bool
+	Completion bool
 }
 
 // ExampleInfo 示例信息结构体
@@ -53,10 +53,10 @@ type ExampleInfo struct {
 // NewCmdConfig 创建一个新的CmdConfig实例
 func NewCmdConfig() *CmdConfig {
 	return &CmdConfig{
-		Notes:              []string{},      // 备注内容切片
-		Examples:           []ExampleInfo{}, // 示例信息切片
-		UseChinese:         false,           // 是否使用中文帮助信息
-		ExitOnBuiltinFlags: true,            // 默认控制内置标志是否自动退出
-		EnableCompletion:   false,           // 默认控制是否启用自动补全功能
+		Notes:         []string{},      // 备注内容切片
+		Examples:      []ExampleInfo{}, // 示例信息切片
+		UseChinese:    false,           // 是否使用中文帮助信息
+		NoBuiltinExit: false,           // 默认不禁用内置标志自动退出
+		Completion:    false,           // 默认控制是否启用自动补全功能
 	}
 }

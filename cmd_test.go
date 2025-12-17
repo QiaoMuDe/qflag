@@ -17,7 +17,7 @@ func TestNestedCommandHelp(t *testing.T) {
 	rootCmd.SetDesc("这是一个演示应用程序")
 	rootCmd.SetVersion("1.0.0")
 	rootCmd.SetChinese(true)
-	rootCmd.SetAutoExit(false)
+	rootCmd.SetAutoExit(true)
 	rootCmd.SetCompletion(true)
 
 	// 为根命令添加所有13种类型的标志
