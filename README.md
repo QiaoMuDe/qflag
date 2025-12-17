@@ -4,7 +4,7 @@
 
 **功能强大的 Go 语言命令行参数解析库**
 
-[![Go Version](https://img.shields.io/badge/Go-1.25.0-blue.svg)](https://golang.org/)
+[![Go Version](https://img.shields.io/badge/Go-1.24.0-blue.svg)](https://golang.org/)
 [![MIT License](https://img.shields.io/badge/License-MIT-green.svg)](https://opensource.org/licenses/MIT)
 [![Gitee](https://img.shields.io/badge/Gitee-qflag-red.svg)](https://gitee.com/MM-Q/qflag)
 [![GitHub](https://img.shields.io/badge/GitHub-qflag-black.svg)](https://github.com/QiaoMuDe/qflag)
@@ -539,7 +539,7 @@ qflag 采用模块化设计，主要包含以下包：
 
 ## 兼容性
 
-- **Go 版本**：要求 Go 1.25+ （支持泛型）
+- **Go 版本**：要求 Go 1.24+ （支持泛型）
 - **操作系统**：支持 Windows、Linux、macOS
 - **Shell 支持**：Bash、PowerShell
 
