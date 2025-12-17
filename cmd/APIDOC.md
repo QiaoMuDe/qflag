@@ -1131,205 +1131,61 @@ SetVersionf 设置版本信息
 - `format`: 版本信息格式字符串
 - `args`: 格式化参数
 
-#### 链式调用方法
-
-##### WithDesc
+##### ApplyConfig
 
 ```go
-func (c *Cmd) WithDesc(desc string) *Cmd
+func (c *Cmd) ApplyConfig(config *CmdConfig)
 ```
 
-WithDesc 设置命令描述（链式调用）
+ApplyConfig 批量设置命令配置，通过传入一个CmdConfig结构体来一次性设置多个配置项
 
 **参数:**
-- `desc`: 命令描述
+- `config`: 包含所有配置项的CmdConfig结构体指针
 
-**返回值:**
-- `*Cmd`: 返回命令实例，支持链式调用
+**注意:**
+- 对于Notes和Examples切片，采用追加方式而非完全替换
+- EnableCompletion属性只在根命令上设置，子命令会忽略此设置
+- 空字符串或空切片的配置项会被忽略，不会覆盖现有值
 
-##### WithCompletion
+**使用示例:**
+```go
+// 创建配置
+config := &CmdConfig{
+    Version:      "1.0.0",
+    Description:  "我的应用程序",
+    UseChinese:   true,
+    ExitOnBuiltinFlags: false,
+    Notes:        []string{"注意1", "注意2"},
+    Examples:     []ExampleInfo{
+        {Description: "基本用法", Usage: "myapp --help"},
+        {Description: "高级用法", Usage: "myapp --verbose --output file.txt"},
+    },
+}
+
+// 批量设置配置
+cmd.ApplyConfig(config)
+```
+
+### CmdConfig
 
 ```go
-func (c *Cmd) WithCompletion(enable bool) *Cmd
+type CmdConfig = types.CmdConfig
 ```
 
-WithCompletion 设置是否启用自动补全（链式调用）
+CmdConfig 导出命令配置类型，用于批量设置命令的各种配置项
 
-**参数:**
-- `enable`: true表示启用补全,false表示禁用
-
-**返回值:**
-- `*Cmd`: 返回命令实例，支持链式调用
-
-##### WithExample
-
-```go
-func (c *Cmd) WithExample(desc, usage string) *Cmd
-```
-
-WithExample 为命令添加使用示例（链式调用）
-
-**参数:**
-- `desc`: 示例描述
-- `usage`: 示例用法
-
-**返回值:**
-- `*Cmd`: 返回命令实例，支持链式调用
-
-##### WithExamples
-
-```go
-func (c *Cmd) WithExamples(examples []ExampleInfo) *Cmd
-```
-
-WithExamples 添加使用示例列表到命令（链式调用）
-
-**参数:**
-- `examples`: 示例信息列表
-
-**返回值:**
-- `*Cmd`: 返回命令实例，支持链式调用
-
-##### WithExit
-
-```go
-func (c *Cmd) WithExit(exit bool) *Cmd
-```
-
-WithExit 设置是否在解析内置参数时退出（链式调用）
-
-**参数:**
-- `exit`: 是否退出
-
-**返回值:**
-- `*Cmd`: 返回命令实例，支持链式调用
-
-##### WithHelp
-
-```go
-func (c *Cmd) WithHelp(help string) *Cmd
-```
-
-WithHelp 设置用户自定义命令帮助信息（链式调用）
-
-**参数:**
-- `help`: 用户自定义命令帮助信息
-
-**返回值:**
-- `*Cmd`: 返回命令实例，支持链式调用
-
-##### WithLogo
-
-```go
-func (c *Cmd) WithLogo(logoText string) *Cmd
-```
-
-WithLogo 设置logo文本（链式调用）
-
-**参数:**
-- `logoText`: logo文本字符串
-
-**返回值:**
-- `*Cmd`: 返回命令实例，支持链式调用
-
-##### WithModules
-
-```go
-func (c *Cmd) WithModules(moduleHelps string) *Cmd
-```
-
-WithModules 设置自定义模块帮助信息（链式调用）
-
-**参数:**
-- `moduleHelps`: 自定义模块帮助信息
-
-**返回值:**
-- `*Cmd`: 返回命令实例，支持链式调用
-
-##### WithNote
-
-```go
-func (c *Cmd) WithNote(note string) *Cmd
-```
-
-WithNote 添加备注信息到命令（链式调用）
-
-**参数:**
-- `note`: 备注信息
-
-**返回值:**
-- `*Cmd`: 返回命令实例，支持链式调用
-
-##### WithNotes
-
-```go
-func (c *Cmd) WithNotes(notes []string) *Cmd
-```
-
-WithNotes 添加备注信息切片到命令（链式调用）
-
-**参数:**
-- `notes`: 备注信息列表
-
-**返回值:**
-- `*Cmd`: 返回命令实例，支持链式调用
-
-##### WithUsage
-
-```go
-func (c *Cmd) WithUsage(usageSyntax string) *Cmd
-```
-
-WithUsage 设置自定义命令用法（链式调用）
-
-**参数:**
-- `usageSyntax`: 自定义命令用法
-
-**返回值:**
-- `*Cmd`: 返回命令实例，支持链式调用
-
-##### WithChinese
-
-```go
-func (c *Cmd) WithChinese(useChinese bool) *Cmd
-```
-
-WithChinese 设置是否使用中文帮助信息（链式调用）
-
-**参数:**
-- `useChinese`: 是否使用中文帮助信息
-
-**返回值:**
-- `*Cmd`: 返回命令实例，支持链式调用
-
-##### WithVersion
-
-```go
-func (c *Cmd) WithVersion(version string) *Cmd
-```
-
-WithVersion 设置版本信息（链式调用）
-
-**参数:**
-- `version`: 版本信息
-
-**返回值:**
-- `*Cmd`: 返回命令实例，支持链式调用
-
-##### WithVersionf
-
-```go
-func (c *Cmd) WithVersionf(format string, args ...any) *Cmd
-```
-
-WithVersionf 设置版本信息（链式调用，支持格式化）
-
-**参数:**
-- `format`: 版本信息格式字符串
-- `args`: 格式化参数
-
-**返回值:**
-- `*Cmd`: 返回命令实例，支持链式调用
+**字段:**
+- `Version`: 版本信息
+- `Description`: 自定义描述
+- `Help`: 自定义的完整命令行帮助信息
+- `UsageSyntax`: 自定义用法格式说明
+- `ModuleHelps`: 模块帮助信息
+- `LogoText`: logo文本
+- `Notes`: 备注内容切片
+- `Examples`: 示例信息切片
+- `UseChinese`: 是否使用中文帮助信息
+- `ExitOnBuiltinFlags`: 控制内置标志是否自动退出
+- `EnableCompletion`: 控制是否启用自动补全功能
 
 ### ExampleInfo
 
@@ -1363,14 +1219,27 @@ if *verbose {
 }
 ```
 
-### 链式调用
+### 批量配置
 
 ```go
-cmd := NewCmd("myapp", "app", flag.ExitOnError).
-    WithDesc("我的应用程序").
-    WithVersion("1.0.0").
-    WithChinese(true).
-    WithExample("基本用法", "myapp --verbose --output result.txt")
+// 创建命令
+cmd := NewCmd("myapp", "app", flag.ExitOnError)
+
+// 创建配置
+config := &CmdConfig{
+    Version:      "1.0.0",
+    Description:  "我的应用程序",
+    UseChinese:   true,
+    ExitOnBuiltinFlags: false,
+    Notes:        []string{"注意1", "注意2"},
+    Examples:     []ExampleInfo{
+        {Description: "基本用法", Usage: "myapp --help"},
+        {Description: "高级用法", Usage: "myapp --verbose --output file.txt"},
+    },
+}
+
+// 批量设置配置
+cmd.ApplyConfig(config)
 ```
 
 ### 子命令

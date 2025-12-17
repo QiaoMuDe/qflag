@@ -18,6 +18,9 @@ import (
 // ExampleInfo 导出示例信息类型
 type ExampleInfo = types.ExampleInfo
 
+// CmdConfig 导出命令配置类型
+type CmdConfig = types.CmdConfig
+
 // Cmd 简化的命令结构体，作为适配器连接内部函数式API和外部面向对象API
 type Cmd struct {
 	ctx *types.CmdContext // 内部上下文，包含所有状态
@@ -548,7 +551,7 @@ func (c *Cmd) Examples() []ExampleInfo {
 }
 
 // ================================================================================
-// Set 方法 - 设置配置信息(15个)
+// Set 方法 - 设置配置信息(16个)
 // ================================================================================
 
 // SetAutoExit 设置是否在解析内置参数时退出
@@ -665,6 +668,71 @@ func (c *Cmd) SetUsage(usageSyntax string) {
 	c.ctx.Config.UsageSyntax = usageSyntax
 }
 
+// ApplyConfig 批量设置命令配置
+// 通过传入一个CmdConfig结构体来一次性设置多个配置项
+//
+// 参数:
+//   - config: 包含所有配置项的CmdConfig结构体指针
+func (c *Cmd) ApplyConfig(config *CmdConfig) {
+	if config == nil {
+		panic("config cannot be nil")
+	}
+
+	c.ctx.Mutex.Lock()
+	defer c.ctx.Mutex.Unlock()
+
+	// 设置版本信息
+	if config.Version != "" {
+		c.ctx.Config.Version = config.Version
+	}
+
+	// 设置命令描述
+	if config.Description != "" {
+		c.ctx.Config.Description = config.Description
+	}
+
+	// 设置自定义帮助信息
+	if config.Help != "" {
+		c.ctx.Config.Help = config.Help
+	}
+
+	// 设置自定义用法格式
+	if config.UsageSyntax != "" {
+		c.ctx.Config.UsageSyntax = config.UsageSyntax
+	}
+
+	// 设置模块帮助信息
+	if config.ModuleHelps != "" {
+		c.ctx.Config.ModuleHelps = config.ModuleHelps
+	}
+
+	// 设置logo文本
+	if config.LogoText != "" {
+		c.ctx.Config.LogoText = config.LogoText
+	}
+
+	// 设置备注信息
+	if len(config.Notes) > 0 {
+		c.ctx.Config.Notes = append(c.ctx.Config.Notes, config.Notes...)
+	}
+
+	// 设置示例信息
+	if len(config.Examples) > 0 {
+		c.ctx.Config.Examples = append(c.ctx.Config.Examples, config.Examples...)
+	}
+
+	// 设置是否使用中文帮助信息
+	c.ctx.Config.UseChinese = config.UseChinese
+
+	// 设置内置标志是否自动退出
+	c.ctx.Config.ExitOnBuiltinFlags = config.ExitOnBuiltinFlags
+
+	// 设置是否启用自动补全功能(只允许在根命令上设置)
+	if c.ctx.Parent == nil {
+		c.ctx.Config.EnableCompletion = config.EnableCompletion
+	}
+}
+
 // AddNote 添加备注信息到命令
 //
 // 参数:
@@ -724,178 +792,4 @@ func (c *Cmd) AddExamples(examples []ExampleInfo) {
 
 	// 添加到使用示例列表中
 	c.ctx.Config.Examples = append(c.ctx.Config.Examples, examples...)
-}
-
-// ================================================================================
-// 链式调用方法 - 用于构建器模式，提供更流畅的API体验(14个)
-// ================================================================================
-
-// WithDesc 设置命令描述(链式调用)
-//
-// 参数:
-//   - desc: 命令描述
-//
-// 返回值:
-//   - *Cmd: 返回命令实例，支持链式调用
-func (c *Cmd) WithDesc(desc string) *Cmd {
-	c.SetDesc(desc)
-	return c
-}
-
-// WithVersion 设置版本信息(链式调用)
-//
-// 参数:
-//   - version: 版本信息
-//
-// 返回值:
-//   - *Cmd: 返回命令实例，支持链式调用
-func (c *Cmd) WithVersion(version string) *Cmd {
-	c.SetVersion(version)
-	return c
-}
-
-// WithVersionf 设置版本信息(链式调用，支持格式化)
-//
-// 参数:
-//   - format: 版本信息格式字符串
-//   - args: 格式化参数
-//
-// 返回值:
-//   - *Cmd: 返回命令实例，支持链式调用
-func (c *Cmd) WithVersionf(format string, args ...any) *Cmd {
-	c.SetVersionf(format, args...)
-	return c
-}
-
-// WithChinese 设置是否使用中文帮助信息(链式调用)
-//
-// 参数:
-//   - useChinese: 是否使用中文帮助信息
-//
-// 返回值:
-//   - *Cmd: 返回命令实例，支持链式调用
-func (c *Cmd) WithChinese(useChinese bool) *Cmd {
-	c.SetChinese(useChinese)
-	return c
-}
-
-// WithUsage 设置自定义命令用法(链式调用)
-//
-// 参数:
-//   - usageSyntax: 自定义命令用法
-//
-// 返回值:
-//   - *Cmd: 返回命令实例，支持链式调用
-func (c *Cmd) WithUsage(usageSyntax string) *Cmd {
-	c.SetUsage(usageSyntax)
-	return c
-}
-
-// WithLogo 设置logo文本(链式调用)
-//
-// 参数:
-//   - logoText: logo文本字符串
-//
-// 返回值:
-//   - *Cmd: 返回命令实例，支持链式调用
-func (c *Cmd) WithLogo(logoText string) *Cmd {
-	c.SetLogo(logoText)
-	return c
-}
-
-// WithHelp 设置用户自定义命令帮助信息(链式调用)
-//
-// 参数:
-//   - help: 用户自定义命令帮助信息
-//
-// 返回值:
-//   - *Cmd: 返回命令实例，支持链式调用
-func (c *Cmd) WithHelp(help string) *Cmd {
-	c.SetHelp(help)
-	return c
-}
-
-// WithNote 添加备注信息到命令(链式调用)
-//
-// 参数:
-//   - note: 备注信息
-//
-// 返回值:
-//   - *Cmd: 返回命令实例，支持链式调用
-func (c *Cmd) WithNote(note string) *Cmd {
-	c.AddNote(note)
-	return c
-}
-
-// WithNotes 添加备注信息切片到命令(链式调用)
-//
-// 参数:
-//   - notes: 备注信息列表
-//
-// 返回值:
-//   - *Cmd: 返回命令实例，支持链式调用
-func (c *Cmd) WithNotes(notes []string) *Cmd {
-	c.AddNotes(notes)
-	return c
-}
-
-// WithExample 为命令添加使用示例(链式调用)
-//
-// 参数:
-//   - desc: 示例描述
-//   - usage: 示例用法
-//
-// 返回值:
-//   - *Cmd: 返回命令实例，支持链式调用
-func (c *Cmd) WithExample(desc, usage string) *Cmd {
-	c.AddExample(desc, usage)
-	return c
-}
-
-// WithExamples 添加使用示例列表到命令(链式调用)
-//
-// 参数:
-//   - examples: 示例信息列表
-//
-// 返回值:
-//   - *Cmd: 返回命令实例，支持链式调用
-func (c *Cmd) WithExamples(examples []ExampleInfo) *Cmd {
-	c.AddExamples(examples)
-	return c
-}
-
-// WithAutoExit 设置是否在解析内置参数时退出(链式调用)
-//
-// 参数:
-//   - exit: 是否退出
-//
-// 返回值:
-//   - *Cmd: 返回命令实例，支持链式调用
-func (c *Cmd) WithAutoExit(exit bool) *Cmd {
-	c.SetAutoExit(exit)
-	return c
-}
-
-// WithCompletion 设置是否启用自动补全(链式调用)
-//
-// 参数:
-//   - enable: true表示启用补全,false表示禁用
-//
-// 返回值:
-//   - *Cmd: 返回命令实例，支持链式调用
-func (c *Cmd) WithCompletion(enable bool) *Cmd {
-	c.SetCompletion(enable)
-	return c
-}
-
-// WithModules 设置自定义模块帮助信息(链式调用)
-//
-// 参数:
-//   - moduleHelps: 自定义模块帮助信息
-//
-// 返回值:
-//   - *Cmd: 返回命令实例，支持链式调用
-func (c *Cmd) WithModules(moduleHelps string) *Cmd {
-	c.SetModules(moduleHelps)
-	return c
 }
