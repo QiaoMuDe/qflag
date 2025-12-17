@@ -136,6 +136,25 @@ func FlagTypeToString(flagType FlagType) string
 - 参数: `flagType` - 需要转换的 FlagType 枚举值
 - 返回值: 带语义信息的类型字符串，用于命令行帮助信息显示
 
+### 默认值格式化
+
+```go
+func FormatDefaultValue(flagType FlagType, defaultValue any) string
+```
+
+根据标志类型格式化默认值为人类可读的字符串。
+
+- 参数:
+  - `flagType` - 标志类型
+  - `defaultValue` - 默认值
+- 返回值: 格式化后的默认值字符串
+- 特殊处理:
+  - 零值时间返回空字符串
+  - 纯日期时间只显示日期部分(2006-01-02)
+  - 常规时间显示到秒(2006-01-02 15:04:05)
+  - Map类型显示为key=value,key=value格式
+  - 切片类型显示为value,value,...格式
+
 ## 类型定义
 
 ### BaseFlag 泛型基础标志结构体

@@ -6,7 +6,6 @@ package help
 import (
 	"bytes"
 	"fmt"
-	"time"
 
 	"gitee.com/MM-Q/qflag/flags"
 	"gitee.com/MM-Q/qflag/internal/types"
@@ -223,14 +222,7 @@ func collectFlags(cmd *types.CmdContext) []flagInfo {
 		flag := f // 获取标志类型
 
 		// 收集默认值
-		defValue := fmt.Sprintf("%v", flag.GetDefault())
-
-		// 对Duration类型进行特殊格式化
-		if flag.GetFlagType() == flags.FlagTypeDuration {
-			if duration, ok := flag.GetDefault().(time.Duration); ok {
-				defValue = duration.String() // 获取时间间隔标志的默认值的字符串表示
-			}
-		}
+		defValue := flags.FormatDefaultValue(flag.GetFlagType(), flag.GetDefault())
 
 		// 创建标志元数据
 		flagInfos = append(flagInfos, flagInfo{
