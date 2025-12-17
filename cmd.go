@@ -1,5 +1,5 @@
 // package qflag 命令结构体和核心功能实现
-// 本文件定义了Cmd结构体，提供命令行解析、子命令管理、标志注册等核心功能。
+// 本文件定义了Cmd结构体, 提供命令行解析、子命令管理、标志注册等核心功能。
 // Cmd作为适配器连接内部函数式API和外部面向对象API。
 package qflag
 
@@ -14,9 +14,10 @@ import (
 	"gitee.com/MM-Q/qflag/qerr"
 )
 
-// Cmd 命令结构体，作为适配器连接内部函数式API和外部面向对象API
+// Cmd 命令结构体, 作为适配器连接内部函数式API和外部面向对象API
 type Cmd struct {
-	ctx *types.CmdContext // 内部上下文，包含所有状态
+	ctx *types.CmdContext    // 内部上下文，包含所有状态
+	Run func(cmd *Cmd) error // 执行函数接口，用于定义命令的执行逻辑
 }
 
 // ================================================================================
@@ -54,7 +55,7 @@ func NewCmd(longName, shortName string, errorHandling ErrorHandling) *Cmd {
 	return cmd
 }
 
-// Parse 完整解析命令行参数(含子命令处理)
+// Parse 完整解析命令行参数(递归解析子命令)
 //
 // 主要功能：
 //  1. 解析当前命令的长短标志及内置标志

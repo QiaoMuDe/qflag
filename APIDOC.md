@@ -54,10 +54,14 @@ BoolFlag 导出flag包中的BoolFlag结构体
 ### type Cmd struct
 ```go
 type Cmd struct {
-	// Has unexported fields.
+  // Has unexported fields.
+	Run func(cmd *Cmd) error // 执行函数接口，用于定义命令的执行逻辑
 }
 ```
 Cmd 命令结构体，作为适配器连接内部函数式API和外部面向对象API
+
+**字段说明:**
+- Run: 执行函数接口，用于定义命令的执行逻辑。当命令需要执行时，会调用此函数并传入命令实例本身
 
 ### var Root *Cmd
 ```go
@@ -633,6 +637,50 @@ Parse 完整解析命令行参数(含子命令处理)
   - 每个Cmd实例仅会被解析一次(线程安全)
   - 若检测到子命令, 会将剩余参数传递给子命令的Parse方法
   - 处理内置标志执行逻辑
+  - **重要**: Parse方法只负责解析参数，不会自动执行Run函数。执行需要手动调用
+
+### func (c *Cmd) 手动执行Run函数
+```go
+// 示例：手动执行Run函数的标准流程
+if cmd.Run != nil {
+    if err := cmd.Run(cmd); err != nil {
+        // 处理执行错误
+        fmt.Printf("执行失败: %v\n", err)
+        os.Exit(1)
+    }
+}
+```
+
+**执行模式说明：**
+- qflag采用分离式架构：解析(Parse)与执行(Run)完全分离
+- Parse方法只解析命令行参数，不会自动调用Run函数
+- 用户需要手动检查并执行Run函数，提供完全的控制权
+- Run函数接收命令实例本身作为参数，可以访问所有标志值
+
+**最佳实践：**
+```go
+cmd := NewCmd("server", "s", ExitOnError)
+port := cmd.Int("port", "p", 8080, "服务端口")
+
+// 设置执行函数
+cmd.Run = func(c *Cmd) error {
+    fmt.Printf("启动服务器，端口: %d\n", port.Get())
+    // 实际的服务器启动逻辑
+    return nil
+}
+
+// 解析参数
+if err := cmd.Parse(os.Args[1:]); err != nil {
+    log.Fatal(err)
+}
+
+// 手动执行（重要：不会自动执行！）
+if cmd.Run != nil {
+    if err := cmd.Run(cmd); err != nil {
+        log.Fatal(err)
+    }
+}
+```
 
 ### func (c *Cmd) ParseFlagsOnly(args []string) (err error)
 ```go
