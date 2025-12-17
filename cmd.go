@@ -547,15 +547,15 @@ func (c *Cmd) Examples() []ExampleInfo {
 // Set 方法 - 设置配置信息(16个)
 // ================================================================================
 
-// SetNoBuiltinExit 设置禁用内置标志自动退出
+// SetNoFgExit 设置禁用内置标志自动退出
 // 默认情况下为false, 当解析到内置参数时, QFlag将退出程序
 //
 // 参数:
 //   - exit: 是否退出
-func (c *Cmd) SetNoBuiltinExit(exit bool) {
+func (c *Cmd) SetNoFgExit(exit bool) {
 	c.ctx.Mutex.Lock()
 	defer c.ctx.Mutex.Unlock()
-	c.ctx.Config.NoBuiltinExit = exit
+	c.ctx.Config.NoFgExit = exit
 }
 
 // SetCompletion 设置是否启用自动补全, 只能在根命令上启用
@@ -714,7 +714,7 @@ func (c *Cmd) ApplyConfig(config CmdConfig) {
 	c.ctx.Config.UseChinese = config.UseChinese
 
 	// 设置内置标志是否自动退出
-	c.ctx.Config.NoBuiltinExit = config.NoBuiltinExit
+	c.ctx.Config.NoFgExit = config.NoFgExit
 
 	// 设置是否启用自动补全功能(只允许在根命令上设置)
 	if c.ctx.Parent == nil {

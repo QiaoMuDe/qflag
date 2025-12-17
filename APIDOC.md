@@ -538,8 +538,8 @@ func (c *Cmd) SetModules(moduleHelps string)
     参数:
       - moduleHelps: 自定义模块帮助信息
 
-func (c *Cmd) SetNoBuiltinExit(exit bool)
-    SetNoBuiltinExit 设置禁用内置标志自动退出 默认情况下为false, 当解析到内置参数时, QFlag将退出程序
+func (c *Cmd) SetNoFgExit(exit bool)
+    SetNoFgExit 设置禁用内置标志自动退出 默认情况下为false, 当解析到内置参数时, QFlag将退出程序
 
     参数:
       - exit: 是否退出

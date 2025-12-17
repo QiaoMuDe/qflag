@@ -1007,7 +1007,7 @@ func TestArgs_边界场景(t *testing.T) {
 	// 测试空参数
 	t.Run("空参数", func(t *testing.T) {
 		cmd := NewCmd("test", "t", flag.ContinueOnError)
-		cmd.SetNoBuiltinExit(true) // 禁用退出以便测试
+		cmd.SetNoFgExit(true) // 禁用退出以便测试
 
 		// 解析空参数
 		err := cmd.Parse([]string{})
@@ -1037,7 +1037,7 @@ func TestArgs_边界场景(t *testing.T) {
 	// 测试多个参数
 	t.Run("多个参数", func(t *testing.T) {
 		cmd := NewCmd("test", "t", flag.ContinueOnError)
-		cmd.SetNoBuiltinExit(true) // 禁用退出以便测试
+		cmd.SetNoFgExit(true) // 禁用退出以便测试
 		testArgs := []string{"arg1", "arg2", "arg with spaces", "", "arg5"}
 
 		err := cmd.Parse(testArgs)
@@ -1077,7 +1077,7 @@ func TestArgs_边界场景(t *testing.T) {
 	// 测试返回副本而非原始引用
 	t.Run("返回副本测试", func(t *testing.T) {
 		cmd := NewCmd("test", "t", flag.ContinueOnError)
-		cmd.SetNoBuiltinExit(true) // 禁用退出以便测试
+		cmd.SetNoFgExit(true) // 禁用退出以便测试
 		testArgs := []string{"arg1", "arg2"}
 
 		err := cmd.Parse(testArgs)
@@ -1273,32 +1273,32 @@ func TestIsParsed_边界场景(t *testing.T) {
 	})
 }
 
-// TestSetNoBuiltinExit_边界场景 测试SetNoBuiltinExit方法的边界场景
-func TestSetNoBuiltinExit_边界场景(t *testing.T) {
+// TestSetNoFgExit_边界场景 测试SetNoFgExit方法的边界场景
+func TestSetNoFgExit_边界场景(t *testing.T) {
 	cmd := NewCmd("test", "t", flag.ContinueOnError)
 
 	// 测试默认值
-	defaultValue := cmd.ctx.Config.NoBuiltinExit
-	t.Logf("默认NoBuiltinExit值: %v", defaultValue)
+	defaultValue := cmd.ctx.Config.NoFgExit
+	t.Logf("默认NoFgExit值: %v", defaultValue)
 
 	// 测试设置为false
-	cmd.SetNoBuiltinExit(false)
-	if cmd.ctx.Config.NoBuiltinExit {
-		t.Error("设置NoBuiltinExit为false失败")
+	cmd.SetNoFgExit(false)
+	if cmd.ctx.Config.NoFgExit {
+		t.Error("设置NoFgExit为false失败")
 	}
 
 	// 测试设置为true
-	cmd.SetNoBuiltinExit(true)
-	if !cmd.ctx.Config.NoBuiltinExit {
-		t.Error("设置NoBuiltinExit为true失败")
+	cmd.SetNoFgExit(true)
+	if !cmd.ctx.Config.NoFgExit {
+		t.Error("设置NoFgExit为true失败")
 	}
 
 	// 测试多次切换
 	for i := 0; i < 10; i++ {
 		expected := i%2 == 0
-		cmd.SetNoBuiltinExit(expected)
-		if cmd.ctx.Config.NoBuiltinExit != expected {
-			t.Errorf("第%d次切换失败: 期望 %v, 实际 %v", i, expected, cmd.ctx.Config.NoBuiltinExit)
+		cmd.SetNoFgExit(expected)
+		if cmd.ctx.Config.NoFgExit != expected {
+			t.Errorf("第%d次切换失败: 期望 %v, 实际 %v", i, expected, cmd.ctx.Config.NoFgExit)
 		}
 	}
 }

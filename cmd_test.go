@@ -17,7 +17,7 @@ func TestNestedCommandHelp(t *testing.T) {
 	rootCmd.SetDesc("这是一个演示应用程序")
 	rootCmd.SetVersion("1.0.0")
 	rootCmd.SetChinese(true)
-	rootCmd.SetNoBuiltinExit(true)
+	rootCmd.SetNoFgExit(true)
 	rootCmd.SetCompletion(true)
 
 	// 为根命令添加所有13种类型的标志
@@ -50,7 +50,7 @@ func TestNestedCommandHelp(t *testing.T) {
 		level2Commands[i] = NewCmd(level2Names[i], "", flag.ContinueOnError)
 		level2Commands[i].SetDesc(level2Descriptions[i])
 		level2Commands[i].SetChinese(true)
-		level2Commands[i].SetNoBuiltinExit(false)
+		level2Commands[i].SetNoFgExit(false)
 
 		// 为每个二级命令添加3个标志
 		switch i {
@@ -89,7 +89,7 @@ func TestNestedCommandHelp(t *testing.T) {
 			level3Cmd := NewCmd(level3Name, "", flag.ContinueOnError)
 			level3Cmd.SetDesc(fmt.Sprintf("%s的子命令%d", level2Descriptions[i], j+1))
 			level3Cmd.SetChinese(true)
-			level3Cmd.SetNoBuiltinExit(false)
+			level3Cmd.SetNoFgExit(false)
 
 			// 为每个三级命令添加3个标志
 			level3Cmd.String("input", "i", "", "输入文件")

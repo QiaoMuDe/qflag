@@ -64,8 +64,8 @@ func TestNewCmdConfig_基本功能(t *testing.T) {
 		t.Errorf("UseChinese默认值应为false, 实际: %v", config.UseChinese)
 	}
 
-	if config.NoBuiltinExit != false {
-		t.Errorf("NoBuiltinExit默认值应为false, 实际: %v", config.NoBuiltinExit)
+	if config.NoFgExit != false {
+		t.Errorf("NoFgExit默认值应为false, 实际: %v", config.NoFgExit)
 	}
 
 	if config.Completion != false {
@@ -145,9 +145,9 @@ func TestCmdConfig_字段赋值(t *testing.T) {
 			getValue:  func() bool { return config.UseChinese },
 		},
 		{
-			fieldName: "NoBuiltinExit",
+			fieldName: "NoFgExit",
 			setValue:  false,
-			getValue:  func() bool { return config.NoBuiltinExit },
+			getValue:  func() bool { return config.NoFgExit },
 		},
 		{
 			fieldName: "Completion",
@@ -442,17 +442,17 @@ func TestCmdConfig_字段完整性(t *testing.T) {
 	typ := v.Type()
 
 	expectedFields := map[string]reflect.Kind{
-		"Version":       reflect.String,
-		"Desc":          reflect.String,
-		"Help":          reflect.String,
-		"UsageSyntax":   reflect.String,
-		"ModuleHelps":   reflect.String,
-		"LogoText":      reflect.String,
-		"Notes":         reflect.Slice,
-		"Examples":      reflect.Slice,
-		"UseChinese":    reflect.Bool,
-		"NoBuiltinExit": reflect.Bool,
-		"Completion":    reflect.Bool,
+		"Version":     reflect.String,
+		"Desc":        reflect.String,
+		"Help":        reflect.String,
+		"UsageSyntax": reflect.String,
+		"ModuleHelps": reflect.String,
+		"LogoText":    reflect.String,
+		"Notes":       reflect.Slice,
+		"Examples":    reflect.Slice,
+		"UseChinese":  reflect.Bool,
+		"NoFgExit":    reflect.Bool,
+		"Completion":  reflect.Bool,
 	}
 
 	// 检查所有期望的字段是否存在

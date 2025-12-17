@@ -105,7 +105,7 @@ func TestCmd_parseCommon(t *testing.T) {
 			expectError:      false,
 			setupSubcommands: func(cmd *Cmd) {
 				subCmd := NewCmd("subcmd", "sc", flag.ContinueOnError)
-				subCmd.SetNoBuiltinExit(true) // 设置子命令不在内置标志时退出
+				subCmd.SetNoFgExit(true) // 设置子命令不在内置标志时退出
 				err := cmd.AddSubCmd(subCmd)
 				if err != nil {
 					t.Fatalf("添加子命令失败: %v", err)
@@ -156,7 +156,7 @@ func TestCmd_parseCommon(t *testing.T) {
 			expectError:      false,
 			setupFlags: func(cmd *Cmd) {
 				// 禁用内置标志退出
-				cmd.SetNoBuiltinExit(true)
+				cmd.SetNoFgExit(true)
 			},
 		},
 	}
@@ -170,7 +170,7 @@ func TestCmd_parseCommon(t *testing.T) {
 
 			// 禁用内置标志退出以便测试
 			if cmd != nil {
-				cmd.SetNoBuiltinExit(true)
+				cmd.SetNoFgExit(true)
 			}
 
 			// 设置标志
@@ -521,7 +521,7 @@ func TestCmd_handleBuiltinFlags(t *testing.T) {
 					t.Fatalf("设置版本标志失败: %v", err)
 				}
 			},
-			expectExit:  false, // NoBuiltinExit为false时，handleBuiltinFlags返回false(不禁用退出)，parseCommon中取反后为true(退出)
+			expectExit:  false, // NoFgExit为false时，handleBuiltinFlags返回false(不禁用退出)，parseCommon中取反后为true(退出)
 			expectError: false,
 		},
 		{
@@ -566,10 +566,10 @@ func TestCmd_handleBuiltinFlags(t *testing.T) {
 			expectError: false,
 		},
 		{
-			name: "NoBuiltinExit为true时不退出",
+			name: "NoFgExit为true时不退出",
 			setupCmd: func() *Cmd {
 				cmd := createInternalTestCmd()
-				cmd.SetNoBuiltinExit(true)
+				cmd.SetNoFgExit(true)
 				return cmd
 			},
 			setupFlags: func(cmd *Cmd) {

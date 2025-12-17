@@ -64,16 +64,16 @@ func (c *Cmd) parseCommon(args []string, parseSubcommands bool) (shouldExit bool
 		}
 
 		// 处理内置标志(-h/--help, -v/--version, --completion等)
-		// handleBuiltinFlags方法返回NoBuiltinExit的值(是否禁用退出)
-		// 当NoBuiltinExit为false(默认)时，表示不禁用退出，需要退出程序
-		// 当NoBuiltinExit为true时，表示禁用退出，不需要退出程序
+		// handleBuiltinFlags方法返回NoFgExit的值(是否禁用退出)
+		// 当NoFgExit为false(默认)时，表示不禁用退出，需要退出程序
+		// 当NoFgExit为true时，表示禁用退出，不需要退出程序
 		noBuiltinExit, handleErr := c.handleBuiltinFlags()
 		if handleErr != nil {
 			err = handleErr
 			return
 		}
 
-		// 默认情况下，当NoBuiltinExit为false时，表示不禁用退出，需要退出程序
+		// 默认情况下，当NoFgExit为false时，表示不禁用退出，需要退出程序
 		if !noBuiltinExit {
 			shouldExit = true
 			return
@@ -273,13 +273,13 @@ func (c *Cmd) registerBuiltinFlags() {
 // handleBuiltinFlags 处理内置标志(-h/--help, -v/--version, --completion等)的逻辑
 //
 // 返回值:
-//   - 是否禁用退出程序(与NoBuiltinExit字段含义一致)
+//   - 是否禁用退出程序(与NoFgExit字段含义一致)
 //   - 处理过程中遇到的错误
 func (c *Cmd) handleBuiltinFlags() (bool, error) {
 	// 检查是否使用-h/--help标志
 	if c.ctx.BuiltinFlags.Help.Get() {
 		c.PrintHelp()
-		return c.ctx.Config.NoBuiltinExit, nil
+		return c.ctx.Config.NoFgExit, nil
 	}
 
 	// 只有在顶级命令中处理-v/--version标志
@@ -287,7 +287,7 @@ func (c *Cmd) handleBuiltinFlags() (bool, error) {
 		// 检查是否使用-v/--version标志
 		if c.ctx.BuiltinFlags.Version.Get() && c.ctx.Config.Version != "" {
 			fmt.Println(c.ctx.Config.Version)
-			return c.ctx.Config.NoBuiltinExit, nil
+			return c.ctx.Config.NoFgExit, nil
 		}
 	}
 
@@ -300,10 +300,10 @@ func (c *Cmd) handleBuiltinFlags() (bool, error) {
 		if shell != flags.ShellNone {
 			completion, err := completion.GenerateShellCompletion(c.ctx, shell)
 			if err != nil {
-				return c.ctx.Config.NoBuiltinExit, err
+				return c.ctx.Config.NoFgExit, err
 			}
 			fmt.Println(completion)
-			return c.ctx.Config.NoBuiltinExit, nil
+			return c.ctx.Config.NoFgExit, nil
 		}
 	}
 
@@ -323,7 +323,7 @@ func (c *Cmd) handleBuiltinFlags() (bool, error) {
 		// 调用IsCheck方法进行验证
 		if checkErr := enumFlag.IsCheck(enumFlag.Get()); checkErr != nil {
 			// 添加标志名称到错误信息, 便于定位问题
-			return c.ctx.Config.NoBuiltinExit, fmt.Errorf("flag %s: %w", meta.GetName(), checkErr)
+			return c.ctx.Config.NoFgExit, fmt.Errorf("flag %s: %w", meta.GetName(), checkErr)
 		}
 	}
 

@@ -33,7 +33,7 @@ type CmdConfig struct {
 	UseChinese bool
 
 	// 禁用内置标志自动退出
-	NoBuiltinExit bool
+	NoFgExit bool
 
 	// 控制是否启用自动补全功能
 	Completion bool
@@ -53,10 +53,10 @@ type ExampleInfo struct {
 // NewCmdConfig 创建一个新的CmdConfig实例
 func NewCmdConfig() *CmdConfig {
 	return &CmdConfig{
-		Notes:         []string{},      // 备注内容切片
-		Examples:      []ExampleInfo{}, // 示例信息切片
-		UseChinese:    false,           // 是否使用中文帮助信息
-		NoBuiltinExit: false,           // 禁用内置标志自动退出
-		Completion:    false,           // 控制是否启用自动补全功能
+		Notes:      []string{},      // 备注内容切片
+		Examples:   []ExampleInfo{}, // 示例信息切片
+		UseChinese: false,           // 是否使用中文帮助信息
+		NoFgExit:   false,           // 禁用内置标志自动退出
+		Completion: false,           // 控制是否启用自动补全功能
 	}
 }
