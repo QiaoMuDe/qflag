@@ -65,8 +65,6 @@ go get -u gitee.com/MM-Q/qflag
 
 ```go
 import "gitee.com/MM-Q/qflag"
-import "gitee.com/MM-Q/qflag/flags"
-import "gitee.com/MM-Q/qflag/validator"
 ```
 
 ## 核心特性
@@ -567,22 +565,6 @@ go test -bench=. ./...
 go test ./flags
 go test ./cmd
 go test ./validator
-```
-
-### 测试结构
-
-```
-qflag/
-├── flags/
-│   ├── *_test.go          # 标志类型测试
-│   └── sizeflag_test.go   # 大小标志专项测试
-├── cmd/
-│   ├── *_test.go          # 命令管理测试
-│   └── extended_test.go   # 扩展功能测试
-├── validator/
-│   └── *_test.go          # 验证器测试
-└── qerr/
-    └── *_test.go          # 错误处理测试
 ```
 
 ### 测试覆盖率目标
