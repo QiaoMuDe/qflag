@@ -1,4 +1,4 @@
-// Package qflag 测试文件
+// package qflag 测试文件
 // 展示如何使用Root全局实例注册和解析命令行参数的基本示例
 package qflag
 

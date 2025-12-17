@@ -1,14 +1,11 @@
-// Package qflag 提供对标准库flag的封装, 自动实现长短标志, 并默认绑定-h/--help标志打印帮助信息。
+// package qflag 提供对标准库flag的封装, 自动实现长短标志, 并默认绑定-h/--help标志打印帮助信息。
 // 用户可通过Cmd.Help字段自定义帮助内容, 支持直接赋值字符串或从文件加载。
 // 该包是一个功能强大的命令行参数解析库, 支持子命令、多种数据类型标志、参数验证等高级特性。
 package qflag
 
 import (
-	"flag"
 	"os"
 	"path/filepath"
-
-	"gitee.com/MM-Q/qflag/cmd"
 )
 
 /*
@@ -29,7 +26,7 @@ func init() {
 	}
 
 	// 直接创建全局根命令实例
-	Root = cmd.NewCmd(cmdName, "", flag.ExitOnError)
+	Root = NewCmd(cmdName, "", ExitOnError)
 }
 
 // ================================================================================

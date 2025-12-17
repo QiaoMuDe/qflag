@@ -1,7 +1,7 @@
-// Package cmd 命令API测试
+// package qflag 命令API测试
 // 本文件包含了Cmd结构体API接口的单元测试，测试面向对象API
 // 与内部函数式API的适配功能，确保API设计的正确性。
-package cmd
+package qflag
 
 import (
 	"flag"
@@ -138,16 +138,6 @@ func TestNewCmd_边界场景(t *testing.T) {
 				t.Error("内置help标志未正确注册")
 			}
 		})
-	}
-}
-
-// TestNew_别名函数 测试New别名函数
-func TestNew_别名函数(t *testing.T) {
-	cmd1 := New("test", "t", flag.ContinueOnError)
-	cmd2 := NewCmd("test", "t", flag.ContinueOnError)
-
-	if cmd1.LongName() != cmd2.LongName() || cmd1.ShortName() != cmd2.ShortName() {
-		t.Error("New别名函数与NewCmd行为不一致")
 	}
 }
 

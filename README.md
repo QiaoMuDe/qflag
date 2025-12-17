@@ -65,7 +65,6 @@ go get -u gitee.com/MM-Q/qflag
 
 ```go
 import "gitee.com/MM-Q/qflag"
-import "gitee.com/MM-Q/qflag/cmd"
 import "gitee.com/MM-Q/qflag/flags"
 import "gitee.com/MM-Q/qflag/validator"
 ```
@@ -174,7 +173,6 @@ func main() {
 package main
 
 import (
-    "flag"
     "fmt"
     "os"
     "gitee.com/MM-Q/qflag"
@@ -185,7 +183,7 @@ func main() {
     verbose := qflag.Root.Bool("verbose", "v", false, "详细输出")
   
     // 创建子命令
-    startCmd := qflag.NewCmd("start", "s", flag.ExitOnError)
+    startCmd := qflag.NewCmd("start", "s", qflag.ExitOnError)
     startCmd.SetDesc("启动服务")
   
     // 为子命令添加标志
@@ -193,7 +191,7 @@ func main() {
     host := startCmd.String("host", "h", "localhost", "服务主机")
   
     // 创建另一个子命令
-    stopCmd := qflag.NewCmd("stop", "st", flag.ExitOnError)
+    stopCmd := qflag.NewCmd("stop", "st", qflag.ExitOnError)
     stopCmd.SetDesc("停止服务")
   
     pidFile := stopCmd.String("pid-file", "f", "/var/run/app.pid", "PID文件路径")

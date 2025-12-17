@@ -1,7 +1,7 @@
-// Package cmd 内部命令测试
+// package qflag 内部命令测试
 // 本文件包含了Cmd结构体内部功能的单元测试，测试内部API和
 // 实现细节，确保内部逻辑的正确性和稳定性。
-package cmd
+package qflag
 
 import (
 	"flag"

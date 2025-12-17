@@ -1,7 +1,7 @@
-// Package cmd 基础命令测试
+// package qflag 基础命令测试
 // 本文件包含了Cmd结构体基础标志创建方法的单元测试，测试字符串、
 // 整数、布尔、浮点数等基本类型标志的创建和绑定功能的正确性。
-package cmd
+package qflag
 
 import (
 	"flag"

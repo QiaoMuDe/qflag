@@ -3,8 +3,24 @@
 // 验证器接口、标志接口等核心定义，为整个标志系统提供基础类型支持。
 package flags
 
+import "flag"
+
 // 定义非法字符集常量, 防止非法的标志名称
 const InvalidFlagChars = " !@#$%^&*(){}[]|\\;:'\"<>,.?/"
+
+// ErrorHandling 错误处理策略
+// 便于使用, 是flag包中的ErrorHandling类型的别名
+type ErrorHandling = flag.ErrorHandling
+
+// ErrorHandling 错误处理策略常量
+var (
+	// ContinueOnError 解析错误时继续解析并返回错误
+	ContinueOnError ErrorHandling = flag.ContinueOnError
+	// ExitOnError 解析错误时退出程序
+	ExitOnError ErrorHandling = flag.ExitOnError
+	// PanicOnError 解析错误时触发panic
+	PanicOnError ErrorHandling = flag.PanicOnError
+)
 
 // 标志类型
 type FlagType int

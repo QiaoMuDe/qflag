@@ -1,10 +1,9 @@
-// Package cmd 命令结构体和核心功能实现
+// package qflag 命令结构体和核心功能实现
 // 本文件定义了Cmd结构体，提供命令行解析、子命令管理、标志注册等核心功能。
 // Cmd作为适配器连接内部函数式API和外部面向对象API。
-package cmd
+package qflag
 
 import (
-	"flag"
 	"fmt"
 	"os"
 
@@ -15,19 +14,10 @@ import (
 	"gitee.com/MM-Q/qflag/qerr"
 )
 
-// ExampleInfo 导出示例信息类型
-type ExampleInfo = types.ExampleInfo
-
-// CmdConfig 导出命令配置类型
-type CmdConfig = types.CmdConfig
-
-// Cmd 简化的命令结构体，作为适配器连接内部函数式API和外部面向对象API
+// Cmd 命令结构体，作为适配器连接内部函数式API和外部面向对象API
 type Cmd struct {
 	ctx *types.CmdContext // 内部上下文，包含所有状态
 }
-
-// New 创建新的命令实例(NewCmd的简写)
-var New = NewCmd
 
 // ================================================================================
 // 操作方法 - 解析与管理 (17个)
@@ -44,10 +34,10 @@ var New = NewCmd
 //   - *Cmd: 新创建的命令实例
 //
 // errorHandling可选值:
-//   - flag.ContinueOnError: 遇到错误时继续解析, 并将错误返回
-//   - flag.ExitOnError: 遇到错误时立即退出程序, 并将错误返回
-//   - flag.PanicOnError: 遇到错误时立即触发panic, 并将错误返回
-func NewCmd(longName, shortName string, errorHandling flag.ErrorHandling) *Cmd {
+//   - qflag.ContinueOnError: 遇到错误时继续解析, 并将错误返回
+//   - qflag.ExitOnError: 遇到错误时立即退出程序, 并将错误返回
+//   - qflag.PanicOnError: 遇到错误时立即触发panic, 并将错误返回
+func NewCmd(longName, shortName string, errorHandling ErrorHandling) *Cmd {
 	// 创建内部上下文
 	ctx := types.NewCmdContext(longName, shortName, errorHandling)
 
@@ -294,8 +284,8 @@ func (c *Cmd) SubCmds() []*Cmd {
 // FlagRegistry 获取标志注册表的只读访问
 //
 // 返回值:
-// - *flags.FlagRegistry: 标志注册表的只读访问
-func (c *Cmd) FlagRegistry() *flags.FlagRegistry {
+// - *FlagRegistry: 标志注册表的只读访问
+func (c *Cmd) FlagRegistry() *FlagRegistry {
 	c.ctx.Mutex.RLock()
 	defer c.ctx.Mutex.RUnlock()
 	return c.ctx.FlagRegistry

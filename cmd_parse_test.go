@@ -1,7 +1,7 @@
-// Package cmd 命令解析测试
+// package qflag 命令解析测试
 // 本文件包含了Cmd结构体命令解析功能的单元测试，测试命令行
 // 参数解析、子命令处理等核心解析功能的正确性。
-package cmd
+package qflag
 
 import (
 	"flag"

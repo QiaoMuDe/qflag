@@ -1,8 +1,8 @@
 // cmd_internal 包含 Cmd 的内部实现细节，不对外暴露
-// Package cmd 内部实现和辅助功能
+// package qflag 内部实现和辅助功能
 // 本文件包含了Cmd结构体的内部实现方法和辅助功能，提供命令行解析的核心逻辑。
 // 变更需同步更新 cmd.go 中的公共接口文档。
-package cmd
+package qflag
 
 import (
 	"fmt"
@@ -312,7 +312,7 @@ func (c *Cmd) handleBuiltinFlags() (bool, error) {
 		}
 
 		// 获取枚举类型标志失败，跳过
-		enumFlag, ok := meta.GetFlag().(*flags.EnumFlag)
+		enumFlag, ok := meta.GetFlag().(*EnumFlag)
 		if !ok {
 			continue
 		}
