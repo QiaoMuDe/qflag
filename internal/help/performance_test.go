@@ -140,7 +140,7 @@ func TestGenerateHelp_MemoryUsage(t *testing.T) {
 func createSmallScaleContext() *types.CmdContext {
 	ctx := createTestContext("smallapp", "sa")
 	ctx.Config.UseChinese = true
-	ctx.Config.Description = "小规模测试应用"
+	ctx.Config.Desc = "小规模测试应用"
 
 	// 添加10个标志
 	for i := 0; i < 10; i++ {
@@ -151,14 +151,14 @@ func createSmallScaleContext() *types.CmdContext {
 	// 添加5个子命令
 	for i := 0; i < 5; i++ {
 		subCtx := createTestContext(fmt.Sprintf("subcmd%d", i), fmt.Sprintf("s%d", i))
-		subCtx.Config.Description = fmt.Sprintf("子命令%d的描述", i)
+		subCtx.Config.Desc = fmt.Sprintf("子命令%d的描述", i)
 		ctx.SubCmds = append(ctx.SubCmds, subCtx)
 	}
 
 	// 添加示例和注意事项
 	ctx.Config.Examples = []types.ExampleInfo{
-		{Description: "基本用法", Usage: "smallapp --flag1=value1"},
-		{Description: "使用子命令", Usage: "smallapp subcmd1 --help"},
+		{Desc: "基本用法", Usage: "smallapp --flag1=value1"},
+		{Desc: "使用子命令", Usage: "smallapp subcmd1 --help"},
 	}
 	ctx.Config.Notes = []string{
 		"这是一个小规模测试应用",
@@ -172,7 +172,7 @@ func createSmallScaleContext() *types.CmdContext {
 func createMediumScaleContext() *types.CmdContext {
 	ctx := createTestContext("mediumapp", "ma")
 	ctx.Config.UseChinese = true
-	ctx.Config.Description = "中等规模测试应用"
+	ctx.Config.Desc = "中等规模测试应用"
 	ctx.Config.LogoText = "中等规模测试应用 Logo"
 	ctx.Config.ModuleHelps = "模块帮助信息"
 
@@ -201,7 +201,7 @@ func createMediumScaleContext() *types.CmdContext {
 	// 添加20个子命令
 	for i := 0; i < 20; i++ {
 		subCtx := createTestContext(fmt.Sprintf("subcmd%d", i), fmt.Sprintf("s%d", i%26))
-		subCtx.Config.Description = fmt.Sprintf("这是子命令%d的详细描述信息", i)
+		subCtx.Config.Desc = fmt.Sprintf("这是子命令%d的详细描述信息", i)
 
 		// 为子命令也添加一些标志
 		for j := 0; j < 3; j++ {
@@ -215,8 +215,8 @@ func createMediumScaleContext() *types.CmdContext {
 	// 添加多个示例
 	for i := 0; i < 5; i++ {
 		ctx.Config.Examples = append(ctx.Config.Examples, types.ExampleInfo{
-			Description: fmt.Sprintf("示例%d：演示功能%d", i+1, i+1),
-			Usage:       fmt.Sprintf("mediumapp --flag%d=value%d subcmd%d", i, i, i),
+			Desc:  fmt.Sprintf("示例%d：演示功能%d", i+1, i+1),
+			Usage: fmt.Sprintf("mediumapp --flag%d=value%d subcmd%d", i, i, i),
 		})
 	}
 
@@ -232,7 +232,7 @@ func createMediumScaleContext() *types.CmdContext {
 func createLargeScaleContext() *types.CmdContext {
 	ctx := createTestContext("largeapp", "la")
 	ctx.Config.UseChinese = true
-	ctx.Config.Description = "大规模测试应用，用于测试在大量标志和子命令情况下的性能表现"
+	ctx.Config.Desc = "大规模测试应用，用于测试在大量标志和子命令情况下的性能表现"
 	ctx.Config.LogoText = `
     ██╗      █████╗ ██████╗  ██████╗ ███████╗     █████╗ ██████╗ ██████╗ 
     ██║     ██╔══██╗██╔══██╗██╔════╝ ██╔════╝    ██╔══██╗██╔══██╗██╔══██╗
@@ -287,7 +287,7 @@ func createLargeScaleContext() *types.CmdContext {
 			fmt.Sprintf("very-long-subcommand-name-%d", i),
 			fmt.Sprintf("s%d", i%50),
 		)
-		subCtx.Config.Description = fmt.Sprintf(
+		subCtx.Config.Desc = fmt.Sprintf(
 			"这是子命令%d的详细描述信息，包含了完整的功能说明和使用指南，用于演示大规模场景下的性能表现", i)
 
 		// 为每个子命令添加一些标志
@@ -306,7 +306,7 @@ func createLargeScaleContext() *types.CmdContext {
 	// 添加大量示例
 	for i := 0; i < 10; i++ {
 		ctx.Config.Examples = append(ctx.Config.Examples, types.ExampleInfo{
-			Description: fmt.Sprintf("复杂示例%d：演示高级功能%d的使用方法", i+1, i+1),
+			Desc: fmt.Sprintf("复杂示例%d：演示高级功能%d的使用方法", i+1, i+1),
 			Usage: fmt.Sprintf("largeapp --very-long-flag-name-%d=value%d very-long-subcommand-name-%d --sub-flag-%d-0=subvalue",
 				i*10, i, i*5, i*5),
 		})

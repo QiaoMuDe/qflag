@@ -33,7 +33,7 @@ func TestGenerateHelp_CustomHelp(t *testing.T) {
 func TestGenerateHelp_EnglishTemplate(t *testing.T) {
 	ctx := createTestContext("testcmd", "tc")
 	ctx.Config.UseChinese = false
-	ctx.Config.Description = "Test command description"
+	ctx.Config.Desc = "Test command description"
 
 	result := GenerateHelp(ctx)
 
@@ -53,7 +53,7 @@ func TestGenerateHelp_EnglishTemplate(t *testing.T) {
 func TestGenerateHelp_ChineseTemplate(t *testing.T) {
 	ctx := createTestContext("测试命令", "测")
 	ctx.Config.UseChinese = true
-	ctx.Config.Description = "测试命令描述"
+	ctx.Config.Desc = "测试命令描述"
 
 	result := GenerateHelp(ctx)
 
@@ -115,7 +115,7 @@ func TestGenerateHelp_WithSubCommands(t *testing.T) {
 
 	// 添加子命令
 	subCtx := createTestContext("subcmd", "s")
-	subCtx.Config.Description = "子命令描述"
+	subCtx.Config.Desc = "子命令描述"
 	ctx.SubCmds = append(ctx.SubCmds, subCtx)
 
 	result := GenerateHelp(ctx)
@@ -132,8 +132,8 @@ func TestGenerateHelp_WithExamples(t *testing.T) {
 	ctx := createTestContext("test", "t")
 	ctx.Config.UseChinese = true
 	ctx.Config.Examples = []types.ExampleInfo{
-		{Description: "基本用法", Usage: "test --help"},
-		{Description: "详细模式", Usage: "test --verbose"},
+		{Desc: "基本用法", Usage: "test --help"},
+		{Desc: "详细模式", Usage: "test --verbose"},
 	}
 
 	result := GenerateHelp(ctx)

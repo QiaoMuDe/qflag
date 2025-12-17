@@ -667,7 +667,7 @@ func TestCompletionExamples(t *testing.T) {
 
 	// 验证示例格式
 	for i, example := range CompletionExamplesCN {
-		if example.Description == "" {
+		if example.Desc == "" {
 			t.Errorf("中文示例 %d 描述为空", i)
 		}
 		if example.Usage == "" {

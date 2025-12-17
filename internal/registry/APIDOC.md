@@ -175,7 +175,7 @@ type FlagConfig struct {
     ShortName   string
     FlagType    string
     DefaultValue interface{}
-    Description string
+    Desc string
 }
 
 func registerFlagsFromConfig(ctx *types.CmdContext, configs []FlagConfig) error {

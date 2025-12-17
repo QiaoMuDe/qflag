@@ -494,14 +494,14 @@ func (c *Cmd) Notes() []string {
 	return notes
 }
 
-// Description 返回命令描述
+// Desc 返回命令描述
 //
 // 返回值:
 //   - string: 命令描述
 func (c *Cmd) Desc() string {
 	c.ctx.Mutex.RLock()
 	defer c.ctx.Mutex.RUnlock()
-	return c.ctx.Config.Description
+	return c.ctx.Config.Desc
 }
 
 // Help 返回命令用法帮助信息
@@ -638,7 +638,7 @@ func (c *Cmd) SetChinese(useChinese bool) {
 func (c *Cmd) SetDesc(desc string) {
 	c.ctx.Mutex.Lock()
 	defer c.ctx.Mutex.Unlock()
-	c.ctx.Config.Description = desc
+	c.ctx.Config.Desc = desc
 }
 
 // SetHelp 设置用户自定义命令帮助信息
@@ -676,8 +676,8 @@ func (c *Cmd) ApplyConfig(config CmdConfig) {
 	}
 
 	// 设置命令描述
-	if config.Description != "" {
-		c.ctx.Config.Description = config.Description
+	if config.Desc != "" {
+		c.ctx.Config.Desc = config.Desc
 	}
 
 	// 设置自定义帮助信息
@@ -758,8 +758,8 @@ func (c *Cmd) AddExample(desc, usage string) {
 
 	// 新建示例信息
 	e := ExampleInfo{
-		Description: desc,
-		Usage:       usage,
+		Desc:  desc,
+		Usage: usage,
 	}
 
 	// 添加到使用示例列表中

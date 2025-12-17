@@ -950,8 +950,8 @@ func TestExamples_边界场景(t *testing.T) {
 				t.Errorf("缺少第%d个示例", i)
 				continue
 			}
-			if gotExamples[i].Description != expectedExample.desc {
-				t.Errorf("第%d个示例描述不匹配: 期望 %q, 实际 %q", i, expectedExample.desc, gotExamples[i].Description)
+			if gotExamples[i].Desc != expectedExample.desc {
+				t.Errorf("第%d个示例描述不匹配: 期望 %q, 实际 %q", i, expectedExample.desc, gotExamples[i].Desc)
 			}
 			if gotExamples[i].Usage != expectedExample.usage {
 				t.Errorf("第%d个示例用法不匹配: 期望 %q, 实际 %q", i, expectedExample.usage, gotExamples[i].Usage)

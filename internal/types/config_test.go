@@ -24,8 +24,8 @@ func TestNewCmdConfig_基本功能(t *testing.T) {
 		t.Errorf("Version默认值应为空字符串, 实际: %q", config.Version)
 	}
 
-	if config.Description != "" {
-		t.Errorf("Description默认值应为空字符串, 实际: %q", config.Description)
+	if config.Desc != "" {
+		t.Errorf("Description默认值应为空字符串, 实际: %q", config.Desc)
 	}
 
 	if config.Help != "" {
@@ -89,9 +89,9 @@ func TestCmdConfig_字段赋值(t *testing.T) {
 			getValue:  func() string { return config.Version },
 		},
 		{
-			fieldName: "Description",
+			fieldName: "Desc",
 			setValue:  "测试描述",
-			getValue:  func() string { return config.Description },
+			getValue:  func() string { return config.Desc },
 		},
 		{
 			fieldName: "Help",
@@ -219,13 +219,13 @@ func TestCmdConfig_切片操作(t *testing.T) {
 	// 测试Examples切片操作
 	t.Run("Examples切片操作", func(t *testing.T) {
 		testExamples := []ExampleInfo{
-			{Description: "基本用法", Usage: "myapp file.txt"},
-			{Description: "", Usage: "myapp --help"},
-			{Description: "复杂用法", Usage: "myapp --config /path/to/config.json --verbose file1.txt file2.txt"},
-			{Description: "包含特殊字符", Usage: "myapp 'file with spaces.txt'"},
-			{Description: "多行用法", Usage: "myapp \\\n  --option1 value1 \\\n  --option2 value2"},
-			{Description: "中文示例", Usage: "myapp --配置 配置文件.json"},
-			{Description: "Unicode示例", Usage: "myapp 🚀 --emoji ✨"},
+			{Desc: "基本用法", Usage: "myapp file.txt"},
+			{Desc: "", Usage: "myapp --help"},
+			{Desc: "复杂用法", Usage: "myapp --config /path/to/config.json --verbose file1.txt file2.txt"},
+			{Desc: "包含特殊字符", Usage: "myapp 'file with spaces.txt'"},
+			{Desc: "多行用法", Usage: "myapp \\\n  --option1 value1 \\\n  --option2 value2"},
+			{Desc: "中文示例", Usage: "myapp --配置 配置文件.json"},
+			{Desc: "Unicode示例", Usage: "myapp 🚀 --emoji ✨"},
 		}
 
 		// 添加所有示例
@@ -241,8 +241,8 @@ func TestCmdConfig_切片操作(t *testing.T) {
 				t.Errorf("缺少第%d个示例", i)
 				continue
 			}
-			if config.Examples[i].Description != expectedExample.Description {
-				t.Errorf("第%d个示例描述不匹配: 期望 %q, 实际 %q", i, expectedExample.Description, config.Examples[i].Description)
+			if config.Examples[i].Desc != expectedExample.Desc {
+				t.Errorf("第%d个示例描述不匹配: 期望 %q, 实际 %q", i, expectedExample.Desc, config.Examples[i].Desc)
 			}
 			if config.Examples[i].Usage != expectedExample.Usage {
 				t.Errorf("第%d个示例用法不匹配: 期望 %q, 实际 %q", i, expectedExample.Usage, config.Examples[i].Usage)
@@ -324,12 +324,12 @@ func TestExampleInfo_结构体(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			example := ExampleInfo{
-				Description: tt.description,
-				Usage:       tt.usage,
+				Desc:  tt.description,
+				Usage: tt.usage,
 			}
 
-			if example.Description != tt.description {
-				t.Errorf("Description不匹配: 期望 %q, 实际 %q", tt.description, example.Description)
+			if example.Desc != tt.description {
+				t.Errorf("Description不匹配: 期望 %q, 实际 %q", tt.description, example.Desc)
 			}
 
 			if example.Usage != tt.usage {
@@ -351,8 +351,8 @@ func TestCmdConfig_极值测试(t *testing.T) {
 		t.Error("极长Version字符串设置失败")
 	}
 
-	config.Description = extremelyLongString
-	if config.Description != extremelyLongString {
+	config.Desc = extremelyLongString
+	if config.Desc != extremelyLongString {
 		t.Error("极长Description字符串设置失败")
 	}
 
@@ -385,8 +385,8 @@ func TestCmdConfig_极值测试(t *testing.T) {
 	// 测试大量Examples
 	for i := 0; i < 5000; i++ {
 		config.Examples = append(config.Examples, ExampleInfo{
-			Description: "example",
-			Usage:       "usage",
+			Desc:  "example",
+			Usage: "usage",
 		})
 	}
 	if len(config.Examples) != 5000 {
@@ -403,10 +403,10 @@ func TestCmdConfig_内存使用(t *testing.T) {
 
 		// 添加一些数据
 		configs[i].Version = "1.0.0"
-		configs[i].Description = "测试描述"
+		configs[i].Desc = "测试描述"
 		configs[i].Notes = append(configs[i].Notes, "note1", "note2", "note3")
 		configs[i].Examples = append(configs[i].Examples,
-			ExampleInfo{Description: "desc", Usage: "usage"})
+			ExampleInfo{Desc: "desc", Usage: "usage"})
 	}
 
 	// 验证所有配置都正确创建
@@ -443,7 +443,7 @@ func TestCmdConfig_字段完整性(t *testing.T) {
 
 	expectedFields := map[string]reflect.Kind{
 		"Version":       reflect.String,
-		"Description":   reflect.String,
+		"Desc":          reflect.String,
 		"Help":          reflect.String,
 		"UsageSyntax":   reflect.String,
 		"ModuleHelps":   reflect.String,

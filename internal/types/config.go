@@ -9,7 +9,7 @@ type CmdConfig struct {
 	Version string
 
 	// 自定义描述
-	Description string
+	Desc string
 
 	// 自定义的完整命令行帮助信息
 	Help string
@@ -43,11 +43,11 @@ type CmdConfig struct {
 // 用于存储命令的使用示例，包括描述和示例内容
 //
 // 字段:
-//   - Description: 示例描述
+//   - Desc: 示例描述
 //   - Usage: 示例使用方式
 type ExampleInfo struct {
-	Description string // 示例描述
-	Usage       string // 示例使用方式
+	Desc  string // 示例描述
+	Usage string // 示例使用方式
 }
 
 // NewCmdConfig 创建一个新的CmdConfig实例
@@ -56,7 +56,7 @@ func NewCmdConfig() *CmdConfig {
 		Notes:         []string{},      // 备注内容切片
 		Examples:      []ExampleInfo{}, // 示例信息切片
 		UseChinese:    false,           // 是否使用中文帮助信息
-		NoBuiltinExit: false,           // 默认不禁用内置标志自动退出
-		Completion:    false,           // 默认控制是否启用自动补全功能
+		NoBuiltinExit: false,           // 禁用内置标志自动退出
+		Completion:    false,           // 控制是否启用自动补全功能
 	}
 }

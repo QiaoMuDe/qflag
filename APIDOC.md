@@ -198,7 +198,7 @@ func (c *Cmd) CmdExists(cmdName string) bool
       - bool: 子命令是否存在
 
 func (c *Cmd) Desc() string
-    Description 返回命令描述
+    Desc 返回命令描述
 
     返回值:
       - string: 命令描述

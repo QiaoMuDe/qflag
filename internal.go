@@ -241,18 +241,18 @@ func (c *Cmd) registerBuiltinFlags() {
 			// 根据平台过滤示例
 			if runtime.GOOS == "windows" {
 				// Windows平台只添加Windows相关的示例
-				if strings.Contains(ex.Description, "Windows") {
+				if strings.Contains(ex.Desc, "Windows") {
 					c.ctx.Config.Examples = append(c.ctx.Config.Examples, types.ExampleInfo{
-						Description: ex.Description,
-						Usage:       fmt.Sprintf(ex.Usage, cmdName),
+						Desc:  ex.Desc,
+						Usage: fmt.Sprintf(ex.Usage, cmdName),
 					})
 				}
 			} else {
 				// Linux/macOS平台只添加Linux相关的示例
-				if strings.Contains(ex.Description, "Linux") {
+				if strings.Contains(ex.Desc, "Linux") {
 					c.ctx.Config.Examples = append(c.ctx.Config.Examples, types.ExampleInfo{
-						Description: ex.Description,
-						Usage:       fmt.Sprintf(ex.Usage, cmdName),
+						Desc:  ex.Desc,
+						Usage: fmt.Sprintf(ex.Usage, cmdName),
 					})
 				}
 			}

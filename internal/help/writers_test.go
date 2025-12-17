@@ -144,7 +144,7 @@ func TestWriteCommandHeader(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			var buf bytes.Buffer
 			ctx := createTestContext(tt.longName, tt.shortName)
-			ctx.Config.Description = tt.description
+			ctx.Config.Desc = tt.description
 			writeCommandHeader(ctx, tt.template, &buf)
 			result := buf.String()
 			if result != tt.expected {
@@ -242,9 +242,9 @@ func TestWriteSubCmds(t *testing.T) {
 
 	// 添加子命令
 	subCtx1 := createTestContext("subcmd1", "s1")
-	subCtx1.Config.Description = "第一个子命令"
+	subCtx1.Config.Desc = "第一个子命令"
 	subCtx2 := createTestContext("subcmd2", "")
-	subCtx2.Config.Description = "第二个子命令"
+	subCtx2.Config.Desc = "第二个子命令"
 
 	ctx.SubCmds = append(ctx.SubCmds, subCtx1, subCtx2)
 
@@ -273,8 +273,8 @@ func TestWriteSubCmds(t *testing.T) {
 func TestWriteExamples(t *testing.T) {
 	ctx := createTestContext("test", "t")
 	ctx.Config.Examples = []types.ExampleInfo{
-		{Description: "基本用法", Usage: "test --help"},
-		{Description: "详细模式", Usage: "test --verbose"},
+		{Desc: "基本用法", Usage: "test --help"},
+		{Desc: "详细模式", Usage: "test --verbose"},
 	}
 
 	var buf bytes.Buffer

@@ -92,8 +92,8 @@ func writeCommandHeader(ctx *types.CmdContext, tpl HelpTemplate, buf *bytes.Buff
 	}
 
 	// 如果描述不为空, 则写入描述
-	if ctx.Config.Description != "" {
-		fmt.Fprintf(buf, tpl.CmdDescription, ctx.Config.Description)
+	if ctx.Config.Desc != "" {
+		fmt.Fprintf(buf, tpl.CmdDescription, ctx.Config.Desc)
 	}
 }
 
@@ -306,7 +306,7 @@ func writeSubCmds(ctx *types.CmdContext, tpl HelpTemplate, buf *bytes.Buffer) {
 		}
 
 		// 格式化输出，确保描述信息对齐
-		fmt.Fprintf(buf, "  %-*s\t%s\n", maxNameLen, namePart, subCmd.Config.Description)
+		fmt.Fprintf(buf, "  %-*s\t%s\n", maxNameLen, namePart, subCmd.Config.Desc)
 	}
 }
 
@@ -370,7 +370,7 @@ func writeExamples(ctx *types.CmdContext, tpl HelpTemplate, buf *bytes.Buffer) {
 	// 遍历添加示例信息
 	for i, example := range examples {
 		// 格式化示例信息
-		fmt.Fprintf(buf, tpl.ExampleItem, i+1, example.Description, example.Usage)
+		fmt.Fprintf(buf, tpl.ExampleItem, i+1, example.Desc, example.Usage)
 
 		// 如果不是最后一个示例，添加空行
 		if i < len(examples)-1 {
