@@ -113,7 +113,7 @@ func writeUsageLine(ctx *types.CmdContext, tpl HelpTemplate, buf *bytes.Buffer) 
 
 	// 优先使用用户自定义用法
 	if ctx.Config.UsageSyntax != "" {
-		usageLine = usageLinePrefix + ctx.Config.UsageSyntax + "\n"
+		usageLine = usageLinePrefix + ctx.Config.UsageSyntax + "\n\n"
 	} else {
 		// 获取命令的完整路径
 		fullCmdPath := getFullCommandPath(ctx)
