@@ -74,7 +74,6 @@ func NewCmd(longName, shortName string, errorHandling ErrorHandling) *Cmd {
 func (c *Cmd) Parse(args []string) (err error) {
 	shouldExit, err := c.parseCommon(args, true)
 	if shouldExit {
-		// 延迟处理内置标志的退出
 		os.Exit(0)
 	}
 	return err
@@ -544,12 +543,12 @@ func (c *Cmd) Examples() []ExampleInfo {
 // Set 方法 - 设置配置信息(16个)
 // ================================================================================
 
-// SetAutoExit 设置禁用内置标志自动退出
+// SetNoBuiltinExit 设置禁用内置标志自动退出
 // 默认情况下为false, 当解析到内置参数时, QFlag将退出程序
 //
 // 参数:
 //   - exit: 是否退出
-func (c *Cmd) SetAutoExit(exit bool) {
+func (c *Cmd) SetNoBuiltinExit(exit bool) {
 	c.ctx.Mutex.Lock()
 	defer c.ctx.Mutex.Unlock()
 	c.ctx.Config.NoBuiltinExit = exit

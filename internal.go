@@ -37,7 +37,7 @@ func (c *Cmd) parseCommon(args []string, parseSubcommands bool) (shouldExit bool
 
 	// 检查命令是否为nil
 	if c == nil {
-		return false, fmt.Errorf("cmd: nil command")
+		return false, fmt.Errorf("nil command")
 	}
 
 	// 调用提取的组件校验方法
@@ -62,15 +62,18 @@ func (c *Cmd) parseCommon(args []string, parseSubcommands bool) (shouldExit bool
 			return
 		}
 
-		// 处理内置标志
-		exit, handleErr := c.handleBuiltinFlags()
+		// 处理内置标志(-h/--help, -v/--version, --completion等)
+		// handleBuiltinFlags方法返回NoBuiltinExit的值(是否禁用退出)
+		// 当NoBuiltinExit为false(默认)时，表示不禁用退出，需要退出程序
+		// 当NoBuiltinExit为true时，表示禁用退出，不需要退出程序
+		noBuiltinExit, handleErr := c.handleBuiltinFlags()
 		if handleErr != nil {
 			err = handleErr
 			return
 		}
 
-		// 内置标志处理是否需要退出程序
-		if exit {
+		// 如果不禁用退出，则需要退出程序
+		if !noBuiltinExit {
 			shouldExit = true
 			return
 		}
@@ -264,16 +267,13 @@ func (c *Cmd) registerBuiltinFlags() {
 // handleBuiltinFlags 处理内置标志(-h/--help, -v/--version, --completion等)的逻辑
 //
 // 返回值:
-//   - 是否需要退出程序
+//   - 是否禁用退出程序(与NoBuiltinExit字段含义一致)
 //   - 处理过程中遇到的错误
 func (c *Cmd) handleBuiltinFlags() (bool, error) {
 	// 检查是否使用-h/--help标志
 	if c.ctx.BuiltinFlags.Help.Get() {
 		c.PrintHelp()
-		if !c.ctx.Config.NoBuiltinExit {
-			return true, nil // 标记需要退出
-		}
-		return false, nil
+		return c.ctx.Config.NoBuiltinExit, nil
 	}
 
 	// 只有在顶级命令中处理-v/--version标志
@@ -281,10 +281,7 @@ func (c *Cmd) handleBuiltinFlags() (bool, error) {
 		// 检查是否使用-v/--version标志
 		if c.ctx.BuiltinFlags.Version.Get() && c.ctx.Config.Version != "" {
 			fmt.Println(c.ctx.Config.Version)
-			if !c.ctx.Config.NoBuiltinExit {
-				return true, nil // 标记需要退出
-			}
-			return false, nil
+			return c.ctx.Config.NoBuiltinExit, nil
 		}
 	}
 
@@ -297,7 +294,7 @@ func (c *Cmd) handleBuiltinFlags() (bool, error) {
 		if shell != flags.ShellNone {
 			completion, err := completion.GenerateShellCompletion(c.ctx, shell)
 			if err != nil {
-				return false, err
+				return c.ctx.Config.NoBuiltinExit, err
 			}
 			fmt.Println(completion)
 			return c.ctx.Config.NoBuiltinExit, nil
@@ -320,11 +317,12 @@ func (c *Cmd) handleBuiltinFlags() (bool, error) {
 		// 调用IsCheck方法进行验证
 		if checkErr := enumFlag.IsCheck(enumFlag.Get()); checkErr != nil {
 			// 添加标志名称到错误信息, 便于定位问题
-			return false, fmt.Errorf("flag %s: %w", meta.GetName(), checkErr)
+			return c.ctx.Config.NoBuiltinExit, fmt.Errorf("flag %s: %w", meta.GetName(), checkErr)
 		}
 	}
 
-	return false, nil
+	// 没有触发任何内置标志，返回true表示不需要退出
+	return true, nil
 }
 
 // tempCmd 创建临时的 Cmd 包装器用于递归解析子命令

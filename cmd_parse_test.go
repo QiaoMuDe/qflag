@@ -91,7 +91,9 @@ func TestParse_基本功能(t *testing.T) {
 		{
 			name: "解析无效标志",
 			setupCmd: func() *Cmd {
-				return NewCmd("test", "t", flag.ContinueOnError)
+				cmd := NewCmd("test", "t", ContinueOnError)
+				cmd.SetNoBuiltinExit(true) // 禁用退出以便测试
+				return cmd
 			},
 			args:        []string{"--unknown-flag"},
 			expectError: true,
@@ -103,6 +105,7 @@ func TestParse_基本功能(t *testing.T) {
 			setupCmd: func() *Cmd {
 				cmd := NewCmd("test", "t", flag.ContinueOnError)
 				cmd.Int("number", "n", 0, "数字标志")
+				cmd.SetNoBuiltinExit(true) // 禁用退出以便测试
 				return cmd
 			},
 			args:        []string{"--number", "not-a-number"},
@@ -256,7 +259,7 @@ func TestParse_内置标志处理(t *testing.T) {
 			name: "解析help长标志",
 			setupCmd: func() *Cmd {
 				cmd := NewCmd("test", "t", flag.ContinueOnError)
-				cmd.SetAutoExit(true) // 禁用退出以便测试
+				cmd.SetNoBuiltinExit(true) // 禁用退出以便测试
 				return cmd
 			},
 			args:        []string{"--help"},
@@ -267,7 +270,7 @@ func TestParse_内置标志处理(t *testing.T) {
 			name: "解析help短标志",
 			setupCmd: func() *Cmd {
 				cmd := NewCmd("test", "t", flag.ContinueOnError)
-				cmd.SetAutoExit(true) // 禁用退出以便测试
+				cmd.SetNoBuiltinExit(true) // 禁用退出以便测试
 				return cmd
 			},
 			args:        []string{"-h"},
@@ -462,7 +465,7 @@ func TestParseFlags_忽略子命令(t *testing.T) {
 // TestParseFlags_内置标志 测试ParseFlagsOnly处理内置标志
 func TestParseFlags_内置标志(t *testing.T) {
 	cmd := NewCmd("test", "t", flag.ContinueOnError)
-	cmd.SetAutoExit(true) // 禁用退出以便测试
+	cmd.SetNoBuiltinExit(true) // 禁用退出以便测试
 
 	// 测试help标志
 	err := cmd.ParseFlagsOnly([]string{"--help", "ignored_arg"})

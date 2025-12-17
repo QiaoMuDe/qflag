@@ -44,22 +44,22 @@ func createInternalTestCmdWithCompletion() *Cmd {
 
 func TestCmd_parseCommon(t *testing.T) {
 	tests := []struct {
-		name             string
-		setupCmd         func() *Cmd
-		args             []string
-		parseSubcommands bool
-		expectShouldExit bool
-		expectError      bool
-		errorContains    string
-		setupFlags       func(*Cmd)
-		setupSubcommands func(*Cmd)
+		name             string      // 测试用例名称
+		setupCmd         func() *Cmd // 创建测试命令的函数
+		args             []string    // 要解析的参数列表
+		parseSubcommands bool        // 是否解析子命令
+		expectShouldExit bool        // 是否期望退出程序
+		expectError      bool        // 是否期望返回错误
+		errorContains    string      // 期望错误信息包含的字符串
+		setupFlags       func(*Cmd)  // 设置标志的函数
+		setupSubcommands func(*Cmd)  // 设置子命令的函数
 	}{
 		{
 			name:             "正常解析空参数",
 			setupCmd:         createInternalTestCmd,
 			args:             []string{},
 			parseSubcommands: true,
-			expectShouldExit: false,
+			expectShouldExit: false, // 禁用退出以便测试
 			expectError:      false,
 		},
 		{
@@ -83,7 +83,7 @@ func TestCmd_parseCommon(t *testing.T) {
 			setupCmd:         createInternalTestCmd,
 			args:             []string{"--invalid-flag"},
 			parseSubcommands: true,
-			expectShouldExit: false,
+			expectShouldExit: false, // 禁用退出以便测试
 			expectError:      true,
 			errorContains:    "flag provided but not defined",
 		},
@@ -101,11 +101,11 @@ func TestCmd_parseCommon(t *testing.T) {
 			setupCmd:         createInternalTestCmd,
 			args:             []string{"subcmd", "--help"},
 			parseSubcommands: true,
-			expectShouldExit: false,
+			expectShouldExit: false, // 禁用退出以便测试
 			expectError:      false,
 			setupSubcommands: func(cmd *Cmd) {
 				subCmd := NewCmd("subcmd", "sc", flag.ContinueOnError)
-				subCmd.SetAutoExit(true) // 设置子命令不在内置标志时退出
+				subCmd.SetNoBuiltinExit(true) // 设置子命令不在内置标志时退出
 				err := cmd.AddSubCmd(subCmd)
 				if err != nil {
 					t.Fatalf("添加子命令失败: %v", err)
@@ -117,7 +117,7 @@ func TestCmd_parseCommon(t *testing.T) {
 			setupCmd:         createInternalTestCmd,
 			args:             []string{"subcmd", "--help"},
 			parseSubcommands: false,
-			expectShouldExit: false,
+			expectShouldExit: false, // 禁用退出以便测试
 			expectError:      false,
 			setupSubcommands: func(cmd *Cmd) {
 				subCmd := NewCmd("subcmd", "sc", flag.ContinueOnError)
@@ -132,7 +132,7 @@ func TestCmd_parseCommon(t *testing.T) {
 			setupCmd:         createInternalTestCmd,
 			args:             []string{"--mode", "invalid"},
 			parseSubcommands: true,
-			expectShouldExit: false,
+			expectShouldExit: false, // 禁用退出以便测试
 			expectError:      true,
 			errorContains:    "invalid enum value",
 			setupFlags: func(cmd *Cmd) {
@@ -144,7 +144,7 @@ func TestCmd_parseCommon(t *testing.T) {
 			setupCmd:         createInternalTestCmdWithCompletion,
 			args:             []string{"--completion", "bash"},
 			parseSubcommands: true,
-			expectShouldExit: true, // 禁用退出以便测试
+			expectShouldExit: false,
 			expectError:      false,
 		},
 		{
@@ -156,7 +156,7 @@ func TestCmd_parseCommon(t *testing.T) {
 			expectError:      false,
 			setupFlags: func(cmd *Cmd) {
 				// 禁用内置标志退出
-				cmd.SetAutoExit(true)
+				cmd.SetNoBuiltinExit(true)
 			},
 		},
 	}
@@ -170,7 +170,7 @@ func TestCmd_parseCommon(t *testing.T) {
 
 			// 禁用内置标志退出以便测试
 			if cmd != nil {
-				cmd.SetAutoExit(true)
+				cmd.SetNoBuiltinExit(true)
 			}
 
 			// 设置标志
@@ -485,19 +485,19 @@ func TestCmd_registerBuiltinFlags(t *testing.T) {
 
 func TestCmd_handleBuiltinFlags(t *testing.T) {
 	tests := []struct {
-		name           string
-		setupCmd       func() *Cmd
-		setupFlags     func(*Cmd)
-		expectExit     bool
-		expectError    bool
-		errorContains  string
-		expectOutput   bool
-		outputContains string
+		name           string      // 测试用例名称
+		setupCmd       func() *Cmd // 命令设置函数
+		setupFlags     func(*Cmd)  // 标志设置函数
+		expectExit     bool        // 是否期望退出
+		expectError    bool        // 是否期望错误
+		errorContains  string      // 期望错误包含的字符串
+		expectOutput   bool        // 是否期望输出
+		outputContains string      // 期望输出包含的字符串
 	}{
 		{
 			name:        "无内置标志触发",
 			setupCmd:    createInternalTestCmd,
-			expectExit:  false,
+			expectExit:  true,
 			expectError: false,
 		},
 		{
@@ -509,7 +509,7 @@ func TestCmd_handleBuiltinFlags(t *testing.T) {
 					t.Fatalf("设置帮助标志失败: %v", err)
 				}
 			},
-			expectExit:  true,
+			expectExit:  false,
 			expectError: false,
 		},
 		{
@@ -521,7 +521,7 @@ func TestCmd_handleBuiltinFlags(t *testing.T) {
 					t.Fatalf("设置版本标志失败: %v", err)
 				}
 			},
-			expectExit:  true,
+			expectExit:  false, // NoBuiltinExit为false时，handleBuiltinFlags返回false(不禁用退出)，parseCommon中取反后为true(退出)
 			expectError: false,
 		},
 		{
@@ -540,7 +540,7 @@ func TestCmd_handleBuiltinFlags(t *testing.T) {
 					t.Fatalf("设置版本标志失败: %v", err)
 				}
 			},
-			expectExit:  false,
+			expectExit:  true,
 			expectError: false,
 		},
 		{
@@ -552,7 +552,7 @@ func TestCmd_handleBuiltinFlags(t *testing.T) {
 					t.Fatalf("设置补全标志失败: %v", err)
 				}
 			},
-			expectExit:  false, // 补全标志触发时应该退出
+			expectExit:  false, // 补全标志触发时，handleBuiltinFlags返回true(禁用退出)，parseCommon中取反后为false(不退出)
 			expectError: false,
 		},
 		{
@@ -562,14 +562,14 @@ func TestCmd_handleBuiltinFlags(t *testing.T) {
 				// 创建枚举标志但不设置无效值，让handleBuiltinFlags来验证
 				cmd.Enum("mode", "m", "debug", "运行模式", []string{"debug", "release"})
 			},
-			expectExit:  false,
+			expectExit:  true,
 			expectError: false,
 		},
 		{
 			name: "NoBuiltinExit为true时不退出",
 			setupCmd: func() *Cmd {
 				cmd := createInternalTestCmd()
-				cmd.SetAutoExit(true)
+				cmd.SetNoBuiltinExit(true)
 				return cmd
 			},
 			setupFlags: func(cmd *Cmd) {
@@ -578,7 +578,7 @@ func TestCmd_handleBuiltinFlags(t *testing.T) {
 					t.Fatalf("设置帮助标志失败: %v", err)
 				}
 			},
-			expectExit:  false,
+			expectExit:  true,
 			expectError: false,
 		},
 	}
@@ -766,11 +766,11 @@ func TestCmd_Internal_Integration(t *testing.T) {
 	t.Run("完整解析流程", func(t *testing.T) {
 		// 测试各种参数组合，每个测试用例使用独立的命令实例
 		testCases := []struct {
-			name        string
-			setupCmd    func() *Cmd
-			args        []string
-			expectExit  bool
-			expectError bool
+			name        string      // 测试用例名称
+			setupCmd    func() *Cmd // 命令实例创建函数
+			args        []string    // 测试参数
+			expectExit  bool        // 是否期望退出
+			expectError bool        // 是否期望错误
 		}{
 			{
 				name:        "空参数",
@@ -825,7 +825,7 @@ func TestCmd_Internal_Integration(t *testing.T) {
 				name:        "补全",
 				setupCmd:    createInternalTestCmdWithCompletion,
 				args:        []string{"--completion", "bash"},
-				expectExit:  false,
+				expectExit:  true,
 				expectError: false,
 			},
 			{
@@ -1033,7 +1033,7 @@ func TestCmd_Internal_SpecialScenarios(t *testing.T) {
 // =============================================================================
 
 func TestCmd_Internal_RegressionTests(t *testing.T) {
-	t.Run("修复：nil指针解引用", func(t *testing.T) {
+	t.Run("修复: nil指针解引用", func(t *testing.T) {
 		// 这个测试确保我们不会在nil指针上调用方法
 		var cmd *Cmd = nil
 

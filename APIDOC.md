@@ -502,8 +502,8 @@ func (c *Cmd) PrintHelp()
     注意:
       - 打印帮助信息时, 不会自动退出程序
 
-func (c *Cmd) SetAutoExit(exit bool)
-    SetAutoExit 设置是否在解析内置参数时退出 默认情况下为true, 当解析到内置参数时, QFlag将退出程序
+func (c *Cmd) SetNoBuiltinExit(exit bool)
+    SetNoBuiltinExit 设置是否在解析内置参数时退出 默认情况下为true, 当解析到内置参数时, QFlag将退出程序
 
     参数:
       - exit: 是否退出
