@@ -18,28 +18,6 @@
 
 ---
 
-## 📋 目录
-
-- [🚀 qflag](#-qflag)
-  - [📋 目录](#-目录)
-  - [✨ 项目简介](#-项目简介)
-  - [🔗 项目地址](#-项目地址)
-  - [📦 安装](#-安装)
-  - [🌟 核心特性](#-核心特性)
-  - [📊 支持的标志类型](#-支持的标志类型)
-  - [🚀 快速开始](#-快速开始)
-  - [🔧 高级功能示例](#-高级功能示例)
-  - [🎯 自动补全](#-自动补全)
-  - [📝 帮助信息定制](#-帮助信息定制)
-  - [🏗️ 项目架构](#️-项目架构)
-  - [📚 API 文档](#-api-文档)
-  - [⚡ 性能特性](#-性能特性)
-  - [🔄 兼容性](#-兼容性)
-  - [🧪 测试说明](#-测试说明)
-  - [🤝 贡献指南](#-贡献指南)
-  - [📄 许可证](#-许可证)
-  - [💬 支持与反馈](#-支持与反馈)
-
 ## ✨ 项目简介
 
 qflag 是一个基于 Go 泛型的现代化命令行参数解析库，对标准库 flag 进行了全面增强。它采用模块化架构设计，提供了 16+ 种标志类型（包括基础类型、切片类型、复杂类型如枚举、时间、映射、大小等）、完整的子命令系统、强大的参数验证框架、智能的 Shell 自动补全（支持 Bash/PowerShell）、环境变量绑定等企业级特性。通过泛型设计确保类型安全，内置并发保护机制，支持中英文帮助信息，为构建专业的 CLI 应用提供了完整的解决方案。
@@ -92,6 +70,7 @@ import "gitee.com/MM-Q/qflag"
 - **自动补全**：支持 Bash 和 PowerShell 的自动补全脚本生成
 - **环境变量绑定**：标志可自动从环境变量加载默认值
 - **帮助信息生成**：自动生成格式化的帮助文档，支持中英文
+- **执行函数接口**：通过 `Run` 函数字段提供灵活的命令执行逻辑定义
 - **错误处理**：详细的错误类型和信息，便于调试
 
 ### 🛡️ 企业级特性
@@ -225,6 +204,56 @@ func main() {
 ./app stop --pid-file /tmp/app.pid -v
 ```
 
+### Run函数执行示例
+
+```go
+package main
+
+import (
+    "fmt"
+    "os"
+    "gitee.com/MM-Q/qflag"
+)
+
+func main() {
+    // 创建命令并设置执行函数
+    serverCmd := qflag.NewCmd("server", "s", qflag.ExitOnError)
+    port := serverCmd.Int("port", "p", 8080, "服务器端口")
+    debug := serverCmd.Bool("debug", "d", false, "调试模式")
+    
+    // 设置执行函数 - 手动执行模式
+    serverCmd.Run = func(cmd *qflag.Cmd) error {
+        fmt.Printf("启动服务器: localhost:%d (调试模式: %v)\n", port.Get(), debug.Get())
+        // 这里放置实际的服务器启动逻辑
+        return nil
+    }
+    
+    // 添加到根命令
+    qflag.Root.AddSubCmd(serverCmd)
+    
+    // 解析参数（只解析，不自动执行）
+    if err := qflag.Parse(); err != nil {
+        fmt.Printf("解析错误: %v\n", err)
+        os.Exit(1)
+    }
+    
+    // 手动执行Run函数
+    if serverCmd.IsParsed() && serverCmd.Run != nil {
+        if err := serverCmd.Run(serverCmd); err != nil {
+            fmt.Printf("执行错误: %v\n", err)
+            os.Exit(1)
+        }
+    }
+}
+```
+
+使用方式：
+
+```bash
+./app server --port 3000 --debug
+# 输出: 启动服务器: localhost:3000 (调试模式: true)
+```
+
 ## 高级功能示例
 
 ### 1. 枚举类型标志
@@ -267,27 +296,20 @@ import (
 )
 
 func main() {
-    // 创建字符串切片标志
+    // 创建各种切片标志
     files := qflag.Root.StringSlice("files", "f", []string{}, "要处理的文件列表")
-  
-    // 创建整数切片标志
-    ports := qflag.Root.IntSlice("ports", "p", []int{8080}, "服务端口列表")
-  
-    // 创建64位整数切片标志
+    ports := qflag.Root.IntSlice("ports", "p", []int{8080}, "服务端口列表") 
     sizes := qflag.Root.Int64Slice("sizes", "s", []int64{}, "文件大小列表")
-  
-    // 自定义分隔符（默认为逗号）
+    
+    // 自定义分隔符（可选）
     files.SetDelimiters([]string{";"})
-    ports.SetDelimiters([]string{","})
-  
+    
     if err := qflag.Parse(); err != nil {
         fmt.Printf("解析参数错误: %v\n", err)
         os.Exit(1)
     }
-  
-    fmt.Printf("要处理的文件: %v\n", files.Get())
-    fmt.Printf("服务端口: %v\n", ports.Get())
-    fmt.Printf("文件大小: %v\n", sizes.Get())
+    
+    fmt.Printf("文件: %v, 端口: %v, 大小: %v\n", files.Get(), ports.Get(), sizes.Get())
 }
 ```
 
@@ -339,27 +361,19 @@ import (
 )
 
 func main() {
-    // 创建带验证的标志
-    port := qflag.Root.Int("port", "p", 8080, "服务端口")
-  
-    // 设置端口范围验证器
-    port.SetValidator(&validator.IntRangeValidator{
-        Min: 1024,
-        Max: 65535,
-    })
-  
-    // 字符串长度验证
-    name := qflag.Root.String("name", "n", "", "服务名称")
-    name.SetValidator(&validator.StringLengthValidator{
-        Min: 3,
-        Max: 20,
-    })
-  
+    // 端口范围验证（1024-65535）
+    port := qflag.Root.Int("port", "p", 8080, "服务端口（1024-65535）")
+    port.SetValidator(&validator.IntRangeValidator{Min: 1024, Max: 65535})
+    
+    // 字符串长度验证（3-20字符）
+    name := qflag.Root.String("name", "n", "", "服务名称（3-20字符）")
+    name.SetValidator(&validator.StringLengthValidator{Min: 3, Max: 20})
+    
     if err := qflag.Parse(); err != nil {
         fmt.Printf("解析参数错误: %v\n", err)
         os.Exit(1)
     }
-  
+    
     fmt.Printf("服务 %s 将在端口 %d 启动\n", name.Get(), port.Get())
 }
 ```
@@ -376,18 +390,17 @@ import (
 )
 
 func main() {
-    // 创建标志并绑定环境变量
+    // 绑定环境变量（DATABASE_HOST, DATABASE_PORT）
     dbHost := qflag.Root.String("db-host", "", "localhost", "数据库主机")
-    dbHost.BindEnv("DATABASE_HOST")
-  
     dbPort := qflag.Root.Int("db-port", "", 5432, "数据库端口")
+    dbHost.BindEnv("DATABASE_HOST")
     dbPort.BindEnv("DATABASE_PORT")
-  
+    
     if err := qflag.Parse(); err != nil {
         fmt.Printf("解析参数错误: %v\n", err)
         os.Exit(1)
     }
-  
+    
     fmt.Printf("连接数据库: %s:%d\n", dbHost.Get(), dbPort.Get())
 }
 ```
@@ -395,9 +408,8 @@ func main() {
 使用方式：
 
 ```bash
-export DATABASE_HOST=prod-db.example.com
-export DATABASE_PORT=3306
-./app  # 将使用环境变量的值
+export DATABASE_HOST=prod-db.example.com DATABASE_PORT=3306
+./app  # 使用环境变量
 ./app --db-host localhost --db-port 5432  # 命令行参数优先级更高
 ```
 
@@ -412,34 +424,27 @@ import (
     "os"
     "strings"
     "gitee.com/MM-Q/qflag"
-    "gitee.com/MM-Q/qflag/flags"
 )
 
-// 自定义邮箱验证器
+// 超简化的自定义验证器
 type EmailValidator struct{}
-
 func (v *EmailValidator) Validate(value any) error {
-    email, ok := value.(string)
-    if !ok {
-        return errors.New("value is not a string")
+    email, _ := value.(string)
+    if !strings.Contains(email, "@") {
+        return errors.New("邮箱必须包含@符号")
     }
-  
-    if !strings.Contains(email, "@") || !strings.Contains(email, ".") {
-        return errors.New("invalid email format")
-    }
-  
     return nil
 }
 
 func main() {
     email := qflag.Root.String("email", "e", "", "用户邮箱")
     email.SetValidator(&EmailValidator{})
-  
+    
     if err := qflag.Parse(); err != nil {
         fmt.Printf("解析参数错误: %v\n", err)
         os.Exit(1)
     }
-  
+    
     fmt.Printf("用户邮箱: %s\n", email.Get())
 }
 ```
@@ -479,29 +484,24 @@ import (
 )
 
 func main() {
-    // 设置应用信息
+    // 基本信息设置
     qflag.Root.SetVersion("1.0.0")
     qflag.Root.SetDesc("这是一个示例应用程序")
-    qflag.Root.SetUsage("myapp [选项] <命令> [参数...]")
-  
-    // 添加使用示例
+    
+    // 添加常用示例
     qflag.Root.AddExample("启动服务", "myapp start --port 8080")
     qflag.Root.AddExample("查看状态", "myapp status --verbose")
-  
-    // 添加注意事项
-    qflag.Root.AddNote("配置文件默认位置: ~/.myapp/config.yaml")
-    qflag.Root.AddNote("日志文件位置: /var/log/myapp.log")
-  
-    // 设置中文帮助信息
+    
+    // 设置中文帮助
     qflag.Root.SetChinese(true)
-  
-    // 定义标志...
+    
+    // 定义标志并使用...
     name := qflag.Root.String("name", "n", "world", "要问候的名称")
-  
+    
     if err := qflag.Parse(); err != nil {
         return
     }
-  
+    
     // 应用逻辑...
 }
 ```
