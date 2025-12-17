@@ -50,6 +50,16 @@ const InvalidFlagChars = " !@#$%^&*(){}[]|\\;:'\"<>,.?/"
 
 定义非法字符集常量，防止非法的标志名称。
 
+## 类型定义
+
+### ErrorHandling 错误处理策略
+
+```go
+type ErrorHandling = flag.ErrorHandling
+```
+
+ErrorHandling 是 flag 包中 ErrorHandling 类型的别名，用于定义标志解析时的错误处理策略。
+
 ## 变量定义
 
 ### 内置标志名称
@@ -97,6 +107,21 @@ var ShellSlice = []string{ShellNone, ShellBash, ShellPowershell, ShellPwsh}
 ```
 
 定义支持的 Shell 类型切片。
+
+### 错误处理策略常量
+
+```go
+var (
+    // ContinueOnError 解析错误时继续解析并返回错误
+    ContinueOnError ErrorHandling = flag.ContinueOnError
+    // ExitOnError 解析错误时退出程序
+    ExitOnError ErrorHandling = flag.ExitOnError
+    // PanicOnError 解析错误时触发panic
+    PanicOnError ErrorHandling = flag.PanicOnError
+)
+```
+
+定义标志解析时的错误处理策略常量。
 
 ## 函数定义
 
