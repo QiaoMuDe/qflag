@@ -6,6 +6,7 @@ package qflag
 import (
 	"fmt"
 	"os"
+	"sync"
 
 	"gitee.com/MM-Q/qflag/flags"
 	"gitee.com/MM-Q/qflag/internal/help"
@@ -16,8 +17,10 @@ import (
 
 // Cmd 命令结构体, 作为适配器连接内部函数式API和外部面向对象API
 type Cmd struct {
-	ctx *types.CmdContext    // 内部上下文，包含所有状态
-	Run func(cmd *Cmd) error // 执行函数接口，用于定义命令的执行逻辑
+	ctx       *types.CmdContext // 内部上下文，包含所有状态
+	runFunc   func(*Cmd) error  // 存储Run函数, 用于执行命令逻辑
+	subCmdMap map[string]*Cmd   // 存储子命令映射
+	runMutex  sync.RWMutex      // 保护runFunc的读写锁
 }
 
 // ================================================================================
@@ -43,7 +46,11 @@ func NewCmd(longName, shortName string, errorHandling ErrorHandling) *Cmd {
 	ctx := types.NewCmdContext(longName, shortName, errorHandling)
 
 	// 创建命令实例
-	cmd := &Cmd{ctx: ctx}
+	cmd := &Cmd{
+		ctx:       ctx,
+		subCmdMap: make(map[string]*Cmd),
+		runMutex:  sync.RWMutex{},
+	}
 
 	// 注册内置标志help
 	cmd.BoolVar(cmd.ctx.BuiltinFlags.Help, flags.HelpFlagName, flags.HelpFlagShortName, false, flags.HelpFlagUsage)
@@ -114,8 +121,6 @@ func (c *Cmd) ParseFlagsOnly(args []string) (err error) {
 // 此方法会对所有子命令进行完整性验证，包括名称冲突检查、循环依赖检测等。
 // 所有验证通过后，子命令将被注册到当前命令的子命令映射表和列表中。
 // 操作过程中会自动设置子命令的父命令引用，确保命令树结构的完整性。
-//
-// 并发安全: 此方法使用互斥锁保护，可安全地在多个 goroutine 中并发调用。
 //
 // 参数:
 //   - subCmds: 要添加的子命令实例指针，支持传入多个子命令进行批量添加
@@ -192,12 +197,14 @@ func (c *Cmd) AddSubCmd(subCmds ...*Cmd) error {
 
 		// 将子命令的长名称和实例关联
 		if cmd.ctx.LongName != "" {
-			c.ctx.SubCmdMap[cmd.ctx.LongName] = cmd.ctx
+			c.ctx.SubCmdMap[cmd.ctx.LongName] = cmd.ctx // 添加命令到ctx命令映射表
+			c.subCmdMap[cmd.ctx.LongName] = cmd         // 添加命令到cmd命令映射表
 		}
 
 		// 将子命令的短名称和实例关联
 		if cmd.ctx.ShortName != "" {
 			c.ctx.SubCmdMap[cmd.ctx.ShortName] = cmd.ctx
+			c.subCmdMap[cmd.ctx.ShortName] = cmd
 		}
 
 		// 先添加到临时切片
@@ -214,8 +221,6 @@ func (c *Cmd) AddSubCmd(subCmds ...*Cmd) error {
 //
 // 此方法是 AddSubCmd 的便捷包装，专门用于处理子命令切片。
 // 内部直接调用 AddSubCmd 方法，具有相同的验证逻辑和并发安全特性。
-//
-// 并发安全: 此方法通过调用 AddSubCmd 实现，继承其互斥锁保护特性。
 //
 // 参数:
 //   - subCmds: 子命令切片，包含要添加的所有子命令实例指针
@@ -247,42 +252,43 @@ func (c *Cmd) SubCmdMap() map[string]*Cmd {
 	defer c.ctx.Mutex.RUnlock()
 
 	// 检查子命令映射表是否为空
-	if len(c.ctx.SubCmdMap) == 0 {
+	if len(c.subCmdMap) == 0 {
 		return nil
 	}
 
 	// 返回map副本避免外部修改
-	subCmdMap := make(map[string]*Cmd, len(c.ctx.SubCmdMap))
+	subCmdMap := make(map[string]*Cmd, len(c.subCmdMap))
 
 	// 遍历子命令映射表, 将每个子命令复制到新的map中
-	for name, ctx := range c.ctx.SubCmdMap {
-		subCmdMap[name] = &Cmd{ctx: ctx}
+	for name, cmd := range c.subCmdMap {
+		subCmdMap[name] = cmd
 	}
 	return subCmdMap
 }
 
-// SubCmds 返回子命令切片
+// GetSubCmd 根据名称获取子命令实例
+//
+// 参数:
+//   - name: 子命令名称 (长名称或短名称)
 //
 // 返回值:
-//   - []*Cmd: 子命令切片
-func (c *Cmd) SubCmds() []*Cmd {
+//   - *Cmd: 子命令实例，如果找不到则抛出恐慌
+func (c *Cmd) GetSubCmd(name string) *Cmd {
 	c.ctx.Mutex.RLock()
 	defer c.ctx.Mutex.RUnlock()
 
-	// 检查子命令是否为空
-	if len(c.ctx.SubCmds) == 0 {
-		return nil
+	// 检查名称是否为空
+	if name == "" {
+		panic("subcommand name cannot be empty")
 	}
 
-	// 创建一个切片副本
-	result := make([]*Cmd, len(c.ctx.SubCmds))
-
-	// 拷贝子命令切片
-	for i, ctx := range c.ctx.SubCmds {
-		result[i] = &Cmd{ctx: ctx}
+	// 从子命令映射表中查找
+	cmd, exists := c.subCmdMap[name]
+	if !exists {
+		panic(fmt.Sprintf("subcommand '%s' not found", name))
 	}
 
-	return result
+	return cmd
 }
 
 // FlagRegistry 获取标志注册表的只读访问
@@ -409,14 +415,14 @@ func (c *Cmd) PrintHelp() {
 	fmt.Println(c.Help())
 }
 
-// CmdExists 检查子命令是否存在
+// HasSubCmd 检查子命令是否存在
 //
 // 参数:
 //   - cmdName: 子命令名称
 //
 // 返回:
 //   - bool: 子命令是否存在
-func (c *Cmd) CmdExists(cmdName string) bool {
+func (c *Cmd) HasSubCmd(cmdName string) bool {
 	c.ctx.Mutex.RLock()
 	defer c.ctx.Mutex.RUnlock()
 
@@ -425,8 +431,8 @@ func (c *Cmd) CmdExists(cmdName string) bool {
 		return false
 	}
 
-	// 检查子命令是否存在
-	_, ok := c.ctx.SubCmdMap[cmdName]
+	// 使用Cmd结构体的命令映射字段检查子命令是否存在
+	_, ok := c.subCmdMap[cmdName]
 	return ok
 }
 
@@ -721,6 +727,39 @@ func (c *Cmd) ApplyConfig(config CmdConfig) {
 	if c.ctx.Parent == nil {
 		c.ctx.Config.Completion = config.Completion
 	}
+}
+
+// SetRun 设置命令的执行函数
+//
+// 参数:
+//   - run: 命令执行函数，接收*Cmd作为参数，返回error
+func (c *Cmd) SetRun(run func(*Cmd) error) {
+	c.runMutex.Lock()
+	defer c.runMutex.Unlock()
+
+	if run == nil {
+		panic("run function cannot be nil")
+	}
+	c.runFunc = run
+}
+
+// Run 执行在命令设置的run函数, 如果未设置run函数, 则返回错误
+//
+// 返回值:
+//   - error: 执行过程中的错误信息
+func (c *Cmd) Run() error {
+	c.runMutex.RLock()
+	defer c.runMutex.RUnlock()
+
+	// 检查命令是否已解析
+	if !c.IsParsed() {
+		return qerr.NewValidationError("command must be parsed before execution")
+	}
+
+	if c.runFunc == nil {
+		return qerr.NewValidationError("no run function set for command")
+	}
+	return c.runFunc(c)
 }
 
 // AddNote 添加备注信息到命令

@@ -70,7 +70,7 @@ import "gitee.com/MM-Q/qflag"
 - **自动补全**：支持 Bash 和 PowerShell 的自动补全脚本生成
 - **环境变量绑定**：标志可自动从环境变量加载默认值
 - **帮助信息生成**：自动生成格式化的帮助文档，支持中英文
-- **执行函数接口**：通过 `Run` 函数字段提供灵活的命令执行逻辑定义
+- **执行函数接口**：通过 `SetRun` 和 `Run` 方法提供灵活的命令执行逻辑定义，支持并发安全
 - **错误处理**：详细的错误类型和信息，便于调试
 
 ### 🛡️ 企业级特性
@@ -216,33 +216,31 @@ import (
 )
 
 func main() {
-    // 创建命令并设置执行函数
+    // 创建命令
     serverCmd := qflag.NewCmd("server", "s", qflag.ExitOnError)
     port := serverCmd.Int("port", "p", 8080, "服务器端口")
     debug := serverCmd.Bool("debug", "d", false, "调试模式")
     
-    // 设置执行函数 - 手动执行模式
-    serverCmd.Run = func(cmd *qflag.Cmd) error {
+    // 设置执行函数 - 使用SetRun方法
+    serverCmd.SetRun(func(cmd *qflag.Cmd) error {
         fmt.Printf("启动服务器: localhost:%d (调试模式: %v)\n", port.Get(), debug.Get())
         // 这里放置实际的服务器启动逻辑
         return nil
-    }
+    })
     
     // 添加到根命令
     qflag.Root.AddSubCmd(serverCmd)
     
-    // 解析参数（只解析，不自动执行）
+    // 解析参数
     if err := qflag.Parse(); err != nil {
         fmt.Printf("解析错误: %v\n", err)
         os.Exit(1)
     }
     
-    // 手动执行Run函数
-    if serverCmd.IsParsed() && serverCmd.Run != nil {
-        if err := serverCmd.Run(serverCmd); err != nil {
-            fmt.Printf("执行错误: %v\n", err)
-            os.Exit(1)
-        }
+    // 直接执行Run方法 - 内部会自动检查是否已解析
+    if err := serverCmd.Run(); err != nil {
+        fmt.Printf("执行错误: %v\n", err)
+        os.Exit(1)
     }
 }
 ```
@@ -252,6 +250,94 @@ func main() {
 ```bash
 ./app server --port 3000 --debug
 # 输出: 启动服务器: localhost:3000 (调试模式: true)
+```
+
+### Run函数高级用法
+
+```go
+package main
+
+import (
+    "fmt"
+    "os"
+    "sync"
+    "gitee.com/MM-Q/qflag"
+)
+
+func main() {
+    // 创建根命令
+    rootCmd := qflag.NewCmd("myapp", "", qflag.ExitOnError)
+    
+    // 创建服务器命令
+    serverCmd := qflag.NewCmd("server", "s", qflag.ExitOnError)
+    port := serverCmd.Int("port", "p", 8080, "服务器端口")
+    debug := serverCmd.Bool("debug", "d", false, "调试模式")
+    
+    // 设置服务器执行函数
+    serverCmd.SetRun(func(cmd *qflag.Cmd) error {
+        fmt.Printf("启动服务器在端口 %d (调试模式: %v)\n", port.Get(), debug.Get())
+        // 服务器启动逻辑...
+        return nil
+    })
+    
+    // 创建客户端命令
+    clientCmd := qflag.NewCmd("client", "c", qflag.ExitOnError)
+    endpoint := clientCmd.String("endpoint", "e", "http://localhost:8080", "服务端点")
+    
+    // 设置客户端执行函数
+    clientCmd.SetRun(func(cmd *qflag.Cmd) error {
+        fmt.Printf("连接到服务器: %s\n", endpoint.Get())
+        // 客户端连接逻辑...
+        return nil
+    })
+    
+    // 添加子命令
+    rootCmd.AddSubCmd(serverCmd, clientCmd)
+    
+    // 解析参数
+    if err := rootCmd.Parse(os.Args[1:]); err != nil {
+        fmt.Printf("解析错误: %v\n", err)
+        os.Exit(1)
+    }
+    
+    // 根据解析的子命令执行相应的Run函数
+    // 注意：Run方法内部会自动检查命令是否已解析，无需手动检查
+    if len(rootCmd.Args()) > 0 {
+        subCmdName := rootCmd.Arg(0)
+        subCmd := rootCmd.GetSubCmd(subCmdName)
+        
+        if err := subCmd.Run(); err != nil {
+            fmt.Printf("执行错误: %v\n", err)
+            os.Exit(1)
+        }
+    }
+}
+```
+
+#### 并发安全性示例
+
+```go
+// Run函数是并发安全的，可以在多个goroutine中同时调用
+func setupConcurrentServer(cmd *qflag.Cmd) {
+    var wg sync.WaitGroup
+    
+    // 设置Run函数
+    cmd.SetRun(func(c *qflag.Cmd) error {
+        // 处理请求逻辑...
+        return nil
+    })
+    
+    // 在多个goroutine中并发调用Run
+    for i := 0; i < 10; i++ {
+        wg.Add(1)
+        go func() {
+            defer wg.Done()
+            _ = cmd.Run() // 并发安全
+        }()
+    }
+    
+    wg.Wait()
+}
 ```
 
 ## 高级功能示例

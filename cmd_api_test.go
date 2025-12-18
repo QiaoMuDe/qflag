@@ -281,10 +281,15 @@ func TestAddSubCmd_边界场景(t *testing.T) {
 
 				// 验证子命令是否正确添加
 				subCmdMap := parent.SubCmdMap()
-				subCmds := parent.SubCmds()
 
-				if len(subCmds) != len(subs) {
-					t.Errorf("子命令数量不匹配: 期望 %d, 实际 %d", len(subs), len(subCmds))
+				// 从SubCmdMap中提取唯一的子命令实例
+				uniqueSubCmds := make(map[*Cmd]bool)
+				for _, cmd := range subCmdMap {
+					uniqueSubCmds[cmd] = true
+				}
+
+				if len(uniqueSubCmds) != len(subs) {
+					t.Errorf("子命令数量不匹配: 期望 %d, 实际 %d", len(subs), len(uniqueSubCmds))
 				}
 
 				// 验证每个子命令都能通过名称找到
@@ -336,44 +341,6 @@ func TestSubCmdMap_边界场景(t *testing.T) {
 		// 验证第二个映射未受影响
 		if _, exists := subCmdMap2["child"]; !exists {
 			t.Error("SubCmdMap返回的不是副本，外部修改影响了内部状态")
-		}
-	})
-}
-
-// TestSubCmds_边界场景 测试SubCmds的边界场景
-func TestSubCmds_边界场景(t *testing.T) {
-	// 测试空子命令切片
-	t.Run("空子命令切片", func(t *testing.T) {
-		cmd := NewCmd("test", "t", flag.ContinueOnError)
-		subCmds := cmd.SubCmds()
-
-		if subCmds != nil {
-			t.Errorf("空命令的子命令切片应为空, 实际长度: %d", len(subCmds))
-		}
-	})
-
-	// 测试返回副本而非原始引用
-	t.Run("返回副本测试", func(t *testing.T) {
-		parent := NewCmd("parent", "p", flag.ContinueOnError)
-		child1 := NewCmd("child1", "c1", flag.ContinueOnError)
-		child2 := NewCmd("child2", "c2", flag.ContinueOnError)
-
-		err := parent.AddSubCmd(child1, child2)
-		if err != nil {
-			t.Fatalf("添加子命令失败: %v", err)
-		}
-
-		subCmds1 := parent.SubCmds()
-		subCmds2 := parent.SubCmds()
-
-		// 修改第一个切片
-		if len(subCmds1) > 0 {
-			subCmds1[0] = nil
-		}
-
-		// 验证第二个切片未受影响
-		if len(subCmds2) == 0 || subCmds2[0] == nil {
-			t.Error("SubCmds返回的不是副本，外部修改影响了内部状态")
 		}
 	})
 }
@@ -1173,17 +1140,17 @@ func TestFlagMethods_边界场景(t *testing.T) {
 	})
 }
 
-// TestCmdExists_边界场景 测试CmdExists方法的边界场景
-func TestCmdExists_边界场景(t *testing.T) {
+// TestHasSubCmd_边界场景 测试HasSubCmd方法的边界场景
+func TestHasSubCmd_边界场景(t *testing.T) {
 	parent := NewCmd("parent", "p", flag.ContinueOnError)
 
 	// 测试空子命令列表
 	t.Run("空子命令列表", func(t *testing.T) {
-		if parent.CmdExists("nonexistent") {
+		if parent.HasSubCmd("nonexistent") {
 			t.Error("空子命令列表不应该找到任何命令")
 		}
 
-		if parent.CmdExists("") {
+		if parent.HasSubCmd("") {
 			t.Error("不应该找到空名称的命令")
 		}
 	})
@@ -1200,34 +1167,34 @@ func TestCmdExists_边界场景(t *testing.T) {
 
 	// 测试存在的子命令
 	t.Run("存在的子命令", func(t *testing.T) {
-		if !parent.CmdExists("child1") {
+		if !parent.HasSubCmd("child1") {
 			t.Error("应该找到child1")
 		}
 
-		if !parent.CmdExists("c1") {
+		if !parent.HasSubCmd("c1") {
 			t.Error("应该找到短名称c1")
 		}
 
-		if !parent.CmdExists("child2") {
+		if !parent.HasSubCmd("child2") {
 			t.Error("应该找到child2")
 		}
 
-		if !parent.CmdExists("c3") {
+		if !parent.HasSubCmd("c3") {
 			t.Error("应该找到短名称c3")
 		}
 	})
 
 	// 测试不存在的子命令
 	t.Run("不存在的子命令", func(t *testing.T) {
-		if parent.CmdExists("nonexistent") {
+		if parent.HasSubCmd("nonexistent") {
 			t.Error("不应该找到不存在的命令")
 		}
 
-		if parent.CmdExists("") {
+		if parent.HasSubCmd("") {
 			t.Error("不应该找到空名称的命令")
 		}
 
-		if parent.CmdExists("child") {
+		if parent.HasSubCmd("child") {
 			t.Error("不应该找到部分匹配的命令")
 		}
 	})

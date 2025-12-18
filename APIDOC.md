@@ -55,7 +55,6 @@ BoolFlag 导出flag包中的BoolFlag结构体
 ```go
 type Cmd struct {
   // Has unexported fields.
-	Run func(cmd *Cmd) error // 执行函数接口，用于定义命令的执行逻辑
 }
 ```
 Cmd 命令结构体，作为适配器连接内部函数式API和外部面向对象API
@@ -256,11 +255,11 @@ Chinese 获取是否使用中文帮助信息
 **返回值:**
   - bool: 是否使用中文帮助信息
 
-### func (c *Cmd) CmdExists(cmdName string) bool
+### func (c *Cmd) HasSubCmd(cmdName string) bool
 ```go
-func (c *Cmd) CmdExists(cmdName string) bool
+func (c *Cmd) HasSubCmd(cmdName string) bool
 ```
-CmdExists 检查子命令是否存在
+HasSubCmd 检查子命令是否存在
 
 **参数:**
   - cmdName: 子命令名称
@@ -363,6 +362,24 @@ func (c *Cmd) FlagRegistry() *FlagRegistry
 FlagRegistry 获取标志注册表的只读访问
 
 **返回值:** - *FlagRegistry: 标志注册表的只读访问
+
+### func (c *Cmd) GetSubCmd(name string) *Cmd
+```go
+func (c *Cmd) GetSubCmd(name string) *Cmd
+```
+GetSubCmd 根据名称获取子命令实例
+
+**参数:**
+  - name: 子命令名称 (长名称或短名称)
+
+**返回值:**
+  - *Cmd: 子命令实例
+
+**恐慌:**
+  - 当name为空字符串时，会抛出"subcommand name cannot be empty"的恐慌
+  - 当找不到指定名称的子命令时，会抛出"fmt.Sprintf("subcommand '%s' not found", name)"的恐慌
+
+**并发安全:** 此方法使用读锁保护，可安全地在多个 goroutine 中并发调用。
 
 ### func (c *Cmd) Float64(longName, shortName string, defValue float64, usage string) *Float64Flag
 ```go
@@ -731,6 +748,18 @@ SetCompletion 设置是否启用自动补全, 只能在根命令上启用
 **参数:**
   - enable: true表示启用补全,false表示禁用
 
+### func (c *Cmd) SetRun(run func(*Cmd) error)
+```go
+func (c *Cmd) SetRun(run func(*Cmd) error)
+```
+SetRun 设置命令的执行函数
+
+**参数:**
+  - run: 命令执行函数，接收*Cmd作为参数，返回error
+
+**恐慌:**
+  - 当run为nil时，会抛出"run function cannot be nil"的恐慌
+
 ### func (c *Cmd) SetDesc(desc string)
 ```go
 func (c *Cmd) SetDesc(desc string)
@@ -921,15 +950,6 @@ SubCmdMap 返回子命令映射表(长命令名+短命令名)
 
 **返回值:**
   - map[string]*Cmd: 子命令映射表
-
-### func (c *Cmd) SubCmds() []*Cmd
-```go
-func (c *Cmd) SubCmds() []*Cmd
-```
-SubCmds 返回子命令切片
-
-**返回值:**
-  - []*Cmd: 子命令切片
 
 ### func (c *Cmd) Time(longName, shortName string, defValue string, usage string) *TimeFlag
 ```go

@@ -6,8 +6,11 @@ package qflag
 import (
 	"flag"
 	"fmt"
+	"sync/atomic"
 	"testing"
 	"time"
+
+	"gitee.com/MM-Q/qflag/qerr"
 )
 
 // 测试嵌套子命令生成的帮助信息样式
@@ -120,11 +123,212 @@ func TestNestedCommandHelp(t *testing.T) {
 	level2Commands[2].PrintHelp()
 
 	// 打印部分三级命令帮助信息
-	serverSubCmds := level2Commands[0].SubCmds()
-	if len(serverSubCmds) > 0 {
+	serverSubCmdMap := level2Commands[0].SubCmdMap()
+	if len(serverSubCmdMap) > 0 {
 		fmt.Println("\n========== Server-Sub1命令帮助信息 ==========")
-		serverSubCmds[0].PrintHelp()
+		// 从SubCmdMap中获取第一个子命令
+		for _, cmd := range serverSubCmdMap {
+			cmd.PrintHelp()
+			break // 只打印第一个子命令的帮助信息
+		}
 	}
 
 	fmt.Println("\n=============================")
+}
+
+// TestCmdRunFunction 测试命令的run函数方法
+func TestCmdRunFunction(t *testing.T) {
+	// 创建测试命令
+	cmd := NewCmd("test", "t", flag.ContinueOnError)
+	cmd.SetNoFgExit(true)
+
+	// 测试1: 未解析命令时调用Run应该返回错误
+	t.Run("未解析命令时调用Run", func(t *testing.T) {
+		err := cmd.Run()
+		if err == nil {
+			t.Errorf("期望返回错误，但没有返回错误")
+		}
+
+		expectedErr := "validation failed: command must be parsed before execution"
+		if err.Error() != expectedErr {
+			t.Errorf("错误信息不匹配，期望: %s, 实际: %s", expectedErr, err.Error())
+		}
+	})
+
+	// 测试2: 解析命令但未设置run函数时调用Run应该返回错误
+	t.Run("解析命令但未设置run函数时调用Run", func(t *testing.T) {
+		// 先解析命令
+		if err := cmd.Parse([]string{}); err != nil {
+			t.Fatalf("解析命令失败: %v", err)
+		}
+
+		err := cmd.Run()
+		if err == nil {
+			t.Errorf("期望返回错误，但没有返回错误")
+		}
+
+		expectedErr := "validation failed: no run function set for command"
+		if err.Error() != expectedErr {
+			t.Errorf("错误信息不匹配，期望: %s, 实际: %s", expectedErr, err.Error())
+		}
+	})
+
+	// 测试2: 设置nil run函数应该panic
+	t.Run("设置nil run函数应该panic", func(t *testing.T) {
+		defer func() {
+			if r := recover(); r == nil {
+				t.Errorf("期望panic，但没有panic")
+			} else {
+				expectedPanic := "run function cannot be nil"
+				if r != expectedPanic {
+					t.Errorf("panic信息不匹配，期望: %s, 实际: %v", expectedPanic, r)
+				}
+			}
+		}()
+
+		cmd.SetRun(nil)
+	})
+
+	// 测试3: 设置正常run函数并执行
+	t.Run("设置正常run函数并执行", func(t *testing.T) {
+		executed := false
+		testError := qerr.NewValidationError("test error")
+
+		// 设置run函数
+		cmd.SetRun(func(c *Cmd) error {
+			// 验证传入的命令实例
+			if c == nil {
+				t.Errorf("期望传入非nil的Cmd实例")
+				return nil
+			}
+
+			// 验证传入的命令是正确的实例
+			if c.Name() != "test" {
+				t.Errorf("命令名称不匹配，期望: test, 实际: %s", c.Name())
+			}
+
+			executed = true
+			return testError
+		})
+
+		// 执行run函数
+		err := cmd.Run()
+
+		// 验证run函数被执行
+		if !executed {
+			t.Errorf("run函数未被执行")
+		}
+
+		// 验证返回的错误
+		if err == nil {
+			t.Errorf("期望返回错误，但没有返回错误")
+		}
+
+		if err != testError {
+			t.Errorf("返回的错误不匹配，期望: %v, 实际: %v", testError, err)
+		}
+	})
+
+	// 测试4: 测试run函数的并发安全性
+	t.Run("测试run函数的并发安全性", func(t *testing.T) {
+		var executedCount int64
+		iterations := 100
+
+		// 设置run函数，使用原子操作确保计数器的线程安全
+		cmd.SetRun(func(c *Cmd) error {
+			// 使用原子操作递增计数器
+			atomic.AddInt64(&executedCount, 1)
+			return nil
+		})
+
+		// 并发执行run函数
+		done := make(chan bool, iterations)
+		for i := 0; i < iterations; i++ {
+			go func() {
+				_ = cmd.Run() // 忽略错误，因为在这个测试中我们只关心执行次数
+				done <- true
+			}()
+		}
+
+		// 等待所有goroutine完成
+		for i := 0; i < iterations; i++ {
+			<-done
+		}
+
+		// 验证run函数被执行了正确的次数
+		actualCount := atomic.LoadInt64(&executedCount)
+		if actualCount != int64(iterations) {
+			t.Errorf("run函数执行次数不匹配，期望: %d, 实际: %d", iterations, actualCount)
+		}
+	})
+
+	// 测试5: 测试SetRun的并发安全性
+	t.Run("测试SetRun的并发安全性", func(t *testing.T) {
+		iterations := 50
+		done := make(chan bool, iterations)
+
+		// 并发设置run函数
+		for i := 0; i < iterations; i++ {
+			go func(index int) {
+				cmd.SetRun(func(c *Cmd) error {
+					// 简单验证，不执行复杂逻辑
+					return nil
+				})
+				done <- true
+			}(i)
+		}
+
+		// 等待所有goroutine完成
+		for i := 0; i < iterations; i++ {
+			<-done
+		}
+
+		// 验证最后一次设置仍然有效
+		err := cmd.Run()
+		if err != nil {
+			t.Errorf("最后一次Run调用返回了意外错误: %v", err)
+		}
+	})
+
+	// 测试6: 测试在子命令中使用run函数
+	t.Run("测试在子命令中使用run函数", func(t *testing.T) {
+		// 创建父命令
+		parentCmd := NewCmd("parent", "p", flag.ContinueOnError)
+
+		// 创建子命令
+		childCmd := NewCmd("child", "c", flag.ContinueOnError)
+
+		// 为子命令设置run函数
+		childExecuted := false
+		childCmd.SetRun(func(c *Cmd) error {
+			childExecuted = true
+			return nil
+		})
+
+		// 添加子命令到父命令
+		if err := parentCmd.AddSubCmd(childCmd); err != nil {
+			t.Fatalf("添加子命令失败: %v", err)
+		}
+
+		// 获取子命令并执行
+		retrievedChild := parentCmd.GetSubCmd("child")
+		if retrievedChild == nil {
+			t.Fatalf("无法获取子命令")
+		}
+
+		// 执行子命令的run函数
+		// 先解析子命令
+		if err := retrievedChild.Parse([]string{}); err != nil {
+			t.Fatalf("解析子命令失败: %v", err)
+		}
+
+		if err := retrievedChild.Run(); err != nil {
+			t.Errorf("执行子命令run函数失败: %v", err)
+		}
+
+		// 验证子命令的run函数被执行
+		if !childExecuted {
+			t.Errorf("子命令的run函数未被执行")
+		}
+	})
 }
