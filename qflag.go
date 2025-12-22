@@ -29,11 +29,6 @@ func init() {
 	Root = NewCmd(cmdName, "", ExitOnError)
 }
 
-// ================================================================================
-// 为了保持向后兼容性, 保留最常用的全局函数
-// 用户应该优先使用 Root 全局命令实例访问所有方法
-// ================================================================================
-
 // Parse 解析所有命令行参数, 包括根命令和所有子命令的标志参数
 //
 // 返回：
@@ -48,4 +43,22 @@ func Parse() error {
 //   - error: 解析过程中遇到的错误, 若成功则为 nil
 func ParseFlagsOnly() error {
 	return Root.ParseFlagsOnly(os.Args[1:])
+}
+
+// ParseAndRoute 解析参数并自动路由执行子命令
+// 这是推荐使用的命令行参数处理方式，会自动处理子命令路由
+//
+// 返回：
+//   - error: 执行过程中遇到的错误, 若成功则为 nil
+func ParseAndRoute() error {
+	return Root.ParseAndRoute(os.Args[1:])
+}
+
+// RouteAndExecute 路由并执行命令 (不解析参数)
+// 用于已经解析过参数的情况，直接进行路由执行
+//
+// 返回：
+//   - error: 执行过程中遇到的错误, 若成功则为 nil
+func RouteAndExecute() error {
+	return Root.RouteAndExecute()
 }

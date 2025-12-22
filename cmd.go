@@ -23,10 +23,6 @@ type Cmd struct {
 	runMutex  sync.RWMutex      // 保护runFunc的读写锁
 }
 
-// ================================================================================
-// 操作方法 - 解析与管理 (17个)
-// ================================================================================
-
 // NewCmd 创建新的命令实例
 //
 // 参数:
@@ -444,10 +440,6 @@ func (c *Cmd) IsParsed() bool {
 	return c.ctx.Parsed.Load()
 }
 
-// ================================================================================
-// 获取配置信息方法(9个)
-// ================================================================================
-
 // Version 获取版本信息
 //
 // 返回值:
@@ -549,10 +541,6 @@ func (c *Cmd) Examples() []ExampleInfo {
 
 	return examples
 }
-
-// ================================================================================
-// Set 方法 - 设置配置信息(16个)
-// ================================================================================
 
 // SetNoFgExit 设置禁用内置标志自动退出
 // 默认情况下为false, 当解析到内置参数时, QFlag将退出程序
@@ -674,6 +662,11 @@ func (c *Cmd) SetUsage(usageSyntax string) {
 // 参数:
 //   - config: 包含所有配置项的CmdConfig结构体
 func (c *Cmd) ApplyConfig(config CmdConfig) {
+	// 参数验证
+	if c == nil || c.ctx == nil {
+		return
+	}
+
 	c.ctx.Mutex.Lock()
 	defer c.ctx.Mutex.Unlock()
 
@@ -707,14 +700,20 @@ func (c *Cmd) ApplyConfig(config CmdConfig) {
 		c.ctx.Config.LogoText = config.LogoText
 	}
 
-	// 设置备注信息
+	// 安全地设置备注信息 - 创建新切片避免内存泄漏
 	if len(config.Notes) > 0 {
-		c.ctx.Config.Notes = append(c.ctx.Config.Notes, config.Notes...)
+		newNotes := make([]string, len(c.ctx.Config.Notes)+len(config.Notes))
+		copy(newNotes, c.ctx.Config.Notes)
+		copy(newNotes[len(c.ctx.Config.Notes):], config.Notes)
+		c.ctx.Config.Notes = newNotes
 	}
 
-	// 设置示例信息
+	// 安全地设置示例信息 - 创建新切片避免内存泄漏
 	if len(config.Examples) > 0 {
-		c.ctx.Config.Examples = append(c.ctx.Config.Examples, config.Examples...)
+		newExamples := make([]types.ExampleInfo, len(c.ctx.Config.Examples)+len(config.Examples))
+		copy(newExamples, c.ctx.Config.Examples)
+		copy(newExamples[len(c.ctx.Config.Examples):], config.Examples)
+		c.ctx.Config.Examples = newExamples
 	}
 
 	// 设置是否使用中文帮助信息
@@ -723,7 +722,7 @@ func (c *Cmd) ApplyConfig(config CmdConfig) {
 	// 设置内置标志是否自动退出
 	c.ctx.Config.NoFgExit = config.NoFgExit
 
-	// 设置是否启用自动补全功能(只允许在根命令上设置)
+	// 设置是否启用自动补全功能 (只允许在根命令上设置)
 	if c.ctx.Parent == nil {
 		c.ctx.Config.Completion = config.Completion
 	}
@@ -821,4 +820,31 @@ func (c *Cmd) AddExamples(examples []ExampleInfo) {
 
 	// 添加到使用示例列表中
 	c.ctx.Config.Examples = append(c.ctx.Config.Examples, examples...)
+}
+
+// ParseAndRoute 解析参数并自动路由执行子命令
+//
+// 参数:
+//   - args: 命令行参数列表(通常为 os.Args[1:])
+//
+// 返回值:
+//   - error: 执行过程中遇到的错误
+func (c *Cmd) ParseAndRoute(args []string) error {
+	// 1. 解析当前命令的参数
+	if err := c.Parse(args); err != nil {
+		return err
+	}
+
+	// 2. 调用routeCommand处理路由和执行，需要解析子命令参数
+	return c.routeCommand(true)
+}
+
+// RouteAndExecute 路由并执行命令 (不解析参数)
+// 用于已经解析过参数的情况
+//
+// 返回值:
+//   - error: 执行过程中遇到的错误
+func (c *Cmd) RouteAndExecute() error {
+	// 调用routeCommand处理路由和执行，不需要解析子命令参数
+	return c.routeCommand(false)
 }

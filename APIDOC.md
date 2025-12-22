@@ -43,6 +43,26 @@ ParseFlagsOnly 解析根命令的所有标志参数, 不包括子命令
 **返回：**
   - error: 解析过程中遇到的错误, 若成功则为 nil
 
+### func ParseAndRoute() error
+```go
+func ParseAndRoute() error
+```
+ParseAndRoute 解析参数并自动路由执行子命令
+这是推荐使用的命令行参数处理方式，会自动处理子命令路由
+
+**返回：**
+  - error: 执行过程中遇到的错误, 若成功则为 nil
+
+### func RouteAndExecute() error
+```go
+func RouteAndExecute() error
+```
+RouteAndExecute 路由并执行命令 (不解析参数)
+用于已经解析过参数的情况，直接进行路由执行
+
+**返回：**
+  - error: 执行过程中遇到的错误, 若成功则为 nil
+
 ## 类型
 
 ### type BoolFlag = flags.BoolFlag
@@ -720,6 +740,66 @@ ParseFlagsOnly 仅解析当前命令的标志参数(忽略子命令)
   - 每个Cmd实例仅会被解析一次(线程安全)
   - 不会处理任何子命令, 所有参数均视为当前命令的标志或位置参数
   - 处理内置标志逻辑
+
+### func (c *Cmd) ParseAndRoute(args []string) error
+```go
+func (c *Cmd) ParseAndRoute(args []string) error
+```
+ParseAndRoute 解析参数并自动路由执行子命令
+
+**主要功能：**
+ 1. 解析当前命令的参数
+ 2. 自动路由并执行匹配的子命令
+ 3. 如果没有匹配的子命令，执行当前命令或显示帮助
+
+**参数：**
+  - args: 命令行参数列表(通常为 os.Args[1:])
+
+**返回值：**
+  - error: 执行过程中遇到的错误
+
+**使用示例：**
+```go
+cmd := qflag.NewCmd("myapp", "", qflag.ExitOnError)
+// 添加子命令...
+subCmd := qflag.NewCmd("sub", "s", qflag.ExitOnError)
+cmd.AddSubCmd(subCmd)
+
+// 一行代码完成解析和路由执行
+if err := cmd.ParseAndRoute(os.Args[1:]); err != nil {
+    log.Fatal(err)
+}
+```
+
+### func (c *Cmd) RouteAndExecute() error
+```go
+func (c *Cmd) RouteAndExecute() error
+```
+RouteAndExecute 路由并执行命令 (不解析参数)
+用于已经解析过参数的情况，直接进行路由执行
+
+**主要功能：**
+ 1. 如果没有参数，执行当前命令或显示帮助
+ 2. 如果有参数，查找匹配的子命令并递归执行
+ 3. 如果没有匹配的子命令，执行当前命令或显示帮助
+
+**返回值：**
+  - error: 执行过程中遇到的错误
+
+**使用示例：**
+```go
+cmd := qflag.NewCmd("myapp", "", qflag.ExitOnError)
+
+// 先解析参数
+if err := cmd.Parse(os.Args[1:]); err != nil {
+    log.Fatal(err)
+}
+
+// 然后进行路由执行
+if err := cmd.RouteAndExecute(); err != nil {
+    log.Fatal(err)
+}
+```
 
 ### func (c *Cmd) PrintHelp()
 ```go
