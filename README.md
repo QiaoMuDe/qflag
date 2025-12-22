@@ -10,7 +10,7 @@
 [![GitHub](https://img.shields.io/badge/GitHub-qflag-black.svg)](https://github.com/QiaoMuDe/qflag)
 [![Ask DeepWiki](https://deepwiki.com/badge.svg)](https://deepwiki.com/QiaoMuDe/qflag)
 
-*支持多种数据类型 • 子命令管理 • 参数验证 • 自动补全 • 企业级特性*
+*泛型设计 • 自动路由 • 类型安全 • 并发安全 • 自动补全 • 子命令管理*
 
 [📖 快速开始](#快速开始) • [🔧 安装指南](#安装) • [📚 API 文档](#api-文档) • [🤝 贡献指南](#贡献指南)
 
@@ -20,7 +20,7 @@
 
 ## ✨ 项目简介
 
-qflag 是一个基于 Go 泛型的现代化命令行参数解析库，对标准库 flag 进行了全面增强。它采用模块化架构设计，提供了 16+ 种标志类型（包括基础类型、切片类型、复杂类型如枚举、时间、映射、大小等）、完整的子命令系统、强大的参数验证框架、智能的 Shell 自动补全（支持 Bash/PowerShell）、环境变量绑定等企业级特性。通过泛型设计确保类型安全，内置并发保护机制，支持中英文帮助信息，为构建专业的 CLI 应用提供了完整的解决方案。
+qflag 是一个基于 Go 泛型的现代化命令行参数解析库，对标准库 flag 进行了全面增强。它采用模块化架构设计，提供了 16+ 种标志类型（包括基础类型、切片类型、复杂类型如枚举、时间、映射、大小等）、完整的子命令系统、智能的自动路由机制、强大的参数验证框架、智能的 Shell 自动补全（支持 Bash/PowerShell）、环境变量绑定等企业级特性。通过泛型设计确保类型安全，内置并发保护机制，支持中英文帮助信息，为构建专业的 CLI 应用提供了完整的解决方案。
 
 ## 🔗 项目地址
 
@@ -71,6 +71,7 @@ import "gitee.com/MM-Q/qflag"
 - **环境变量绑定**：标志可自动从环境变量加载默认值
 - **帮助信息生成**：自动生成格式化的帮助文档，支持中英文
 - **执行函数接口**：通过 `SetRun` 和 `Run` 方法提供灵活的命令执行逻辑定义，支持并发安全
+- **自动路由**：`ParseAndRoute` 方法支持自动解析参数并路由到对应的子命令，简化命令行应用开发
 - **错误处理**：详细的错误类型和信息，便于调试
 
 ### 🛡️ 企业级特性
@@ -144,7 +145,7 @@ func main() {
 ./app -n "Bob" -c 2 -v
 ```
 
-### 子命令示例
+### 子命令示例（自动路由方式）
 
 ```go
 package main
@@ -156,43 +157,54 @@ import (
 )
 
 func main() {
+    // 创建根命令
+    rootCmd := qflag.NewCmd("myapp", "", qflag.ExitOnError)
+    rootCmd.SetDesc("示例应用程序")
+    
     // 全局标志
-    verbose := qflag.Root.Bool("verbose", "v", false, "详细输出")
+    verbose := rootCmd.Bool("verbose", "v", false, "详细输出")
   
-    // 创建子命令
+    // 创建启动服务子命令
     startCmd := qflag.NewCmd("start", "s", qflag.ExitOnError)
     startCmd.SetDesc("启动服务")
   
     // 为子命令添加标志
     port := startCmd.Int("port", "p", 8080, "服务端口")
     host := startCmd.String("host", "h", "localhost", "服务主机")
-  
-    // 创建另一个子命令
-    stopCmd := qflag.NewCmd("stop", "st", qflag.ExitOnError)
-    stopCmd.SetDesc("停止服务")
-  
-    pidFile := stopCmd.String("pid-file", "f", "/var/run/app.pid", "PID文件路径")
-  
-    // 注册子命令到根命令
-    qflag.Root.AddSubCmd(startCmd, stopCmd)
-  
-    // 解析参数
-    if err := qflag.Parse(); err != nil {
-        fmt.Printf("解析参数错误: %v\n", err)
-        os.Exit(1)
-    }
-  
-    // 处理命令逻辑
-    if startCmd.IsParsed() {
+    
+    // 设置启动服务的执行函数
+    startCmd.SetRun(func(cmd *qflag.Cmd) error {
         if verbose.Get() {
             fmt.Printf("启动服务在 %s:%d\n", host.Get(), port.Get())
         }
         // 启动服务逻辑...
-    } else if stopCmd.IsParsed() {
+        fmt.Printf("服务启动成功！监听地址: %s:%d\n", host.Get(), port.Get())
+        return nil
+    })
+  
+    // 创建停止服务子命令
+    stopCmd := qflag.NewCmd("stop", "st", qflag.ExitOnError)
+    stopCmd.SetDesc("停止服务")
+  
+    pidFile := stopCmd.String("pid-file", "f", "/var/run/app.pid", "PID文件路径")
+    
+    // 设置停止服务的执行函数
+    stopCmd.SetRun(func(cmd *qflag.Cmd) error {
         if verbose.Get() {
             fmt.Printf("从 %s 读取PID并停止服务\n", pidFile.Get())
         }
         // 停止服务逻辑...
+        fmt.Printf("服务停止成功！PID文件: %s\n", pidFile.Get())
+        return nil
+    })
+  
+    // 注册子命令到根命令
+    rootCmd.AddSubCmd(startCmd, stopCmd)
+  
+    // 使用ParseAndRoute自动解析并路由到对应子命令
+    if err := rootCmd.ParseAndRoute(os.Args[1:]); err != nil {
+        fmt.Printf("错误: %v\n", err)
+        os.Exit(1)
     }
 }
 ```
@@ -200,8 +212,20 @@ func main() {
 使用方式：
 
 ```bash
-./app start --port 9000 --host 0.0.0.0 --verbose
-./app stop --pid-file /tmp/app.pid -v
+# 启动服务
+./myapp start --port 9000 --host 0.0.0.0 --verbose
+# 输出: 启动服务在 0.0.0.0:9000
+# 输出: 服务启动成功！监听地址: 0.0.0.0:9000
+
+# 停止服务
+./myapp stop --pid-file /tmp/app.pid -v
+# 输出: 从 /tmp/app.pid 读取PID并停止服务
+# 输出: 服务停止成功！PID文件: /tmp/app.pid
+
+# 查看帮助
+./myapp --help
+./myapp start --help
+./myapp stop --help
 ```
 
 ### Run函数执行示例
@@ -250,94 +274,6 @@ func main() {
 ```bash
 ./app server --port 3000 --debug
 # 输出: 启动服务器: localhost:3000 (调试模式: true)
-```
-
-### Run函数高级用法
-
-```go
-package main
-
-import (
-    "fmt"
-    "os"
-    "sync"
-    "gitee.com/MM-Q/qflag"
-)
-
-func main() {
-    // 创建根命令
-    rootCmd := qflag.NewCmd("myapp", "", qflag.ExitOnError)
-    
-    // 创建服务器命令
-    serverCmd := qflag.NewCmd("server", "s", qflag.ExitOnError)
-    port := serverCmd.Int("port", "p", 8080, "服务器端口")
-    debug := serverCmd.Bool("debug", "d", false, "调试模式")
-    
-    // 设置服务器执行函数
-    serverCmd.SetRun(func(cmd *qflag.Cmd) error {
-        fmt.Printf("启动服务器在端口 %d (调试模式: %v)\n", port.Get(), debug.Get())
-        // 服务器启动逻辑...
-        return nil
-    })
-    
-    // 创建客户端命令
-    clientCmd := qflag.NewCmd("client", "c", qflag.ExitOnError)
-    endpoint := clientCmd.String("endpoint", "e", "http://localhost:8080", "服务端点")
-    
-    // 设置客户端执行函数
-    clientCmd.SetRun(func(cmd *qflag.Cmd) error {
-        fmt.Printf("连接到服务器: %s\n", endpoint.Get())
-        // 客户端连接逻辑...
-        return nil
-    })
-    
-    // 添加子命令
-    rootCmd.AddSubCmd(serverCmd, clientCmd)
-    
-    // 解析参数
-    if err := rootCmd.Parse(os.Args[1:]); err != nil {
-        fmt.Printf("解析错误: %v\n", err)
-        os.Exit(1)
-    }
-    
-    // 根据解析的子命令执行相应的Run函数
-    // 注意：Run方法内部会自动检查命令是否已解析，无需手动检查
-    if len(rootCmd.Args()) > 0 {
-        subCmdName := rootCmd.Arg(0)
-        subCmd := rootCmd.GetSubCmd(subCmdName)
-        
-        if err := subCmd.Run(); err != nil {
-            fmt.Printf("执行错误: %v\n", err)
-            os.Exit(1)
-        }
-    }
-}
-```
-
-#### 并发安全性示例
-
-```go
-// Run函数是并发安全的，可以在多个goroutine中同时调用
-func setupConcurrentServer(cmd *qflag.Cmd) {
-    var wg sync.WaitGroup
-    
-    // 设置Run函数
-    cmd.SetRun(func(c *qflag.Cmd) error {
-        // 处理请求逻辑...
-        return nil
-    })
-    
-    // 在多个goroutine中并发调用Run
-    for i := 0; i < 10; i++ {
-        wg.Add(1)
-        go func() {
-            defer wg.Done()
-            _ = cmd.Run() // 并发安全
-        }()
-    }
-    
-    wg.Wait()
-}
 ```
 
 ## 高级功能示例
@@ -597,7 +533,6 @@ func main() {
 qflag 采用模块化设计，主要包含以下包：
 
 - **`qflag`** - 主包，提供全局 API 和便捷函数
-- **`cmd`** - 命令管理，处理子命令和命令树结构
 - **`flags`** - 标志类型定义，包含所有标志类型的实现
 - **`validator`** - 参数验证器，提供常用验证器和验证接口
 - **`qerr`** - 错误处理，定义错误类型和错误处理机制
@@ -609,7 +544,6 @@ qflag 采用模块化设计，主要包含以下包：
 完整的 API 文档按模块组织：
 
 - **[qflag 包文档](./APIDOC.md)** - 全局 API 和便捷函数
-- **[cmd 包文档](./cmd/APIDOC.md)** - 命令管理相关 API
 - **[flags 包文档](./flags/APIDOC.md)** - 标志类型定义和使用方法
 - **[validator 包文档](./validator/APIDOC.md)** - 参数验证器接口和实现
 - **[qerr 包文档](./qerr/APIDOC.md)** - 错误处理相关 API

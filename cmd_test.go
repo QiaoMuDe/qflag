@@ -1,5 +1,5 @@
 // package qflag 命令结构体功能测试
-// 本文件包含了Cmd结构体的单元测试，测试命令创建、解析、子命令管理等核心功能，
+// 本文件包含了Cmd结构体的单元测试, 测试命令创建、解析、子命令管理等核心功能,
 // 确保命令行处理逻辑的正确性和稳定性。
 package qflag
 
@@ -149,12 +149,12 @@ func TestCmdRunFunction(t *testing.T) {
 	t.Run("未解析命令时调用Run", func(t *testing.T) {
 		err := cmd.Run()
 		if err == nil {
-			t.Errorf("期望返回错误，但没有返回错误")
+			t.Errorf("期望返回错误, 但没有返回错误")
 		}
 
 		expectedErr := "validation failed: command must be parsed before execution"
 		if err.Error() != expectedErr {
-			t.Errorf("错误信息不匹配，期望: %s, 实际: %s", expectedErr, err.Error())
+			t.Errorf("错误信息不匹配, 期望: %s, 实际: %s", expectedErr, err.Error())
 		}
 	})
 
@@ -167,12 +167,12 @@ func TestCmdRunFunction(t *testing.T) {
 
 		err := cmd.Run()
 		if err == nil {
-			t.Errorf("期望返回错误，但没有返回错误")
+			t.Errorf("期望返回错误, 但没有返回错误")
 		}
 
 		expectedErr := "validation failed: no run function set for command"
 		if err.Error() != expectedErr {
-			t.Errorf("错误信息不匹配，期望: %s, 实际: %s", expectedErr, err.Error())
+			t.Errorf("错误信息不匹配, 期望: %s, 实际: %s", expectedErr, err.Error())
 		}
 	})
 
@@ -180,11 +180,11 @@ func TestCmdRunFunction(t *testing.T) {
 	t.Run("设置nil run函数应该panic", func(t *testing.T) {
 		defer func() {
 			if r := recover(); r == nil {
-				t.Errorf("期望panic，但没有panic")
+				t.Errorf("期望panic, 但没有panic")
 			} else {
 				expectedPanic := "run function cannot be nil"
 				if r != expectedPanic {
-					t.Errorf("panic信息不匹配，期望: %s, 实际: %v", expectedPanic, r)
+					t.Errorf("panic信息不匹配, 期望: %s, 实际: %v", expectedPanic, r)
 				}
 			}
 		}()
@@ -207,7 +207,7 @@ func TestCmdRunFunction(t *testing.T) {
 
 			// 验证传入的命令是正确的实例
 			if c.Name() != "test" {
-				t.Errorf("命令名称不匹配，期望: test, 实际: %s", c.Name())
+				t.Errorf("命令名称不匹配, 期望: test, 实际: %s", c.Name())
 			}
 
 			executed = true
@@ -224,11 +224,11 @@ func TestCmdRunFunction(t *testing.T) {
 
 		// 验证返回的错误
 		if err == nil {
-			t.Errorf("期望返回错误，但没有返回错误")
+			t.Errorf("期望返回错误, 但没有返回错误")
 		}
 
 		if err != testError {
-			t.Errorf("返回的错误不匹配，期望: %v, 实际: %v", testError, err)
+			t.Errorf("返回的错误不匹配, 期望: %v, 实际: %v", testError, err)
 		}
 	})
 
@@ -237,7 +237,7 @@ func TestCmdRunFunction(t *testing.T) {
 		var executedCount int64
 		iterations := 100
 
-		// 设置run函数，使用原子操作确保计数器的线程安全
+		// 设置run函数, 使用原子操作确保计数器的线程安全
 		cmd.SetRun(func(c *Cmd) error {
 			// 使用原子操作递增计数器
 			atomic.AddInt64(&executedCount, 1)
@@ -248,7 +248,7 @@ func TestCmdRunFunction(t *testing.T) {
 		done := make(chan bool, iterations)
 		for i := 0; i < iterations; i++ {
 			go func() {
-				_ = cmd.Run() // 忽略错误，因为在这个测试中我们只关心执行次数
+				_ = cmd.Run() // 忽略错误, 因为在这个测试中我们只关心执行次数
 				done <- true
 			}()
 		}
@@ -261,7 +261,7 @@ func TestCmdRunFunction(t *testing.T) {
 		// 验证run函数被执行了正确的次数
 		actualCount := atomic.LoadInt64(&executedCount)
 		if actualCount != int64(iterations) {
-			t.Errorf("run函数执行次数不匹配，期望: %d, 实际: %d", iterations, actualCount)
+			t.Errorf("run函数执行次数不匹配, 期望: %d, 实际: %d", iterations, actualCount)
 		}
 	})
 
@@ -274,7 +274,7 @@ func TestCmdRunFunction(t *testing.T) {
 		for i := 0; i < iterations; i++ {
 			go func(index int) {
 				cmd.SetRun(func(c *Cmd) error {
-					// 简单验证，不执行复杂逻辑
+					// 简单验证, 不执行复杂逻辑
 					return nil
 				})
 				done <- true
@@ -433,13 +433,13 @@ func TestCmd_ParseAndRoute(t *testing.T) {
 		output := buf.String()
 
 		if err != nil {
-			t.Errorf("解析无效命令不应该返回错误，但返回了: %v", err)
+			t.Errorf("解析无效命令不应该返回错误, 但返回了: %v", err)
 		}
 		if !strings.Contains(output, "unknown command: invalid") {
-			t.Errorf("应该显示未知命令信息，实际输出: %s", output)
+			t.Errorf("应该显示未知命令信息, 实际输出: %s", output)
 		}
 		if !strings.Contains(output, "test") {
-			t.Errorf("应该显示帮助信息，实际输出: %s", output)
+			t.Errorf("应该显示帮助信息, 实际输出: %s", output)
 		}
 	})
 
@@ -474,10 +474,10 @@ func TestCmd_ParseAndRoute(t *testing.T) {
 		output := buf.String()
 
 		if err != nil {
-			t.Errorf("无参数时解析不应该返回错误，但返回了: %v", err)
+			t.Errorf("无参数时解析不应该返回错误, 但返回了: %v", err)
 		}
 		if !strings.Contains(output, "test") {
-			t.Errorf("应该显示帮助信息，实际输出: %s", output)
+			t.Errorf("应该显示帮助信息, 实际输出: %s", output)
 		}
 	})
 
@@ -511,7 +511,7 @@ func TestCmd_ParseAndRoute(t *testing.T) {
 			t.Errorf("带参数的命令应该被执行")
 		}
 		if argValue != "test_value" {
-			t.Errorf("参数值应该正确设置，期望: test_value, 实际: %s", argValue)
+			t.Errorf("参数值应该正确设置, 期望: test_value, 实际: %s", argValue)
 		}
 	})
 
