@@ -327,50 +327,8 @@ func (c *Cmd) handleBuiltinFlags() (bool, error) {
 		}
 	}
 
-	// 没有触发任何内置标志，返回true表示不需要退出
+	// 没有触发任何内置标志, 返回true表示不需要退出
 	return true, nil
-}
-
-// routeCommand 处理命令路由逻辑
-//
-// 参数:
-//   - parseSubCmdArgs: 是否解析子命令参数
-//
-// 返回值:
-//   - error: 执行过程中遇到的错误
-func (c *Cmd) routeCommand(parseSubCmdArgs bool) error {
-	// 如果没有参数，执行当前命令或显示帮助
-	if len(c.Args()) == 0 {
-		if c.runFunc != nil {
-			return c.Run()
-		}
-		c.PrintHelp()
-		return nil
-	}
-
-	// 获取第一个参数作为子命令名
-	subCmdName := c.Arg(0)
-
-	// 查找匹配的子命令
-	if subCmd, exists := c.SubCmdMap()[subCmdName]; exists {
-		if parseSubCmdArgs {
-			// 递归处理子命令，传递剩余参数
-			return subCmd.ParseAndRoute(c.Args()[1:])
-		} else {
-			// 直接执行子命令，不传递参数
-			return subCmd.RouteAndExecute()
-		}
-	}
-
-	// 如果没有匹配的子命令，执行当前命令
-	if c.runFunc != nil {
-		return c.Run()
-	}
-
-	// 既没有子命令匹配，也没有当前命令的执行函数，显示帮助信息
-	fmt.Printf("unknown command: %s\n", subCmdName)
-	c.PrintHelp()
-	return nil
 }
 
 // tempCmd 创建临时的 Cmd 包装器用于递归解析子命令

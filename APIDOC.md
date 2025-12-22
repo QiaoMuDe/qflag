@@ -771,36 +771,6 @@ if err := cmd.ParseAndRoute(os.Args[1:]); err != nil {
 }
 ```
 
-### func (c *Cmd) RouteAndExecute() error
-```go
-func (c *Cmd) RouteAndExecute() error
-```
-RouteAndExecute 路由并执行命令 (不解析参数)
-用于已经解析过参数的情况，直接进行路由执行
-
-**主要功能：**
- 1. 如果没有参数，执行当前命令或显示帮助
- 2. 如果有参数，查找匹配的子命令并递归执行
- 3. 如果没有匹配的子命令，执行当前命令或显示帮助
-
-**返回值：**
-  - error: 执行过程中遇到的错误
-
-**使用示例：**
-```go
-cmd := qflag.NewCmd("myapp", "", qflag.ExitOnError)
-
-// 先解析参数
-if err := cmd.Parse(os.Args[1:]); err != nil {
-    log.Fatal(err)
-}
-
-// 然后进行路由执行
-if err := cmd.RouteAndExecute(); err != nil {
-    log.Fatal(err)
-}
-```
-
 ### func (c *Cmd) PrintHelp()
 ```go
 func (c *Cmd) PrintHelp()

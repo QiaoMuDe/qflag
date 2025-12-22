@@ -830,21 +830,41 @@ func (c *Cmd) AddExamples(examples []ExampleInfo) {
 // 返回值:
 //   - error: 执行过程中遇到的错误
 func (c *Cmd) ParseAndRoute(args []string) error {
-	// 1. 解析当前命令的参数
-	if err := c.Parse(args); err != nil {
+	// 1. 只解析当前命令的标志参数（不递归子命令）
+	if err := c.ParseFlagsOnly(args); err != nil {
 		return err
 	}
 
-	// 2. 调用routeCommand处理路由和执行，需要解析子命令参数
-	return c.routeCommand(true)
-}
+	// 2. 获取非标志参数
+	nonFlagArgs := c.Args()
 
-// RouteAndExecute 路由并执行命令 (不解析参数)
-// 用于已经解析过参数的情况
-//
-// 返回值:
-//   - error: 执行过程中遇到的错误
-func (c *Cmd) RouteAndExecute() error {
-	// 调用routeCommand处理路由和执行，不需要解析子命令参数
-	return c.routeCommand(false)
+	// 3. 如果没有非标志参数，执行当前命令
+	if len(nonFlagArgs) == 0 {
+		if c.runFunc != nil {
+			return c.Run()
+		}
+		c.PrintHelp()
+		return nil
+	}
+
+	// 4. 第一个参数可能是子命令
+	cmdName := nonFlagArgs[0]
+
+	// 5. 查找子命令
+	subCmdMap := c.SubCmdMap()
+
+	if subCmd, exists := subCmdMap[cmdName]; exists {
+		// 递归调用子命令，传递剩余参数
+		return subCmd.ParseAndRoute(nonFlagArgs[1:])
+	}
+
+	// 6. 如果不是子命令, 则执行当前命令
+	if c.runFunc != nil {
+		return c.Run()
+	}
+
+	// 7. 如果不是子命令, 并且没有执行函数, 则显示帮助信息
+	fmt.Printf("unknown command: %s\n", cmdName)
+	c.PrintHelp()
+	return nil
 }

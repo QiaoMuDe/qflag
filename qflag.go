@@ -53,12 +53,3 @@ func ParseFlagsOnly() error {
 func ParseAndRoute() error {
 	return Root.ParseAndRoute(os.Args[1:])
 }
-
-// RouteAndExecute 路由并执行命令 (不解析参数)
-// 用于已经解析过参数的情况，直接进行路由执行
-//
-// 返回：
-//   - error: 执行过程中遇到的错误, 若成功则为 nil
-func RouteAndExecute() error {
-	return Root.RouteAndExecute()
-}

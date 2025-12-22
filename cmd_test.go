@@ -338,33 +338,23 @@ func TestCmdRunFunction(t *testing.T) {
 
 // TestCmd_ParseAndRoute 测试ParseAndRoute方法的功能
 func TestCmd_ParseAndRoute(t *testing.T) {
-	// 创建一个根命令
-	root := NewCmd("test", "t", ContinueOnError)
-	root.SetDesc("这是一个测试命令")
-
-	// 创建一个子命令
-	subCmd := NewCmd("sub", "s", ContinueOnError)
-	subCmdRun := false
-	subCmd.SetRun(func(c *Cmd) error {
-		subCmdRun = true
-		return nil
-	})
-
-	// 创建一个嵌套子命令
-	nestedCmd := NewCmd("nested", "n", ContinueOnError)
-	nestedCmdRun := false
-	nestedCmd.SetRun(func(c *Cmd) error {
-		nestedCmdRun = true
-		return nil
-	})
-
-	// 添加子命令到根命令
-	root.AddSubCmd(subCmd)
-	subCmd.AddSubCmd(nestedCmd)
-
 	// 测试用例1: 解析并路由到子命令
 	t.Run("RouteToSubCommand", func(t *testing.T) {
-		subCmdRun = false
+		// 创建独立的命令结构
+		root := NewCmd("test", "t", ContinueOnError)
+		root.SetDesc("这是一个测试命令")
+
+		subCmd := NewCmd("sub", "s", ContinueOnError)
+		subCmdRun := false
+		subCmd.SetRun(func(c *Cmd) error {
+			subCmdRun = true
+			return nil
+		})
+
+		if err := root.AddSubCmd(subCmd); err != nil {
+			t.Fatalf("添加子命令失败: %v", err)
+		}
+
 		err := root.ParseAndRoute([]string{"sub"})
 		if err != nil {
 			t.Errorf("路由到子命令失败: %v", err)
@@ -376,7 +366,25 @@ func TestCmd_ParseAndRoute(t *testing.T) {
 
 	// 测试用例2: 解析并路由到嵌套子命令
 	t.Run("RouteToNestedCommand", func(t *testing.T) {
-		nestedCmdRun = false
+		// 创建独立的命令结构
+		root := NewCmd("test", "t", ContinueOnError)
+		root.SetDesc("这是一个测试命令")
+
+		subCmd := NewCmd("sub", "s", ContinueOnError)
+		nestedCmd := NewCmd("nested", "n", ContinueOnError)
+		nestedCmdRun := false
+		nestedCmd.SetRun(func(c *Cmd) error {
+			nestedCmdRun = true
+			return nil
+		})
+
+		if err := root.AddSubCmd(subCmd); err != nil {
+			t.Fatalf("添加子命令失败: %v", err)
+		}
+		if err := subCmd.AddSubCmd(nestedCmd); err != nil {
+			t.Fatalf("添加嵌套子命令失败: %v", err)
+		}
+
 		err := root.ParseAndRoute([]string{"sub", "nested"})
 		if err != nil {
 			t.Errorf("路由到嵌套子命令失败: %v", err)
@@ -388,18 +396,40 @@ func TestCmd_ParseAndRoute(t *testing.T) {
 
 	// 测试用例3: 解析无效命令
 	t.Run("InvalidCommand", func(t *testing.T) {
+		// 创建独立的命令结构
+		root := NewCmd("test", "t", ContinueOnError)
+		root.SetDesc("这是一个测试命令")
+
+		subCmd := NewCmd("sub", "s", ContinueOnError)
+		subCmd.SetRun(func(c *Cmd) error {
+			return nil
+		})
+		if err := root.AddSubCmd(subCmd); err != nil {
+			t.Fatalf("添加子命令失败: %v", err)
+		}
+
 		// 捕获标准输出
 		oldStdout := os.Stdout
-		r, w, _ := os.Pipe()
+		r, w, err := os.Pipe()
+		if err != nil {
+			t.Fatalf("创建管道失败: %v", err)
+		}
 		os.Stdout = w
 
-		err := root.ParseAndRoute([]string{"invalid"})
+		err = root.ParseAndRoute([]string{"invalid"})
 
 		// 恢复标准输出并获取捕获的内容
-		w.Close()
+		if err := w.Close(); err != nil {
+			t.Fatalf("关闭写入端失败: %v", err)
+		}
 		os.Stdout = oldStdout
 		var buf bytes.Buffer
-		buf.ReadFrom(r)
+		if _, err := buf.ReadFrom(r); err != nil {
+			t.Fatalf("读取管道内容失败: %v", err)
+		}
+		if err := r.Close(); err != nil {
+			t.Fatalf("关闭读取端失败: %v", err)
+		}
 		output := buf.String()
 
 		if err != nil {
@@ -415,18 +445,32 @@ func TestCmd_ParseAndRoute(t *testing.T) {
 
 	// 测试用例4: 无参数时显示帮助
 	t.Run("NoArgumentsShowHelp", func(t *testing.T) {
+		// 创建独立的命令结构
+		root := NewCmd("test", "t", ContinueOnError)
+		root.SetDesc("这是一个测试命令")
+
 		// 捕获标准输出
 		oldStdout := os.Stdout
-		r, w, _ := os.Pipe()
+		r, w, err := os.Pipe()
+		if err != nil {
+			t.Fatalf("创建管道失败: %v", err)
+		}
 		os.Stdout = w
 
-		err := root.ParseAndRoute([]string{})
+		err = root.ParseAndRoute([]string{})
 
 		// 恢复标准输出并获取捕获的内容
-		w.Close()
+		if err := w.Close(); err != nil {
+			t.Fatalf("关闭写入端失败: %v", err)
+		}
 		os.Stdout = oldStdout
 		var buf bytes.Buffer
-		buf.ReadFrom(r)
+		if _, err := buf.ReadFrom(r); err != nil {
+			t.Fatalf("读取管道内容失败: %v", err)
+		}
+		if err := r.Close(); err != nil {
+			t.Fatalf("关闭读取端失败: %v", err)
+		}
 		output := buf.String()
 
 		if err != nil {
@@ -439,6 +483,10 @@ func TestCmd_ParseAndRoute(t *testing.T) {
 
 	// 测试用例5: 带参数的命令解析
 	t.Run("CommandWithArguments", func(t *testing.T) {
+		// 创建独立的命令结构
+		root := NewCmd("test", "t", ContinueOnError)
+		root.SetDesc("这是一个测试命令")
+
 		// 创建一个带参数的命令
 		cmdWithArgs := NewCmd("args", "a", ContinueOnError)
 		var argValue string
@@ -451,7 +499,9 @@ func TestCmd_ParseAndRoute(t *testing.T) {
 			return nil
 		})
 
-		root.AddSubCmd(cmdWithArgs)
+		if err := root.AddSubCmd(cmdWithArgs); err != nil {
+			t.Fatalf("添加子命令失败: %v", err)
+		}
 
 		err := root.ParseAndRoute([]string{"args", "-v", "test_value"})
 		if err != nil {
@@ -465,17 +515,24 @@ func TestCmd_ParseAndRoute(t *testing.T) {
 		}
 	})
 
-	// 测试用例6: 解析错误处理
+	// 测试用例6: 解析错误处理 - 测试无效标志名
 	t.Run("ParseErrorHandling", func(t *testing.T) {
-		// 创建一个带必需参数的命令
-		cmdWithRequired := NewCmd("required", "r", ContinueOnError)
-		// flag := cmdWithRequired.String("value", "v", "", "必需参数")
+		// 创建独立的命令结构
+		root := NewCmd("test", "t", ContinueOnError)
+		root.SetDesc("这是一个测试命令")
 
-		root.AddSubCmd(cmdWithRequired)
+		// 创建一个带标志的命令
+		cmdWithFlag := NewCmd("flagcmd", "f", ContinueOnError)
+		cmdWithFlag.String("name", "n", "default", "名称参数")
 
-		err := root.ParseAndRoute([]string{"required"})
+		if err := root.AddSubCmd(cmdWithFlag); err != nil {
+			t.Fatalf("添加子命令失败: %v", err)
+		}
+
+		// 测试传入无效的标志名（以连字符开头但不构成有效标志）
+		err := root.ParseAndRoute([]string{"flagcmd", "-invalid-flag"})
 		if err == nil {
-			t.Errorf("缺少必需参数应该返回错误")
+			t.Errorf("传入无效的标志应该返回错误")
 		}
 	})
 }
