@@ -252,10 +252,10 @@ func main() {
         return nil
     })
     
-    // 添加到根命令
-    qflag.Root.AddSubCmd(serverCmd)
+    // 使用全局函数添加到根命令
+    qflag.AddSubCmd(serverCmd)
     
-    // 解析参数
+    // 使用全局函数解析参数
     if err := qflag.Parse(); err != nil {
         fmt.Printf("解析错误: %v\n", err)
         os.Exit(1)
@@ -503,19 +503,20 @@ package main
 
 import (
     "gitee.com/MM-Q/qflag"
+    "gitee.com/MM-Q/qflag/internal/types"
 )
 
 func main() {
-    // 基本信息设置
-    qflag.Root.SetVersion("1.0.0")
-    qflag.Root.SetDesc("这是一个示例应用程序")
-    
-    // 添加常用示例
-    qflag.Root.AddExample("启动服务", "myapp start --port 8080")
-    qflag.Root.AddExample("查看状态", "myapp status --verbose")
-    
-    // 设置中文帮助
-    qflag.Root.SetChinese(true)
+    // 使用全局函数配置根命令
+    qflag.ApplyConfig(types.CmdConfig{
+        Version: "1.0.0",
+        Desc: "这是一个示例应用程序",
+        UseChinese: true,
+        Examples: []types.ExampleInfo{
+            {Desc: "启动服务", Usage: "myapp start --port 8080"},
+            {Desc: "查看状态", Usage: "myapp status --verbose"},
+        },
+    })
     
     // 定义标志并使用...
     name := qflag.Root.String("name", "n", "world", "要问候的名称")
