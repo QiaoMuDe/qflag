@@ -64,17 +64,17 @@ func (c *Cmd) parseCommon(args []string, parseSubcommands bool) (shouldExit bool
 		}
 
 		// 处理内置标志(-h/--help, -v/--version, --completion等)
-		// handleBuiltinFlags方法返回NoFgExit的值(是否禁用退出)
-		// 当NoFgExit为false(默认)时，表示不禁用退出，需要退出程序
-		// 当NoFgExit为true时，表示禁用退出，不需要退出程序
-		noBuiltinExit, handleErr := c.handleBuiltinFlags()
+		// handleBuiltinFlags方法返回是否阻止退出
+		// 当preventExit为false时，表示不阻止退出，需要退出程序
+		// 当preventExit为true时，表示阻止退出，不需要退出程序
+		preventExit, handleErr := c.handleBuiltinFlags()
 		if handleErr != nil {
 			err = handleErr
 			return
 		}
 
-		// 默认情况下，当NoFgExit为false时，表示不禁用退出，需要退出程序
-		if !noBuiltinExit {
+		// 如果不阻止退出，则应该退出程序
+		if !preventExit {
 			shouldExit = true
 			return
 		}
@@ -134,12 +134,12 @@ func (c *Cmd) parseSubCommands() (bool, error) {
 		return false, nil
 	}
 
-	// 获取除子命令名称外的剩余参数
+	// 获取除子命令名称外的剩余参数 (克隆参数防止修改原始参数)
 	argsToProcess := make([]string, len(c.ctx.Args)-1)
 	copy(argsToProcess, c.ctx.Args[1:])
 
 	// 解析子命令的参数(这里创建了临时Cmd实例包装器)
-	exit, parseErr := tempCmd(subCmd).parseCommon(argsToProcess, true)
+	exit, parseErr := wrapCmdForParsing(subCmd).parseCommon(argsToProcess, true)
 	if parseErr != nil {
 		return false, fmt.Errorf("%w for '%s': %v", qerr.ErrSubCommandParseFailed, subCmdName, parseErr)
 	}
@@ -273,9 +273,11 @@ func (c *Cmd) registerBuiltinFlags() {
 // handleBuiltinFlags 处理内置标志(-h/--help, -v/--version, --completion等)的逻辑
 //
 // 返回值:
-//   - 是否禁用退出程序(与NoFgExit字段含义一致)
+//   - preventExit: 是否阻止退出程序
+//   - true:  阻止退出（NoFgExit=true 时）
+//   - false: 不阻止退出（NoFgExit=false 时）
 //   - 处理过程中遇到的错误
-func (c *Cmd) handleBuiltinFlags() (bool, error) {
+func (c *Cmd) handleBuiltinFlags() (preventExit bool, err error) {
 	// 检查是否使用-h/--help标志
 	if c.ctx.BuiltinFlags.Help.Get() {
 		c.PrintHelp()
@@ -331,16 +333,16 @@ func (c *Cmd) handleBuiltinFlags() (bool, error) {
 	return true, nil
 }
 
-// tempCmd 创建临时的 Cmd 包装器用于递归解析子命令
+// wrapCmdForParsing 创建用于解析的 Cmd 包装器
 //
 // 这个函数解决了 *types.CmdContext 无法直接调用 parseCommon 方法的问题
-// 创建的临时实例仅用于方法调用，不会被其他地方引用
+// 创建的包装器仅用于解析，不会影响原始 Cmd 实例的状态
 //
 // 参数:
 //   - ctx: 子命令的上下文
 //
 // 返回值:
-//   - *Cmd: 临时的 Cmd 包装器
-func tempCmd(ctx *types.CmdContext) *Cmd {
+//   - *Cmd: 用于解析的 Cmd 包装器
+func wrapCmdForParsing(ctx *types.CmdContext) *Cmd {
 	return &Cmd{ctx: ctx}
 }
