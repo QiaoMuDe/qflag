@@ -53,16 +53,6 @@ ParseAndRoute 解析参数并自动路由执行子命令
 **返回：**
   - error: 执行过程中遇到的错误, 若成功则为 nil
 
-### func RouteAndExecute() error
-```go
-func RouteAndExecute() error
-```
-RouteAndExecute 路由并执行命令 (不解析参数)
-用于已经解析过参数的情况，直接进行路由执行
-
-**返回：**
-  - error: 执行过程中遇到的错误, 若成功则为 nil
-
 ## 类型
 
 ### type BoolFlag = flags.BoolFlag

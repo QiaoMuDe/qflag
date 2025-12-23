@@ -419,16 +419,16 @@ func TestCmd_ParseAndRoute(t *testing.T) {
 		err = root.ParseAndRoute([]string{"invalid"})
 
 		// 恢复标准输出并获取捕获的内容
-		if err := w.Close(); err != nil {
-			t.Fatalf("关闭写入端失败: %v", err)
+		if closeErr := w.Close(); closeErr != nil {
+			t.Fatalf("关闭写入端失败: %v", closeErr)
 		}
 		os.Stdout = oldStdout
 		var buf bytes.Buffer
-		if _, err := buf.ReadFrom(r); err != nil {
-			t.Fatalf("读取管道内容失败: %v", err)
+		if _, readErr := buf.ReadFrom(r); readErr != nil {
+			t.Fatalf("读取管道内容失败: %v", readErr)
 		}
-		if err := r.Close(); err != nil {
-			t.Fatalf("关闭读取端失败: %v", err)
+		if closeErr := r.Close(); closeErr != nil {
+			t.Fatalf("关闭读取端失败: %v", closeErr)
 		}
 		output := buf.String()
 
@@ -460,16 +460,16 @@ func TestCmd_ParseAndRoute(t *testing.T) {
 		err = root.ParseAndRoute([]string{})
 
 		// 恢复标准输出并获取捕获的内容
-		if err := w.Close(); err != nil {
-			t.Fatalf("关闭写入端失败: %v", err)
+		if closeErr := w.Close(); closeErr != nil {
+			t.Fatalf("关闭写入端失败: %v", closeErr)
 		}
 		os.Stdout = oldStdout
 		var buf bytes.Buffer
-		if _, err := buf.ReadFrom(r); err != nil {
-			t.Fatalf("读取管道内容失败: %v", err)
+		if _, readErr := buf.ReadFrom(r); readErr != nil {
+			t.Fatalf("读取管道内容失败: %v", readErr)
 		}
-		if err := r.Close(); err != nil {
-			t.Fatalf("关闭读取端失败: %v", err)
+		if closeErr := r.Close(); closeErr != nil {
+			t.Fatalf("关闭读取端失败: %v", closeErr)
 		}
 		output := buf.String()
 
