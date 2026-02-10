@@ -344,6 +344,11 @@ var NewCmd = cmd.NewCmd
 // 这种方式比函数式配置更加直观和集中。
 type CmdSpec = cmd.CmdSpec
 
+// CmdOpts 命令选项结构体
+// CmdOpts 提供了配置现有命令的方式，包含命令的所有可配置属性。
+// 与 CmdSpec 不同，CmdOpts 用于配置已存在的命令，而不是创建新命令。
+type CmdOpts = cmd.CmdOpts
+
 // NewCmdSpec 创建新的命令规格
 //
 // 参数:
@@ -358,6 +363,17 @@ type CmdSpec = cmd.CmdSpec
 //   - 设置默认值
 //   - 初始化所有字段
 var NewCmdSpec = cmd.NewCmdSpec
+
+// NewCmdOpts 创建新的命令选项
+//
+// 返回值:
+//   - *CmdOpts: 初始化的命令选项
+//
+// 功能说明:
+//   - 创建基本命令选项
+//   - 初始化所有字段为零值
+//   - 初始化 map 和 slice 避免空指针
+var NewCmdOpts = cmd.NewCmdOpts
 
 // NewCmdFromSpec 从规格创建命令
 //

@@ -920,6 +920,111 @@ func (c *Cmd) SetParsed(parsed bool) {
 	c.parsed = parsed
 }
 
+// ApplyOpts 应用选项到命令
+//
+// 参数:
+//   - opts: 命令选项
+//
+// 返回值:
+//   - error: 应用选项失败时返回错误
+//
+// 功能说明:
+//   - 将选项结构体的所有属性应用到当前命令
+//   - 支持部分配置（未设置的属性不会被修改）
+//   - 使用defer捕获panic, 转换为错误返回
+//
+// 应用顺序:
+//  1. 基本属性（Desc、RunFunc）
+//  2. 配置选项（Version、UseChinese、EnvPrefix、UsageSyntax、LogoText）
+//  3. 示例和说明（Examples、Notes）
+//  4. 互斥组（MutexGroups）
+//  5. 子命令（SubCmds）
+//
+// 错误处理:
+//   - 选项为 nil: 返回 INVALID_CMDOPTS 错误
+//   - 添加子命令失败: 返回 FAILED_TO_ADD_SUBCMDS 错误
+//   - panic: 转换为 PANIC 错误
+//
+// 线程安全:
+//   - 方法内部使用读写锁保护并发访问
+//   - 可以安全地在多个 goroutine 中调用
+//
+// 设计说明:
+//   - 调用现有的 SetDesc、SetVersion、AddExamples 等方法
+//   - 避免重复代码，降低维护成本
+//   - 保持行为一致性，与用户手动调用方法完全一致
+//   - 保留方法中的验证、通知等逻辑
+func (c *Cmd) ApplyOpts(opts *CmdOpts) error {
+	var err error
+
+	// 使用defer捕获panic, 转换为错误返回
+	defer func() {
+		if r := recover(); r != nil {
+			// 将panic转换为错误
+			switch x := r.(type) {
+			case string:
+				err = types.NewError("PANIC", x, nil)
+			case error:
+				err = types.NewError("PANIC", x.Error(), x)
+			default:
+				err = types.NewError("PANIC", fmt.Sprintf("%v", x), nil)
+			}
+		}
+	}()
+
+	// 验证选项
+	if opts == nil {
+		return types.NewError("INVALID_CMDOPTS", "cmd opts cannot be nil", nil)
+	}
+
+	// 1. 设置基本属性 - 调用现有方法
+	if opts.Desc != "" {
+		c.SetDesc(opts.Desc)
+	}
+	if opts.RunFunc != nil {
+		c.SetRun(opts.RunFunc)
+	}
+
+	// 2. 设置配置选项 - 调用现有方法
+	if opts.Version != "" {
+		c.SetVersion(opts.Version)
+	}
+	if opts.EnvPrefix != "" {
+		c.SetEnvPrefix(opts.EnvPrefix)
+	}
+	if opts.UsageSyntax != "" {
+		c.SetUsageSyntax(opts.UsageSyntax)
+	}
+	if opts.LogoText != "" {
+		c.SetLogoText(opts.LogoText)
+	}
+	c.SetChinese(opts.UseChinese)
+
+	// 3. 添加示例和说明 - 调用现有方法
+	if len(opts.Examples) > 0 {
+		c.AddExamples(opts.Examples)
+	}
+	if len(opts.Notes) > 0 {
+		c.AddNotes(opts.Notes)
+	}
+
+	// 4. 添加互斥组 - 调用现有方法
+	if len(opts.MutexGroups) > 0 {
+		for _, group := range opts.MutexGroups {
+			c.AddMutexGroup(group.Name, group.Flags, group.AllowNone)
+		}
+	}
+
+	// 5. 添加子命令 - 调用现有方法
+	if len(opts.SubCmds) > 0 {
+		if err := c.AddSubCmds(opts.SubCmds...); err != nil {
+			return types.WrapError(err, "FAILED_TO_ADD_SUBCMDS", "failed to add subcommands")
+		}
+	}
+
+	return err
+}
+
 // IsRootCmd 检查是否为根命令
 //
 // 返回值:

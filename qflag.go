@@ -115,3 +115,19 @@ func AddSubCmdFrom(cmds []Command) error {
 func AddMutexGroup(name string, flags []string, allowNone bool) {
 	Root.AddMutexGroup(name, flags, allowNone)
 }
+
+// ApplyOpts 应用选项到全局根命令
+//
+// 参数:
+//   - opts: 要应用的选项结构体实例
+//
+// 返回值:
+//   - error: 应用选项过程中遇到的错误, 如果没有错误则返回 nil
+//
+// 功能说明:
+//   - 将选项结构体的所有属性应用到全局根命令实例
+//   - 支持部分配置（未设置的属性不会被修改）
+//   - 使用写锁保护并发安全
+func ApplyOpts(opts *CmdOpts) error {
+	return Root.ApplyOpts(opts)
+}

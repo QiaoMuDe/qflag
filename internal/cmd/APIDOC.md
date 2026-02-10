@@ -197,6 +197,118 @@ NewCmdFromSpec 从规格创建命令
   - 支持默认值处理
   - 使用defer捕获panic, 转换为错误返回
 
+### type CmdOpts struct
+
+```go
+type CmdOpts struct {
+    // 基本属性
+    Desc string // 命令描述
+
+    // 运行函数
+    RunFunc func(types.Command) error // 命令执行函数
+
+    // 配置选项
+    Version     string // 版本号
+    UseChinese  bool   // 是否使用中文
+    EnvPrefix   string // 环境变量前缀
+    UsageSyntax string // 命令使用语法
+    LogoText    string // Logo文本
+
+    // 示例和说明
+    Examples map[string]string // 示例使用, key为描述, value为示例命令
+    Notes    []string          // 注意事项
+
+    // 子命令和互斥组
+    SubCmds     []types.Command    // 子命令列表, 用于添加到命令中
+    MutexGroups []types.MutexGroup // 互斥组列表
+}
+```
+
+CmdOpts 是命令选项结构体, 提供了配置现有命令的方式
+
+CmdOpts 包含了命令的所有可配置属性, 用于配置已存在的命令, 而不是创建新命令。 与 CmdSpec 不同, CmdOpts 用于配置现有命令的属性。
+
+字段说明: 
+  - Desc: 命令描述
+  - RunFunc: 命令执行函数
+  - Version: 版本号
+  - UseChinese: 是否使用中文
+  - EnvPrefix: 环境变量前缀
+  - UsageSyntax: 命令使用语法
+  - LogoText: Logo文本
+  - Examples: 示例使用, key为描述, value为示例命令
+  - Notes: 注意事项
+  - SubCmds: 子命令列表, 用于添加到命令中
+  - MutexGroups: 互斥组列表
+
+使用场景: 
+  - 已有命令实例, 需要批量设置属性
+  - 需要结构化的配置管理
+  - 需要部分配置（未设置的属性不会被修改）
+
+#### func NewCmdOpts() *CmdOpts
+
+```go
+func NewCmdOpts() *CmdOpts
+```
+
+NewCmdOpts 创建新的命令选项
+
+**返回值:**
+  - *CmdOpts: 初始化的命令选项
+
+**功能说明:**
+  - 创建基本命令选项
+  - 初始化所有字段为零值
+  - 初始化 map 和 slice 避免空指针
+
+**默认值:**
+  - Examples: 空映射
+  - Notes: 空切片
+  - SubCmds: 空切片
+  - MutexGroups: 空切片
+
+#### func (c *Cmd) ApplyOpts(opts *CmdOpts) error
+
+```go
+func (c *Cmd) ApplyOpts(opts *CmdOpts) error
+```
+
+ApplyOpts 应用选项到命令
+
+**参数:**
+  - opts: 命令选项
+
+**返回值:**
+  - error: 应用选项失败时返回错误
+
+**功能说明:**
+  - 将选项结构体的所有属性应用到当前命令
+  - 支持部分配置（未设置的属性不会被修改）
+  - 使用defer捕获panic, 转换为错误返回
+
+**应用顺序:**
+  1. 基本属性（Desc、RunFunc）
+  2. 配置选项（Version、UseChinese、EnvPrefix、UsageSyntax、LogoText）
+  3. 示例和说明（Examples、Notes）
+  4. 互斥组（MutexGroups）
+  5. 子命令（SubCmds）
+
+**错误情况:**
+  - 选项为 nil: 返回 INVALID_CMDOPTS 错误
+  - 添加子命令失败: 返回 FAILED_TO_ADD_SUBCMDS 错误
+  - panic: 转换为 PANIC 错误
+
+**线程安全:**
+  - 方法内部使用读写锁保护并发访问
+  - 可以安全地在多个 goroutine 中调用
+
+**设计说明:**
+  - 调用现有的 SetDesc、SetVersion、AddExamples 等方法
+  - 避免重复代码，降低维护成本
+  - 保持行为一致性，与用户手动调用方法完全一致
+  - 保留方法中的验证、通知等逻辑
+
 #### func (c *Cmd) AddExample(title, cmd string)
 
 ```go

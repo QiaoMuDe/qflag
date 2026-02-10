@@ -249,14 +249,30 @@ var NewCmdSpec = cmd.NewCmdSpec
 **返回值:**
   - *CmdSpec: 初始化的命令规格
 
-**功能说明: **
+**功能说明:**
   - 创建基本命令规格
   - 设置默认值
   - 初始化所有字段
 
+```go
+var NewCmdOpts = cmd.NewCmdOpts
+```
 
+**NewCmdOpts 创建新的命令选项**
 
+**返回值:**
+  - *CmdOpts: 初始化的命令选项
 
+**功能说明:**
+  - 创建基本命令选项
+  - 初始化所有字段为零值
+  - 初始化 map 和 slice 避免空指针
+
+**默认值:**
+  - Examples: 空映射
+  - Notes: 空切片
+  - SubCmds: 空切片
+  - MutexGroups: 空切片
 
 ```go
 var NewError = types.NewError
@@ -410,6 +426,23 @@ func AddSubCmds(cmds ...Command) error
   - error: 添加子命令过程中遇到的错误, 如果没有错误则返回 nil
 
 ```go
+func ApplyOpts(opts *CmdOpts) error
+```
+
+**ApplyOpts 应用选项到全局根命令**
+
+**参数:**
+  - opts: 要应用的选项结构体实例
+
+**返回值:**
+  - error: 应用选项过程中遇到的错误, 如果没有错误则返回 nil
+
+**功能说明:**
+  - 将选项结构体的所有属性应用到全局根命令实例
+  - 支持部分配置（未设置的属性不会被修改）
+  - 使用写锁保护并发安全
+
+```go
 func Parse() error
 ```
 
@@ -508,6 +541,17 @@ type CmdSpec = cmd.CmdSpec
 ```
 
 **CmdSpec 命令规格结构体 CmdSpec 提供了通过规格创建命令的方式, 包含命令的所有属性。 这种方式比函数式配置更加直观和集中。**
+
+```go
+type CmdOpts = cmd.CmdOpts
+```
+
+**CmdOpts 命令选项结构体 CmdOpts 提供了配置现有命令的方式，包含命令的所有可配置属性。 与 CmdSpec 不同，CmdOpts 用于配置已存在的命令，而不是创建新命令。**
+
+**使用场景: **
+  - 已有命令实例，需要批量设置属性
+  - 需要结构化的配置管理
+  - 需要部分配置（未设置的属性不会被修改）
 
 ```go
 type Command = types.Command
