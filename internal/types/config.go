@@ -30,6 +30,7 @@ type CmdConfig struct {
 	Notes       []string          // 注意事项
 	LogoText    string            // 命令logo文本
 	MutexGroups []MutexGroup      // 互斥组列表
+	Completion  bool              // 是否启用自动补全标志
 }
 
 // NewCmdConfig 创建新的命令配置
@@ -46,5 +47,6 @@ func NewCmdConfig() *CmdConfig {
 		Notes:       []string{},
 		LogoText:    "",
 		MutexGroups: []MutexGroup{},
+		Completion:  false,
 	}
 }

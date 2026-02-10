@@ -111,6 +111,7 @@ type CmdSpec struct {
     EnvPrefix   string // 环境变量前缀
     UsageSyntax string // 命令使用语法
     LogoText    string // Logo文本
+    Completion  bool   // 是否启用自动补全标志
 
     // 示例和说明
     Examples map[string]string // 示例使用, key为描述, value为示例命令
@@ -170,6 +171,7 @@ NewCmdSpec 创建新的命令规格
 **默认值: **
   - ErrorHandling: ExitOnError
   - UseChinese: false
+  - Completion: false
   - Examples: 空映射
   - Notes: 空切片
   - SubCmds: 空切片
@@ -213,6 +215,7 @@ type CmdOpts struct {
     EnvPrefix   string // 环境变量前缀
     UsageSyntax string // 命令使用语法
     LogoText    string // Logo文本
+    Completion  bool   // 是否启用自动补全标志
 
     // 示例和说明
     Examples map[string]string // 示例使用, key为描述, value为示例命令
@@ -289,7 +292,7 @@ ApplyOpts 应用选项到命令
 
 **应用顺序:**
   1. 基本属性（Desc、RunFunc）
-  2. 配置选项（Version、UseChinese、EnvPrefix、UsageSyntax、LogoText）
+  2. 配置选项（Version、UseChinese、EnvPrefix、UsageSyntax、LogoText、Completion）
   3. 示例和说明（Examples、Notes）
   4. 互斥组（MutexGroups）
   5. 子命令（SubCmds）
@@ -1139,6 +1142,23 @@ SetChinese 设置是否使用中文
 **功能说明: **
   - 设置帮助信息的语言
   - 影响错误消息和提示
+  - 存储在配置中
+  - 支持并发安全的设置
+
+#### func (c *Cmd) SetCompletion(enable bool)
+
+```go
+func (c *Cmd) SetCompletion(enable bool)
+```
+
+SetCompletion 设置是否启用自动补全标志
+
+**参数:**
+  - enable: 是否启用自动补全标志
+
+**功能说明: **
+  - 控制是否注册 --completion 标志
+  - 默认为 false，不启用自动补全
   - 存储在配置中
   - 支持并发安全的设置
 

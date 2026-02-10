@@ -680,6 +680,22 @@ func (c *Cmd) SetChinese(useChinese bool) {
 	c.config.UseChinese = useChinese
 }
 
+// SetCompletion 设置是否启用自动补全标志
+//
+// 参数:
+//   - enable: 是否启用自动补全标志
+//
+// 功能说明:
+//   - 控制是否注册 --completion 标志
+//   - 默认为 false，不启用自动补全
+//   - 存储在配置中
+//   - 支持并发安全的设置
+func (c *Cmd) SetCompletion(enable bool) {
+	c.mu.Lock()
+	defer c.mu.Unlock()
+	c.config.Completion = enable
+}
+
 // SetEnvPrefix 设置环境变量前缀
 //
 // 参数:
@@ -999,6 +1015,7 @@ func (c *Cmd) ApplyOpts(opts *CmdOpts) error {
 		c.SetLogoText(opts.LogoText)
 	}
 	c.SetChinese(opts.UseChinese)
+	c.SetCompletion(opts.Completion)
 
 	// 3. 添加示例和说明 - 调用现有方法
 	if len(opts.Examples) > 0 {

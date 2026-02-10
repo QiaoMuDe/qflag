@@ -64,14 +64,14 @@ func TestBuiltinFlagManager_RegisterBuiltinFlags(t *testing.T) {
 			}(),
 			expectHelp:    true,
 			expectVersion: true,
-			expectComp:    true,
+			expectComp:    false,
 		},
 		{
 			name:          "根命令, 无版本信息",
 			cmd:           helper.CreateMockCommandWithFlags("root", "r", "Root command"),
 			expectHelp:    true,
 			expectVersion: false,
-			expectComp:    true,
+			expectComp:    false,
 		},
 		{
 			name: "子命令, 有版本信息",
@@ -375,7 +375,7 @@ func TestCompletionHandler(t *testing.T) {
 		{
 			name:     "根命令",
 			cmd:      helper.CreateMockCommandWithFlags("root", "r", "Root command"),
-			expected: true,
+			expected: false,
 		},
 		{
 			name: "子命令",

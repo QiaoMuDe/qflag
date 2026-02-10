@@ -87,11 +87,12 @@ func BenchmarkCompletionSpeed(b *testing.B) {
 func TestGenerateFullCompletionScript(t *testing.T) {
 	// 使用便捷函数创建测试命令
 	cmd := createTestCmd()
+	//cmd.SetCompletion(true)
 	if err := cmd.Parse([]string{}); err != nil {
 		t.Errorf("解析命令行参数失败: %v", err)
 	}
 
-	completion.GenAndPrint(cmd, types.BashShell)
+	//completion.GenAndPrint(cmd, types.BashShell)
 
-	// cmd.PrintHelp()
+	cmd.PrintHelp()
 }

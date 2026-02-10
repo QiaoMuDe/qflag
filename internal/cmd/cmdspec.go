@@ -39,6 +39,7 @@ type CmdSpec struct {
 	EnvPrefix   string // 环境变量前缀
 	UsageSyntax string // 命令使用语法
 	LogoText    string // Logo文本
+	Completion  bool   // 是否启用自动补全标志
 
 	// 示例和说明
 	Examples map[string]string // 示例使用, key为描述, value为示例命令
@@ -68,6 +69,7 @@ func NewCmdSpec(longName, shortName string) *CmdSpec {
 		ShortName:     shortName,
 		ErrorHandling: types.ExitOnError, // 默认错误处理策略
 		UseChinese:    false,             // 默认不使用中文
+		Completion:    false,             // 默认不启用自动补全
 		Examples:      make(map[string]string),
 		Notes:         []string{},
 		SubCmds:       []types.Command{},
@@ -125,6 +127,7 @@ func NewCmdFromSpec(spec *CmdSpec) (cmd *Cmd, err error) {
 	cmd.SetEnvPrefix(spec.EnvPrefix)     // 环境变量前缀
 	cmd.SetUsageSyntax(spec.UsageSyntax) // 命令使用语法
 	cmd.SetLogoText(spec.LogoText)       // Logo文本
+	cmd.SetCompletion(spec.Completion)   // 是否启用自动补全
 
 	// 添加示例和说明
 	if len(spec.Examples) > 0 {

@@ -36,6 +36,7 @@ type CmdOpts struct {
 	EnvPrefix   string // 环境变量前缀
 	UsageSyntax string // 命令使用语法
 	LogoText    string // Logo文本
+	Completion  bool   // 是否启用自动补全标志
 
 	// 示例和说明
 	Examples map[string]string // 示例使用, key为描述, value为示例命令

@@ -49,13 +49,14 @@ func (h *CompletionHandler) Type() types.BuiltinFlagType {
 //   - cmd: 要检查的命令
 //
 // 返回值:
-//   - bool: 总是返回true
+//   - bool: 根据配置决定是否注册
 //
 // 功能说明:
-//   - 补全标志总是注册, 因为所有命令都应该支持补全功能
 //   - 补全标志只在根命令中注册
+//   - 只有当命令配置中 Completion 为 true 时才注册
+//   - 默认不启用自动补全功能
 func (h *CompletionHandler) ShouldRegister(cmd types.Command) bool {
-	return cmd.IsRootCmd()
+	return cmd.IsRootCmd() && cmd.Config().Completion
 }
 
 // getShellTypeFromArgs 从命令行参数获取Shell类型
