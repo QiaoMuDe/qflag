@@ -1,274 +1,402 @@
-# Package registry
-
-**Import Path:** `gitee.com/MM-Q/qflag/internal/registry`
-
-Package registry 内部注册表管理。本包实现了内部组件的注册表管理功能，提供统一的组件注册、查找和管理机制，支持模块化的架构设计。
-
-## 功能模块
-
-- **内部注册表管理** - 实现了内部组件的注册表管理功能，提供统一的组件注册、查找和管理机制，支持模块化的架构设计
-
-## 目录
-
-- [函数](#函数)
-  - [RegisterFlag](#registerflag)
-  - [ValidateFlagNames](#validateflagnames)
-
-## 函数
-
-### RegisterFlag
+# Package registry 
 
 ```go
-func RegisterFlag(ctx *types.CmdContext, flag flags.Flag, longName, shortName string) error
+import "gitee.com/MM-Q/qflag/internal/registry"
 ```
 
-RegisterFlag 注册标志。纯函数设计，通过参数传递所有必要信息。
+Package registry 提供标志和命令的注册表实现
 
-**参数:**
-- `ctx`: 命令上下文，用于存储注册的标志信息
-- `flag`: 要注册的标志对象，实现了 `flags.Flag` 接口
-- `longName`: 标志的长名称（如 "help", "version"）
-- `shortName`: 标志的短名称（如 "h", "v"）
+registry 包基于泛型注册表提供了专门的标志和命令注册表实现。 主要组件: 
+  - FlagRegistryImpl: 标志注册表, 支持标志的注册、查找和别名管理
+  - CmdRegistryImpl: 命令注册表, 支持命令的注册、查找和别名管理
+
+特性: 
+  - 类型安全的注册表接口
+  - 支持长名称和短名称查找
+  - 别名管理功能
+  - 统一的错误处理
+
+---
+
+## FUNCTIONS
+
+### func NewCmdRegistry() types.CmdRegistry
+
+```go
+func NewCmdRegistry() types.CmdRegistry
+```
+
+NewCmdRegistry 创建新的命令注册表实例
 
 **返回值:**
-- `error`: 如果注册失败（如名称冲突、无效名称等），返回错误信息；成功时返回 nil
+  - types.CmdRegistry: 命令注册表接口实例
 
-**功能特点:**
-- 纯函数设计，无副作用
-- 支持长短名称的双重注册
-- 自动进行名称冲突检测
-- 提供统一的标志注册接口
+**功能说明: **
+  - 创建泛型注册表实例
+  - 包装为CmdRegistryImpl
+  - 返回接口类型, 隐藏实现细节
 
-**注册流程:**
-1. 验证标志名称的有效性
-2. 检查名称是否已被占用
-3. 将标志添加到上下文的注册表中
-4. 建立名称到标志的映射关系
+---
 
-### ValidateFlagNames
+### func NewFlagRegistry() types.FlagRegistry
 
 ```go
-func ValidateFlagNames(ctx *types.CmdContext, longName, shortName string) error
+func NewFlagRegistry() types.FlagRegistry
 ```
 
-ValidateFlagNames 验证标志名称的有效性和唯一性。
-
-**参数:**
-- `ctx`: 命令上下文，包含已注册标志的信息
-- `longName`: 要验证的长标志名称
-- `shortName`: 要验证的短标志名称
+NewFlagRegistry 创建新的标志注册表实例
 
 **返回值:**
-- `error`: 如果标志名称无效或已存在，则返回错误；否则返回 nil
+  - types.FlagRegistry: 标志注册表接口实例
 
-**验证规则:**
-- **名称格式验证**: 检查名称是否符合标志命名规范
-- **唯一性验证**: 确保名称在当前上下文中唯一
-- **长度验证**: 检查名称长度是否在合理范围内
-- **字符验证**: 验证名称只包含允许的字符
+**功能说明: **
+  - 创建泛型注册表实例
+  - 包装为FlagRegistryImpl
+  - 返回接口类型, 隐藏实现细节
 
-**验证内容:**
-- 长名称不能为空且符合命名规范
-- 短名称应为单个字符（如果提供）
-- 名称不能与已注册的标志冲突
-- 名称不能使用保留字符或关键字
+---
 
-## 使用示例
-
-### 基本标志注册
+### func NewRegistry[T any]() *registry[T]
 
 ```go
-package main
+func NewRegistry[T any]() *registry[T]
+```
 
-import (
-    "gitee.com/MM-Q/qflag/internal/registry"
-    "gitee.com/MM-Q/qflag/internal/types"
-    "gitee.com/MM-Q/qflag/flags"
-)
+NewRegistry 创建新的泛型注册表实例
 
-func main() {
-    // 创建命令上下文
-    ctx := &types.CmdContext{
-        Flags: make(map[string]flags.Flag),
-    }
-    
-    // 创建一个布尔标志
-    helpFlag := flags.NewBoolFlag(false)
-    
-    // 注册标志
-    err := registry.RegisterFlag(ctx, helpFlag, "help", "h")
-    if err != nil {
-        panic(err)
-    }
-    
-    // 现在可以通过 "help" 或 "h" 访问这个标志
+**返回值:**
+  - *registry[T]: 初始化完成的注册表实例
+
+**功能说明: **
+  - 初始化空的存储映射
+  - 创建名称索引映射
+  - 初始化ID计数器
+  - 准备接收注册项
+
+---
+
+## TYPES
+
+### type CmdRegistryImpl struct
+
+```go
+type CmdRegistryImpl struct {
+    *registry[types.Command]
 }
 ```
 
-### 批量注册标志
+CmdRegistryImpl 命令注册表实现
+
+CmdRegistryImpl 是 types.CmdRegistry 接口的具体实现, 基于泛型注册表 提供了命令的注册、查找、别名管理等功能。
+
+**特性: **
+  - 支持长名称和短名称查找
+  - 支持别名添加和管理
+  - 提供完整的命令生命周期管理
+  - 继承泛型注册表的所有基础功能
+
+#### func (r *CmdRegistryImpl) Clear()
 
 ```go
-func registerCommonFlags(ctx *types.CmdContext) error {
-    // 定义要注册的标志
-    flagsToRegister := []struct {
-        flag      flags.Flag
-        longName  string
-        shortName string
-    }{
-        {flags.NewBoolFlag(false), "help", "h"},
-        {flags.NewBoolFlag(false), "version", "v"},
-        {flags.NewStringFlag(""), "config", "c"},
-        {flags.NewIntFlag(0), "port", "p"},
-        {flags.NewBoolFlag(false), "verbose", ""},
-    }
-    
-    // 批量注册
-    for _, f := range flagsToRegister {
-        if err := registry.RegisterFlag(ctx, f.flag, f.longName, f.shortName); err != nil {
-            return fmt.Errorf("注册标志 %s 失败: %w", f.longName, err)
-        }
-    }
-    
-    return nil
+func (r *CmdRegistryImpl) Clear()
+```
+
+Clear 清空注册表中的所有命令
+
+**功能说明: **
+  - 移除所有命令
+  - 重置注册表到初始状态
+  - 释放相关内存
+
+#### func (r *CmdRegistryImpl) Count() int
+
+```go
+func (r *CmdRegistryImpl) Count() int
+```
+
+Count 获取注册表中的命令数量
+
+**返回值:**
+  - int: 命令总数
+
+**功能说明: **
+  - 返回当前注册的命令数量
+  - 时间复杂度O(1)
+
+#### func (r *CmdRegistryImpl) Get(name string) (types.Command, bool)
+
+```go
+func (r *CmdRegistryImpl) Get(name string) (types.Command, bool)
+```
+
+Get 根据名称获取命令
+
+**参数:**
+  - name: 命令名称
+
+**返回值:**
+  - types.Command: 找到的命令
+  - bool: 是否找到, true表示找到
+
+**功能说明: **
+  - 支持长名称查找
+  - 直接委托给底层注册表
+
+#### func (r *CmdRegistryImpl) Has(name string) bool
+
+```go
+func (r *CmdRegistryImpl) Has(name string) bool
+```
+
+Has 检查指定名称的命令是否存在
+
+**参数:**
+  - name: 要检查的命令名称
+
+**返回值:**
+  - bool: 是否存在, true表示存在
+
+**功能说明: **
+  - 快速存在性检查
+  - 不返回命令本身, 提高效率
+
+#### func (r *CmdRegistryImpl) List() []types.Command
+
+```go
+func (r *CmdRegistryImpl) List() []types.Command
+```
+
+List 获取所有注册的命令列表
+
+**返回值:**
+  - []types.Command: 所有命令的切片
+
+**功能说明: **
+  - 返回注册表中所有命令
+  - 顺序不确定, 取决于map遍历顺序
+
+#### func (r *CmdRegistryImpl) Range(f func(name string, cmd types.Command) bool)
+
+```go
+func (r *CmdRegistryImpl) Range(f func(name string, cmd types.Command) bool)
+```
+
+Range 遍历注册表中的所有命令
+
+**参数:**
+  - f: 遍历函数, 接收名称和命令, 返回是否继续遍历
+
+**功能说明: **
+  - 按注册顺序遍历所有命令
+  - 支持提前终止遍历
+  - 遍历过程中修改注册表可能导致不确定行为
+
+#### func (r *CmdRegistryImpl) Register(cmd types.Command) error
+
+```go
+func (r *CmdRegistryImpl) Register(cmd types.Command) error
+```
+
+Register 注册新命令到注册表
+
+**参数:**
+  - cmd: 要注册的命令, 不能为nil
+
+**返回值:**
+  - error: 注册失败时返回错误
+
+**错误情况: **
+  - 命令为nil: 返回 INVALID_COMMAND 错误
+  - 命令名称为空: 返回 INVALID_NAME 错误
+  - 命令名称已存在: 返回 ErrAlreadyExists 错误
+  - 长名称和短名称都为空: 返回 INVALID_NAME 错误
+
+**功能说明: **
+  - 验证命令有效性
+  - 提取命令名称
+  - 调用底层注册方法 (支持长名称和短名称) 
+  - 命令对象只存储一次, 长名称和短名称都指向同一个对象
+
+#### func (r *CmdRegistryImpl) Unregister(name string) error
+
+```go
+func (r *CmdRegistryImpl) Unregister(name string) error
+```
+
+Unregister 从注册表中移除指定命令
+
+**参数:**
+  - name: 要移除的命令名称
+
+**返回值:**
+  - error: 移除失败时返回错误
+
+**错误情况: **
+  - 命令不存在: 返回 ErrCmdNotFound 错误
+
+**功能说明: **
+  - 调用底层移除方法
+  - 自动清理相关索引
+
+---
+
+### type FlagRegistryImpl struct
+
+```go
+type FlagRegistryImpl struct {
+    *registry[types.Flag]
 }
 ```
 
-### 名称验证示例
+FlagRegistryImpl 标志注册表实现
+
+FlagRegistryImpl 是 types.FlagRegistry 接口的具体实现, 基于泛型注册表 提供了标志的注册、查找、别名管理等功能。
+
+**特性: **
+  - 支持长名称和短名称查找
+  - 支持别名添加和管理
+  - 提供完整的标志生命周期管理
+  - 继承泛型注册表的所有基础功能
+
+#### func (r *FlagRegistryImpl) Clear()
 
 ```go
-func validateAndRegister(ctx *types.CmdContext, flag flags.Flag, longName, shortName string) error {
-    // 先验证名称
-    if err := registry.ValidateFlagNames(ctx, longName, shortName); err != nil {
-        return fmt.Errorf("标志名称验证失败: %w", err)
-    }
-    
-    // 验证通过后注册
-    if err := registry.RegisterFlag(ctx, flag, longName, shortName); err != nil {
-        return fmt.Errorf("标志注册失败: %w", err)
-    }
-    
-    return nil
-}
-
-func main() {
-    ctx := &types.CmdContext{}
-    
-    // 注册第一个标志
-    debugFlag := flags.NewBoolFlag(false)
-    if err := validateAndRegister(ctx, debugFlag, "debug", "d"); err != nil {
-        panic(err)
-    }
-    
-    // 尝试注册冲突的标志（会失败）
-    verboseFlag := flags.NewBoolFlag(false)
-    if err := validateAndRegister(ctx, verboseFlag, "debug", "v"); err != nil {
-        fmt.Printf("预期的错误: %v\n", err)
-    }
-}
+func (r *FlagRegistryImpl) Clear()
 ```
 
-### 动态标志注册
+Clear 清空注册表中的所有标志
+
+**功能说明: **
+  - 移除所有标志
+  - 重置注册表到初始状态
+  - 释放相关内存
+
+#### func (r *FlagRegistryImpl) Count() int
 
 ```go
-type FlagConfig struct {
-    LongName    string
-    ShortName   string
-    FlagType    string
-    DefaultValue interface{}
-    Desc string
-}
-
-func registerFlagsFromConfig(ctx *types.CmdContext, configs []FlagConfig) error {
-    for _, config := range configs {
-        // 根据配置创建标志
-        var flag flags.Flag
-        switch config.FlagType {
-        case "bool":
-            flag = flags.NewBoolFlag(config.DefaultValue.(bool))
-        case "string":
-            flag = flags.NewStringFlag(config.DefaultValue.(string))
-        case "int":
-            flag = flags.NewIntFlag(config.DefaultValue.(int))
-        default:
-            return fmt.Errorf("不支持的标志类型: %s", config.FlagType)
-        }
-        
-        // 注册标志
-        if err := registry.RegisterFlag(ctx, flag, config.LongName, config.ShortName); err != nil {
-            return fmt.Errorf("注册标志 %s 失败: %w", config.LongName, err)
-        }
-    }
-    
-    return nil
-}
+func (r *FlagRegistryImpl) Count() int
 ```
 
-## 注册规则
+Count 获取注册表中的标志数量
 
-### 名称规范
+**返回值:**
+  - int: 标志总数
 
-- **长名称**: 
-  - 必须以字母开头
-  - 可包含字母、数字、连字符（-）
-  - 长度建议在 2-20 个字符之间
-  - 使用小写字母和连字符的组合
+**功能说明: **
+  - 返回当前注册的标志数量
+  - 时间复杂度O(1)
 
-- **短名称**:
-  - 必须是单个字符
-  - 通常使用字母（a-z, A-Z）
-  - 避免使用数字和特殊字符
+#### func (r *FlagRegistryImpl) Get(name string) (types.Flag, bool)
 
-### 冲突检测
+```go
+func (r *FlagRegistryImpl) Get(name string) (types.Flag, bool)
+```
 
-- 长名称在同一上下文中必须唯一
-- 短名称在同一上下文中必须唯一
-- 不区分大小写的重复检测
-- 支持层级上下文的名称隔离
+Get 根据名称获取标志
 
-### 保留名称
+**参数:**
+  - name: 标志名称
 
-以下名称为系统保留，不能用于自定义标志：
-- `help`, `h` - 帮助信息
-- `version`, `v` - 版本信息
-- 以 `_` 开头的名称 - 内部使用
+**返回值:**
+  - types.Flag: 找到的标志
+  - bool: 是否找到, true表示找到
 
-## 错误处理
+**功能说明: **
+  - 支持长名称查找
+  - 直接委托给底层注册表
 
-注册器会返回以下类型的错误：
+#### func (r *FlagRegistryImpl) Has(name string) bool
 
-- **名称冲突错误**: 标志名称已被占用
-- **无效名称错误**: 名称不符合命名规范
-- **保留名称错误**: 尝试使用系统保留名称
-- **空名称错误**: 长名称为空或无效
-- **类型错误**: 标志对象类型不正确
+```go
+func (r *FlagRegistryImpl) Has(name string) bool
+```
 
-## 设计特点
+Has 检查指定名称的标志是否存在
 
-1. **纯函数设计** - 所有函数都是纯函数，不依赖全局状态
-2. **上下文隔离** - 通过 `CmdContext` 实现标志的作用域隔离
-3. **类型安全** - 使用接口确保标志对象的类型安全
-4. **错误友好** - 提供详细的错误信息和建议
-5. **扩展性强** - 支持自定义标志类型和验证规则
+**参数:**
+  - name: 要检查的标志名称
 
-## 性能考虑
+**返回值:**
+  - bool: 是否存在, true表示存在
 
-- 注册操作为 O(1) 时间复杂度（基于哈希表）
-- 名称验证为 O(n) 时间复杂度，其中 n 为已注册标志数量
-- 内存使用与注册标志数量成正比
-- 建议在程序启动时一次性完成所有标志注册
+**功能说明: **
+  - 快速存在性检查
+  - 不返回标志本身, 提高效率
 
-## 最佳实践
+#### func (r *FlagRegistryImpl) List() []types.Flag
 
-1. **统一注册**: 在程序启动时统一注册所有标志
-2. **名称规范**: 遵循一致的命名规范
-3. **错误处理**: 妥善处理注册过程中的错误
-4. **文档化**: 为每个标志提供清晰的描述
-5. **测试覆盖**: 确保注册逻辑有充分的测试覆盖
+```go
+func (r *FlagRegistryImpl) List() []types.Flag
+```
 
-## 注意事项
+List 获取所有注册的标志列表
 
-- 标志注册应在解析之前完成
-- 注册顺序不影响解析结果
-- 上下文销毁时会自动清理注册的标志
-- 不支持运行时动态注销标志
-- 标志名称一旦注册不可修改
+**返回值:**
+  - []types.Flag: 所有标志的切片
+
+**功能说明: **
+  - 返回注册表中所有标志
+  - 顺序不确定, 取决于map遍历顺序
+
+#### func (r *FlagRegistryImpl) Range(f func(name string, flag types.Flag) bool)
+
+```go
+func (r *FlagRegistryImpl) Range(f func(name string, flag types.Flag) bool)
+```
+
+Range 遍历注册表中的所有标志
+
+**参数:**
+  - f: 遍历函数, 接收名称和标志, 返回是否继续遍历
+
+**功能说明: **
+  - 按注册顺序遍历所有标志
+  - 支持提前终止遍历
+  - 遍历过程中修改注册表可能导致不确定行为
+
+#### func (r *FlagRegistryImpl) Register(flag types.Flag) error
+
+```go
+func (r *FlagRegistryImpl) Register(flag types.Flag) error
+```
+
+Register 注册新标志到注册表
+
+**参数:**
+  - flag: 要注册的标志, 不能为nil
+
+**返回值:**
+  - error: 注册失败时返回错误
+
+**错误情况: **
+  - 标志为nil: 返回 INVALID_FLAG 错误
+  - 标志名称为空: 返回 INVALID_NAME 错误
+  - 标志名称已存在: 返回 ErrAlreadyExists 错误
+  - 长名称和短名称都为空: 返回 INVALID_NAME 错误
+
+**功能说明: **
+  - 验证标志有效性
+  - 提取标志名称
+  - 调用底层注册方法 (支持长名称和短名称) 
+  - 标志对象只存储一次, 长名称和短名称都指向同一个对象
+
+#### func (r *FlagRegistryImpl) Unregister(name string) error
+
+```go
+func (r *FlagRegistryImpl) Unregister(name string) error
+```
+
+Unregister 从注册表中移除指定标志
+
+**参数:**
+  - name: 要移除的标志名称
+
+**返回值:**
+  - error: 移除失败时返回错误
+
+**错误情况: **
+  - 标志不存在: 返回 ErrFlagNotFound 错误
+
+**功能说明: **
+  - 调用底层移除方法
+  - 自动清理相关索引

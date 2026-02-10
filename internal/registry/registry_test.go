@@ -1,656 +1,490 @@
-// Package registry 注册表测试
-// 本文件包含了内部注册表的单元测试，测试组件注册、查找和
-// 管理机制的正确性，支持模块化的架构设计。
 package registry
 
 import (
-	"fmt"
-	"strings"
-	"sync"
 	"testing"
 
-	"gitee.com/MM-Q/qflag/flags"
+	"gitee.com/MM-Q/qflag/internal/flag"
+	"gitee.com/MM-Q/qflag/internal/mock"
 	"gitee.com/MM-Q/qflag/internal/types"
 )
 
-// MockFlag 模拟标志实现
-type MockFlag struct {
-	longName  string
-	shortName string
-	value     interface{}
-	isSet     bool
-}
+// TestNewRegistry 测试泛型注册表创建
+func TestNewRegistry(t *testing.T) {
+	reg := NewRegistry[string]()
 
-func NewMockFlag(longName, shortName string, value interface{}) *MockFlag {
-	return &MockFlag{
-		longName:  longName,
-		shortName: shortName,
-		value:     value,
-		isSet:     false,
+	// 检查注册表是否正确初始化
+	if len(reg.items) != 0 {
+		t.Error("NewRegistry() should initialize empty items map")
+	}
+
+	if len(reg.nameIndex) != 0 {
+		t.Error("NewRegistry() should initialize empty nameIndex map")
 	}
 }
 
-func (m *MockFlag) LongName() string {
-	return m.longName
-}
+// TestRegistry_Register 测试注册功能
+func TestRegistry_Register(t *testing.T) {
+	reg := NewRegistry[string]()
 
-func (m *MockFlag) ShortName() string {
-	return m.shortName
-}
-
-func (m *MockFlag) Usage() string {
-	return "mock flag usage"
-}
-
-func (m *MockFlag) Type() flags.FlagType {
-	return flags.FlagTypeString
-}
-
-func (m *MockFlag) GetDefaultAny() interface{} {
-	return m.value
-}
-
-func (m *MockFlag) String() string {
-	if m.value == nil {
-		return ""
-	}
-	return fmt.Sprintf("%v", m.value)
-}
-
-func (m *MockFlag) IsSet() bool {
-	return m.isSet
-}
-
-func (m *MockFlag) Reset() {
-	m.isSet = false
-}
-
-func (m *MockFlag) GetEnvVar() string {
-	return ""
-}
-
-// createTestContext 创建测试上下文，预先标记内置标志
-func createTestContext() *types.CmdContext {
-	ctx := &types.CmdContext{
-		FlagRegistry: flags.NewFlagRegistry(),
-		BuiltinFlags: types.NewBuiltinFlags(),
+	// 测试正常注册
+	err := reg.Register("value", "test", "")
+	if err != nil {
+		t.Errorf("Register() error = %v", err)
 	}
 
-	// 标记内置标志名称
-	ctx.BuiltinFlags.MarkAsBuiltin("help", "h", "version", "v", "completion")
-
-	return ctx
-}
-
-// TestRegisterFlag 测试标志注册功能
-func TestRegisterFlag(t *testing.T) {
-	tests := []struct {
-		name      string
-		longName  string
-		shortName string
-		flag      flags.Flag
-		wantErr   bool
-		errMsg    string
-	}{
-		{
-			name:      "注册有效的长标志",
-			longName:  "test-flag",
-			shortName: "",
-			flag:      NewMockFlag("test-flag", "", "default"),
-			wantErr:   false,
-		},
-		{
-			name:      "注册有效的短标志",
-			longName:  "",
-			shortName: "t",
-			flag:      NewMockFlag("", "t", "default"),
-			wantErr:   false,
-		},
-		{
-			name:      "注册长短标志都有效",
-			longName:  "test-flag",
-			shortName: "t",
-			flag:      NewMockFlag("test-flag", "t", "default"),
-			wantErr:   false,
-		},
-		{
-			name:      "长短标志名都为空",
-			longName:  "",
-			shortName: "",
-			flag:      NewMockFlag("", "", "default"),
-			wantErr:   true,
-			errMsg:    "flag long name and short name cannot both be empty",
-		},
-		{
-			name:      "长标志名包含感叹号",
-			longName:  "test!flag",
-			shortName: "",
-			flag:      NewMockFlag("test!flag", "", "default"),
-			wantErr:   true,
-		},
-		{
-			name:      "短标志名包含感叹号",
-			longName:  "",
-			shortName: "t!",
-			flag:      NewMockFlag("", "t!", "default"),
-			wantErr:   true,
-		},
-		{
-			name:      "使用内置标志名help",
-			longName:  "help",
-			shortName: "",
-			flag:      NewMockFlag("help", "", "default"),
-			wantErr:   true,
-			errMsg:    "flag long name 'help' is reserved",
-		},
-		{
-			name:      "使用内置标志名h",
-			longName:  "",
-			shortName: "h",
-			flag:      NewMockFlag("", "h", "default"),
-			wantErr:   true,
-			errMsg:    "flag short name 'h' is reserved",
-		},
-		{
-			name:      "使用内置标志名version",
-			longName:  "version",
-			shortName: "",
-			flag:      NewMockFlag("version", "", "default"),
-			wantErr:   true,
-			errMsg:    "flag long name 'version' is reserved",
-		},
-		{
-			name:      "使用内置标志名v",
-			longName:  "",
-			shortName: "v",
-			flag:      NewMockFlag("", "v", "default"),
-			wantErr:   true,
-			errMsg:    "flag short name 'v' is reserved",
-		},
+	// 测试重复注册
+	err = reg.Register("value2", "test", "")
+	if err != types.ErrFlagAlreadyExists {
+		t.Errorf("Register() error = %v, want %v", err, types.ErrFlagAlreadyExists)
 	}
 
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			ctx := createTestContext()
-
-			err := RegisterFlag(ctx, tt.flag, tt.longName, tt.shortName)
-
-			if tt.wantErr {
-				if err == nil {
-					t.Errorf("RegisterFlag() 期望错误但未返回错误")
-					return
-				}
-				if tt.errMsg != "" && err.Error() != tt.errMsg {
-					t.Errorf("RegisterFlag() 错误信息 = %v, 期望 %v", err.Error(), tt.errMsg)
-				}
-			} else {
-				if err != nil {
-					t.Errorf("RegisterFlag() 意外错误 = %v", err)
-				}
-			}
-		})
+	// 测试空名称注册
+	err = reg.Register("value", "", "")
+	if err == nil {
+		t.Error("Register() with empty names should return error")
 	}
 }
 
-// TestValidateFlagNames 测试标志名称验证
-func TestValidateFlagNames(t *testing.T) {
-	tests := []struct {
-		name      string
-		longName  string
-		shortName string
-		wantErr   bool
-		errMsg    string
-	}{
-		{
-			name:      "有效的长标志名",
-			longName:  "valid-flag",
-			shortName: "",
-			wantErr:   false,
-		},
-		{
-			name:      "有效的短标志名",
-			longName:  "",
-			shortName: "f",
-			wantErr:   false,
-		},
-		{
-			name:      "长短标志名都有效",
-			longName:  "valid-flag",
-			shortName: "f",
-			wantErr:   false,
-		},
-		{
-			name:      "长短标志名都为空",
-			longName:  "",
-			shortName: "",
-			wantErr:   true,
-			errMsg:    "flag long name and short name cannot both be empty",
-		},
-		{
-			name:      "长标志名包含空格",
-			longName:  "flag name",
-			shortName: "",
-			wantErr:   true,
-		},
-		{
-			name:      "长标志名包含空格",
-			longName:  "flag name",
-			shortName: "",
-			wantErr:   true,
-		},
-		{
-			name:      "短标志名包含感叹号",
-			longName:  "",
-			shortName: "f!",
-			wantErr:   true,
-		},
-		{
-			name:      "使用内置长标志名",
-			longName:  "help",
-			shortName: "",
-			wantErr:   true,
-			errMsg:    "flag long name 'help' is reserved",
-		},
-		{
-			name:      "使用内置短标志名",
-			longName:  "",
-			shortName: "h",
-			wantErr:   true,
-			errMsg:    "flag short name 'h' is reserved",
-		},
-		{
-			name:      "使用内置version标志",
-			longName:  "version",
-			shortName: "",
-			wantErr:   true,
-			errMsg:    "flag long name 'version' is reserved",
-		},
-		{
-			name:      "使用内置v标志",
-			longName:  "",
-			shortName: "v",
-			wantErr:   true,
-			errMsg:    "flag short name 'v' is reserved",
-		},
+// TestRegistry_Unregister 测试注销功能
+func TestRegistry_Unregister(t *testing.T) {
+	reg := NewRegistry[string]()
+
+	// 注册一个项
+	if err := reg.Register("value", "test", ""); err != nil {
+		t.Errorf("Register() error = %v", err)
 	}
 
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			ctx := createTestContext()
+	// 测试正常注销
+	err := reg.Unregister("test")
+	if err != nil {
+		t.Errorf("Unregister() error = %v", err)
+	}
 
-			err := ValidateFlagNames(ctx, tt.longName, tt.shortName)
+	// 验证项已移除
+	_, exists := reg.Get("test")
+	if exists {
+		t.Error("Unregister() should remove the item")
+	}
 
-			if tt.wantErr {
-				if err == nil {
-					t.Errorf("ValidateFlagNames() 期望错误但未返回错误")
-					return
-				}
-				if tt.errMsg != "" && err.Error() != tt.errMsg {
-					t.Errorf("ValidateFlagNames() 错误信息 = %v, 期望 %v", err.Error(), tt.errMsg)
-				}
-			} else {
-				if err != nil {
-					t.Errorf("ValidateFlagNames() 意外错误 = %v", err)
-				}
-			}
-		})
+	// 测试注销不存在的项
+	err = reg.Unregister("nonexistent")
+	if err != types.ErrFlagNotFound {
+		t.Errorf("Unregister() error = %v, want %v", err, types.ErrFlagNotFound)
 	}
 }
 
-// TestValidateSingleFlagName 测试单个标志名称验证
-func TestValidateSingleFlagName(t *testing.T) {
-	tests := []struct {
-		name     string
-		flagName string
-		nameType string
-		wantErr  bool
-		errMsg   string
-	}{
-		{
-			name:     "有效标志名",
-			flagName: "valid-flag",
-			nameType: "long name",
-			wantErr:  false,
-		},
-		{
-			name:     "包含非法字符感叹号",
-			flagName: "flag!value",
-			nameType: "long name",
-			wantErr:  true,
-		},
-		{
-			name:     "包含非法字符空格",
-			flagName: "flag name",
-			nameType: "long name",
-			wantErr:  true,
-		},
-		{
-			name:     "内置标志help",
-			flagName: "help",
-			nameType: "long name",
-			wantErr:  true,
-			errMsg:   "flag long name 'help' is reserved",
-		},
-		{
-			name:     "内置标志h",
-			flagName: "h",
-			nameType: "short name",
-			wantErr:  true,
-			errMsg:   "flag short name 'h' is reserved",
-		},
-		{
-			name:     "内置标志version",
-			flagName: "version",
-			nameType: "long name",
-			wantErr:  true,
-			errMsg:   "flag long name 'version' is reserved",
-		},
-		{
-			name:     "内置标志v",
-			flagName: "v",
-			nameType: "short name",
-			wantErr:  true,
-			errMsg:   "flag short name 'v' is reserved",
-		},
+// TestRegistry_Get 测试获取功能
+func TestRegistry_Get(t *testing.T) {
+	reg := NewRegistry[string]()
+
+	// 注册一个项
+	if err := reg.Register("value", "test", ""); err != nil {
+		t.Errorf("Register() error = %v", err)
 	}
 
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			ctx := createTestContext()
+	// 测试获取存在的项
+	value, exists := reg.Get("test")
+	if !exists {
+		t.Error("Get() should find the item")
+	}
+	if value != "value" {
+		t.Errorf("Get() value = %v, want %v", value, "value")
+	}
 
-			err := validateSingleFlagName(ctx, tt.flagName, tt.nameType)
-
-			if tt.wantErr {
-				if err == nil {
-					t.Errorf("validateSingleFlagName() 期望错误但未返回错误")
-					return
-				}
-				if tt.errMsg != "" && err.Error() != tt.errMsg {
-					t.Errorf("validateSingleFlagName() 错误信息 = %v, 期望 %v", err.Error(), tt.errMsg)
-				}
-			} else {
-				if err != nil {
-					t.Errorf("validateSingleFlagName() 意外错误 = %v", err)
-				}
-			}
-		})
+	// 测试获取不存在的项
+	_, exists = reg.Get("nonexistent")
+	if exists {
+		t.Error("Get() should not find nonexistent item")
 	}
 }
 
-// TestEdgeCases 测试边界情况
-func TestEdgeCases(t *testing.T) {
-	ctx := &types.CmdContext{
-		FlagRegistry: flags.NewFlagRegistry(),
-		BuiltinFlags: types.NewBuiltinFlags(),
+// TestRegistry_GetByShortName 测试通过短名称获取功能
+func TestRegistry_GetByShortName(t *testing.T) {
+	reg := NewRegistry[*mock.MockFlag]()
+
+	// 创建一个带短名称的标志
+	flag := mock.NewMockFlag("test", "t", "Test flag", types.FlagTypeBool, false)
+	if err := reg.Register(flag, "test", "t"); err != nil {
+		t.Errorf("Register() error = %v", err)
 	}
 
-	t.Run("极长标志名", func(t *testing.T) {
-		longName := strings.Repeat("a", 1000)
+	// 测试通过短名称获取
+	value, exists := reg.Get("t")
+	if !exists {
+		t.Error("GetByShortName() should find the item")
+	}
+	if value != flag {
+		t.Error("GetByShortName() should return the correct flag")
+	}
 
-		err := ValidateFlagNames(ctx, longName, "")
-		if err != nil {
-			t.Errorf("极长标志名验证失败: %v", err)
+	// 测试获取不存在的短名称
+	_, exists = reg.Get("x")
+	if exists {
+		t.Error("GetByShortName() should not find nonexistent short name")
+	}
+}
+
+// TestRegistry_List 测试列出所有项
+func TestRegistry_List(t *testing.T) {
+	reg := NewRegistry[string]()
+
+	// 注册多个项
+	if err := reg.Register("value1", "test1", ""); err != nil {
+		t.Errorf("Register() error = %v", err)
+	}
+	if err := reg.Register("value2", "test2", ""); err != nil {
+		t.Errorf("Register() error = %v", err)
+	}
+	if err := reg.Register("value3", "test3", ""); err != nil {
+		t.Errorf("Register() error = %v", err)
+	}
+
+	// 获取列表
+	items := reg.List()
+
+	if len(items) != 3 {
+		t.Errorf("List() returned %d items, want 3", len(items))
+	}
+
+	// 验证所有项都在列表中
+	itemSet := make(map[string]bool)
+	for _, item := range items {
+		itemSet[item] = true
+	}
+
+	if !itemSet["value1"] || !itemSet["value2"] || !itemSet["value3"] {
+		t.Error("List() should include all registered items")
+	}
+}
+
+// TestRegistry_Has 测试检查项是否存在
+func TestRegistry_Has(t *testing.T) {
+	reg := NewRegistry[string]()
+
+	// 注册一个项
+	if err := reg.Register("value", "test", ""); err != nil {
+		t.Errorf("Register() error = %v", err)
+	}
+
+	// 测试存在的项
+	if !reg.Has("test") {
+		t.Error("Has() should return true for existing item")
+	}
+
+	// 测试不存在的项
+	if reg.Has("nonexistent") {
+		t.Error("Has() should return false for nonexistent item")
+	}
+}
+
+// TestRegistry_Count 测试计数功能
+func TestRegistry_Count(t *testing.T) {
+	reg := NewRegistry[string]()
+
+	// 初始计数应为0
+	if reg.Count() != 0 {
+		t.Errorf("Count() = %d, want 0", reg.Count())
+	}
+
+	// 添加项后计数应增加
+	if err := reg.Register("value1", "test1", ""); err != nil {
+		t.Errorf("Register() error = %v", err)
+	}
+	if reg.Count() != 1 {
+		t.Errorf("Count() = %d, want 1", reg.Count())
+	}
+
+	if err := reg.Register("value2", "test2", ""); err != nil {
+		t.Errorf("Register() error = %v", err)
+	}
+	if reg.Count() != 2 {
+		t.Errorf("Count() = %d, want 2", reg.Count())
+	}
+
+	// 移除项后计数应减少
+	if err := reg.Unregister("test1"); err != nil {
+		t.Errorf("Unregister() error = %v", err)
+	}
+	if reg.Count() != 1 {
+		t.Errorf("Count() = %d, want 1", reg.Count())
+	}
+}
+
+// TestRegistry_Clear 测试清空功能
+func TestRegistry_Clear(t *testing.T) {
+	reg := NewRegistry[string]()
+
+	// 添加多个项
+	if err := reg.Register("value1", "test1", ""); err != nil {
+		t.Errorf("Register() error = %v", err)
+	}
+	if err := reg.Register("value2", "test2", ""); err != nil {
+		t.Errorf("Register() error = %v", err)
+	}
+	if err := reg.Register("value3", "test3", ""); err != nil {
+		t.Errorf("Register() error = %v", err)
+	}
+
+	// 验证项已添加
+	if reg.Count() != 3 {
+		t.Errorf("Before Clear(), Count() = %d, want 3", reg.Count())
+	}
+
+	// 清空注册表
+	reg.Clear()
+
+	// 验证注册表已清空
+	if reg.Count() != 0 {
+		t.Errorf("After Clear(), Count() = %d, want 0", reg.Count())
+	}
+
+	if reg.Has("test1") || reg.Has("test2") || reg.Has("test3") {
+		t.Error("Clear() should remove all items")
+	}
+}
+
+// TestRegistry_Range 测试遍历功能
+func TestRegistry_Range(t *testing.T) {
+	reg := NewRegistry[string]()
+
+	// 添加多个项
+	if err := reg.Register("value1", "test1", ""); err != nil {
+		t.Errorf("Register() error = %v", err)
+	}
+	if err := reg.Register("value2", "test2", ""); err != nil {
+		t.Errorf("Register() error = %v", err)
+	}
+	if err := reg.Register("value3", "test3", ""); err != nil {
+		t.Errorf("Register() error = %v", err)
+	}
+
+	// 遍历所有项
+	visited := make(map[string]bool)
+	count := 0
+
+	reg.Range(func(name string, item string) bool {
+		visited[name] = true
+		count++
+
+		// 验证项的值
+		if name == "test1" && item != "value1" {
+			t.Errorf("Range() item mismatch for test1: got %v, want %v", item, "value1")
 		}
+		if name == "test2" && item != "value2" {
+			t.Errorf("Range() item mismatch for test2: got %v, want %v", item, "value2")
+		}
+		if name == "test3" && item != "value3" {
+			t.Errorf("Range() item mismatch for test3: got %v, want %v", item, "value3")
+		}
+
+		return true // 继续遍历
 	})
 
-	t.Run("特殊字符测试", func(t *testing.T) {
-		specialChars := []string{
-			"flag-with-dash",
-			"flag_with_underscore",
-			"flag123",
-			"123flag",
-		}
-
-		for _, name := range specialChars {
-			err := ValidateFlagNames(ctx, name, "")
-			if err != nil && !containsInvalidChars(name) {
-				t.Errorf("特殊字符标志名 %q 验证失败: %v", name, err)
-			}
-		}
-	})
-
-	t.Run("非法字符测试", func(t *testing.T) {
-		invalidNames := []string{
-			"flag!value",
-			"flag value",
-			"flag@value",
-			"flag#value",
-		}
-
-		for _, name := range invalidNames {
-			err := ValidateFlagNames(ctx, name, "")
-			if err == nil {
-				t.Errorf("包含非法字符的标志名 %q 应该验证失败", name)
-			}
-		}
-	})
-
-	t.Run("空值测试", func(t *testing.T) {
-		err := ValidateFlagNames(ctx, "", "")
-		if err == nil {
-			t.Error("长短标志名都为空应该返回错误")
-		}
-	})
-
-	t.Run("nil上下文测试", func(t *testing.T) {
-		defer func() {
-			if r := recover(); r == nil {
-				t.Error("nil上下文应该导致panic或错误")
-			}
-		}()
-		err := ValidateFlagNames(nil, "test", "")
-		if err == nil {
-			t.Error("期望验证标志名称时返回错误")
-		}
-	})
-}
-
-// containsInvalidChars 检查字符串是否包含非法字符
-func containsInvalidChars(s string) bool {
-	// 使用flags包中定义的InvalidFlagChars
-	return strings.ContainsAny(s, flags.InvalidFlagChars)
-}
-
-// TestConcurrency 测试并发安全性
-func TestConcurrency(t *testing.T) {
-	ctx := &types.CmdContext{
-		FlagRegistry: flags.NewFlagRegistry(),
-		BuiltinFlags: types.NewBuiltinFlags(),
+	// 验证所有项都被访问
+	if count != 3 {
+		t.Errorf("Range() visited %d items, want 3", count)
 	}
 
-	t.Run("并发验证标志名", func(t *testing.T) {
-		var wg sync.WaitGroup
-		numGoroutines := 100
-		errors := make(chan error, numGoroutines)
-
-		wg.Add(numGoroutines)
-		for i := 0; i < numGoroutines; i++ {
-			go func(id int) {
-				defer wg.Done()
-				flagName := fmt.Sprintf("flag-%d", id)
-				err := ValidateFlagNames(ctx, flagName, "")
-				if err != nil {
-					errors <- err
-				}
-			}(i)
-		}
-		wg.Wait()
-		close(errors)
-
-		for err := range errors {
-			t.Errorf("并发验证标志名失败: %v", err)
-		}
-	})
-
-	t.Run("并发注册标志", func(t *testing.T) {
-		var wg sync.WaitGroup
-		numGoroutines := 50
-		errors := make(chan error, numGoroutines)
-
-		wg.Add(numGoroutines)
-		for i := 0; i < numGoroutines; i++ {
-			go func(id int) {
-				defer wg.Done()
-				flagName := fmt.Sprintf("concurrent-flag-%d", id)
-				flag := NewMockFlag(flagName, "", "default")
-				err := RegisterFlag(ctx, flag, flagName, "")
-				if err != nil {
-					errors <- err
-				}
-			}(i)
-		}
-		wg.Wait()
-		close(errors)
-
-		for err := range errors {
-			t.Errorf("并发注册标志失败: %v", err)
-		}
-	})
-}
-
-// TestPerformance 性能测试
-func TestPerformance(t *testing.T) {
-	ctx := &types.CmdContext{
-		FlagRegistry: flags.NewFlagRegistry(),
-		BuiltinFlags: types.NewBuiltinFlags(),
+	if !visited["test1"] || !visited["test2"] || !visited["test3"] {
+		t.Error("Range() should visit all items")
 	}
 
-	t.Run("大量标志验证性能", func(t *testing.T) {
-		numFlags := 10000
-
-		for i := 0; i < numFlags; i++ {
-			flagName := fmt.Sprintf("perf-flag-%d", i)
-			err := ValidateFlagNames(ctx, flagName, "")
-			if err != nil {
-				t.Errorf("性能测试中标志验证失败: %v", err)
-				break
-			}
-		}
-	})
-}
-
-// TestNilInputs 测试nil输入处理
-func TestNilInputs(t *testing.T) {
-	ctx := &types.CmdContext{
-		FlagRegistry: flags.NewFlagRegistry(),
-		BuiltinFlags: types.NewBuiltinFlags(),
-	}
-
-	t.Run("nil标志注册", func(t *testing.T) {
-		defer func() {
-			if r := recover(); r == nil {
-				t.Error("注册nil标志应该导致panic或返回错误")
-			}
-		}()
-		err := RegisterFlag(ctx, nil, "test", "")
-		if err == nil {
-			t.Error("期望注册标志时返回错误")
-		}
+	// 测试提前终止遍历
+	earlyCount := 0
+	reg.Range(func(name string, item string) bool {
+		earlyCount++
+		return false // 提前终止
 	})
 
-	t.Run("nil上下文标志注册", func(t *testing.T) {
-		flag := NewMockFlag("test", "", "default")
-		defer func() {
-			if r := recover(); r == nil {
-				t.Error("nil上下文应该导致panic")
-			}
-		}()
-		err := RegisterFlag(nil, flag, "test", "")
-		if err == nil {
-			t.Error("期望注册标志时返回错误")
-		}
-	})
-}
-
-// TestTypeConversion 测试类型转换边界
-func TestTypeConversion(t *testing.T) {
-	ctx := &types.CmdContext{
-		FlagRegistry: flags.NewFlagRegistry(),
-		BuiltinFlags: types.NewBuiltinFlags(),
-	}
-
-	t.Run("不同类型标志", func(t *testing.T) {
-		// 测试不同类型的标志
-		testCases := []struct {
-			name  string
-			value interface{}
-		}{
-			{"string-flag", "test"},
-			{"int-flag", 42},
-			{"bool-flag", true},
-		}
-
-		for _, tc := range testCases {
-			flag := NewMockFlag(tc.name, "", tc.value)
-			err := RegisterFlag(ctx, flag, tc.name, "")
-			if err != nil {
-				t.Errorf("注册%s类型标志失败: %v", tc.name, err)
-			}
-		}
-	})
-}
-
-// TestInvalidFlagChars 测试非法字符常量
-func TestInvalidFlagChars(t *testing.T) {
-	ctx := &types.CmdContext{
-		FlagRegistry: flags.NewFlagRegistry(),
-		BuiltinFlags: types.NewBuiltinFlags(),
-	}
-
-	t.Run("测试所有非法字符", func(t *testing.T) {
-		// 测试flags.InvalidFlagChars中的每个字符
-		for _, char := range flags.InvalidFlagChars {
-			flagName := "flag" + string(char) + "name"
-			err := ValidateFlagNames(ctx, flagName, "")
-			if err == nil {
-				t.Errorf("包含非法字符 %q 的标志名应该验证失败", char)
-			}
-		}
-	})
-}
-
-// BenchmarkValidateFlagNames 基准测试标志名验证
-func BenchmarkValidateFlagNames(b *testing.B) {
-	ctx := &types.CmdContext{
-		FlagRegistry: flags.NewFlagRegistry(),
-		BuiltinFlags: types.NewBuiltinFlags(),
-	}
-
-	b.ResetTimer()
-	for i := 0; i < b.N; i++ {
-		flagName := fmt.Sprintf("benchmark-flag-%d", i%1000)
-		_ = ValidateFlagNames(ctx, flagName, "")
+	if earlyCount != 1 {
+		t.Errorf("Range() with early termination visited %d items, want 1", earlyCount)
 	}
 }
 
-// BenchmarkRegisterFlag 基准测试标志注册
-func BenchmarkRegisterFlag(b *testing.B) {
-	ctx := &types.CmdContext{
-		FlagRegistry: flags.NewFlagRegistry(),
-		BuiltinFlags: types.NewBuiltinFlags(),
+// TestNewFlagRegistry 测试标志注册表创建
+func TestNewFlagRegistry(t *testing.T) {
+	flagReg := NewFlagRegistry()
+
+	if flagReg == nil {
+		t.Error("NewFlagRegistry() should not return nil")
 	}
 
-	b.ResetTimer()
-	for i := 0; i < b.N; i++ {
-		flagName := fmt.Sprintf("benchmark-flag-%d", i%1000)
-		flag := NewMockFlag(flagName, "", "default")
-		_ = RegisterFlag(ctx, flag, flagName, "")
+	// 验证初始状态
+	if flagReg.Count() != 0 {
+		t.Errorf("NewFlagRegistry() Count() = %d, want 0", flagReg.Count())
 	}
 }
 
-// BenchmarkConcurrentValidation 基准测试并发验证
-func BenchmarkConcurrentValidation(b *testing.B) {
-	ctx := &types.CmdContext{
-		FlagRegistry: flags.NewFlagRegistry(),
-		BuiltinFlags: types.NewBuiltinFlags(),
+// TestFlagRegistryImpl_Register 测试标志注册
+func TestFlagRegistryImpl_Register(t *testing.T) {
+	flagReg := NewFlagRegistry()
+
+	// 创建测试标志
+	testFlag := flag.NewBoolFlag("test", "t", "Test flag", false)
+
+	// 测试正常注册
+	err := flagReg.Register(testFlag)
+	if err != nil {
+		t.Errorf("Register() error = %v", err)
 	}
 
-	b.RunParallel(func(pb *testing.PB) {
-		i := 0
-		for pb.Next() {
-			flagName := fmt.Sprintf("concurrent-flag-%d", i%1000)
-			_ = ValidateFlagNames(ctx, flagName, "")
-			i++
-		}
-	})
+	// 验证标志已注册
+	_, exists := flagReg.Get("test")
+	if !exists {
+		t.Error("Register() should register the flag")
+	}
+
+	// 测试注册nil标志
+	err = flagReg.Register(nil)
+	if err == nil {
+		t.Error("Register() with nil flag should return error")
+	}
+
+	// 测试注册空名称标志
+	emptyFlag := mock.NewMockFlag("", "", "Empty name flag", types.FlagTypeBool, false)
+	err = flagReg.Register(emptyFlag)
+	if err == nil {
+		t.Error("Register() with empty name and short name should return error")
+	}
+
+	// 测试重复注册
+	err = flagReg.Register(testFlag)
+	if err != types.ErrFlagAlreadyExists {
+		t.Errorf("Register() duplicate error = %v, want %v", err, types.ErrFlagAlreadyExists)
+	}
+
+	// 测试只有短名称的标志
+	shortOnlyFlag := mock.NewMockBoolFlag("", "s", "Short only flag", false)
+	if err := flagReg.Register(shortOnlyFlag); err != nil {
+		t.Errorf("Register() error = %v", err)
+	}
+
+	// 验证短名称可以获取
+	flag, exists := flagReg.Get("s")
+	if !exists {
+		t.Error("Register() should register flag with short name")
+	}
+	if flag != shortOnlyFlag {
+		t.Error("Register() should return correct flag for short name")
+	}
+}
+
+// TestFlagRegistryImpl_GetByShortName 测试通过短名称获取标志
+func TestFlagRegistryImpl_GetByShortName(t *testing.T) {
+	flagReg := NewFlagRegistry()
+
+	// 创建测试标志
+	testFlag := flag.NewBoolFlag("test", "t", "Test flag", false)
+	if err := flagReg.Register(testFlag); err != nil {
+		t.Errorf("Register() error = %v", err)
+	}
+
+	// 测试通过短名称获取
+	flag, exists := flagReg.Get("t")
+	if !exists {
+		t.Error("GetByShortName() should find the flag")
+	}
+	if flag != testFlag {
+		t.Error("GetByShortName() should return the correct flag")
+	}
+
+	// 测试获取不存在的短名称
+	_, exists = flagReg.Get("x")
+	if exists {
+		t.Error("GetByShortName() should not find nonexistent short name")
+	}
+}
+
+// TestNewCmdRegistry 测试命令注册表创建
+func TestNewCmdRegistry(t *testing.T) {
+	cmdReg := NewCmdRegistry()
+
+	if cmdReg == nil {
+		t.Error("NewCmdRegistry() should not return nil")
+	}
+
+	// 验证初始状态
+	if cmdReg.Count() != 0 {
+		t.Errorf("NewCmdRegistry() Count() = %d, want 0", cmdReg.Count())
+	}
+}
+
+// TestCmdRegistryImpl_Register 测试命令注册
+func TestCmdRegistryImpl_Register(t *testing.T) {
+	cmdReg := NewCmdRegistry()
+
+	// 创建测试命令
+	testCmd := mock.NewMockCommand("test", "t", "Test command")
+
+	// 测试正常注册
+	err := cmdReg.Register(testCmd)
+	if err != nil {
+		t.Errorf("Register() error = %v", err)
+	}
+
+	// 验证命令已注册
+	_, exists := cmdReg.Get("test")
+	if !exists {
+		t.Error("Register() should register the command")
+	}
+
+	// 测试注册nil命令
+	err = cmdReg.Register(nil)
+	if err == nil {
+		t.Error("Register() with nil command should return error")
+	}
+
+	// 测试注册空名称命令
+	emptyCmd := mock.NewMockCommand("", "", "Empty name command")
+	err = cmdReg.Register(emptyCmd)
+	if err == nil {
+		t.Error("Register() with empty name and short name should return error")
+	}
+
+	// 测试重复注册
+	err = cmdReg.Register(testCmd)
+	if err != types.ErrFlagAlreadyExists {
+		t.Errorf("Register() duplicate error = %v, want %v", err, types.ErrFlagAlreadyExists)
+	}
+
+	// 测试只有短名称的命令
+	shortOnlyCmd := mock.NewMockCommand("", "s", "Short only command")
+	if err := cmdReg.Register(shortOnlyCmd); err != nil {
+		t.Errorf("Register() error = %v", err)
+	}
+
+	// 验证短名称可以获取
+	cmd, exists := cmdReg.Get("s")
+	if !exists {
+		t.Error("Register() should register command with short name")
+	}
+	if cmd != shortOnlyCmd {
+		t.Error("Register() should return correct command for short name")
+	}
+}
+
+// TestCmdRegistryImpl_GetByShortName 测试通过短名称获取命令
+func TestCmdRegistryImpl_GetByShortName(t *testing.T) {
+	cmdReg := NewCmdRegistry()
+
+	// 创建测试命令
+	testCmd := mock.NewMockCommand("test", "t", "Test command")
+	if err := cmdReg.Register(testCmd); err != nil {
+		t.Errorf("Register() error = %v", err)
+	}
+
+	// 测试通过短名称获取
+	cmd, exists := cmdReg.Get("t")
+	if !exists {
+		t.Error("GetByShortName() should find the command")
+	}
+	if cmd != testCmd {
+		t.Error("GetByShortName() should return the correct command")
+	}
+
+	// 测试获取不存在的短名称
+	_, exists = cmdReg.Get("x")
+	if exists {
+		t.Error("GetByShortName() should not find nonexistent short name")
+	}
 }
