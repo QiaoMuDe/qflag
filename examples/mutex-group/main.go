@@ -44,10 +44,16 @@ func main() {
 
 	// 添加互斥组
 	// 输出格式互斥组: 可以选择一种格式, 也可以都不选择 (使用默认格式)
-	app.AddMutexGroup("output_format", []string{"json", "xml", "yaml"}, true)
+	if err := app.AddMutexGroup("output_format", []string{"json", "xml", "yaml"}, true); err != nil {
+		fmt.Printf("添加output_format互斥组失败: %v\n", err)
+		os.Exit(1)
+	}
 
 	// 输入源互斥组: 必须选择一个输入源
-	app.AddMutexGroup("input_source", []string{"file", "url", "stdin"}, false)
+	if err := app.AddMutexGroup("input_source", []string{"file", "url", "stdin"}, false); err != nil {
+		fmt.Printf("添加input_source互斥组失败: %v\n", err)
+		os.Exit(1)
+	}
 
 	// 解析参数
 	err := app.Parse(os.Args[1:])
