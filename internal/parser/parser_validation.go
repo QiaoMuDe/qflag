@@ -68,3 +68,51 @@ func (p *DefaultParser) validateMutexGroups(cmd types.Command) error {
 
 	return nil
 }
+
+// validateRequiredGroups 验证命令的必需组规则
+//
+// 参数:
+//   - cmd: 要验证的命令
+//
+// 返回值:
+//   - error: 如果必需组验证失败返回错误
+//
+// 功能说明:
+//   - 检查每个必需组中是否有标志未被设置
+//   - 提供清晰的错误信息，指出未设置的标志和组名
+//
+// 验证规则:
+//   - 必需组中的所有标志都必须被设置
+//   - 如果有任何一个标志未被设置，返回错误
+//
+// 错误处理:
+//   - 使用 types.NewError 创建结构化错误
+//   - 错误信息包含必需组名称和未设置的标志列表
+func (p *DefaultParser) validateRequiredGroups(cmd types.Command) error {
+	config := cmd.Config()
+	if config == nil {
+		return nil
+	}
+
+	if len(config.RequiredGroups) == 0 {
+		return nil
+	}
+
+	for _, group := range config.RequiredGroups {
+		var unsetFlags []string
+
+		for _, flagName := range group.Flags {
+			if flag, exists := cmd.GetFlag(flagName); exists && !flag.IsSet() {
+				unsetFlags = append(unsetFlags, flagName)
+			}
+		}
+
+		if len(unsetFlags) > 0 {
+			return types.NewError("REQUIRED_GROUP_VIOLATION",
+				fmt.Sprintf("required flags %v in group '%s' must be set", unsetFlags, group.Name),
+				nil)
+		}
+	}
+
+	return nil
+}

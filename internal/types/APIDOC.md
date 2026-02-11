@@ -550,15 +550,16 @@ const (
 
 ```go
 type CmdConfig struct {
-    Version     string            // 版本号
-    UseChinese  bool              // 是否使用中文
-    EnvPrefix   string            // 环境变量前缀
-    UsageSyntax string            // 命令使用语法
-    Example     map[string]string // 示例使用, key为描述, value为示例命令
-    Notes       []string          // 注意事项
-    LogoText    string            // 命令logo文本
-    MutexGroups []MutexGroup      // 互斥组列表
-    Completion  bool              // 是否启用自动补全标志
+    Version        string            // 版本号
+    UseChinese     bool              // 是否使用中文
+    EnvPrefix      string            // 环境变量前缀
+    UsageSyntax    string            // 命令使用语法
+    Example        map[string]string // 示例使用, key为描述, value为示例命令
+    Notes          []string          // 注意事项
+    LogoText       string            // 命令logo文本
+    MutexGroups    []MutexGroup      // 互斥组列表
+    RequiredGroups []RequiredGroup   // 必需组列表
+    Completion     bool              // 是否启用自动补全标志
 }
 ```
 
@@ -1311,6 +1312,35 @@ MutexGroup 定义了一组互斥的标志, 其中最多只能有一个被设置�
   - 输出格式互斥 (如 --json 和 --xml 不能同时使用) 
   - 操作模式互斥 (如 --create 和 --update 不能同时使用) 
   - 必选选项 (如必须指定 --file 或 --url 中的一个) 
+
+---
+
+### type RequiredGroup struct
+
+```go
+type RequiredGroup struct {
+    Name  string   // 必需组名称，用于错误提示和标识
+    Flags []string // 必需组中的标志名称列表
+}
+```
+
+RequiredGroup 必需组定义
+
+RequiredGroup 定义了一组必须同时设置的标志。 当用户没有设置必需组中的所有标志时, 解析器会返回错误。
+
+**字段说明:**
+  - Name: 必需组名称, 用于错误提示和标识
+  - Flags: 必需组中的标志名称列表
+
+**使用场景:**
+  - 连接参数必需 (如 --host 和 --port 必须同时设置)
+  - 认证参数必需 (如 --username 和 --password 必须同时设置)
+  - 配置文件路径必需 (如 --config 和 --env 必须同时设置)
+
+**注意事项:**
+  - 必需组中的所有标志都必须被设置
+  - 如果只设置了部分标志, 解析会失败
+  - 必需组名称在命令中应该唯一
 
 ---
 

@@ -833,17 +833,41 @@ func (c *Cmd) SetLogoText(logo string) {
 // Config 获取命令配置
 //
 // 返回值:
-//   - *types.CmdConfig: 命令配置的引用
+//   - *types.CmdConfig: 命令配置的副本
 //
 // 功能说明:
 //   - 实现types.Command接口
 //   - 返回命令的配置对象
-//   - 注意: 返回的是引用, 修改会影响命令
+//   - 注意: 返回的是副本, 修改不会影响命令
 //   - 支持并发安全的访问
 func (c *Cmd) Config() *types.CmdConfig {
 	c.mu.RLock()
 	defer c.mu.RUnlock()
-	return c.config
+
+	var mutexGroups []types.MutexGroup
+	if len(c.config.MutexGroups) > 0 {
+		mutexGroups = make([]types.MutexGroup, len(c.config.MutexGroups))
+		copy(mutexGroups, c.config.MutexGroups)
+	}
+
+	var requiredGroups []types.RequiredGroup
+	if len(c.config.RequiredGroups) > 0 {
+		requiredGroups = make([]types.RequiredGroup, len(c.config.RequiredGroups))
+		copy(requiredGroups, c.config.RequiredGroups)
+	}
+
+	return &types.CmdConfig{
+		Version:        c.config.Version,
+		UseChinese:     c.config.UseChinese,
+		EnvPrefix:      c.config.EnvPrefix,
+		UsageSyntax:    c.config.UsageSyntax,
+		Example:        c.config.Example,
+		Notes:          c.config.Notes,
+		LogoText:       c.config.LogoText,
+		MutexGroups:    mutexGroups,
+		RequiredGroups: requiredGroups,
+		Completion:     c.config.Completion,
+	}
 }
 
 // FlagRegistry 获取标志注册器
@@ -1028,11 +1052,22 @@ func (c *Cmd) ApplyOpts(opts *CmdOpts) error {
 	// 4. 添加互斥组 - 调用现有方法
 	if len(opts.MutexGroups) > 0 {
 		for _, group := range opts.MutexGroups {
-			c.AddMutexGroup(group.Name, group.Flags, group.AllowNone)
+			if err := c.AddMutexGroup(group.Name, group.Flags, group.AllowNone); err != nil {
+				return types.WrapError(err, "FAILED_TO_ADD_MUTEX_GROUP", "failed to add mutex group")
+			}
 		}
 	}
 
-	// 5. 添加子命令 - 调用现有方法
+	// 5. 添加必需组 - 调用现有方法
+	if len(opts.RequiredGroups) > 0 {
+		for _, group := range opts.RequiredGroups {
+			if err := c.AddRequiredGroup(group.Name, group.Flags); err != nil {
+				return types.WrapError(err, "FAILED_TO_ADD_REQUIRED_GROUP", "failed to add required group")
+			}
+		}
+	}
+
+	// 6. 添加子命令 - 调用现有方法
 	if len(opts.SubCmds) > 0 {
 		if err := c.AddSubCmds(opts.SubCmds...); err != nil {
 			return types.WrapError(err, "FAILED_TO_ADD_SUBCMDS", "failed to add subcommands")
@@ -1087,6 +1122,9 @@ func (c *Cmd) Path() string {
 //   - flags: 互斥组中的标志名称列表
 //   - allowNone: 是否允许一个都不设置
 //
+// 返回值:
+//   - error: 添加失败时返回错误
+//
 // 功能说明:
 //   - 创建新的互斥组并添加到命令配置中
 //   - 互斥组中的标志最多只能有一个被设置
@@ -1096,10 +1134,20 @@ func (c *Cmd) Path() string {
 // 注意事项:
 //   - 标志名称必须是已注册的标志
 //   - 互斥组名称在命令中应该唯一
-//   - 重复添加同名互斥组会覆盖之前的设置
-func (c *Cmd) AddMutexGroup(name string, flags []string, allowNone bool) {
+//   - 如果组名已存在，返回错误
+//
+// 错误码:
+//   - MUTEX_GROUP_ALREADY_EXISTS: 互斥组已存在
+func (c *Cmd) AddMutexGroup(name string, flags []string, allowNone bool) error {
 	c.mu.Lock()
 	defer c.mu.Unlock()
+
+	for _, group := range c.config.MutexGroups {
+		if group.Name == name {
+			return types.NewError("MUTEX_GROUP_ALREADY_EXISTS",
+				fmt.Sprintf("mutex group '%s' already exists", name), nil)
+		}
+	}
 
 	group := types.MutexGroup{
 		Name:      name,
@@ -1108,6 +1156,7 @@ func (c *Cmd) AddMutexGroup(name string, flags []string, allowNone bool) {
 	}
 
 	c.config.MutexGroups = append(c.config.MutexGroups, group)
+	return nil
 }
 
 // GetMutexGroups 获取命令的所有互斥组
@@ -1135,21 +1184,196 @@ func (c *Cmd) GetMutexGroups() []types.MutexGroup {
 //   - name: 要移除的互斥组名称
 //
 // 返回值:
-//   - bool: 是否成功移除, true表示成功找到并移除
+//   - error: 移除失败时返回错误
 //
 // 功能说明:
 //   - 根据名称查找并移除互斥组
 //   - 使用写锁保护并发安全
-//   - 如果找不到对应名称的互斥组, 返回false
-func (c *Cmd) RemoveMutexGroup(name string) bool {
+//   - 如果找不到对应名称的互斥组, 返回错误
+//
+// 错误码:
+//   - MUTEX_GROUP_NOT_FOUND: 互斥组不存在
+func (c *Cmd) RemoveMutexGroup(name string) error {
 	c.mu.Lock()
 	defer c.mu.Unlock()
 
 	for i, group := range c.config.MutexGroups {
 		if group.Name == name {
 			c.config.MutexGroups = append(c.config.MutexGroups[:i], c.config.MutexGroups[i+1:]...)
-			return true
+			return nil
 		}
 	}
-	return false
+
+	return types.NewError("MUTEX_GROUP_NOT_FOUND",
+		fmt.Sprintf("mutex group '%s' not found", name), nil)
+}
+
+// GetMutexGroup 获取指定名称的互斥组
+//
+// 参数:
+//   - name: 要获取的互斥组名称
+//
+// 返回值:
+//   - *types.MutexGroup: 互斥组指针, 如果找到则返回对应的互斥组
+//   - bool: 是否找到, true表示找到
+//
+// 功能说明:
+//   - 根据名称查找互斥组
+//   - 使用读锁保护并发安全
+//   - 如果找不到对应名称的互斥组, 返回nil和false
+func (c *Cmd) GetMutexGroup(name string) (*types.MutexGroup, bool) {
+	c.mu.RLock()
+	defer c.mu.RUnlock()
+
+	for i := range c.config.MutexGroups {
+		if c.config.MutexGroups[i].Name == name {
+			return &c.config.MutexGroups[i], true
+		}
+	}
+	return nil, false
+}
+
+// MutexGroups 获取所有互斥组
+//
+// 返回值:
+//   - []types.MutexGroup: 互斥组列表的副本
+//
+// 功能说明:
+//   - 返回命令中定义的所有互斥组
+//   - 返回副本以防止外部修改内部状态
+//   - 使用读锁保护并发安全
+func (c *Cmd) MutexGroups() []types.MutexGroup {
+	c.mu.RLock()
+	defer c.mu.RUnlock()
+
+	if len(c.config.MutexGroups) == 0 {
+		return []types.MutexGroup{}
+	}
+	groups := make([]types.MutexGroup, len(c.config.MutexGroups))
+	copy(groups, c.config.MutexGroups)
+	return groups
+}
+
+// AddRequiredGroup 添加必需组
+//
+// 参数:
+//   - name: 必需组名称
+//   - flags: 必需组中的标志名称列表
+//
+// 返回值:
+//   - error: 添加失败时返回错误
+//
+// 功能说明:
+//   - 添加一个必需组到命令配置
+//   - 如果组名已存在，返回错误
+//   - 如果标志列表为空，返回错误
+//   - 如果标志不存在，返回错误
+//
+// 错误码:
+//   - REQUIRED_GROUP_ALREADY_EXISTS: 必需组已存在
+//   - EMPTY_REQUIRED_GROUP: 必需组标志列表为空
+//   - FLAG_NOT_FOUND: 标志不存在
+func (c *Cmd) AddRequiredGroup(name string, flags []string) error {
+	c.mu.Lock()
+	defer c.mu.Unlock()
+
+	for _, group := range c.config.RequiredGroups {
+		if group.Name == name {
+			return types.NewError("REQUIRED_GROUP_ALREADY_EXISTS",
+				fmt.Sprintf("required group '%s' already exists", name), nil)
+		}
+	}
+
+	if len(flags) == 0 {
+		return types.NewError("EMPTY_REQUIRED_GROUP",
+			"required group cannot be empty", nil)
+	}
+
+	for _, flagName := range flags {
+		if _, exists := c.flagRegistry.Get(flagName); !exists {
+			return types.NewError("FLAG_NOT_FOUND",
+				fmt.Sprintf("flag '%s' not found", flagName), nil)
+		}
+	}
+
+	c.config.RequiredGroups = append(c.config.RequiredGroups, types.RequiredGroup{
+		Name:  name,
+		Flags: flags,
+	})
+
+	return nil
+}
+
+// RemoveRequiredGroup 移除必需组
+//
+// 参数:
+//   - name: 必需组名称
+//
+// 返回值:
+//   - error: 移除失败时返回错误
+//
+// 功能说明:
+//   - 从命令配置中移除指定的必需组
+//   - 如果组不存在，返回错误
+//
+// 错误码:
+//   - REQUIRED_GROUP_NOT_FOUND: 必需组不存在
+func (c *Cmd) RemoveRequiredGroup(name string) error {
+	c.mu.Lock()
+	defer c.mu.Unlock()
+
+	for i, group := range c.config.RequiredGroups {
+		if group.Name == name {
+			c.config.RequiredGroups = append(c.config.RequiredGroups[:i], c.config.RequiredGroups[i+1:]...)
+			return nil
+		}
+	}
+
+	return types.NewError("REQUIRED_GROUP_NOT_FOUND",
+		fmt.Sprintf("required group '%s' not found", name), nil)
+}
+
+// GetRequiredGroup 获取必需组
+//
+// 参数:
+//   - name: 必需组名称
+//
+// 返回值:
+//   - *types.RequiredGroup: 必需组指针
+//   - bool: 是否找到
+//
+// 功能说明:
+//   - 根据名称获取必需组
+//   - 如果组不存在，返回 nil 和 false
+func (c *Cmd) GetRequiredGroup(name string) (*types.RequiredGroup, bool) {
+	c.mu.RLock()
+	defer c.mu.RUnlock()
+
+	for i := range c.config.RequiredGroups {
+		if c.config.RequiredGroups[i].Name == name {
+			return &c.config.RequiredGroups[i], true
+		}
+	}
+
+	return nil, false
+}
+
+// RequiredGroups 获取所有必需组
+//
+// 返回值:
+//   - []types.RequiredGroup: 所有必需组列表
+//
+// 功能说明:
+//   - 返回命令配置中的所有必需组
+//   - 返回的是副本，修改不会影响原配置
+func (c *Cmd) RequiredGroups() []types.RequiredGroup {
+	c.mu.RLock()
+	defer c.mu.RUnlock()
+
+	if len(c.config.RequiredGroups) == 0 {
+		return []types.RequiredGroup{}
+	}
+	result := make([]types.RequiredGroup, len(c.config.RequiredGroups))
+	copy(result, c.config.RequiredGroups)
+	return result
 }

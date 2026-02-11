@@ -20,17 +20,36 @@ type MutexGroup struct {
 	AllowNone bool     // 是否允许一个都不设置
 }
 
+// RequiredGroup 必需组定义
+//
+// RequiredGroup 定义了一组必需的标志，其中所有标志都必须被设置。
+// 当用户没有设置必需组中的某些标志时，解析器会返回错误。
+//
+// 字段说明:
+//   - Name: 必需组名称，用于错误提示和标识
+//   - Flags: 必需组中的标志名称列表
+//
+// 使用场景:
+//   - 数据库连接配置（host, port, user, pass）
+//   - API 认证配置（api-key, api-secret）
+//   - 文件上传配置（file-path, upload-url）
+type RequiredGroup struct {
+	Name  string   // 必需组名称，用于错误提示和标识
+	Flags []string // 必需组中的标志名称列表
+}
+
 // CmdConfig 命令配置类型
 type CmdConfig struct {
-	Version     string            // 版本号
-	UseChinese  bool              // 是否使用中文
-	EnvPrefix   string            // 环境变量前缀
-	UsageSyntax string            // 命令使用语法
-	Example     map[string]string // 示例使用, key为描述, value为示例命令
-	Notes       []string          // 注意事项
-	LogoText    string            // 命令logo文本
-	MutexGroups []MutexGroup      // 互斥组列表
-	Completion  bool              // 是否启用自动补全标志
+	Version        string            // 版本号
+	UseChinese     bool              // 是否使用中文
+	EnvPrefix      string            // 环境变量前缀
+	UsageSyntax    string            // 命令使用语法
+	Example        map[string]string // 示例使用, key为描述, value为示例命令
+	Notes          []string          // 注意事项
+	LogoText       string            // 命令logo文本
+	MutexGroups    []MutexGroup      // 互斥组列表
+	RequiredGroups []RequiredGroup   // 必需组列表
+	Completion     bool              // 是否启用自动补全标志
 }
 
 // NewCmdConfig 创建新的命令配置
@@ -39,14 +58,15 @@ type CmdConfig struct {
 //   - *CmdConfig: 新创建的 CmdConfig 实例, 初始化为零值
 func NewCmdConfig() *CmdConfig {
 	return &CmdConfig{
-		Version:     "",
-		UseChinese:  false,
-		EnvPrefix:   "",
-		UsageSyntax: "",
-		Example:     map[string]string{},
-		Notes:       []string{},
-		LogoText:    "",
-		MutexGroups: []MutexGroup{},
-		Completion:  false,
+		Version:        "",
+		UseChinese:     false,
+		EnvPrefix:      "",
+		UsageSyntax:    "",
+		Example:        map[string]string{},
+		Notes:          []string{},
+		LogoText:       "",
+		MutexGroups:    []MutexGroup{},
+		RequiredGroups: []RequiredGroup{},
+		Completion:     false,
 	}
 }

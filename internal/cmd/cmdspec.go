@@ -46,8 +46,9 @@ type CmdSpec struct {
 	Notes    []string          // 注意事项
 
 	// 子命令和互斥组
-	SubCmds     []types.Command    // 子命令列表, 用于添加到命令中
-	MutexGroups []types.MutexGroup // 互斥组列表
+	SubCmds        []types.Command       // 子命令列表, 用于添加到命令中
+	MutexGroups    []types.MutexGroup    // 互斥组列表
+	RequiredGroups []types.RequiredGroup // 必需组列表
 }
 
 // NewCmdSpec 创建新的命令规格
@@ -65,15 +66,16 @@ type CmdSpec struct {
 //   - 初始化所有字段
 func NewCmdSpec(longName, shortName string) *CmdSpec {
 	return &CmdSpec{
-		LongName:      longName,
-		ShortName:     shortName,
-		ErrorHandling: types.ExitOnError, // 默认错误处理策略
-		UseChinese:    false,             // 默认不使用中文
-		Completion:    false,             // 默认不启用自动补全
-		Examples:      make(map[string]string),
-		Notes:         []string{},
-		SubCmds:       []types.Command{},
-		MutexGroups:   []types.MutexGroup{},
+		LongName:       longName,
+		ShortName:      shortName,
+		ErrorHandling:  types.ExitOnError, // 默认错误处理策略
+		UseChinese:     false,             // 默认不使用中文
+		Completion:     false,             // 默认不启用自动补全
+		Examples:       make(map[string]string),
+		Notes:          []string{},
+		SubCmds:        []types.Command{},
+		MutexGroups:    []types.MutexGroup{},
+		RequiredGroups: []types.RequiredGroup{},
 	}
 }
 
@@ -138,8 +140,21 @@ func NewCmdFromSpec(spec *CmdSpec) (cmd *Cmd, err error) {
 	}
 
 	// 添加互斥组
-	for _, group := range spec.MutexGroups {
-		cmd.AddMutexGroup(group.Name, group.Flags, group.AllowNone)
+	if len(spec.MutexGroups) > 0 {
+		for _, group := range spec.MutexGroups {
+			if err := cmd.AddMutexGroup(group.Name, group.Flags, group.AllowNone); err != nil {
+				return nil, types.WrapError(err, "FAILED_TO_ADD_MUTEX_GROUP", "failed to add mutex group")
+			}
+		}
+	}
+
+	// 添加必需组
+	if len(spec.RequiredGroups) > 0 {
+		for _, group := range spec.RequiredGroups {
+			if err := cmd.AddRequiredGroup(group.Name, group.Flags); err != nil {
+				return nil, types.WrapError(err, "FAILED_TO_ADD_REQUIRED_GROUP", "failed to add required group")
+			}
+		}
 	}
 
 	// 添加子命令

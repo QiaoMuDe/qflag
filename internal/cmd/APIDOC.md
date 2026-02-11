@@ -118,8 +118,9 @@ type CmdSpec struct {
     Notes    []string          // 注意事项
 
     // 子命令和互斥组
-    SubCmds     []types.Command    // 子命令列表, 用于添加到命令中
-    MutexGroups []types.MutexGroup // 互斥组列表
+    SubCmds        []types.Command       // 子命令列表, 用于添加到命令中
+    MutexGroups    []types.MutexGroup    // 互斥组列表
+    RequiredGroups []types.RequiredGroup // 必需组列表
 }
 ```
 
@@ -141,6 +142,7 @@ CmdSpec 包含了命令的所有属性, 这种方式比函数式配置更加直�
   - Notes: 注意事项
   - SubCmds: 子命令列表, 用于添加到命令中
   - MutexGroups: 互斥组列表
+  - RequiredGroups: 必需组列表
 
 使用场景: 
   - 需要集中配置命令属性
@@ -176,6 +178,7 @@ NewCmdSpec 创建新的命令规格
   - Notes: 空切片
   - SubCmds: 空切片
   - MutexGroups: 空切片
+  - RequiredGroups: 空切片
 
 #### func NewCmdFromSpec(spec *CmdSpec) (cmd *Cmd, err error)
 
@@ -222,8 +225,9 @@ type CmdOpts struct {
     Notes    []string          // 注意事项
 
     // 子命令和互斥组
-    SubCmds     []types.Command    // 子命令列表, 用于添加到命令中
-    MutexGroups []types.MutexGroup // 互斥组列表
+    SubCmds        []types.Command       // 子命令列表, 用于添加到命令中
+    MutexGroups    []types.MutexGroup    // 互斥组列表
+    RequiredGroups []types.RequiredGroup // 必需组列表
 }
 ```
 
@@ -243,6 +247,7 @@ CmdOpts 包含了命令的所有可配置属性, 用于配置已存在的命令,
   - Notes: 注意事项
   - SubCmds: 子命令列表, 用于添加到命令中
   - MutexGroups: 互斥组列表
+  - RequiredGroups: 必需组列表
 
 使用场景: 
   - 已有命令实例, 需要批量设置属性
@@ -270,6 +275,7 @@ NewCmdOpts 创建新的命令选项
   - Notes: 空切片
   - SubCmds: 空切片
   - MutexGroups: 空切片
+  - RequiredGroups: 空切片
 
 #### func (c *Cmd) ApplyOpts(opts *CmdOpts) error
 
@@ -295,7 +301,8 @@ ApplyOpts 应用选项到命令
   2. 配置选项（Version、UseChinese、EnvPrefix、UsageSyntax、LogoText、Completion）
   3. 示例和说明（Examples、Notes）
   4. 互斥组（MutexGroups）
-  5. 子命令（SubCmds）
+  5. 必需组（RequiredGroups）
+  6. 子命令（SubCmds）
 
 **错误情况:**
   - 选项为 nil: 返回 INVALID_CMDOPTS 错误
@@ -413,10 +420,10 @@ AddFlagsFrom 从切片添加多个标志
   - 空切片直接返回成功
   - 内部调用AddFlags实现
 
-#### func (c *Cmd) AddMutexGroup(name string, flags []string, allowNone bool)
+#### func (c *Cmd) AddMutexGroup(name string, flags []string, allowNone bool) error
 
 ```go
-func (c *Cmd) AddMutexGroup(name string, flags []string, allowNone bool)
+func (c *Cmd) AddMutexGroup(name string, flags []string, allowNone bool) error
 ```
 
 AddMutexGroup 添加互斥组到命令
@@ -426,16 +433,24 @@ AddMutexGroup 添加互斥组到命令
   - flags: 互斥组中的标志名称列表
   - allowNone: 是否允许一个都不设置
 
+**返回值:**
+  - error: 添加失败时返回错误
+
 **功能说明: **
   - 创建新的互斥组并添加到命令配置中
   - 互斥组中的标志最多只能有一个被设置
   - 如果 allowNone 为 false, 则必须至少有一个标志被设置
   - 使用写锁保护并发安全
 
+**错误情况:**
+  - 组名已存在: 返回 MUTEX_GROUP_ALREADY_EXISTS 错误
+  - 标志列表为空: 返回 EMPTY_MUTEX_GROUP 错误
+  - 标志不存在: 返回 FLAG_NOT_FOUND 错误
+
 **注意事项: **
   - 标志名称必须是已注册的标志
   - 互斥组名称在命令中应该唯一
-  - 重复添加同名互斥组会覆盖之前的设置
+  - 重复添加同名互斥组会返回错误
 
 #### func (c *Cmd) AddNote(note string)
 
@@ -594,12 +609,12 @@ func (c *Cmd) Config() *types.CmdConfig
 Config 获取命令配置
 
 **返回值:**
-  - *types.CmdConfig: 命令配置的引用
+  - *types.CmdConfig: 命令配置的副本
 
 **功能说明: **
   - 实现types.Command接口
   - 返回命令的配置对象
-  - 注意: 返回的是引用, 修改会影响命令
+  - 注意: 返回的是副本, 修改不会影响命令
   - 支持并发安全的访问
 
 #### func (c *Cmd) Desc() string
@@ -1071,10 +1086,10 @@ PrintHelp 打印帮助信息
   - 使用标准fmt包输出
   - 支持并发安全的访问
 
-#### func (c *Cmd) RemoveMutexGroup(name string) bool
+#### func (c *Cmd) RemoveMutexGroup(name string) error
 
 ```go
-func (c *Cmd) RemoveMutexGroup(name string) bool
+func (c *Cmd) RemoveMutexGroup(name string) error
 ```
 
 RemoveMutexGroup 移除指定名称的互斥组
@@ -1083,12 +1098,103 @@ RemoveMutexGroup 移除指定名称的互斥组
   - name: 要移除的互斥组名称
 
 **返回值:**
-  - bool: 是否成功移除, true表示成功找到并移除
+  - error: 移除失败时返回错误
 
 **功能说明: **
   - 根据名称查找并移除互斥组
   - 使用写锁保护并发安全
-  - 如果找不到对应名称的互斥组, 返回false
+  - 如果找不到对应名称的互斥组, 返回错误
+
+**错误情况:**
+  - 组不存在: 返回 MUTEX_GROUP_NOT_FOUND 错误
+
+#### func (c *Cmd) AddRequiredGroup(name string, flags []string) error
+
+```go
+func (c *Cmd) AddRequiredGroup(name string, flags []string) error
+```
+
+AddRequiredGroup 添加必需组到命令
+
+**参数:**
+  - name: 必需组名称, 用于错误提示和标识
+  - flags: 必需组中的标志名称列表
+
+**返回值:**
+  - error: 添加失败时返回错误
+
+**功能说明: **
+  - 创建新的必需组并添加到命令配置中
+  - 必需组中的所有标志都必须被设置
+  - 使用写锁保护并发安全
+
+**错误情况:**
+  - 组名已存在: 返回 REQUIRED_GROUP_ALREADY_EXISTS 错误
+  - 标志列表为空: 返回 EMPTY_REQUIRED_GROUP 错误
+  - 标志不存在: 返回 FLAG_NOT_FOUND 错误
+
+**注意事项:**
+  - 标志名称必须是已注册的标志
+  - 必需组名称在命令中应该唯一
+  - 重复添加同名必需组会返回错误
+
+#### func (c *Cmd) GetRequiredGroup(name string) (*types.RequiredGroup, bool)
+
+```go
+func (c *Cmd) GetRequiredGroup(name string) (*types.RequiredGroup, bool)
+```
+
+GetRequiredGroup 获取指定名称的必需组
+
+**参数:**
+  - name: 必需组名称
+
+**返回值:**
+  - *types.RequiredGroup: 找到的必需组
+  - bool: 是否找到, true表示找到
+
+**功能说明: **
+  - 根据名称查找必需组
+  - 使用读锁保护并发安全
+  - 如果找不到对应名称的必需组, 返回nil和false
+
+#### func (c *Cmd) RequiredGroups() []types.RequiredGroup
+
+```go
+func (c *Cmd) RequiredGroups() []types.RequiredGroup
+```
+
+RequiredGroups 获取命令的所有必需组
+
+**返回值:**
+  - []types.RequiredGroup: 必需组列表的副本
+
+**功能说明: **
+  - 返回命令中定义的所有必需组
+  - 返回副本以防止外部修改内部状态
+  - 使用读锁保护并发安全
+
+#### func (c *Cmd) RemoveRequiredGroup(name string) error
+
+```go
+func (c *Cmd) RemoveRequiredGroup(name string) error
+```
+
+RemoveRequiredGroup 移除指定名称的必需组
+
+**参数:**
+  - name: 要移除的必需组名称
+
+**返回值:**
+  - error: 移除失败时返回错误
+
+**功能说明: **
+  - 根据名称查找并移除必需组
+  - 使用写锁保护并发安全
+  - 如果找不到对应名称的必需组, 返回错误
+
+**错误情况:**
+  - 组不存在: 返回 REQUIRED_GROUP_NOT_FOUND 错误
 
 #### func (c *Cmd) Run() error
 

@@ -111,9 +111,34 @@ func AddSubCmdFrom(cmds []Command) error {
 // 注意事项:
 //   - 标志名称必须是已注册的标志
 //   - 互斥组名称在命令中应该唯一
-//   - 重复添加同名互斥组会覆盖之前的设置
-func AddMutexGroup(name string, flags []string, allowNone bool) {
-	Root.AddMutexGroup(name, flags, allowNone)
+//   - 如果组名已存在，返回错误
+//
+// 返回值:
+//   - error: 添加失败时返回错误
+func AddMutexGroup(name string, flags []string, allowNone bool) error {
+	return Root.AddMutexGroup(name, flags, allowNone)
+}
+
+// AddRequiredGroup 添加必需组到命令
+//
+// 参数:
+//   - name: 必需组名称, 用于错误提示和标识
+//   - flags: 必需组中的标志名称列表
+//
+// 功能说明:
+//   - 创建新的必需组并添加到命令配置中
+//   - 必需组中的所有标志都必须被设置
+//   - 使用写锁保护并发安全
+//
+// 注意事项:
+//   - 标志名称必须是已注册的标志
+//   - 必需组名称在命令中应该唯一
+//   - 如果组名已存在，返回错误
+//
+// 返回值:
+//   - error: 添加失败时返回错误
+func AddRequiredGroup(name string, flags []string) error {
+	return Root.AddRequiredGroup(name, flags)
 }
 
 // ApplyOpts 应用选项到全局根命令

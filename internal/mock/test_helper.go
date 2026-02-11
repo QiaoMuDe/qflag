@@ -75,7 +75,9 @@ func (h *TestHelper) CreateMockCommandWithMutexGroups(name, shortName, descripti
 	cmd := NewMockCommand(name, shortName, description)
 
 	for _, group := range mutexGroups {
-		cmd.AddMutexGroup(group.Name, group.Flags, group.AllowNone)
+		if err := cmd.AddMutexGroup(group.Name, group.Flags, group.AllowNone); err != nil {
+			panic(err)
+		}
 	}
 
 	return cmd

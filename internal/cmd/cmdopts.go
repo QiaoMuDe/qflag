@@ -43,8 +43,9 @@ type CmdOpts struct {
 	Notes    []string          // 注意事项
 
 	// 子命令和互斥组
-	SubCmds     []types.Command    // 子命令列表, 用于添加到命令中
-	MutexGroups []types.MutexGroup // 互斥组列表
+	SubCmds        []types.Command       // 子命令列表, 用于添加到命令中
+	MutexGroups    []types.MutexGroup    // 互斥组列表
+	RequiredGroups []types.RequiredGroup // 必需组列表
 }
 
 // NewCmdOpts 创建新的命令选项
@@ -58,9 +59,10 @@ type CmdOpts struct {
 //   - 初始化 map 和 slice 避免空指针
 func NewCmdOpts() *CmdOpts {
 	return &CmdOpts{
-		Examples:    make(map[string]string),
-		Notes:       []string{},
-		SubCmds:     []types.Command{},
-		MutexGroups: []types.MutexGroup{},
+		Examples:       make(map[string]string),
+		Notes:          []string{},
+		SubCmds:        []types.Command{},
+		MutexGroups:    []types.MutexGroup{},
+		RequiredGroups: []types.RequiredGroup{},
 	}
 }

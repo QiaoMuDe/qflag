@@ -390,16 +390,39 @@ func AddMutexGroup(name string, flags []string, allowNone bool)
   - flags: 互斥组中的标志名称列表
   - allowNone: 是否允许一个都不设置
 
-**功能说明: **
+**功能说明:**
   - 创建新的互斥组并添加到命令配置中
   - 互斥组中的标志最多只能有一个被设置
   - 如果 allowNone 为 false, 则必须至少有一个标志被设置
   - 使用写锁保护并发安全
 
-**注意事项: **
+**注意事项:**
   - 标志名称必须是已注册的标志
   - 互斥组名称在命令中应该唯一
-  - 重复添加同名互斥组会覆盖之前的设置
+  - 重复添加同名互斥组会返回错误
+
+```go
+func AddRequiredGroup(name string, flags []string) error
+```
+
+**AddRequiredGroup 添加必需组到命令**
+
+**参数:**
+  - name: 必需组名称, 用于错误提示和标识
+  - flags: 必需组中的标志名称列表
+
+**返回值:**
+  - error: 添加失败时返回错误
+
+**功能说明:**
+  - 创建新的必需组并添加到命令配置中
+  - 必需组中的所有标志都必须被设置
+  - 使用写锁保护并发安全
+
+**注意事项:**
+  - 标志名称必须是已注册的标志
+  - 必需组名称在命令中应该唯一
+  - 重复添加同名必需组会返回错误
 
 ```go
 func AddSubCmdFrom(cmds []Command) error
@@ -760,6 +783,26 @@ type MutexGroup = types.MutexGroup
 ```
 
 **MutexGroup 定义了一组互斥的标志, 其中最多只能有一个被设置 当用户设置了互斥组中的多个标志时, 解析器会返回错误**
+
+```go
+type RequiredGroup = types.RequiredGroup
+```
+
+**RequiredGroup 定义了一组必须同时设置的标志 当用户没有设置必需组中的所有标志时, 解析器会返回错误**
+
+**字段说明:**
+  - Name: 必需组名称, 用于错误提示和标识
+  - Flags: 必需组中的标志名称列表
+
+**使用场景:**
+  - 连接参数必需 (如 --host 和 --port 必须同时设置)
+  - 认证参数必需 (如 --username 和 --password 必须同时设置)
+  - 配置文件路径必需 (如 --config 和 --env 必须同时设置)
+
+**注意事项:**
+  - 必需组中的所有标志都必须被设置
+  - 如果只设置了部分标志, 解析会失败
+  - 必需组名称在命令中应该唯一
 
 ```go
 type Parser = types.Parser

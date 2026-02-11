@@ -21,7 +21,9 @@ func TestAddMutexGroup(t *testing.T) {
 	}
 
 	// 添加互斥组
-	cmd.AddMutexGroup("output_format", []string{"format", "output"}, true)
+	if err := cmd.AddMutexGroup("output_format", []string{"format", "output"}, true); err != nil {
+		t.Fatalf("Failed to add mutex group: %v", err)
+	}
 
 	// 验证互斥组已添加
 	groups := cmd.GetMutexGroups()
@@ -45,6 +47,11 @@ func TestAddMutexGroup(t *testing.T) {
 	if !group.AllowNone {
 		t.Errorf("Expected AllowNone to be true, got false")
 	}
+
+	// 测试添加重复的互斥组
+	if err := cmd.AddMutexGroup("output_format", []string{"format", "output"}, true); err == nil {
+		t.Error("Expected error when adding duplicate mutex group")
+	}
 }
 
 // TestGetMutexGroups 测试获取互斥组列表
@@ -53,8 +60,12 @@ func TestGetMutexGroups(t *testing.T) {
 	cmd := NewCmd("test", "t", types.ContinueOnError)
 
 	// 添加多个互斥组
-	cmd.AddMutexGroup("group1", []string{"flag1", "flag2"}, true)
-	cmd.AddMutexGroup("group2", []string{"flag3", "flag4"}, false)
+	if err := cmd.AddMutexGroup("group1", []string{"flag1", "flag2"}, true); err != nil {
+		t.Fatalf("Failed to add mutex group: %v", err)
+	}
+	if err := cmd.AddMutexGroup("group2", []string{"flag3", "flag4"}, false); err != nil {
+		t.Fatalf("Failed to add mutex group: %v", err)
+	}
 
 	// 获取互斥组列表
 	groups := cmd.GetMutexGroups()
@@ -76,12 +87,16 @@ func TestRemoveMutexGroup(t *testing.T) {
 	cmd := NewCmd("test", "t", types.ContinueOnError)
 
 	// 添加互斥组
-	cmd.AddMutexGroup("group1", []string{"flag1", "flag2"}, true)
-	cmd.AddMutexGroup("group2", []string{"flag3", "flag4"}, false)
+	if err := cmd.AddMutexGroup("group1", []string{"flag1", "flag2"}, true); err != nil {
+		t.Fatalf("Failed to add mutex group: %v", err)
+	}
+	if err := cmd.AddMutexGroup("group2", []string{"flag3", "flag4"}, false); err != nil {
+		t.Fatalf("Failed to add mutex group: %v", err)
+	}
 
 	// 移除存在的互斥组
-	if !cmd.RemoveMutexGroup("group1") {
-		t.Error("Expected RemoveMutexGroup to return true for existing group")
+	if err := cmd.RemoveMutexGroup("group1"); err != nil {
+		t.Errorf("Expected no error when removing existing group, got: %v", err)
 	}
 
 	// 验证互斥组已移除
@@ -95,8 +110,8 @@ func TestRemoveMutexGroup(t *testing.T) {
 	}
 
 	// 尝试移除不存在的互斥组
-	if cmd.RemoveMutexGroup("nonexistent") {
-		t.Error("Expected RemoveMutexGroup to return false for non-existing group")
+	if err := cmd.RemoveMutexGroup("nonexistent"); err == nil {
+		t.Error("Expected error when removing non-existing group")
 	}
 }
 
@@ -111,7 +126,9 @@ func TestMutexGroupValidation(t *testing.T) {
 		if err := cmd.AddFlag(flag.NewStringFlag("output", "o", "Output file", "")); err != nil {
 			t.Fatalf("Failed to add output flag: %v", err)
 		}
-		cmd.AddMutexGroup("output_format", []string{"format", "output"}, true)
+		if err := cmd.AddMutexGroup("output_format", []string{"format", "output"}, true); err != nil {
+			t.Fatalf("Failed to add mutex group: %v", err)
+		}
 
 		err := cmd.Parse([]string{})
 		if err != nil {
@@ -128,7 +145,9 @@ func TestMutexGroupValidation(t *testing.T) {
 		if err := cmd.AddFlag(flag.NewStringFlag("output", "o", "Output file", "")); err != nil {
 			t.Fatalf("Failed to add output flag: %v", err)
 		}
-		cmd.AddMutexGroup("output_format", []string{"format", "output"}, true)
+		if err := cmd.AddMutexGroup("output_format", []string{"format", "output"}, true); err != nil {
+			t.Fatalf("Failed to add mutex group: %v", err)
+		}
 
 		err := cmd.Parse([]string{"--format", "json"})
 		if err != nil {
@@ -145,7 +164,9 @@ func TestMutexGroupValidation(t *testing.T) {
 		if err := cmd.AddFlag(flag.NewStringFlag("output", "o", "Output file", "")); err != nil {
 			t.Fatalf("Failed to add output flag: %v", err)
 		}
-		cmd.AddMutexGroup("output_format", []string{"format", "output"}, true)
+		if err := cmd.AddMutexGroup("output_format", []string{"format", "output"}, true); err != nil {
+			t.Fatalf("Failed to add mutex group: %v", err)
+		}
 
 		err := cmd.Parse([]string{"--format", "json", "--output", "result.txt"})
 		if err == nil {
@@ -168,8 +189,12 @@ func TestMutexGroupValidation(t *testing.T) {
 		if err := cmd.AddFlag(flag.NewStringFlag("source", "s", "Source file", "")); err != nil {
 			t.Fatalf("Failed to add source flag: %v", err)
 		}
-		cmd.AddMutexGroup("output_format", []string{"format", "output"}, true)
-		cmd.AddMutexGroup("input_source", []string{"input", "source"}, false)
+		if err := cmd.AddMutexGroup("output_format", []string{"format", "output"}, true); err != nil {
+			t.Fatalf("Failed to add mutex group: %v", err)
+		}
+		if err := cmd.AddMutexGroup("input_source", []string{"input", "source"}, false); err != nil {
+			t.Fatalf("Failed to add mutex group: %v", err)
+		}
 
 		// 不设置任何标志, 应该失败 (因为第二个互斥组不允许为空)
 		err := cmd.Parse([]string{})
@@ -193,8 +218,12 @@ func TestMutexGroupValidation(t *testing.T) {
 		if err := cmd.AddFlag(flag.NewStringFlag("source", "s", "Source file", "")); err != nil {
 			t.Fatalf("Failed to add source flag: %v", err)
 		}
-		cmd.AddMutexGroup("output_format", []string{"format", "output"}, true)
-		cmd.AddMutexGroup("input_source", []string{"input", "source"}, false)
+		if err := cmd.AddMutexGroup("output_format", []string{"format", "output"}, true); err != nil {
+			t.Fatalf("Failed to add mutex group: %v", err)
+		}
+		if err := cmd.AddMutexGroup("input_source", []string{"input", "source"}, false); err != nil {
+			t.Fatalf("Failed to add mutex group: %v", err)
+		}
 
 		err := cmd.Parse([]string{"--input", "file.txt"})
 		if err != nil {
@@ -214,7 +243,9 @@ func TestMutexGroupWithNonExistentFlags(t *testing.T) {
 	}
 
 	// 添加包含不存在标志的互斥组
-	cmd.AddMutexGroup("test_group", []string{"format", "nonexistent"}, true)
+	if err := cmd.AddMutexGroup("test_group", []string{"format", "nonexistent"}, true); err != nil {
+		t.Fatalf("Failed to add mutex group: %v", err)
+	}
 
 	// 设置存在的标志, 应该成功
 	err := cmd.Parse([]string{"--format", "json"})
@@ -243,8 +274,12 @@ func TestMultipleMutexGroups(t *testing.T) {
 	}
 
 	// 添加两个互斥组
-	cmd.AddMutexGroup("output_format", []string{"format", "output"}, true)
-	cmd.AddMutexGroup("input_source", []string{"input", "source"}, false)
+	if err := cmd.AddMutexGroup("output_format", []string{"format", "output"}, true); err != nil {
+		t.Fatalf("Failed to add mutex group: %v", err)
+	}
+	if err := cmd.AddMutexGroup("input_source", []string{"input", "source"}, false); err != nil {
+		t.Fatalf("Failed to add mutex group: %v", err)
+	}
 
 	// 测试1: 每个互斥组设置一个标志, 应该成功
 	func() {
@@ -261,8 +296,12 @@ func TestMultipleMutexGroups(t *testing.T) {
 		if err := cmd.AddFlag(flag.NewStringFlag("source", "s", "Source file", "")); err != nil {
 			t.Fatalf("Failed to add source flag: %v", err)
 		}
-		cmd.AddMutexGroup("output_format", []string{"format", "output"}, true)
-		cmd.AddMutexGroup("input_source", []string{"input", "source"}, false)
+		if err := cmd.AddMutexGroup("output_format", []string{"format", "output"}, true); err != nil {
+			t.Fatalf("Failed to add mutex group: %v", err)
+		}
+		if err := cmd.AddMutexGroup("input_source", []string{"input", "source"}, false); err != nil {
+			t.Fatalf("Failed to add mutex group: %v", err)
+		}
 
 		err := cmd.Parse([]string{"--format", "json", "--input", "file.txt"})
 		if err != nil {
@@ -285,8 +324,12 @@ func TestMultipleMutexGroups(t *testing.T) {
 		if err := cmd.AddFlag(flag.NewStringFlag("source", "s", "Source file", "")); err != nil {
 			t.Fatalf("Failed to add source flag: %v", err)
 		}
-		cmd.AddMutexGroup("output_format", []string{"format", "output"}, true)
-		cmd.AddMutexGroup("input_source", []string{"input", "source"}, false)
+		if err := cmd.AddMutexGroup("output_format", []string{"format", "output"}, true); err != nil {
+			t.Fatalf("Failed to add mutex group: %v", err)
+		}
+		if err := cmd.AddMutexGroup("input_source", []string{"input", "source"}, false); err != nil {
+			t.Fatalf("Failed to add mutex group: %v", err)
+		}
 
 		err := cmd.Parse([]string{"--format", "json", "--output", "result.txt", "--input", "file.txt"})
 		if err == nil {
@@ -304,12 +347,16 @@ func TestMutexGroupConcurrency(t *testing.T) {
 	done := make(chan bool, 2)
 
 	go func() {
-		cmd.AddMutexGroup("group1", []string{"flag1", "flag2"}, true)
+		if err := cmd.AddMutexGroup("group1", []string{"flag1", "flag2"}, true); err != nil {
+			t.Errorf("Failed to add mutex group: %v", err)
+		}
 		done <- true
 	}()
 
 	go func() {
-		cmd.AddMutexGroup("group2", []string{"flag3", "flag4"}, false)
+		if err := cmd.AddMutexGroup("group2", []string{"flag3", "flag4"}, false); err != nil {
+			t.Errorf("Failed to add mutex group: %v", err)
+		}
 		done <- true
 	}()
 

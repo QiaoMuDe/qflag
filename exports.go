@@ -16,6 +16,10 @@ type Command = types.Command
 // 当用户设置了互斥组中的多个标志时, 解析器会返回错误
 type MutexGroup = types.MutexGroup
 
+// RequiredGroup 定义了一组必需的标志，其中所有标志都必须被设置
+// 当用户没有设置必需组中的某些标志时，解析器会返回错误
+type RequiredGroup = types.RequiredGroup
+
 // CmdConfig 包含了命令的各种配置选项, 用于自定义命令的行为和外观
 // 这些配置会影响命令的帮助信息显示、环境变量处理、错误提示等
 type CmdConfig = types.CmdConfig

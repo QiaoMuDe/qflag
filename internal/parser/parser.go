@@ -99,6 +99,11 @@ func (p *DefaultParser) ParseOnly(cmd types.Command, args []string) error {
 		return err
 	}
 
+	// 验证必需组规则
+	if err := p.validateRequiredGroups(cmd); err != nil {
+		return err
+	}
+
 	// 处理内置标志
 	if err := p.builtinMgr.HandleBuiltinFlags(cmd); err != nil {
 		return err

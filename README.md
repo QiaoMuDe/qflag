@@ -24,6 +24,7 @@ QFlag 是一个专为 Go 语言设计的命令行参数解析库, 提供了丰�
 - 📝 **自动补全** - 生成 Bash 和 PowerShell 补全脚本
 - 🎨 **帮助生成** - 自动生成专业的帮助文档
 - 🔗 **互斥标志** - 支持标志互斥组
+- ✅ **必需标志** - 支持标志必需组
 - 🌳 **子命令** - 完整的子命令支持
 
 ---
@@ -114,6 +115,9 @@ qflag.AddSubCmdFrom([]Command{cmd1, cmd2}) // 从切片添加子命令
 
 // 互斥组
 qflag.AddMutexGroup("format", []string{"json", "xml"}, false)
+
+// 必需组
+qflag.AddRequiredGroup("connection", []string{"host", "port"})
 ```
 
 ### 基础用法
@@ -327,6 +331,74 @@ func main() {
 }
 ```
 
+#### 使用全局根命令的必需标志组
+
+```go
+package main
+
+import (
+    "fmt"
+    "gitee.com/MM-Q/qflag"
+)
+
+func main() {
+    // 配置全局根命令
+    qflag.Root.SetDesc("数据库连接工具")
+    
+    // 使用全局根命令创建必需标志
+    hostFlag := qflag.Root.String("host", "h", "主机地址", "")
+    portFlag := qflag.Root.Uint("port", "p", "端口号", 0)
+
+    // 添加必需组到全局根命令
+    qflag.AddRequiredGroup("connection", []string{"host", "port"})
+
+    // 解析参数
+    if err := qflag.Parse(); err != nil {
+        fmt.Printf("错误: %v\n", err)
+        return
+    }
+
+    // 使用参数
+    fmt.Printf("连接到 %s:%d\n", hostFlag.Get(), portFlag.Get())
+}
+```
+
+#### 传统必需标志组
+
+```go
+package main
+
+import (
+    "fmt"
+    "os"
+    "gitee.com/MM-Q/qflag"
+)
+
+func main() {
+    cmd := qflag.NewCmd("db-connect", "", qflag.ContinueOnError)
+
+    // 使用便捷方法创建必需标志
+    hostFlag := cmd.String("host", "h", "主机地址", "")
+    portFlag := cmd.Uint("port", "p", "端口号", 0)
+    usernameFlag := cmd.String("username", "u", "用户名", "")
+    passwordFlag := cmd.String("password", "P", "密码", "")
+
+    // 添加必需组
+    cmd.AddRequiredGroup("connection", []string{"host", "port"})
+    cmd.AddRequiredGroup("auth", []string{"username", "password"})
+
+    // 解析参数
+    if err := cmd.Parse(os.Args[1:]); err != nil {
+        fmt.Printf("错误: %v\n", err)
+        return
+    }
+
+    // 使用参数
+    fmt.Printf("连接到 %s:%d\n", hostFlag.Get(), portFlag.Get())
+    fmt.Printf("用户: %s\n", usernameFlag.Get())
+}
+```
+
 #### 环境变量绑定
 
 ```go
@@ -415,6 +487,7 @@ if err := qflag.Parse(); err != nil {
 - **Command (命令) ** - 命令行工具的核心, 支持标志管理、参数解析、子命令等功能
 - **Flag (标志) ** - 命令行参数的抽象, 支持多种数据类型
 - **MutexGroup (互斥组) ** - 确保组内只有一个标志被设置
+- **RequiredGroup (必需组) ** - 确保组内所有标志都被设置
 
 ### 便捷方法
 
@@ -467,6 +540,7 @@ tagsFlag := cmd.IntSlice("tags", "", "标签列表", []int{})
 ### 高级功能
 
 - ✅ 互斥标志组
+- ✅ 必需标志组
 - ✅ 自动补全脚本生成
 - ✅ 环境变量前缀
 - ✅ 错误处理策略
