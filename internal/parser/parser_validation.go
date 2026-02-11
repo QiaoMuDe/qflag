@@ -98,9 +98,11 @@ func (p *DefaultParser) validateRequiredGroups(cmd types.Command) error {
 		return nil
 	}
 
+	// 遍历所有必需组
 	for _, group := range config.RequiredGroups {
 		var unsetFlags []string
 
+		// 遍历组中的每个标志
 		for _, flagName := range group.Flags {
 			if flag, exists := cmd.GetFlag(flagName); exists && !flag.IsSet() {
 				unsetFlags = append(unsetFlags, flagName)
