@@ -54,11 +54,6 @@ func TestNewCmdFromSpec(t *testing.T) {
 		return nil
 	}
 
-	// 添加互斥组
-	spec.MutexGroups = []types.MutexGroup{
-		{Name: "format", Flags: []string{"json", "xml"}, AllowNone: true},
-	}
-
 	cmd, err := NewCmdFromSpec(spec)
 	if err != nil {
 		t.Fatalf("Failed to create command: %v", err)
@@ -67,6 +62,13 @@ func TestNewCmdFromSpec(t *testing.T) {
 	// 添加标志
 	cmd.String("input", "i", "输入文件", "")
 	cmd.Bool("verbose", "v", "详细输出", false)
+	cmd.String("json", "j", "JSON format", "")
+	cmd.String("xml", "x", "XML format", "")
+
+	// 添加互斥组
+	if err := cmd.AddMutexGroup("format", []string{"json", "xml"}, true); err != nil {
+		t.Fatalf("Failed to add mutex group: %v", err)
+	}
 
 	if cmd.Name() != "myapp" {
 		t.Errorf("Expected command name 'myapp', got '%s'", cmd.Name())

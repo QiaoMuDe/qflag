@@ -4,6 +4,7 @@ import (
 	"sync"
 	"testing"
 
+	"gitee.com/MM-Q/qflag/internal/flag"
 	"gitee.com/MM-Q/qflag/internal/types"
 )
 
@@ -106,6 +107,14 @@ func TestCmd_ApplyOpts_NilOpts(t *testing.T) {
 func TestCmd_ApplyOpts_AllFields(t *testing.T) {
 	// 测试所有字段
 	cmd := NewCmd("test", "t", types.ExitOnError)
+
+	// 先添加标志
+	if err := cmd.AddFlag(flag.NewStringFlag("json", "j", "JSON format", "")); err != nil {
+		t.Fatalf("Failed to add json flag: %v", err)
+	}
+	if err := cmd.AddFlag(flag.NewStringFlag("xml", "x", "XML format", "")); err != nil {
+		t.Fatalf("Failed to add xml flag: %v", err)
+	}
 
 	opts := &CmdOpts{
 		// 基本属性

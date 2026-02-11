@@ -54,10 +54,51 @@ func TestAddMutexGroup(t *testing.T) {
 	}
 }
 
+// TestAddMutexGroupWithEmptyFlags 测试添加空标志列表的互斥组
+func TestAddMutexGroupWithEmptyFlags(t *testing.T) {
+	// 创建命令
+	cmd := NewCmd("test", "t", types.ContinueOnError)
+
+	// 添加空标志列表的互斥组
+	if err := cmd.AddMutexGroup("empty", []string{}, true); err == nil {
+		t.Error("Expected error when adding mutex group with empty flags")
+	}
+}
+
+// TestAddMutexGroupWithNonExistentFlag 测试添加包含不存在标志的互斥组
+func TestAddMutexGroupWithNonExistentFlag(t *testing.T) {
+	// 创建命令
+	cmd := NewCmd("test", "t", types.ContinueOnError)
+
+	// 添加一个标志
+	if err := cmd.AddFlag(flag.NewStringFlag("format", "f", "Output format", "json")); err != nil {
+		t.Fatalf("Failed to add format flag: %v", err)
+	}
+
+	// 添加包含不存在标志的互斥组
+	if err := cmd.AddMutexGroup("test_group", []string{"format", "nonexistent"}, true); err == nil {
+		t.Error("Expected error when adding mutex group with non-existent flag")
+	}
+}
+
 // TestGetMutexGroups 测试获取互斥组列表
 func TestGetMutexGroups(t *testing.T) {
 	// 创建命令
 	cmd := NewCmd("test", "t", types.ContinueOnError)
+
+	// 添加标志
+	if err := cmd.AddFlag(flag.NewStringFlag("flag1", "f1", "Flag 1", "")); err != nil {
+		t.Fatalf("Failed to add flag1: %v", err)
+	}
+	if err := cmd.AddFlag(flag.NewStringFlag("flag2", "f2", "Flag 2", "")); err != nil {
+		t.Fatalf("Failed to add flag2: %v", err)
+	}
+	if err := cmd.AddFlag(flag.NewStringFlag("flag3", "f3", "Flag 3", "")); err != nil {
+		t.Fatalf("Failed to add flag3: %v", err)
+	}
+	if err := cmd.AddFlag(flag.NewStringFlag("flag4", "f4", "Flag 4", "")); err != nil {
+		t.Fatalf("Failed to add flag4: %v", err)
+	}
 
 	// 添加多个互斥组
 	if err := cmd.AddMutexGroup("group1", []string{"flag1", "flag2"}, true); err != nil {
@@ -85,6 +126,20 @@ func TestGetMutexGroups(t *testing.T) {
 func TestRemoveMutexGroup(t *testing.T) {
 	// 创建命令
 	cmd := NewCmd("test", "t", types.ContinueOnError)
+
+	// 添加标志
+	if err := cmd.AddFlag(flag.NewStringFlag("flag1", "f1", "Flag 1", "")); err != nil {
+		t.Fatalf("Failed to add flag1: %v", err)
+	}
+	if err := cmd.AddFlag(flag.NewStringFlag("flag2", "f2", "Flag 2", "")); err != nil {
+		t.Fatalf("Failed to add flag2: %v", err)
+	}
+	if err := cmd.AddFlag(flag.NewStringFlag("flag3", "f3", "Flag 3", "")); err != nil {
+		t.Fatalf("Failed to add flag3: %v", err)
+	}
+	if err := cmd.AddFlag(flag.NewStringFlag("flag4", "f4", "Flag 4", "")); err != nil {
+		t.Fatalf("Failed to add flag4: %v", err)
+	}
 
 	// 添加互斥组
 	if err := cmd.AddMutexGroup("group1", []string{"flag1", "flag2"}, true); err != nil {
@@ -232,28 +287,6 @@ func TestMutexGroupValidation(t *testing.T) {
 	}()
 }
 
-// TestMutexGroupWithNonExistentFlags 测试包含不存在标志的互斥组
-func TestMutexGroupWithNonExistentFlags(t *testing.T) {
-	// 创建命令
-	cmd := NewCmd("test", "t", types.ContinueOnError)
-
-	// 添加标志
-	if err := cmd.AddFlag(flag.NewStringFlag("format", "f", "Output format", "json")); err != nil {
-		t.Fatalf("Failed to add format flag: %v", err)
-	}
-
-	// 添加包含不存在标志的互斥组
-	if err := cmd.AddMutexGroup("test_group", []string{"format", "nonexistent"}, true); err != nil {
-		t.Fatalf("Failed to add mutex group: %v", err)
-	}
-
-	// 设置存在的标志, 应该成功
-	err := cmd.Parse([]string{"--format", "json"})
-	if err != nil {
-		t.Errorf("Expected no error when existing flag is set, got: %v", err)
-	}
-}
-
 // TestMultipleMutexGroups 测试多个互斥组
 func TestMultipleMutexGroups(t *testing.T) {
 	// 创建命令
@@ -342,6 +375,20 @@ func TestMultipleMutexGroups(t *testing.T) {
 func TestMutexGroupConcurrency(t *testing.T) {
 	// 创建命令
 	cmd := NewCmd("test", "t", types.ContinueOnError)
+
+	// 添加标志
+	if err := cmd.AddFlag(flag.NewStringFlag("flag1", "f1", "Flag 1", "")); err != nil {
+		t.Fatalf("Failed to add flag1: %v", err)
+	}
+	if err := cmd.AddFlag(flag.NewStringFlag("flag2", "f2", "Flag 2", "")); err != nil {
+		t.Fatalf("Failed to add flag2: %v", err)
+	}
+	if err := cmd.AddFlag(flag.NewStringFlag("flag3", "f3", "Flag 3", "")); err != nil {
+		t.Fatalf("Failed to add flag3: %v", err)
+	}
+	if err := cmd.AddFlag(flag.NewStringFlag("flag4", "f4", "Flag 4", "")); err != nil {
+		t.Fatalf("Failed to add flag4: %v", err)
+	}
 
 	// 并发添加互斥组
 	done := make(chan bool, 2)

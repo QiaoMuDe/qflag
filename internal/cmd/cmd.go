@@ -1138,14 +1138,37 @@ func (c *Cmd) Path() string {
 //
 // 错误码:
 //   - MUTEX_GROUP_ALREADY_EXISTS: 互斥组已存在
+//   - EMPTY_MUTEX_GROUP: 互斥组标志列表为空
+//   - FLAG_NOT_FOUND: 标志不存在
 func (c *Cmd) AddMutexGroup(name string, flags []string, allowNone bool) error {
 	c.mu.Lock()
 	defer c.mu.Unlock()
 
+	// 互斥组名称不能为空
+	if name == "" {
+		return types.NewError("EMPTY_MUTEX_GROUP_NAME",
+			"mutex group name cannot be empty", nil)
+	}
+
+	// 检查互斥组名称是否已存在
 	for _, group := range c.config.MutexGroups {
 		if group.Name == name {
 			return types.NewError("MUTEX_GROUP_ALREADY_EXISTS",
 				fmt.Sprintf("mutex group '%s' already exists", name), nil)
+		}
+	}
+
+	// 检查标志是否为空
+	if len(flags) == 0 {
+		return types.NewError("EMPTY_MUTEX_GROUP",
+			"mutex group cannot be empty", nil)
+	}
+
+	// 检查标志名称是否存在
+	for _, flagName := range flags {
+		if _, exists := c.flagRegistry.Get(flagName); !exists {
+			return types.NewError("FLAG_NOT_FOUND",
+				fmt.Sprintf("flag '%s' not found", flagName), nil)
 		}
 	}
 
@@ -1277,6 +1300,13 @@ func (c *Cmd) AddRequiredGroup(name string, flags []string) error {
 	c.mu.Lock()
 	defer c.mu.Unlock()
 
+	// 必需组名称不能为空
+	if name == "" {
+		return types.NewError("EMPTY_REQUIRED_GROUP_NAME",
+			"required group name cannot be empty", nil)
+	}
+
+	// 检查必需组名称是否已存在
 	for _, group := range c.config.RequiredGroups {
 		if group.Name == name {
 			return types.NewError("REQUIRED_GROUP_ALREADY_EXISTS",
@@ -1284,11 +1314,13 @@ func (c *Cmd) AddRequiredGroup(name string, flags []string) error {
 		}
 	}
 
+	// 必需组标志列表不能为空
 	if len(flags) == 0 {
 		return types.NewError("EMPTY_REQUIRED_GROUP",
 			"required group cannot be empty", nil)
 	}
 
+	// 检查必需组标志是否存在
 	for _, flagName := range flags {
 		if _, exists := c.flagRegistry.Get(flagName); !exists {
 			return types.NewError("FLAG_NOT_FOUND",
@@ -1296,11 +1328,13 @@ func (c *Cmd) AddRequiredGroup(name string, flags []string) error {
 		}
 	}
 
-	c.config.RequiredGroups = append(c.config.RequiredGroups, types.RequiredGroup{
+	// 添加必需组
+	group := types.RequiredGroup{
 		Name:  name,
 		Flags: flags,
-	})
+	}
 
+	c.config.RequiredGroups = append(c.config.RequiredGroups, group)
 	return nil
 }
 
