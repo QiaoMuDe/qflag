@@ -80,7 +80,7 @@ func NewEnumFlag(longName, shortName, desc, default_ string, allowedValues []str
 //   - 不允许设置空值
 //   - 使用映射表进行O(1)时间复杂度的值验证
 //   - 错误消息会列出所有允许的值
-//   - 先进行枚举值验证，然后设置值
+//   - 先进行枚举值验证，然后调用用户验证器，最后设置值
 func (f *EnumFlag) Set(value string) error {
 	f.mu.Lock()
 	defer f.mu.Unlock()
@@ -96,6 +96,13 @@ func (f *EnumFlag) Set(value string) error {
 		return types.NewError("INVALID_ENUM_VALUE",
 			fmt.Sprintf("invalid enum value: %s, allowed values are: %s", value, strings.Join(f.getAllowedValues(), ", ")),
 			nil)
+	}
+
+	// 验证（如果设置了验证器）
+	if f.validator != nil {
+		if err := f.validator(value); err != nil {
+			return err
+		}
 	}
 
 	// 设置值并标记已设置

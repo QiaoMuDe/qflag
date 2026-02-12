@@ -40,10 +40,25 @@ func NewStringFlag(longName, shortName, desc string, default_ string) *StringFla
 //
 // 注意事项:
 //   - 字符串标志接受任何字符串值, 包括空字符串
-//   - 先验证，验证通过后再设置值
+//   - 空字符串不经过验证器
+//   - 非空字符串先验证，验证通过后再设置值
 func (f *StringFlag) Set(value string) error {
 	f.mu.Lock()
 	defer f.mu.Unlock()
+
+	// 处理空字符串（不验证）
+	if value == "" {
+		*f.value = value
+		f.isSet = true
+		return nil
+	}
+
+	// 验证（如果设置了验证器）
+	if f.validator != nil {
+		if err := f.validator(value); err != nil {
+			return err
+		}
+	}
 
 	// 设置标志值并标记为已设置
 	*f.value = value
@@ -105,6 +120,13 @@ func (f *BoolFlag) Set(value string) error {
 	b, err := strconv.ParseBool(value)
 	if err != nil {
 		return types.WrapParseError(err, "bool", value)
+	}
+
+	// 验证（如果设置了验证器）
+	if f.validator != nil {
+		if err := f.validator(b); err != nil {
+			return err
+		}
 	}
 
 	// 设置标志值并标记为已设置

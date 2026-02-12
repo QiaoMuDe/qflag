@@ -277,6 +277,61 @@ Type 获取标志的类型
 **返回值:**
   - types.FlagType: 标志类型枚举值
 
+#### func (f *BaseFlag[T]) SetValidator(validator types.Validator[T])
+
+```go
+func (f *BaseFlag[T]) SetValidator(validator types.Validator[T])
+```
+
+SetValidator 设置验证器
+
+**参数:**
+  - validator: 验证器函数
+
+**功能说明:**
+  - 设置标志的验证器
+  - 如果之前已设置验证器，会被覆盖
+  - 验证器会在 Set 方法中解析完值后被调用
+  - 如果验证失败，Set 方法会返回错误，标志值不会被设置
+
+**使用示例:**
+```go
+// 端口号验证：1-65535
+port.SetValidator(func(value int) error {
+    if value < 1 || value > 65535 {
+        return fmt.Errorf("端口 %d 超出范围 [1, 65535]", value)
+    }
+    return nil
+})
+```
+
+#### func (f *BaseFlag[T]) ClearValidator()
+
+```go
+func (f *BaseFlag[T]) ClearValidator()
+```
+
+ClearValidator 清除验证器
+
+**功能说明:**
+  - 移除标志的验证器
+  - 之后调用 Set 方法将不会进行验证
+
+#### func (f *BaseFlag[T]) HasValidator() bool
+
+```go
+func (f *BaseFlag[T]) HasValidator() bool
+```
+
+HasValidator 检查是否设置了验证器
+
+**返回值:**
+  - bool: 是否设置了验证器
+
+**功能说明:**
+  - 用于判断标志是否配置了验证逻辑
+  - 此方法是线程安全的
+
 ---
 
 ### type BoolFlag struct
@@ -771,10 +826,9 @@ type MapFlag struct {
 
 MapFlag 用于处理键值对映射类型的命令行参数。 支持的格式: key1=value1,key2=value2
 
-**空值处理: **
+**空值处理:**
   - 空字符串 "" 表示创建空映射
   - ",,," 中的空对会被跳过
-  - 使用 SetKV 方法设置键值对时, 键不能为空
   - 使用 Clear 方法可以清空映射
 
 #### func NewMapFlag(longName, shortName, desc string, default_ map[string]string) *MapFlag
@@ -852,7 +906,7 @@ Set 设置映射标志的值
 
 支持格式: key1=value1,key2=value2
 
-**空值处理: **
+**空值处理:**
   - 空字符串 "" 表示创建空映射
   - ",,," 中的空对会被跳过
   - 键不能为空, 否则返回错误
@@ -862,21 +916,6 @@ Set 设置映射标志的值
 
 **返回值:**
   - error: 如果解析失败返回错误
-
-#### func (f *MapFlag) SetKV(key, value string) error
-
-```go
-func (f *MapFlag) SetKV(key, value string) error
-```
-
-SetKeyValue 设置映射的键值对
-
-**参数:**
-  - key: 键, 不能为空
-  - value: 值
-
-**返回值:**
-  - error: 如果键为空返回错误
 
 ---
 

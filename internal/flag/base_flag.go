@@ -28,12 +28,14 @@ import (
 //   - default_: 默认值
 //   - isSet: 标志是否已被设置
 //   - envVar: 关联的环境变量名
+//   - validator: 验证器函数
 type BaseFlag[T any] struct {
-	mu       sync.RWMutex // 读写锁
-	value    *T           // 当前值指针
-	default_ T            // 默认值
-	isSet    bool         // 标志是否已被设置
-	envVar   string       // 关联的环境变量名
+	mu        sync.RWMutex       // 读写锁
+	value     *T                 // 当前值指针
+	default_  T                  // 默认值
+	isSet     bool               // 标志是否已被设置
+	envVar    string             // 关联的环境变量名
+	validator types.Validator[T] // 验证器函数
 
 	// 不可变属性, 无需挂锁
 	longName  string         // 长选项名称
@@ -207,6 +209,8 @@ func (f *BaseFlag[T]) Set(value string) error {
 
 	// 这里仅作为示例, 具体每个子类实现自己的逻辑
 
+	// 这里不进行实际的验证, 子类应该重写此方法实现自己的验证逻辑
+
 	return nil
 }
 
@@ -261,4 +265,40 @@ func (f *BaseFlag[T]) GetValuePtr() *T {
 	f.mu.RLock()
 	defer f.mu.RUnlock()
 	return f.value
+}
+
+// SetValidator 设置验证器
+//
+// 参数:
+//   - validator: 验证器函数
+//
+// 功能说明:
+//   - 设置标志的验证器
+//   - 如果之前已设置验证器，会被覆盖
+//   - 验证器会在 Set 方法中解析完值后被调用
+func (f *BaseFlag[T]) SetValidator(validator types.Validator[T]) {
+	f.mu.Lock()
+	defer f.mu.Unlock()
+	f.validator = validator
+}
+
+// ClearValidator 清除验证器
+//
+// 功能说明:
+//   - 移除标志的验证器
+//   - 之后调用 Set 方法将不会进行验证
+func (f *BaseFlag[T]) ClearValidator() {
+	f.mu.Lock()
+	defer f.mu.Unlock()
+	f.validator = nil
+}
+
+// HasValidator 检查是否设置了验证器
+//
+// 返回值:
+//   - bool: 是否设置了验证器
+func (f *BaseFlag[T]) HasValidator() bool {
+	f.mu.RLock()
+	defer f.mu.RUnlock()
+	return f.validator != nil
 }

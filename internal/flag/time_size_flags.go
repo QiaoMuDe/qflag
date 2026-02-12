@@ -64,9 +64,20 @@ func (f *DurationFlag) Set(value string) error {
 	f.mu.Lock()
 	defer f.mu.Unlock()
 
+	if value == "" {
+		return types.NewError("INVALID_DURATION", "duration value cannot be empty", nil)
+	}
+
 	d, err := time.ParseDuration(value)
 	if err != nil {
 		return types.WrapParseError(err, "duration", value)
+	}
+
+	// 验证（如果设置了验证器）
+	if f.validator != nil {
+		if err := f.validator(d); err != nil {
+			return err
+		}
 	}
 
 	// 设置值并标记为已设置
@@ -132,9 +143,20 @@ func (f *TimeFlag) Set(value string) error {
 	f.mu.Lock()
 	defer f.mu.Unlock()
 
+	if value == "" {
+		return types.NewError("INVALID_TIME", "time value cannot be empty", nil)
+	}
+
 	t, format, err := types.ParseTimeWithCommonFormats(value)
 	if err != nil {
 		return err
+	}
+
+	// 验证（如果设置了验证器）
+	if f.validator != nil {
+		if err := f.validator(t); err != nil {
+			return err
+		}
 	}
 
 	// 设置值和格式以及标记为已设置
@@ -295,7 +317,7 @@ func (f *SizeFlag) Set(value string) error {
 	value = strings.TrimSpace(value)
 
 	// 检查是否包含单位
-	if len(value) == 0 {
+	if value == "" {
 		return types.NewError("INVALID_SIZE", "size value cannot be empty", nil)
 	}
 
@@ -361,6 +383,13 @@ func (f *SizeFlag) Set(value string) error {
 	// 检查是否超出int64范围
 	if size > float64(1<<63-1) {
 		return types.NewError("INVALID_SIZE", fmt.Sprintf("size value too large: %s", value), nil)
+	}
+
+	// 验证（如果设置了验证器）
+	if f.validator != nil {
+		if err := f.validator(int64(size)); err != nil {
+			return err
+		}
 	}
 
 	// 设置值

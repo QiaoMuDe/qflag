@@ -62,9 +62,20 @@ func (f *IntFlag) Set(value string) error {
 	f.mu.Lock()
 	defer f.mu.Unlock()
 
+	if value == "" {
+		return types.NewError("INVALID_INT", "int value cannot be empty", nil)
+	}
+
 	n, err := strconv.ParseInt(value, 10, IntSize)
 	if err != nil {
 		return types.WrapParseError(err, "int", value)
+	}
+
+	// 验证（如果设置了验证器）
+	if f.validator != nil {
+		if err := f.validator(int(n)); err != nil {
+			return err
+		}
 	}
 
 	// 设置值并标记为已设置
@@ -120,9 +131,20 @@ func (f *Int64Flag) Set(value string) error {
 	f.mu.Lock()
 	defer f.mu.Unlock()
 
+	if value == "" {
+		return types.NewError("INVALID_INT64", "int64 value cannot be empty", nil)
+	}
+
 	n, err := strconv.ParseInt(value, 10, 64)
 	if err != nil {
 		return types.WrapParseError(err, "int64", value)
+	}
+
+	// 验证（如果设置了验证器）
+	if f.validator != nil {
+		if err := f.validator(n); err != nil {
+			return err
+		}
 	}
 
 	*f.value = n
@@ -177,9 +199,20 @@ func (f *UintFlag) Set(value string) error {
 	f.mu.Lock()
 	defer f.mu.Unlock()
 
+	if value == "" {
+		return types.NewError("INVALID_UINT", "uint value cannot be empty", nil)
+	}
+
 	n, err := strconv.ParseUint(value, 10, UintSize)
 	if err != nil {
 		return types.WrapParseError(err, "uint", value)
+	}
+
+	// 验证（如果设置了验证器）
+	if f.validator != nil {
+		if err := f.validator(uint(n)); err != nil {
+			return err
+		}
 	}
 
 	*f.value = uint(n)
@@ -234,9 +267,20 @@ func (f *Uint8Flag) Set(value string) error {
 	f.mu.Lock()
 	defer f.mu.Unlock()
 
+	if value == "" {
+		return types.NewError("INVALID_UINT8", "uint8 value cannot be empty", nil)
+	}
+
 	n, err := strconv.ParseUint(value, 10, 8)
 	if err != nil {
 		return types.WrapParseError(err, "uint8", value)
+	}
+
+	// 验证（如果设置了验证器）
+	if f.validator != nil {
+		if err := f.validator(uint8(n)); err != nil {
+			return err
+		}
 	}
 
 	*f.value = uint8(n)
@@ -291,9 +335,20 @@ func (f *Uint16Flag) Set(value string) error {
 	f.mu.Lock()
 	defer f.mu.Unlock()
 
+	if value == "" {
+		return types.NewError("INVALID_UINT16", "uint16 value cannot be empty", nil)
+	}
+
 	n, err := strconv.ParseUint(value, 10, 16)
 	if err != nil {
 		return types.WrapParseError(err, "uint16", value)
+	}
+
+	// 验证（如果设置了验证器）
+	if f.validator != nil {
+		if err := f.validator(uint16(n)); err != nil {
+			return err
+		}
 	}
 
 	*f.value = uint16(n)
@@ -348,9 +403,20 @@ func (f *Uint32Flag) Set(value string) error {
 	f.mu.Lock()
 	defer f.mu.Unlock()
 
+	if value == "" {
+		return types.NewError("INVALID_UINT32", "uint32 value cannot be empty", nil)
+	}
+
 	n, err := strconv.ParseUint(value, 10, 32)
 	if err != nil {
 		return types.WrapParseError(err, "uint32", value)
+	}
+
+	// 验证（如果设置了验证器）
+	if f.validator != nil {
+		if err := f.validator(uint32(n)); err != nil {
+			return err
+		}
 	}
 
 	*f.value = uint32(n)
@@ -405,9 +471,20 @@ func (f *Uint64Flag) Set(value string) error {
 	f.mu.Lock()
 	defer f.mu.Unlock()
 
+	if value == "" {
+		return types.NewError("INVALID_UINT64", "uint64 value cannot be empty", nil)
+	}
+
 	n, err := strconv.ParseUint(value, 10, 64)
 	if err != nil {
 		return types.WrapParseError(err, "uint64", value)
+	}
+
+	// 验证（如果设置了验证器）
+	if f.validator != nil {
+		if err := f.validator(n); err != nil {
+			return err
+		}
 	}
 
 	// 设置值并标记为已设置
@@ -465,9 +542,20 @@ func (f *Float64Flag) Set(value string) error {
 	f.mu.Lock()
 	defer f.mu.Unlock()
 
+	if value == "" {
+		return types.NewError("INVALID_FLOAT64", "float64 value cannot be empty", nil)
+	}
+
 	n, err := strconv.ParseFloat(value, 64)
 	if err != nil {
 		return types.WrapParseError(err, "float64", value)
+	}
+
+	// 验证（如果设置了验证器）
+	if f.validator != nil {
+		if err := f.validator(n); err != nil {
+			return err
+		}
 	}
 
 	// 设置值并标记为已设置

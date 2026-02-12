@@ -1344,6 +1344,74 @@ RequiredGroup 定义了一组必须同时设置的标志。 当用户没有设�
 
 ---
 
+### type Validator[T any]
+
+```go
+type Validator[T any] func(value T) error
+```
+
+Validator 验证器函数类型
+
+Validator 是一个泛型函数类型，用于验证标志值的有效性。验证器接收一个类型为 T 的值，返回错误信息。
+
+**参数:**
+  - value: 要验证的值
+
+**返回值:**
+  - error: 验证失败时返回错误，验证通过返回 nil
+
+**功能说明:**
+  - 验证器在标志的 Set 方法中被调用
+  - 在解析完值后、设置值之前执行验证
+  - 如果验证失败，Set 方法会返回错误，标志值不会被设置
+  - 验证器是可选的，未设置时跳过验证
+  - 重复设置验证器会覆盖之前的验证器
+
+**使用示例:**
+
+```go
+// 端口号验证：1-65535
+port.SetValidator(func(value int) error {
+    if value < 1 || value > 65535 {
+        return fmt.Errorf("端口 %d 超出范围 [1, 65535]", value)
+    }
+    return nil
+})
+
+// 字符串长度验证：3-20个字符
+username.SetValidator(func(value string) error {
+    if len(value) < 3 || len(value) > 20 {
+        return fmt.Errorf("用户名长度 %d 超出范围 [3, 20]", len(value))
+    }
+    return nil
+})
+
+// 邮箱格式验证
+email.SetValidator(func(value string) error {
+    if !isValidEmail(value) {
+        return fmt.Errorf("邮箱格式无效: %s", value)
+    }
+    return nil
+})
+
+// 自定义验证：检查端口是否被占用
+port.SetValidator(func(value int) error {
+    if isPortInUse(value) {
+        return fmt.Errorf("端口 %d 已被占用", value)
+    }
+    return nil
+})
+```
+
+**注意事项:**
+  - 验证器应该快速执行，避免耗时操作
+  - 验证器返回的错误应该清晰描述失败原因
+  - 验证器执行时已经持有锁，验证器本身不需要处理并发
+  - 空字符串（对于 BoolFlag 和集合类型）不经过验证
+  - 验证器可以随时通过 ClearValidator 清除
+
+---
+
 ### type OptionInfo struct
 
 ```go

@@ -25,7 +25,7 @@ func (f *StringSliceFlag) Set(value string) error {
 	f.mu.Lock()
 	defer f.mu.Unlock()
 
-	// 处理空字符串，设置为空切片
+	// 处理空字符串，设置为空切片（不验证）
 	if value == "" {
 		*f.value = []string{}
 		f.isSet = true
@@ -41,6 +41,13 @@ func (f *StringSliceFlag) Set(value string) error {
 		trimmed := strings.TrimSpace(part)
 		if trimmed != "" {
 			result = append(result, trimmed)
+		}
+	}
+
+	// 验证（如果设置了验证器）
+	if f.validator != nil {
+		if err := f.validator(result); err != nil {
+			return err
 		}
 	}
 
@@ -82,7 +89,7 @@ func (f *IntSliceFlag) Set(value string) error {
 	f.mu.Lock()
 	defer f.mu.Unlock()
 
-	// 处理空字符串，设置为空切片
+	// 处理空字符串，设置为空切片（不验证）
 	if value == "" {
 		*f.value = []int{}
 		f.isSet = true
@@ -107,6 +114,13 @@ func (f *IntSliceFlag) Set(value string) error {
 			return types.WrapParseError(err, "int slice", part)
 		}
 		result = append(result, n)
+	}
+
+	// 验证（如果设置了验证器）
+	if f.validator != nil {
+		if err := f.validator(result); err != nil {
+			return err
+		}
 	}
 
 	// 设置值并标记为已设置
@@ -147,7 +161,7 @@ func (f *Int64SliceFlag) Set(value string) error {
 	f.mu.Lock()
 	defer f.mu.Unlock()
 
-	// 处理空字符串，设置为空切片
+	// 处理空字符串，设置为空切片（不验证）
 	if value == "" {
 		*f.value = []int64{}
 		f.isSet = true
@@ -172,6 +186,13 @@ func (f *Int64SliceFlag) Set(value string) error {
 			return types.WrapParseError(err, "int64 slice", part)
 		}
 		result = append(result, n)
+	}
+
+	// 验证（如果设置了验证器）
+	if f.validator != nil {
+		if err := f.validator(result); err != nil {
+			return err
+		}
 	}
 
 	// 设置值并标记为已设置
@@ -246,7 +267,7 @@ func (f *MapFlag) Set(value string) error {
 	f.mu.Lock()
 	defer f.mu.Unlock()
 
-	// 检查空字符串输入，设置为空映射
+	// 检查空字符串输入，设置为空映射（不验证）
 	if value == "" {
 		*f.value = make(map[string]string)
 		f.isSet = true
@@ -279,7 +300,14 @@ func (f *MapFlag) Set(value string) error {
 		result[key] = val
 	}
 
-	// 设置值并标记已设置
+	// 验证（如果设置了验证器）
+	if f.validator != nil {
+		if err := f.validator(result); err != nil {
+			return err
+		}
+	}
+
+	// 设置值并标记为已设置
 	*f.value = result
 	f.isSet = true
 
@@ -300,32 +328,6 @@ func (f *MapFlag) IsEmpty() bool {
 	return len(*f.value) == 0
 }
 
-// SetKeyValue 设置映射的键值对
-//
-// 参数:
-//   - key: 键, 不能为空
-//   - value: 值
-//
-// 返回值:
-//   - error: 如果键为空返回错误
-func (f *MapFlag) SetKV(key, value string) error {
-	f.mu.Lock()
-	defer f.mu.Unlock()
-
-	// 检查键是否为空
-	if key == "" {
-		return types.NewError("INVALID_MAP_KEY", "map key cannot be empty", nil)
-	}
-
-	if *f.value == nil {
-		*f.value = make(map[string]string)
-	}
-	(*f.value)[key] = value
-	f.isSet = true
-
-	return nil
-}
-
 // Clear 清空映射
 // 将映射设置为空映射, 并标记为已设置
 func (f *MapFlag) Clear() {
@@ -341,6 +343,10 @@ func (f *MapFlag) GetKey(key string) (string, bool) {
 	f.mu.RLock()
 	defer f.mu.RUnlock()
 
+	if key == "" {
+		return "", false
+	}
+
 	val, exists := (*f.value)[key]
 	return val, exists
 }
@@ -349,6 +355,10 @@ func (f *MapFlag) GetKey(key string) (string, bool) {
 func (f *MapFlag) HasKey(key string) bool {
 	f.mu.RLock()
 	defer f.mu.RUnlock()
+
+	if key == "" {
+		return false
+	}
 
 	_, exists := (*f.value)[key]
 	return exists

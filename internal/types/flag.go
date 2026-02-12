@@ -152,6 +152,39 @@ func (t FlagType) String() string {
 	}
 }
 
+// Validator 验证器函数类型
+//
+// Validator 是一个泛型函数类型，用于验证标志值的有效性。
+// 验证器接收一个类型为 T 的值，返回错误信息。
+//
+// 参数:
+//   - value: 要验证的值
+//
+// 返回值:
+//   - error: 验证失败时返回错误，验证通过返回 nil
+//
+// 功能说明:
+//   - 验证器在标志的 Set 方法中被调用
+//   - 在解析完值后、设置值之前执行验证
+//   - 如果验证失败，Set 方法会返回错误，标志值不会被设置
+//   - 验证器是可选的，未设置时跳过验证
+//   - 重复设置验证器会覆盖之前的验证器
+//
+// 空值处理:
+//   - StringFlag: 空字符串不经过验证器，直接设置
+//   - BoolFlag: 不经过验证器（无空值概念）
+//   - 集合类型 (MapFlag, StringSliceFlag, IntSliceFlag, Int64SliceFlag): 空字符串不经过验证器，创建空集合
+//   - 其他类型: 空字符串直接返回错误，不经过验证器
+//
+// 使用示例:
+//   - port.SetValidator(func(value int) error {
+//     if value < 1 || value > 65535 {
+//     return fmt.Errorf("端口 %d 超出范围 [1, 65535]", value)
+//     }
+//     return nil
+//     })
+type Validator[T any] func(value T) error
+
 // IsValid 检查标志类型是否有效
 //
 // 返回值:
