@@ -17,30 +17,34 @@ import (
 //   - string: 生成的帮助信息字符串
 func GenHelp(cmd types.Command) string {
 	var buf strings.Builder
+	cfg := cmd.Config()
+	if cfg == nil {
+		return "cmd config is nil"
+	}
 
 	// 写入命令logo
-	writeLogo(cmd, &buf)
+	writeLogo(cfg, &buf)
 
 	// 写入命令名称
-	writeName(cmd, &buf)
+	writeName(cmd, cfg, &buf)
 
 	// 写入命令描述
-	writeDesc(cmd, &buf)
+	writeDesc(cmd, cfg, &buf)
 
 	// 写入命令使用方法
-	writeUsage(cmd, &buf)
+	writeUsage(cmd, cfg, &buf)
 
 	// 写入命令选项
-	writeOptions(cmd, &buf)
+	writeOptions(cmd, cfg, &buf)
 
 	// 写入命令子命令
-	writeSubCmds(cmd, &buf)
+	writeSubCmds(cmd, cfg, &buf)
 
 	// 写入命令示例
-	writeExample(cmd, &buf)
+	writeExample(cfg, &buf)
 
 	// 写入命令注意事项
-	writeNotes(cmd, &buf)
+	writeNotes(cfg, &buf)
 
 	return buf.String()
 }
@@ -49,9 +53,10 @@ func GenHelp(cmd types.Command) string {
 //
 // 参数:
 //   - cmd: 要生成帮助信息的命令
+//   - cfg: 命令配置
 //   - buf: 用于写入帮助信息的字符串构建器
-func writeName(cmd types.Command, buf *strings.Builder) {
-	if cmd.Config().UseChinese {
+func writeName(cmd types.Command, cfg *types.CmdConfig, buf *strings.Builder) {
+	if cfg.UseChinese {
 		buf.WriteString(types.HelpNameCN)
 	} else {
 		buf.WriteString(types.HelpNameEN)
@@ -65,11 +70,11 @@ func writeName(cmd types.Command, buf *strings.Builder) {
 // writeLogo 写入命令logo
 //
 // 参数:
-//   - cmd: 要生成帮助信息的命令
+//   - cfg: 命令配置
 //   - buf: 用于写入帮助信息的字符串构建器
-func writeLogo(cmd types.Command, buf *strings.Builder) {
-	if cmd.Config().LogoText != "" {
-		fmt.Fprintf(buf, "\n\t\t%s\n", cmd.Config().LogoText)
+func writeLogo(cfg *types.CmdConfig, buf *strings.Builder) {
+	if cfg.LogoText != "" {
+		fmt.Fprintf(buf, "\n\t\t%s\n", cfg.LogoText)
 	}
 }
 
@@ -77,13 +82,14 @@ func writeLogo(cmd types.Command, buf *strings.Builder) {
 //
 // 参数:
 //   - cmd: 要生成帮助信息的命令
+//   - cfg: 命令配置
 //   - buf: 用于写入帮助信息的字符串构建器
-func writeDesc(cmd types.Command, buf *strings.Builder) {
+func writeDesc(cmd types.Command, cfg *types.CmdConfig, buf *strings.Builder) {
 	if cmd.Desc() == "" {
 		return
 	}
 
-	if cmd.Config().UseChinese {
+	if cfg.UseChinese {
 		buf.WriteString(types.HelpDescCN)
 	} else {
 		buf.WriteString(types.HelpDescEN)
@@ -97,17 +103,18 @@ func writeDesc(cmd types.Command, buf *strings.Builder) {
 //
 // 参数:
 //   - cmd: 要生成帮助信息的命令
+//   - cfg: 命令配置
 //   - buf: 用于写入帮助信息的字符串构建器
-func writeUsage(cmd types.Command, buf *strings.Builder) {
-	if cmd.Config().UseChinese {
+func writeUsage(cmd types.Command, cfg *types.CmdConfig, buf *strings.Builder) {
+	if cfg.UseChinese {
 		buf.WriteString(types.HelpUsageCN)
 	} else {
 		buf.WriteString(types.HelpUsageEN)
 	}
 
 	// 检查命令是否有使用方法
-	if cmd.Config().UsageSyntax != "" {
-		buf.WriteString(types.HelpPrefix + cmd.Config().UsageSyntax + "\n")
+	if cfg.UsageSyntax != "" {
+		buf.WriteString(types.HelpPrefix + cfg.UsageSyntax + "\n")
 		return
 	}
 
@@ -119,14 +126,15 @@ func writeUsage(cmd types.Command, buf *strings.Builder) {
 //
 // 参数:
 //   - cmd: 要生成帮助信息的命令
+//   - cfg: 命令配置
 //   - buf: 用于写入帮助信息的字符串构建器
-func writeOptions(cmd types.Command, buf *strings.Builder) {
+func writeOptions(cmd types.Command, cfg *types.CmdConfig, buf *strings.Builder) {
 	flags := cmd.Flags()
 	if len(flags) == 0 {
 		return
 	}
 
-	if cmd.Config().UseChinese {
+	if cfg.UseChinese {
 		buf.WriteString(types.HelpOptionsCN)
 	} else {
 		buf.WriteString(types.HelpOptionsEN)
@@ -175,14 +183,15 @@ func writeOptions(cmd types.Command, buf *strings.Builder) {
 //
 // 参数:
 //   - cmd: 要生成帮助信息的命令
+//   - cfg: 命令配置
 //   - buf: 用于写入帮助信息的字符串构建器
-func writeSubCmds(cmd types.Command, buf *strings.Builder) {
+func writeSubCmds(cmd types.Command, cfg *types.CmdConfig, buf *strings.Builder) {
 	SubCmds := cmd.SubCmds()
 	if len(SubCmds) == 0 {
 		return
 	}
 
-	if cmd.Config().UseChinese {
+	if cfg.UseChinese {
 		buf.WriteString(types.HelpSubCmdsCN)
 	} else {
 		buf.WriteString(types.HelpSubCmdsEN)
@@ -220,43 +229,48 @@ func writeSubCmds(cmd types.Command, buf *strings.Builder) {
 // writeExample 写入命令示例
 //
 // 参数:
-//   - cmd: 要生成帮助信息的命令
+//   - cfg: 命令配置
 //   - buf: 用于写入帮助信息的字符串构建器
-func writeExample(cmd types.Command, buf *strings.Builder) {
-	if len(cmd.Config().Example) == 0 {
+func writeExample(cfg *types.CmdConfig, buf *strings.Builder) {
+	if len(cfg.Example) == 0 {
 		return
 	}
 
-	if cmd.Config().UseChinese {
+	if cfg.UseChinese {
 		buf.WriteString(types.HelpExamplesCN)
 	} else {
 		buf.WriteString(types.HelpExamplesEN)
 	}
 
+	total := len(cfg.Example)
 	jd := 0
-	for k, v := range cmd.Config().Example {
+	for k, v := range cfg.Example {
 		jd++
-		fmt.Fprintf(buf, "%s%d. %s\n     %s\n\n", types.HelpPrefix, jd, k, v)
+		if jd == total {
+			fmt.Fprintf(buf, "%s%d. %s\n     %s\n", types.HelpPrefix, jd, k, v)
+		} else {
+			fmt.Fprintf(buf, "%s%d. %s\n     %s\n\n", types.HelpPrefix, jd, k, v)
+		}
 	}
 }
 
 // writeNotes 写入命令注意事项
 //
 // 参数:
-//   - cmd: 要生成帮助信息的命令
+//   - cfg: 命令配置
 //   - buf: 用于写入帮助信息的字符串构建器
-func writeNotes(cmd types.Command, buf *strings.Builder) {
-	if len(cmd.Config().Notes) == 0 {
+func writeNotes(cfg *types.CmdConfig, buf *strings.Builder) {
+	if len(cfg.Notes) == 0 {
 		return
 	}
 
-	if cmd.Config().UseChinese {
+	if cfg.UseChinese {
 		buf.WriteString(types.HelpNotesCN)
 	} else {
 		buf.WriteString(types.HelpNotesEN)
 	}
 
-	for i, note := range cmd.Config().Notes {
+	for i, note := range cfg.Notes {
 		fmt.Fprintf(buf, "%s%d. %s\n", types.HelpPrefix, i+1, note)
 	}
 }
