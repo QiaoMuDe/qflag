@@ -22,6 +22,7 @@ type DefaultParser struct {
 	flagSet       *flag.FlagSet               // 标准库flag.FlagSet实例
 	errorHandling types.ErrorHandling         // 错误处理策略
 	builtinMgr    *builtin.BuiltinFlagManager // 内置标志管理器
+	setFlagsMap   map[string]bool             // 已设置标志映射（缓存）
 }
 
 // NewDefaultParser 创建默认解析器实例
@@ -89,19 +90,31 @@ func (p *DefaultParser) ParseOnly(cmd types.Command, args []string) error {
 		return err
 	}
 
-	// 再加载环境变量 (仅在标志未被命令行参数设置时)
-	if err := p.loadEnvVars(cmd); err != nil {
+	// 获取命令配置, 检查是否为nil
+	config := cmd.Config()
+	if config == nil {
+		return types.NewError("CONFIG_ERROR", "command config is nil", nil)
+	}
+
+	// 加载环境变量 (仅在标志未被命令行参数设置时)
+	if err := p.loadEnvVars(cmd, config.EnvPrefix); err != nil {
 		return err
 	}
 
-	// 验证互斥组规则
-	if err := p.validateMutexGroups(cmd); err != nil {
-		return err
-	}
+	// 如果有互斥组或必需组，需要验证, 则构建已设置标志映射
+	if len(config.MutexGroups) > 0 || len(config.RequiredGroups) > 0 {
+		// 构建已设置标志映射（在验证前构建，确保标志状态已确定）
+		p.buildSetFlagsMap(cmd)
 
-	// 验证必需组规则
-	if err := p.validateRequiredGroups(cmd); err != nil {
-		return err
+		// 验证互斥组规则
+		if err := p.validateMutexGroups(config); err != nil {
+			return err
+		}
+
+		// 验证必需组规则
+		if err := p.validateRequiredGroups(config); err != nil {
+			return err
+		}
 	}
 
 	// 处理内置标志

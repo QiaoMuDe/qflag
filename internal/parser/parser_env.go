@@ -10,17 +10,16 @@ import (
 //
 // 参数:
 //   - cmd: 要加载环境变量的命令
+//   - envPrefix: 环境变量前缀
 //
 // 返回值:
 //   - error: 如果加载失败返回错误
 //
 // 注意事项:
 //   - 遍历命令的所有标志
-//   - 使用命令的环境变量前缀
 //   - 环境变量优先级低于命令行参数
-func (p *DefaultParser) loadEnvVars(cmd types.Command) error {
+func (p *DefaultParser) loadEnvVars(cmd types.Command, envPrefix string) error {
 	flags := cmd.Flags()
-	envPrefix := cmd.Config().EnvPrefix
 
 	for _, f := range flags {
 		if err := p.loadFlagEnv(f, envPrefix); err != nil {
