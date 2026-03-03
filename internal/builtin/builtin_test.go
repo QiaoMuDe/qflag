@@ -206,45 +206,75 @@ func TestBuiltinFlagManager_HandleBuiltinFlags(t *testing.T) {
 func TestBuiltinFlagManager_isBuiltinFlag(t *testing.T) {
 	manager := NewBuiltinFlagManager()
 
+	// 创建测试命令
+	helper := mock.NewTestHelper()
+	rootCmd := helper.CreateMockCommandWithFlags("root", "r", "Root command")
+	rootCmd.SetVersion("1.0.0") // 设置版本信息，使版本标志会被注册
+	rootCmd.SetCompletion(true) // 启用补全功能
+
+	subCmd := helper.CreateMockSubCommandWithFlags("sub", "s", "Sub command", rootCmd)
+	// 子命令不设置版本信息，版本标志不会被注册
+
 	tests := []struct {
 		name            string
 		flag            types.Flag
+		cmd             types.Command
 		expectType      types.BuiltinFlagType
 		expectIsBuiltin bool
 	}{
 		{
-			name:            "帮助标志长名称",
+			name:            "根命令帮助标志长名称",
 			flag:            flag.NewBoolFlag(types.HelpFlagName, "", "Help", false),
+			cmd:             rootCmd,
 			expectType:      types.HelpFlag,
 			expectIsBuiltin: true,
 		},
 		{
-			name:            "帮助标志短名称",
+			name:            "根命令帮助标志短名称",
 			flag:            flag.NewBoolFlag("", types.HelpFlagShortName, "Help", false),
+			cmd:             rootCmd,
 			expectType:      types.HelpFlag,
 			expectIsBuiltin: true,
 		},
 		{
-			name:            "版本标志长名称",
+			name:            "根命令版本标志长名称",
 			flag:            flag.NewBoolFlag(types.VersionFlagName, "", "Version", false),
+			cmd:             rootCmd,
 			expectType:      types.VersionFlag,
 			expectIsBuiltin: true,
 		},
 		{
-			name:            "版本标志短名称",
+			name:            "根命令版本标志短名称",
 			flag:            flag.NewBoolFlag("", types.VersionFlagShortName, "Version", false),
+			cmd:             rootCmd,
 			expectType:      types.VersionFlag,
 			expectIsBuiltin: true,
 		},
 		{
-			name:            "补全标志长名称",
+			name:            "根命令补全标志长名称",
 			flag:            flag.NewEnumFlag(types.CompletionFlagName, "", "Completion", "bash", []string{"bash", "pwsh"}),
+			cmd:             rootCmd,
 			expectType:      types.CompletionFlag,
+			expectIsBuiltin: true, // 根命令已启用补全
+		},
+		{
+			name:            "子命令帮助标志长名称",
+			flag:            flag.NewBoolFlag(types.HelpFlagName, "", "Help", false),
+			cmd:             subCmd,
+			expectType:      types.HelpFlag,
 			expectIsBuiltin: true,
+		},
+		{
+			name:            "子命令版本标志短名称",
+			flag:            flag.NewBoolFlag("", types.VersionFlagShortName, "Version", false),
+			cmd:             subCmd,
+			expectType:      0,
+			expectIsBuiltin: false, // 子命令不注册版本标志
 		},
 		{
 			name:            "自定义标志",
 			flag:            flag.NewBoolFlag("custom", "c", "Custom flag", false),
+			cmd:             rootCmd,
 			expectType:      0,
 			expectIsBuiltin: false,
 		},
@@ -252,7 +282,7 @@ func TestBuiltinFlagManager_isBuiltinFlag(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			flagType, isBuiltin := manager.isBuiltinFlag(tt.flag)
+			flagType, isBuiltin := manager.isBuiltinFlag(tt.flag, tt.cmd)
 
 			if isBuiltin != tt.expectIsBuiltin {
 				t.Errorf("isBuiltinFlag() isBuiltin = %v, expect %v", isBuiltin, tt.expectIsBuiltin)

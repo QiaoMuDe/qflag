@@ -14,6 +14,7 @@ type MockCommandBasic struct {
 	envPrefix    string
 	usageSyntax  string
 	logoText     string
+	completion   bool
 	args         []string
 	parsed       bool
 	runFunc      func(types.Command) error
@@ -53,14 +54,16 @@ func (c *MockCommandBasic) Config() *types.CmdConfig {
 		EnvPrefix:   c.envPrefix,
 		UsageSyntax: c.usageSyntax,
 		LogoText:    c.logoText,
+		Completion:  c.completion,
 	}
 }
 
-func (c *MockCommandBasic) SetVersion(version string)    { c.version = version }
-func (c *MockCommandBasic) SetChinese(useChinese bool)   { c.useChinese = useChinese }
-func (c *MockCommandBasic) SetEnvPrefix(prefix string)   { c.envPrefix = prefix }
-func (c *MockCommandBasic) SetUsageSyntax(syntax string) { c.usageSyntax = syntax }
-func (c *MockCommandBasic) SetLogoText(logo string)      { c.logoText = logo }
+func (c *MockCommandBasic) SetVersion(version string)     { c.version = version }
+func (c *MockCommandBasic) SetChinese(useChinese bool)    { c.useChinese = useChinese }
+func (c *MockCommandBasic) SetEnvPrefix(prefix string)    { c.envPrefix = prefix }
+func (c *MockCommandBasic) SetUsageSyntax(syntax string)  { c.usageSyntax = syntax }
+func (c *MockCommandBasic) SetLogoText(logo string)       { c.logoText = logo }
+func (c *MockCommandBasic) SetCompletion(completion bool) { c.completion = completion }
 
 func (c *MockCommandBasic) AddFlag(f types.Flag) error {
 	return c.flagRegistry.Register(f)

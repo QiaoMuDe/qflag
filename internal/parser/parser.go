@@ -141,15 +141,21 @@ func (p *DefaultParser) ParseOnly(cmd types.Command, args []string) error {
 //   - 如果是子命令, 递归解析子命令
 //   - 不执行子命令的运行函数
 func (p *DefaultParser) Parse(cmd types.Command, args []string) error {
+	// 先解析参数
 	if err := p.ParseOnly(cmd, args); err != nil {
 		return err
 	}
 
+	// 检查剩余参数是否为子命令
 	cmdRegistry := cmd.CmdRegistry()
 	remainingArgs := cmd.Args()
 
+	// 如果有剩余参数, 检查是否为子命令
 	if len(remainingArgs) > 0 {
+		// 获取第一个参数
 		firstArg := remainingArgs[0]
+
+		// 检查是否为子命令, 如果是, 递归解析并执行子命令
 		if subCmd, ok := cmdRegistry.Get(firstArg); ok {
 			return subCmd.Parse(remainingArgs[1:])
 		}
@@ -174,28 +180,26 @@ func (p *DefaultParser) Parse(cmd types.Command, args []string) error {
 //   - 如果不是子命令, 执行当前命令的运行函数
 //   - 如果命令没有设置运行函数, 返回错误
 func (p *DefaultParser) ParseAndRoute(cmd types.Command, args []string) error {
+	// 先解析参数
 	if err := p.ParseOnly(cmd, args); err != nil {
 		return err
 	}
 
+	// 检查剩余参数是否为子命令
 	cmdRegistry := cmd.CmdRegistry()
 	remainingArgs := cmd.Args()
 
+	// 如果是子命令, 递归解析并执行子命令
 	if len(remainingArgs) > 0 {
-		firstArg := remainingArgs[0]
+		firstArg := remainingArgs[0] // 获取第一个参数
+
+		// 检查是否为子命令, 如果是, 递归解析并执行子命令
 		if subCmd, ok := cmdRegistry.Get(firstArg); ok {
-			if err := subCmd.Parse(remainingArgs[1:]); err != nil {
-				return err
-			}
-
-			if subCmd.HasRunFunc() {
-				return subCmd.Run()
-			}
-
-			return fmt.Errorf("subcmd %q has no run function set", firstArg)
+			return subCmd.ParseAndRoute(remainingArgs[1:])
 		}
 	}
 
+	// 如果不是子命令, 执行当前命令的运行函数
 	if cmd.HasRunFunc() {
 		return cmd.Run()
 	}

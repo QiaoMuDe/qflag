@@ -156,12 +156,16 @@ func TestLoadEnvVars(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			// 设置环境变量
 			for k, v := range tt.envVars {
-				os.Setenv(k, v)
+				if err := os.Setenv(k, v); err != nil {
+					t.Fatalf("设置环境变量失败: %v", err)
+				}
 			}
 			defer func() {
 				// 清理环境变量
 				for k := range tt.envVars {
-					os.Unsetenv(k)
+					if err := os.Unsetenv(k); err != nil {
+						t.Logf("清理环境变量失败: %v", err)
+					}
 				}
 			}()
 
@@ -280,8 +284,14 @@ func TestSingleFlagEnv(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			// 设置环境变量
 			if tt.envValue != "" {
-				os.Setenv(tt.envVar, tt.envValue)
-				defer os.Unsetenv(tt.envVar)
+				if err := os.Setenv(tt.envVar, tt.envValue); err != nil {
+					t.Fatalf("设置环境变量失败: %v", err)
+				}
+				defer func() {
+					if err := os.Unsetenv(tt.envVar); err != nil {
+						t.Logf("清理环境变量失败: %v", err)
+					}
+				}()
 			}
 
 			// 创建模拟命令
