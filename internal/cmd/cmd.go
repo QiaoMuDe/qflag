@@ -1061,7 +1061,7 @@ func (c *Cmd) ApplyOpts(opts *CmdOpts) error {
 	// 5. 添加必需组 - 调用现有方法
 	if len(opts.RequiredGroups) > 0 {
 		for _, group := range opts.RequiredGroups {
-			if err := c.AddRequiredGroup(group.Name, group.Flags); err != nil {
+			if err := c.AddRequiredGroup(group.Name, group.Flags, group.Conditional); err != nil {
 				return types.WrapError(err, "FAILED_TO_ADD_REQUIRED_GROUP", "failed to add required group")
 			}
 		}
@@ -1282,6 +1282,7 @@ func (c *Cmd) MutexGroups() []types.MutexGroup {
 // 参数:
 //   - name: 必需组名称
 //   - flags: 必需组中的标志名称列表
+//   - conditional: 是否为条件性必需组，如果为true，则只有当组中任何一个标志被设置时，才要求所有标志都被设置
 //
 // 返回值:
 //   - error: 添加失败时返回错误
@@ -1291,12 +1292,13 @@ func (c *Cmd) MutexGroups() []types.MutexGroup {
 //   - 如果组名已存在，返回错误
 //   - 如果标志列表为空，返回错误
 //   - 如果标志不存在，返回错误
+//   - 支持条件性必需组，当conditional为true时，只有当组中任何一个标志被设置时，才要求所有标志都被设置
 //
 // 错误码:
 //   - REQUIRED_GROUP_ALREADY_EXISTS: 必需组已存在
 //   - EMPTY_REQUIRED_GROUP: 必需组标志列表为空
 //   - FLAG_NOT_FOUND: 标志不存在
-func (c *Cmd) AddRequiredGroup(name string, flags []string) error {
+func (c *Cmd) AddRequiredGroup(name string, flags []string, conditional bool) error {
 	c.mu.Lock()
 	defer c.mu.Unlock()
 
@@ -1330,8 +1332,9 @@ func (c *Cmd) AddRequiredGroup(name string, flags []string) error {
 
 	// 添加必需组
 	group := types.RequiredGroup{
-		Name:  name,
-		Flags: flags,
+		Name:        name,
+		Flags:       flags,
+		Conditional: conditional,
 	}
 
 	c.config.RequiredGroups = append(c.config.RequiredGroups, group)

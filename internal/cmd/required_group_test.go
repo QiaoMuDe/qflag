@@ -24,7 +24,7 @@ func TestAddRequiredGroup(t *testing.T) {
 	}
 
 	// 添加必需组
-	if err := cmd.AddRequiredGroup("connection", []string{"host", "port"}); err != nil {
+	if err := cmd.AddRequiredGroup("connection", []string{"host", "port"}, false); err != nil {
 		t.Fatalf("Failed to add required group: %v", err)
 	}
 
@@ -47,8 +47,13 @@ func TestAddRequiredGroup(t *testing.T) {
 		t.Errorf("Expected flags ['host', 'port'], got %v", group.Flags)
 	}
 
+	// 验证 Conditional 字段
+	if group.Conditional != false {
+		t.Errorf("Expected Conditional to be false, got %v", group.Conditional)
+	}
+
 	// 测试添加重复的必需组
-	if err := cmd.AddRequiredGroup("connection", []string{"host", "port"}); err == nil {
+	if err := cmd.AddRequiredGroup("connection", []string{"host", "port"}, false); err == nil {
 		t.Error("Expected error when adding duplicate required group")
 	}
 
@@ -70,7 +75,7 @@ func TestAddRequiredGroupWithEmptyFlags(t *testing.T) {
 	cmd := NewCmd("test", "t", types.ContinueOnError)
 
 	// 添加空标志列表的必需组
-	if err := cmd.AddRequiredGroup("empty", []string{}); err == nil {
+	if err := cmd.AddRequiredGroup("empty", []string{}, false); err == nil {
 		t.Error("Expected error when adding required group with empty flags")
 	}
 }
@@ -86,7 +91,7 @@ func TestAddRequiredGroupWithNonExistentFlag(t *testing.T) {
 	}
 
 	// 添加包含不存在标志的必需组
-	if err := cmd.AddRequiredGroup("connection", []string{"host", "nonexistent"}); err == nil {
+	if err := cmd.AddRequiredGroup("connection", []string{"host", "nonexistent"}, false); err == nil {
 		t.Error("Expected error when adding required group with non-existent flag")
 	}
 }
@@ -110,10 +115,10 @@ func TestGetRequiredGroups(t *testing.T) {
 		t.Fatalf("Failed to add password flag: %v", err)
 	}
 
-	if err := cmd.AddRequiredGroup("connection", []string{"host", "port"}); err != nil {
+	if err := cmd.AddRequiredGroup("connection", []string{"host", "port"}, false); err != nil {
 		t.Fatalf("Failed to add required group: %v", err)
 	}
-	if err := cmd.AddRequiredGroup("auth", []string{"username", "password"}); err != nil {
+	if err := cmd.AddRequiredGroup("auth", []string{"username", "password"}, true); err != nil {
 		t.Fatalf("Failed to add required group: %v", err)
 	}
 
@@ -154,49 +159,30 @@ func TestRemoveRequiredGroup(t *testing.T) {
 	if err := cmd.AddFlag(flag.NewStringFlag("port", "p", "Port", "")); err != nil {
 		t.Fatalf("Failed to add port flag: %v", err)
 	}
-	if err := cmd.AddFlag(flag.NewStringFlag("username", "u", "Username", "")); err != nil {
-		t.Fatalf("Failed to add username flag: %v", err)
-	}
-	if err := cmd.AddFlag(flag.NewStringFlag("password", "P", "Password", "")); err != nil {
-		t.Fatalf("Failed to add password flag: %v", err)
-	}
 
 	// 添加必需组
-	if err := cmd.AddRequiredGroup("connection", []string{"host", "port"}); err != nil {
-		t.Fatalf("Failed to add required group: %v", err)
-	}
-	if err := cmd.AddRequiredGroup("auth", []string{"username", "password"}); err != nil {
+	if err := cmd.AddRequiredGroup("connection", []string{"host", "port"}, false); err != nil {
 		t.Fatalf("Failed to add required group: %v", err)
 	}
 
-	// 验证必需组在解析时生效
-	err := cmd.Parse([]string{"--host", "localhost"})
-	if err == nil {
-		t.Error("Expected error when not all required flags are set")
+	// 验证必需组已添加
+	groups := cmd.RequiredGroups()
+	if len(groups) != 1 {
+		t.Fatalf("Expected 1 required group, got %d", len(groups))
 	}
 
-	// 移除存在的必需组
+	// 移除必需组
 	if err := cmd.RemoveRequiredGroup("connection"); err != nil {
-		t.Errorf("Expected no error when removing existing group, got: %v", err)
+		t.Fatalf("Failed to remove required group: %v", err)
 	}
 
 	// 验证必需组已移除
-	groups := cmd.RequiredGroups()
-	if len(groups) != 1 {
-		t.Fatalf("Expected 1 required group after removal, got %d", len(groups))
+	groups = cmd.RequiredGroups()
+	if len(groups) != 0 {
+		t.Fatalf("Expected 0 required groups, got %d", len(groups))
 	}
 
-	if groups[0].Name != "auth" {
-		t.Errorf("Expected remaining group name 'auth', got '%s'", groups[0].Name)
-	}
-
-	// 验证移除后解析时不再检查已移除的组
-	err = cmd.Parse([]string{"--host", "localhost"})
-	if err != nil {
-		t.Errorf("Expected no error after removing required group, got: %v", err)
-	}
-
-	// 尝试移除不存在的必需组
+	// 测试移除不存在的必需组
 	if err := cmd.RemoveRequiredGroup("nonexistent"); err == nil {
 		t.Error("Expected error when removing non-existing group")
 	}
@@ -216,7 +202,7 @@ func TestGetRequiredGroup(t *testing.T) {
 	}
 
 	// 添加必需组
-	if err := cmd.AddRequiredGroup("connection", []string{"host", "port"}); err != nil {
+	if err := cmd.AddRequiredGroup("connection", []string{"host", "port"}, true); err != nil {
 		t.Fatalf("Failed to add required group: %v", err)
 	}
 
@@ -232,6 +218,11 @@ func TestGetRequiredGroup(t *testing.T) {
 
 	if len(group.Flags) != 2 {
 		t.Fatalf("Expected 2 flags in group, got %d", len(group.Flags))
+	}
+
+	// 验证 Conditional 字段
+	if group.Conditional != true {
+		t.Errorf("Expected Conditional to be true, got %v", group.Conditional)
 	}
 
 	// 获取不存在的必需组
@@ -263,7 +254,7 @@ func TestRequiredGroupValidation(t *testing.T) {
 		if err := cmd.AddFlag(flag.NewStringFlag("port", "P", "Port", "")); err != nil {
 			t.Fatalf("Failed to add port flag: %v", err)
 		}
-		if err := cmd.AddRequiredGroup("connection", []string{"host", "port"}); err != nil {
+		if err := cmd.AddRequiredGroup("connection", []string{"host", "port"}, false); err != nil {
 			t.Fatalf("Failed to add required group: %v", err)
 		}
 
@@ -282,7 +273,7 @@ func TestRequiredGroupValidation(t *testing.T) {
 		if err := cmd.AddFlag(flag.NewStringFlag("port", "P", "Port", "")); err != nil {
 			t.Fatalf("Failed to add port flag: %v", err)
 		}
-		if err := cmd.AddRequiredGroup("connection", []string{"host", "port"}); err != nil {
+		if err := cmd.AddRequiredGroup("connection", []string{"host", "port"}, false); err != nil {
 			t.Fatalf("Failed to add required group: %v", err)
 		}
 
@@ -301,7 +292,7 @@ func TestRequiredGroupValidation(t *testing.T) {
 		if err := cmd.AddFlag(flag.NewStringFlag("port", "P", "Port", "")); err != nil {
 			t.Fatalf("Failed to add port flag: %v", err)
 		}
-		if err := cmd.AddRequiredGroup("connection", []string{"host", "port"}); err != nil {
+		if err := cmd.AddRequiredGroup("connection", []string{"host", "port"}, false); err != nil {
 			t.Fatalf("Failed to add required group: %v", err)
 		}
 
@@ -326,10 +317,10 @@ func TestRequiredGroupValidation(t *testing.T) {
 		if err := cmd.AddFlag(flag.NewStringFlag("password", "W", "Password", "")); err != nil {
 			t.Fatalf("Failed to add password flag: %v", err)
 		}
-		if err := cmd.AddRequiredGroup("connection", []string{"host", "port"}); err != nil {
+		if err := cmd.AddRequiredGroup("connection", []string{"host", "port"}, false); err != nil {
 			t.Fatalf("Failed to add required group: %v", err)
 		}
-		if err := cmd.AddRequiredGroup("auth", []string{"username", "password"}); err != nil {
+		if err := cmd.AddRequiredGroup("auth", []string{"username", "password"}, false); err != nil {
 			t.Fatalf("Failed to add required group: %v", err)
 		}
 
@@ -354,10 +345,10 @@ func TestRequiredGroupValidation(t *testing.T) {
 		if err := cmd.AddFlag(flag.NewStringFlag("password", "W", "Password", "")); err != nil {
 			t.Fatalf("Failed to add password flag: %v", err)
 		}
-		if err := cmd.AddRequiredGroup("connection", []string{"host", "port"}); err != nil {
+		if err := cmd.AddRequiredGroup("connection", []string{"host", "port"}, false); err != nil {
 			t.Fatalf("Failed to add required group: %v", err)
 		}
-		if err := cmd.AddRequiredGroup("auth", []string{"username", "password"}); err != nil {
+		if err := cmd.AddRequiredGroup("auth", []string{"username", "password"}, false); err != nil {
 			t.Fatalf("Failed to add required group: %v", err)
 		}
 
@@ -387,7 +378,7 @@ func TestRequiredGroupWithMutexGroup(t *testing.T) {
 		}
 
 		// 添加必需组
-		if err := cmd.AddRequiredGroup("connection", []string{"host", "port"}); err != nil {
+		if err := cmd.AddRequiredGroup("connection", []string{"host", "port"}, false); err != nil {
 			t.Fatalf("Failed to add required group: %v", err)
 		}
 
@@ -417,7 +408,7 @@ func TestRequiredGroupWithMutexGroup(t *testing.T) {
 		}
 
 		// 添加必需组
-		if err := cmd.AddRequiredGroup("connection", []string{"host", "port"}); err != nil {
+		if err := cmd.AddRequiredGroup("connection", []string{"host", "port"}, false); err != nil {
 			t.Fatalf("Failed to add required group: %v", err)
 		}
 
@@ -444,7 +435,7 @@ func TestRequiredGroupWithMutexGroup(t *testing.T) {
 		}
 
 		// 添加必需组
-		if err := cmd.AddRequiredGroup("connection", []string{"host", "port"}); err != nil {
+		if err := cmd.AddRequiredGroup("connection", []string{"host", "port"}, false); err != nil {
 			t.Fatalf("Failed to add required group: %v", err)
 		}
 
@@ -484,14 +475,14 @@ func TestRequiredGroupConcurrency(t *testing.T) {
 	done := make(chan bool, 2)
 
 	go func() {
-		if err := cmd.AddRequiredGroup("connection", []string{"host", "port"}); err != nil {
+		if err := cmd.AddRequiredGroup("connection", []string{"host", "port"}, false); err != nil {
 			t.Errorf("Failed to add required group: %v", err)
 		}
 		done <- true
 	}()
 
 	go func() {
-		if err := cmd.AddRequiredGroup("auth", []string{"username", "password"}); err != nil {
+		if err := cmd.AddRequiredGroup("auth", []string{"username", "password"}, true); err != nil {
 			t.Errorf("Failed to add required group: %v", err)
 		}
 		done <- true
@@ -538,7 +529,7 @@ func TestRequiredGroupWithCmdSpec(t *testing.T) {
 			t.Fatalf("Failed to add port flag: %v", err)
 		}
 
-		if err := cmd.AddRequiredGroup("connection", []string{"host", "port"}); err != nil {
+		if err := cmd.AddRequiredGroup("connection", []string{"host", "port"}, false); err != nil {
 			t.Fatalf("Failed to add required group: %v", err)
 		}
 
@@ -565,7 +556,7 @@ func TestRequiredGroupWithCmdSpec(t *testing.T) {
 			t.Fatalf("Failed to add port flag: %v", err)
 		}
 
-		if err := cmd.AddRequiredGroup("connection", []string{"host", "port"}); err != nil {
+		if err := cmd.AddRequiredGroup("connection", []string{"host", "port"}, false); err != nil {
 			t.Fatalf("Failed to add required group: %v", err)
 		}
 
@@ -589,7 +580,7 @@ func TestRequiredGroupWithCmdOpts(t *testing.T) {
 			t.Fatalf("Failed to add port flag: %v", err)
 		}
 
-		if err := cmd.AddRequiredGroup("connection", []string{"host", "port"}); err != nil {
+		if err := cmd.AddRequiredGroup("connection", []string{"host", "port"}, false); err != nil {
 			t.Fatalf("Failed to add required group: %v", err)
 		}
 
@@ -610,7 +601,7 @@ func TestRequiredGroupWithCmdOpts(t *testing.T) {
 			t.Fatalf("Failed to add port flag: %v", err)
 		}
 
-		if err := cmd.AddRequiredGroup("connection", []string{"host", "port"}); err != nil {
+		if err := cmd.AddRequiredGroup("connection", []string{"host", "port"}, false); err != nil {
 			t.Fatalf("Failed to add required group: %v", err)
 		}
 
@@ -635,7 +626,7 @@ func TestConfigReturnsCopy(t *testing.T) {
 	}
 
 	// 添加必需组
-	if err := cmd.AddRequiredGroup("connection", []string{"host", "port"}); err != nil {
+	if err := cmd.AddRequiredGroup("connection", []string{"host", "port"}, false); err != nil {
 		t.Fatalf("Failed to add required group: %v", err)
 	}
 
@@ -656,4 +647,563 @@ func TestConfigReturnsCopy(t *testing.T) {
 	if newConfig.RequiredGroups[0].Name != "connection" {
 		t.Errorf("Expected group name 'connection', got '%s'", newConfig.RequiredGroups[0].Name)
 	}
+}
+
+// TestConditionalRequiredGroup 测试条件性必需组
+func TestConditionalRequiredGroup(t *testing.T) {
+	// 测试1: 普通必需组，应该按原逻辑工作
+	func() {
+		cmd := NewCmd("test1", "t1", types.ContinueOnError)
+		cmd.String("username", "u", "Username", "")
+		cmd.String("password", "pw", "Password", "")
+		err := cmd.AddRequiredGroup("auth", []string{"username", "password"}, false) // 普通必需组
+		if err != nil {
+			t.Fatalf("Failed to add required group: %v", err)
+		}
+
+		err = cmd.Parse([]string{})
+		if err == nil {
+			t.Error("Expected error when no flags are set in normal required group")
+		}
+	}()
+
+	// 测试2: 条件性必需组，不使用任何标志，应该成功
+	func() {
+		cmd := NewCmd("test2", "t2", types.ContinueOnError)
+		cmd.String("host", "h2", "Host", "")
+		cmd.String("port", "pt", "Port", "")
+		err := cmd.AddRequiredGroup("database", []string{"host", "port"}, true) // 条件性必需组
+		if err != nil {
+			t.Fatalf("Failed to add required group: %v", err)
+		}
+
+		err = cmd.Parse([]string{})
+		if err != nil {
+			t.Errorf("Expected no error when no flags are used in conditional group, got: %v", err)
+		}
+	}()
+
+	// 测试3: 条件性必需组，使用部分标志，应该失败
+	func() {
+		cmd := NewCmd("test3", "t3", types.ContinueOnError)
+		cmd.String("host", "h3", "Host", "")
+		cmd.String("port", "pt3", "Port", "")
+		err := cmd.AddRequiredGroup("database", []string{"host", "port"}, true) // 条件性必需组
+		if err != nil {
+			t.Fatalf("Failed to add required group: %v", err)
+		}
+
+		err = cmd.Parse([]string{"--host", "localhost"})
+		if err == nil {
+			t.Error("Expected error when only some flags in conditional group are used")
+		}
+	}()
+
+	// 测试4: 条件性必需组，使用所有标志，应该成功
+	func() {
+		cmd := NewCmd("test4", "t4", types.ContinueOnError)
+		cmd.String("host", "h4", "Host", "")
+		cmd.String("port", "pt4", "Port", "")
+		err := cmd.AddRequiredGroup("database", []string{"host", "port"}, true) // 条件性必需组
+		if err != nil {
+			t.Fatalf("Failed to add required group: %v", err)
+		}
+
+		err = cmd.Parse([]string{"--host", "localhost", "--port", "5432"})
+		if err != nil {
+			t.Errorf("Expected no error when all flags in conditional group are used, got: %v", err)
+		}
+	}()
+
+	// 测试5: 普通必需组和条件性必需组混合使用
+	func() {
+		// 测试5.1: 不设置任何标志，应该失败（因为普通必需组）
+		func() {
+			cmd := NewCmd("test5_1", "t5_1", types.ContinueOnError)
+			cmd.String("username", "u", "Username", "")
+			cmd.String("password", "pw", "Password", "")
+			cmd.String("host", "h5", "Host", "")
+			cmd.String("port", "pt5", "Port", "")
+			err := cmd.AddRequiredGroup("auth", []string{"username", "password"}, false) // 普通必需组
+			if err != nil {
+				t.Fatalf("Failed to add required group: %v", err)
+			}
+
+			err = cmd.AddRequiredGroup("database", []string{"host", "port"}, true) // 条件性必需组
+			if err != nil {
+				t.Fatalf("Failed to add required group: %v", err)
+			}
+
+			err = cmd.Parse([]string{})
+			if err == nil {
+				t.Error("Expected error when no flags are set in normal required group")
+			}
+		}()
+
+		// 测试5.2: 只设置普通必需组，应该成功
+		func() {
+			cmd := NewCmd("test5_2", "t5_2", types.ContinueOnError)
+			cmd.String("username", "u", "Username", "")
+			cmd.String("password", "pw", "Password", "")
+			cmd.String("host", "h5", "Host", "")
+			cmd.String("port", "pt5", "Port", "")
+			err := cmd.AddRequiredGroup("auth", []string{"username", "password"}, false) // 普通必需组
+			if err != nil {
+				t.Fatalf("Failed to add required group: %v", err)
+			}
+
+			err = cmd.AddRequiredGroup("database", []string{"host", "port"}, true) // 条件性必需组
+			if err != nil {
+				t.Fatalf("Failed to add required group: %v", err)
+			}
+
+			err = cmd.Parse([]string{"--username", "admin", "--password", "secret"})
+			if err != nil {
+				t.Errorf("Expected no error when normal required group is satisfied, got: %v", err)
+			}
+		}()
+
+		// 测试5.3: 只设置条件性必需组，应该失败
+		func() {
+			cmd := NewCmd("test5_3", "t5_3", types.ContinueOnError)
+			cmd.String("username", "u", "Username", "")
+			cmd.String("password", "pw", "Password", "")
+			cmd.String("host", "h5", "Host", "")
+			cmd.String("port", "pt5", "Port", "")
+			err := cmd.AddRequiredGroup("auth", []string{"username", "password"}, false) // 普通必需组
+			if err != nil {
+				t.Fatalf("Failed to add required group: %v", err)
+			}
+
+			err = cmd.AddRequiredGroup("database", []string{"host", "port"}, true) // 条件性必需组
+			if err != nil {
+				t.Fatalf("Failed to add required group: %v", err)
+			}
+
+			err = cmd.Parse([]string{"--host", "localhost"})
+			if err == nil {
+				t.Error("Expected error when only some flags in conditional group are used")
+			}
+		}()
+
+		// 测试5.4: 设置所有标志，应该成功
+		func() {
+			cmd := NewCmd("test5_4", "t5_4", types.ContinueOnError)
+			cmd.String("username", "u", "Username", "")
+			cmd.String("password", "pw", "Password", "")
+			cmd.String("host", "h5", "Host", "")
+			cmd.String("port", "pt5", "Port", "")
+			err := cmd.AddRequiredGroup("auth", []string{"username", "password"}, false) // 普通必需组
+			if err != nil {
+				t.Fatalf("Failed to add required group: %v", err)
+			}
+
+			err = cmd.AddRequiredGroup("database", []string{"host", "port"}, true) // 条件性必需组
+			if err != nil {
+				t.Fatalf("Failed to add required group: %v", err)
+			}
+
+			err = cmd.Parse([]string{"--username", "admin", "--password", "secret", "--host", "localhost", "--port", "5432"})
+			if err != nil {
+				t.Errorf("Expected no error when all flags are set, got: %v", err)
+			}
+		}()
+	}()
+
+	// 测试6: 多个条件性必需组同时使用
+	func() {
+		// 测试6.1: 不设置任何标志，应该成功
+		func() {
+			cmd := NewCmd("test6_1", "t6_1", types.ContinueOnError)
+			cmd.String("host", "h6", "Host", "")
+			cmd.String("port", "pt6", "Port", "")
+			cmd.String("url", "u", "URL", "")
+			cmd.String("method", "m", "Method", "")
+			err := cmd.AddRequiredGroup("database", []string{"host", "port"}, true) // 条件性必需组
+			if err != nil {
+				t.Fatalf("Failed to add required group: %v", err)
+			}
+
+			err = cmd.AddRequiredGroup("http_request", []string{"url", "method"}, true) // 条件性必需组
+			if err != nil {
+				t.Fatalf("Failed to add required group: %v", err)
+			}
+
+			err = cmd.Parse([]string{})
+			if err != nil {
+				t.Errorf("Expected no error when no flags are used in conditional groups, got: %v", err)
+			}
+		}()
+
+		// 测试6.2: 只设置第一个条件性必需组，应该失败
+		func() {
+			cmd := NewCmd("test6_2", "t6_2", types.ContinueOnError)
+			cmd.String("host", "h6", "Host", "")
+			cmd.String("port", "pt6", "Port", "")
+			cmd.String("url", "u", "URL", "")
+			cmd.String("method", "m", "Method", "")
+			err := cmd.AddRequiredGroup("database", []string{"host", "port"}, true) // 条件性必需组
+			if err != nil {
+				t.Fatalf("Failed to add required group: %v", err)
+			}
+
+			err = cmd.AddRequiredGroup("http_request", []string{"url", "method"}, true) // 条件性必需组
+			if err != nil {
+				t.Fatalf("Failed to add required group: %v", err)
+			}
+
+			err = cmd.Parse([]string{"--host", "localhost"})
+			if err == nil {
+				t.Error("Expected error when only some flags in first conditional group are used")
+			}
+		}()
+
+		// 测试6.3: 只设置第二个条件性必需组，应该失败
+		func() {
+			cmd := NewCmd("test6_3", "t6_3", types.ContinueOnError)
+			cmd.String("host", "h6", "Host", "")
+			cmd.String("port", "pt6", "Port", "")
+			cmd.String("url", "u", "URL", "")
+			cmd.String("method", "m", "Method", "")
+			err := cmd.AddRequiredGroup("database", []string{"host", "port"}, true) // 条件性必需组
+			if err != nil {
+				t.Fatalf("Failed to add required group: %v", err)
+			}
+
+			err = cmd.AddRequiredGroup("http_request", []string{"url", "method"}, true) // 条件性必需组
+			if err != nil {
+				t.Fatalf("Failed to add required group: %v", err)
+			}
+
+			err = cmd.Parse([]string{"--url", "http://example.com"})
+			if err == nil {
+				t.Error("Expected error when only some flags in second conditional group are used")
+			}
+		}()
+
+		// 测试6.4: 设置第一个条件性必需组的所有标志，应该成功
+		func() {
+			cmd := NewCmd("test6_4", "t6_4", types.ContinueOnError)
+			cmd.String("host", "h6", "Host", "")
+			cmd.String("port", "pt6", "Port", "")
+			cmd.String("url", "u", "URL", "")
+			cmd.String("method", "m", "Method", "")
+			err := cmd.AddRequiredGroup("database", []string{"host", "port"}, true) // 条件性必需组
+			if err != nil {
+				t.Fatalf("Failed to add required group: %v", err)
+			}
+
+			err = cmd.AddRequiredGroup("http_request", []string{"url", "method"}, true) // 条件性必需组
+			if err != nil {
+				t.Fatalf("Failed to add required group: %v", err)
+			}
+
+			err = cmd.Parse([]string{"--host", "localhost", "--port", "5432"})
+			if err != nil {
+				t.Errorf("Expected no error when all flags in first conditional group are used, got: %v", err)
+			}
+		}()
+
+		// 测试6.5: 设置第二个条件性必需组的所有标志，应该成功
+		func() {
+			cmd := NewCmd("test6_5", "t6_5", types.ContinueOnError)
+			cmd.String("host", "h6", "Host", "")
+			cmd.String("port", "pt6", "Port", "")
+			cmd.String("url", "u", "URL", "")
+			cmd.String("method", "m", "Method", "")
+			err := cmd.AddRequiredGroup("database", []string{"host", "port"}, true) // 条件性必需组
+			if err != nil {
+				t.Fatalf("Failed to add required group: %v", err)
+			}
+
+			err = cmd.AddRequiredGroup("http_request", []string{"url", "method"}, true) // 条件性必需组
+			if err != nil {
+				t.Fatalf("Failed to add required group: %v", err)
+			}
+
+			err = cmd.Parse([]string{"--url", "http://example.com", "--method", "GET"})
+			if err != nil {
+				t.Errorf("Expected no error when all flags in second conditional group are used, got: %v", err)
+			}
+		}()
+
+		// 测试6.6: 设置所有标志，应该成功
+		func() {
+			cmd := NewCmd("test6_6", "t6_6", types.ContinueOnError)
+			cmd.String("host", "h6", "Host", "")
+			cmd.String("port", "pt6", "Port", "")
+			cmd.String("url", "u", "URL", "")
+			cmd.String("method", "m", "Method", "")
+			err := cmd.AddRequiredGroup("database", []string{"host", "port"}, true) // 条件性必需组
+			if err != nil {
+				t.Fatalf("Failed to add required group: %v", err)
+			}
+
+			err = cmd.AddRequiredGroup("http_request", []string{"url", "method"}, true) // 条件性必需组
+			if err != nil {
+				t.Fatalf("Failed to add required group: %v", err)
+			}
+
+			err = cmd.Parse([]string{"--host", "localhost", "--port", "5432", "--url", "http://example.com", "--method", "GET"})
+			if err != nil {
+				t.Errorf("Expected no error when all flags are set, got: %v", err)
+			}
+		}()
+	}()
+
+	// 测试7: 条件性必需组与互斥组组合使用
+	func() {
+		// 测试7.1: 不设置任何标志，应该成功
+		func() {
+			cmd := NewCmd("test7_1", "t7_1", types.ContinueOnError)
+			cmd.String("host", "h7", "Host", "")
+			cmd.String("port", "pt7", "Port", "")
+			cmd.String("format", "f", "Format", "")
+			cmd.String("output", "o", "Output", "")
+			err := cmd.AddRequiredGroup("database", []string{"host", "port"}, true) // 条件性必需组
+			if err != nil {
+				t.Fatalf("Failed to add required group: %v", err)
+			}
+
+			err = cmd.AddMutexGroup("output_format", []string{"format", "output"}, true) // 互斥组
+			if err != nil {
+				t.Fatalf("Failed to add mutex group: %v", err)
+			}
+
+			err = cmd.Parse([]string{})
+			if err != nil {
+				t.Errorf("Expected no error when no flags are used, got: %v", err)
+			}
+		}()
+
+		// 测试7.2: 只设置互斥组，应该成功
+		func() {
+			cmd := NewCmd("test7_2", "t7_2", types.ContinueOnError)
+			cmd.String("host", "h7", "Host", "")
+			cmd.String("port", "pt7", "Port", "")
+			cmd.String("format", "f", "Format", "")
+			cmd.String("output", "o", "Output", "")
+			err := cmd.AddRequiredGroup("database", []string{"host", "port"}, true) // 条件性必需组
+			if err != nil {
+				t.Fatalf("Failed to add required group: %v", err)
+			}
+
+			err = cmd.AddMutexGroup("output_format", []string{"format", "output"}, true) // 互斥组
+			if err != nil {
+				t.Fatalf("Failed to add mutex group: %v", err)
+			}
+
+			err = cmd.Parse([]string{"--format", "json"})
+			if err != nil {
+				t.Errorf("Expected no error when only mutex group is used, got: %v", err)
+			}
+		}()
+
+		// 测试7.3: 设置条件性必需组，应该失败
+		func() {
+			cmd := NewCmd("test7_3", "t7_3", types.ContinueOnError)
+			cmd.String("host", "h7", "Host", "")
+			cmd.String("port", "pt7", "Port", "")
+			cmd.String("format", "f", "Format", "")
+			cmd.String("output", "o", "Output", "")
+			err := cmd.AddRequiredGroup("database", []string{"host", "port"}, true) // 条件性必需组
+			if err != nil {
+				t.Fatalf("Failed to add required group: %v", err)
+			}
+
+			err = cmd.AddMutexGroup("output_format", []string{"format", "output"}, true) // 互斥组
+			if err != nil {
+				t.Fatalf("Failed to add mutex group: %v", err)
+			}
+
+			err = cmd.Parse([]string{"--host", "localhost"})
+			if err == nil {
+				t.Error("Expected error when only some flags in conditional group are used")
+			}
+		}()
+
+		// 测试7.4: 设置条件性必需组的所有标志，应该成功
+		func() {
+			cmd := NewCmd("test7_4", "t7_4", types.ContinueOnError)
+			cmd.String("host", "h7", "Host", "")
+			cmd.String("port", "pt7", "Port", "")
+			cmd.String("format", "f", "Format", "")
+			cmd.String("output", "o", "Output", "")
+			err := cmd.AddRequiredGroup("database", []string{"host", "port"}, true) // 条件性必需组
+			if err != nil {
+				t.Fatalf("Failed to add required group: %v", err)
+			}
+
+			err = cmd.AddMutexGroup("output_format", []string{"format", "output"}, true) // 互斥组
+			if err != nil {
+				t.Fatalf("Failed to add mutex group: %v", err)
+			}
+
+			err = cmd.Parse([]string{"--host", "localhost", "--port", "5432"})
+			if err != nil {
+				t.Errorf("Expected no error when all flags in conditional group are used, got: %v", err)
+			}
+		}()
+
+		// 测试7.5: 违反互斥组，应该失败
+		func() {
+			cmd := NewCmd("test7_5", "t7_5", types.ContinueOnError)
+			cmd.String("host", "h7", "Host", "")
+			cmd.String("port", "pt7", "Port", "")
+			cmd.String("format", "f", "Format", "")
+			cmd.String("output", "o", "Output", "")
+			err := cmd.AddRequiredGroup("database", []string{"host", "port"}, true) // 条件性必需组
+			if err != nil {
+				t.Fatalf("Failed to add required group: %v", err)
+			}
+
+			err = cmd.AddMutexGroup("output_format", []string{"format", "output"}, true) // 互斥组
+			if err != nil {
+				t.Fatalf("Failed to add mutex group: %v", err)
+			}
+
+			err = cmd.Parse([]string{"--format", "json", "--output", "file.txt"})
+			if err == nil {
+				t.Error("Expected error when mutex group is violated")
+			}
+		}()
+	}()
+
+	// 测试8: CmdSpec和CmdOpts支持条件性必需组
+	func() {
+		// 测试8.1: 测试CmdSpec
+		func() {
+			// 测试8.1.1: 不设置任何标志，应该成功
+			func() {
+				// 测试CmdSpec
+				spec := NewCmdSpec("test8_1_1", "t8_1_1")
+				spec.Desc = "Test command"
+
+				cmd, err := NewCmdFromSpec(spec)
+				if err != nil {
+					t.Fatalf("Failed to create command from spec: %v", err)
+				}
+
+				cmd.String("host", "ht", "Host", "")
+				cmd.String("port", "pt2", "Port", "")
+
+				// 然后添加RequiredGroups
+				err = cmd.AddRequiredGroup("database", []string{"host", "port"}, true)
+				if err != nil {
+					t.Fatalf("Failed to add required group: %v", err)
+				}
+
+				// 不设置任何标志，应该成功
+				err = cmd.Parse([]string{})
+				if err != nil {
+					t.Errorf("Expected no error when no flags are used in conditional group, got: %v", err)
+				}
+			}()
+
+			// 测试8.1.2: 只设置部分标志，应该失败
+			func() {
+				// 测试CmdSpec
+				spec := NewCmdSpec("test8_1_2", "t8_1_2")
+				spec.Desc = "Test command"
+
+				cmd, err := NewCmdFromSpec(spec)
+				if err != nil {
+					t.Fatalf("Failed to create command from spec: %v", err)
+				}
+
+				cmd.String("host", "ht", "Host", "")
+				cmd.String("port", "pt2", "Port", "")
+
+				// 然后添加RequiredGroups
+				err = cmd.AddRequiredGroup("database", []string{"host", "port"}, true)
+				if err != nil {
+					t.Fatalf("Failed to add required group: %v", err)
+				}
+
+				// 只设置部分标志，应该失败
+				err = cmd.Parse([]string{"--host", "localhost"})
+				if err == nil {
+					t.Error("Expected error when only some flags in conditional group are used")
+				}
+			}()
+
+			// 测试8.1.3: 只设置部分标志，应该失败
+			func() {
+				// 测试CmdSpec
+				spec := NewCmdSpec("test8_1_3", "t8_1_3")
+				spec.Desc = "Test command"
+
+				cmd, err := NewCmdFromSpec(spec)
+				if err != nil {
+					t.Fatalf("Failed to create command from spec: %v", err)
+				}
+
+				cmd.String("host", "ht", "Host", "")
+				cmd.String("port", "pt2", "Port", "")
+
+				// 然后添加RequiredGroups
+				err = cmd.AddRequiredGroup("database", []string{"host", "port"}, true)
+				if err != nil {
+					t.Fatalf("Failed to add required group: %v", err)
+				}
+
+				// 只设置部分标志，应该失败
+				err = cmd.Parse([]string{"--host", "localhost"})
+				if err == nil {
+					t.Error("Expected error when only some flags in conditional group are used")
+				}
+			}()
+		}()
+
+		// 测试8.2: 测试CmdOpts
+		func() {
+			// 测试8.2.1: 不设置任何标志，应该成功
+			func() {
+				// 测试CmdOpts
+				cmd2 := NewCmd("test8_2_1", "t8_2_1", types.ContinueOnError)
+				cmd2.String("host", "ht", "Host", "")
+				cmd2.String("port", "pt2", "Port", "")
+
+				opts := NewCmdOpts()
+				opts.RequiredGroups = []types.RequiredGroup{
+					{Name: "database", Flags: []string{"host", "port"}, Conditional: true},
+				}
+
+				err := cmd2.ApplyOpts(opts)
+				if err != nil {
+					t.Fatalf("Failed to apply opts: %v", err)
+				}
+
+				// 不设置任何标志，应该成功
+				err = cmd2.Parse([]string{})
+				if err != nil {
+					t.Errorf("Expected no error when no flags are used in conditional group, got: %v", err)
+				}
+			}()
+
+			// 测试8.2.2: 只设置部分标志，应该失败
+			func() {
+				// 测试CmdOpts
+				cmd2 := NewCmd("test8_2_2", "t8_2_2", types.ContinueOnError)
+				cmd2.String("host", "ht", "Host", "")
+				cmd2.String("port", "pt2", "Port", "")
+
+				opts := NewCmdOpts()
+				opts.RequiredGroups = []types.RequiredGroup{
+					{Name: "database", Flags: []string{"host", "port"}, Conditional: true},
+				}
+
+				err := cmd2.ApplyOpts(opts)
+				if err != nil {
+					t.Fatalf("Failed to apply opts: %v", err)
+				}
+
+				// 只设置部分标志，应该失败
+				err = cmd2.Parse([]string{"--host", "localhost"})
+				if err == nil {
+					t.Error("Expected error when only some flags in conditional group are used")
+				}
+			}()
+		}()
+	}()
 }

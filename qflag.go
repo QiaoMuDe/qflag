@@ -124,10 +124,12 @@ func AddMutexGroup(name string, flags []string, allowNone bool) error {
 // 参数:
 //   - name: 必需组名称, 用于错误提示和标识
 //   - flags: 必需组中的标志名称列表
+//   - conditional: 是否为条件性必需组，如果为true，则只有当组中任何一个标志被设置时，才要求所有标志都被设置
 //
 // 功能说明:
 //   - 创建新的必需组并添加到命令配置中
 //   - 必需组中的所有标志都必须被设置
+//   - 如果是条件性必需组，则只有当组中任何一个标志被设置时，才要求所有标志都被设置
 //   - 使用写锁保护并发安全
 //
 // 注意事项:
@@ -137,8 +139,8 @@ func AddMutexGroup(name string, flags []string, allowNone bool) error {
 //
 // 返回值:
 //   - error: 添加失败时返回错误
-func AddRequiredGroup(name string, flags []string) error {
-	return Root.AddRequiredGroup(name, flags)
+func AddRequiredGroup(name string, flags []string, conditional bool) error {
+	return Root.AddRequiredGroup(name, flags, conditional)
 }
 
 // ApplyOpts 应用选项到全局根命令

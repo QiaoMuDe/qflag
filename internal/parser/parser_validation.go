@@ -176,15 +176,17 @@ func (p *DefaultParser) validateMutexGroups(config *types.CmdConfig) error {
 //
 // 功能说明:
 //   - 检查每个必需组中是否有标志未被设置
+//   - 对于条件性必需组，只有当组中任何一个标志被设置时，才检查所有标志
 //   - 提供清晰的错误信息，指出未设置的标志和组名
 //
 // 验证规则:
-//   - 必需组中的所有标志都必须被设置
-//   - 如果有任何一个标志未被设置，返回错误
+//   - 普通必需组：所有标志都必须被设置
+//   - 条件性必需组：如果任何一个标志被设置，则所有标志都必须被设置
 //
 // 错误处理:
 //   - 使用 types.NewError 创建结构化错误
 //   - 错误信息包含必需组名称和未设置的标志列表
+//   - 条件性必需组的错误信息会明确指出是因为使用了某个标志而要求其他标志
 //
 // 性能优化:
 //   - 使用缓存的已设置标志映射，避免重复的 GetFlag() 和 IsSet() 调用
@@ -199,6 +201,20 @@ func (p *DefaultParser) validateRequiredGroups(config *types.CmdConfig) error {
 	// 遍历所有必需组
 	for _, group := range config.RequiredGroups {
 		var unsetFlags []string
+		var setFlagsCount int
+
+		// 检查组中是否有任何标志被设置
+		for _, flagName := range group.Flags {
+			if setFlags[flagName] {
+				setFlagsCount++
+			}
+		}
+
+		// 如果是条件性必需组，且没有任何标志被设置，则跳过验证
+		if group.Conditional && setFlagsCount == 0 {
+			continue
+		}
+
 		seenUnsetDisplayNames := make(map[string]bool, len(group.Flags)) // 去重map，防止重复显示相同的标志
 
 		// 遍历组中的每个标志
@@ -223,9 +239,14 @@ func (p *DefaultParser) validateRequiredGroups(config *types.CmdConfig) error {
 
 		// 如果组中有未设置的标志, 返回错误
 		if len(unsetFlags) > 0 {
-			return types.NewError("REQUIRED_GROUP_VIOLATION",
-				fmt.Sprintf("required flags %v in group '%s' must be set", unsetFlags, group.Name),
-				nil)
+			var errorMsg string
+			if group.Conditional {
+				errorMsg = fmt.Sprintf("since one of the flags in group '%s' is used, all flags %v must be set", group.Name, unsetFlags)
+			} else {
+				errorMsg = fmt.Sprintf("required flags %v in group '%s' must be set", unsetFlags, group.Name)
+			}
+
+			return types.NewError("REQUIRED_GROUP_VIOLATION", errorMsg, nil)
 		}
 	}
 

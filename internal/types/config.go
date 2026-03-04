@@ -22,20 +22,23 @@ type MutexGroup struct {
 
 // RequiredGroup 必需组定义
 //
-// RequiredGroup 定义了一组必需的标志，其中所有标志都必须被设置。
-// 当用户没有设置必需组中的某些标志时，解析器会返回错误。
+// RequiredGroup 定义了一组必需的标志, 其中所有标志都必须被设置。
+// 当用户没有设置必需组中的某些标志时, 解析器会返回错误。
 //
 // 字段说明:
-//   - Name: 必需组名称，用于错误提示和标识
+//   - Name: 必需组名称, 用于错误提示和标识
 //   - Flags: 必需组中的标志名称列表
+//   - Conditional: 是否为条件性必需组, 如果为true, 则只有当组中任何一个标志被设置时, 才要求所有标志都被设置
 //
 // 使用场景:
-//   - 数据库连接配置（host, port, user, pass）
-//   - API 认证配置（api-key, api-secret）
-//   - 文件上传配置（file-path, upload-url）
+//   - 数据库连接配置 (host, port, user, pass)
+//   - API 认证配置 (api-key, api-secret)
+//   - 文件上传配置 (file-path, upload-url)
+//   - 条件性配置 (如果使用了任何一个标志, 则必须使用所有标志)
 type RequiredGroup struct {
-	Name  string   // 必需组名称，用于错误提示和标识
-	Flags []string // 必需组中的标志名称列表
+	Name        string   // 必需组名称, 用于错误提示和标识
+	Flags       []string // 必需组中的标志名称列表
+	Conditional bool     // 是否为条件性必需组
 }
 
 // CmdConfig 命令配置类型
