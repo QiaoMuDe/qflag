@@ -402,7 +402,7 @@ func AddMutexGroup(name string, flags []string, allowNone bool)
   - 重复添加同名互斥组会返回错误
 
 ```go
-func AddRequiredGroup(name string, flags []string) error
+func AddRequiredGroup(name string, flags []string, conditional bool) error
 ```
 
 **AddRequiredGroup 添加必需组到命令**
@@ -410,19 +410,32 @@ func AddRequiredGroup(name string, flags []string) error
 **参数:**
   - name: 必需组名称, 用于错误提示和标识
   - flags: 必需组中的标志名称列表
+  - conditional: 是否为条件性必需组
 
 **返回值:**
   - error: 添加失败时返回错误
 
 **功能说明:**
-  - 创建新的必需组并添加到命令配置中
-  - 必需组中的所有标志都必须被设置
+  - 创建新的必需组并添加到全局根命令配置中
+  - 对于普通必需组, 组中的所有标志都必须被设置
+  - 对于条件性必需组, 如果组中任何一个标志被设置, 则所有标志都必须被设置
   - 使用写锁保护并发安全
 
 **注意事项:**
   - 标志名称必须是已注册的标志
   - 必需组名称在命令中应该唯一
   - 重复添加同名必需组会返回错误
+  - 条件性必需组提供了更灵活的标志验证方式, 适用于某些可选但相关的标志组合
+
+**使用示例:**
+
+```go
+// 添加普通必需组 - 所有标志都必须设置
+qflag.AddRequiredGroup("auth", []string{"username", "password"}, false)
+
+// 添加条件性必需组 - 如果使用其中一个则必须同时使用
+qflag.AddRequiredGroup("database", []string{"host", "port"}, true)
+```
 
 ```go
 func AddSubCmdFrom(cmds []Command) error
@@ -851,13 +864,20 @@ type MutexGroup = types.MutexGroup
 type RequiredGroup = types.RequiredGroup
 ```
 
-**RequiredGroup 定义了一组必须同时设置的标志 当用户没有设置必需组中的所有标志时, 解析器会返回错误**
+**RequiredGroup 定义了一组标志的必需关系 支持两种模式:
+1. 普通必需组: 组中的所有标志都必须被设置
+2. 条件性必需组: 如果组中任何一个标志被设置, 则所有标志都必须被设置**
 
 **字段说明:**
   - Name: 必需组名称, 用于错误提示和标识
   - Flags: 必需组中的标志名称列表
+  - Conditional: 是否为条件性必需组
 
 **使用场景:**
+  - 普通必需组: 连接参数必需 (如 --host 和 --port 必须同时设置)
+  - 条件性必需组: 可选但相关的标志组合 (如 --host 和 --port, 如果使用其中一个则必须同时使用)
+  - 认证参数: 普通必需组 (如 --username 和 --password 必须同时设置)
+  - 配置文件路径: 条件性必需组 (如 --config 和 --env, 如果使用其中一个则必须同时使用)
   - 连接参数必需 (如 --host 和 --port 必须同时设置)
   - 认证参数必需 (如 --username 和 --password 必须同时设置)
   - 配置文件路径必需 (如 --config 和 --env 必须同时设置)
