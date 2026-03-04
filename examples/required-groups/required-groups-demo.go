@@ -234,7 +234,10 @@ func main() {
 	})
 
 	// 添加子命令到全局根命令
-	qflag.AddSubCmds(simpleCmd, fullCmd, advancedCmd)
+	if err := qflag.AddSubCmds(simpleCmd, fullCmd, advancedCmd); err != nil {
+		fmt.Printf("添加子命令失败: %v\n", err)
+		return
+	}
 
 	// 解析并路由到子命令
 	if err := qflag.ParseAndRoute(); err != nil {

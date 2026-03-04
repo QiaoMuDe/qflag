@@ -570,6 +570,10 @@ tagsFlag := cmd.IntSlice("tags", "", "标签列表", []int{})
 
 完整的 API 文档和示例代码, 请参考项目中的 `examples/` 目录和源代码中的注释。
 
+### 📚 标志使用语法
+
+详细的标志使用语法和高级功能说明, 请参考 [FLAG_USAGE.md](FLAG_USAGE.md)。
+
 ---
 
 ## 🎯 支持的功能
