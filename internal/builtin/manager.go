@@ -61,10 +61,16 @@ func (m *BuiltinFlagManager) RegisterHandler(handler types.BuiltinFlagHandler) {
 //   - 遍历所有处理器, 检查是否应该注册对应的标志
 //   - 根据命令的语言设置使用相应的描述信息
 //   - 创建并注册标志到命令中
+//   - 如果标志已存在, 则跳过注册, 支持重复解析
 func (m *BuiltinFlagManager) RegisterBuiltinFlags(cmd types.Command) error {
 	for _, handler := range m.handlers {
 		// 检查是否应该注册标志, 如果不应该, 则跳过
 		if !handler.ShouldRegister(cmd) {
+			continue
+		}
+
+		// 检查是否应该跳过注册（避免重复注册）
+		if handler.ShouldSkipRegistration(cmd) {
 			continue
 		}
 

@@ -149,6 +149,30 @@ Type 返回标志类型
 **返回值:**
   - types.BuiltinFlagType: CompletionFlag
 
+#### func (h *CompletionHandler) ShouldSkipRegistration(cmd types.Command) bool
+
+```go
+func (h *CompletionHandler) ShouldSkipRegistration(cmd types.Command) bool
+```
+
+ShouldSkipRegistration 判断是否应该跳过注册
+
+**参数:**
+  - cmd: 要检查的命令
+
+**返回值:**
+  - bool: 如果标志已存在返回true, 否则返回false
+
+**功能说明:**
+  - 检查补全标志的长名称是否已存在
+  - 补全标志没有短名称, 只检查长名称
+  - 避免重复注册标志
+
+**实现细节:**
+  - 使用 cmd.GetFlag() 检查标志是否存在
+  - 如果标志已存在, 返回true跳过注册
+  - 否则返回false继续注册
+
 ---
 
 ### type HelpHandler struct
@@ -206,6 +230,30 @@ Type 返回标志类型
 
 **返回值:**
   - types.BuiltinFlagType: HelpFlag
+
+#### func (h *HelpHandler) ShouldSkipRegistration(cmd types.Command) bool
+
+```go
+func (h *HelpHandler) ShouldSkipRegistration(cmd types.Command) bool
+```
+
+ShouldSkipRegistration 判断是否应该跳过注册
+
+**参数:**
+  - cmd: 要检查的命令
+
+**返回值:**
+  - bool: 如果标志已存在返回true, 否则返回false
+
+**功能说明:**
+  - 检查帮助标志的长名称和短名称是否已存在
+  - 避免重复注册标志
+  - 支持重复解析场景
+
+**实现细节:**
+  - 使用 cmd.GetFlag() 检查长名称和短名称
+  - 如果任一名称已存在, 返回true跳过注册
+  - 否则返回false继续注册
 
 ---
 
@@ -265,3 +313,29 @@ Type 返回标志类型
 
 **返回值:**
   - types.BuiltinFlagType: VersionFlag
+
+#### func (h *VersionHandler) ShouldSkipRegistration(cmd types.Command) bool
+
+```go
+func (h *VersionHandler) ShouldSkipRegistration(cmd types.Command) bool
+```
+
+ShouldSkipRegistration 判断是否应该跳过注册
+
+**参数:**
+  - cmd: 要检查的命令
+
+**返回值:**
+  - bool: 如果标志已存在返回true, 否则返回false
+
+**功能说明:**
+  - 检查版本标志的长名称和短名称是否已存在
+  - 避免重复注册标志
+  - 支持重复解析场景
+
+**实现细节:**
+  - 使用 cmd.GetFlag() 检查长名称和短名称
+  - 如果任一名称已存在, 返回true跳过注册
+  - 否则返回false继续注册
+
+---

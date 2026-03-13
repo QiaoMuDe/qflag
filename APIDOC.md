@@ -482,7 +482,7 @@ func ApplyOpts(opts *CmdOpts) error
 func Parse() error
 ```
 
-**Parse 解析命令行参数**
+**Parse 解析命令行参数（可重复解析）**
 
 **参数:**
   - args: 命令行参数列表
@@ -492,15 +492,41 @@ func Parse() error
 
 **功能说明:**
   - 实现types.Command接口
-  - 使用sync.Once确保只解析一次
+  - 可以重复调用，会覆盖之前的解析结果
   - 调用解析器的Parse方法
   - 递归解析所有子命令
+
+**注意事项:**
+  - 重复解析会覆盖之前的解析结果
+  - 如果需要确保只解析一次，请使用 ParseOnce
+
+```go
+func ParseOnce() error
+```
+
+**ParseOnce 解析命令行参数（只解析一次）**
+
+**参数:**
+  - args: 命令行参数列表
+
+**返回值:**
+  - error: 解析失败时返回错误
+
+**功能说明:**
+  - 使用sync.Once确保只解析一次
+  - 第二次调用会返回错误
+  - 调用解析器的Parse方法
+  - 递归解析所有子命令
+
+**注意事项:**
+  - 如果需要重复解析，请使用 Parse 方法
+  - 建议在普通场景使用此方法，避免误用
 
 ```go
 func ParseAndRoute() error
 ```
 
-**ParseAndRoute 解析并路由执行命令**
+**ParseAndRoute 解析并路由执行命令（可重复解析）**
 
 **参数:**
   - args: 命令行参数列表
@@ -510,15 +536,41 @@ func ParseAndRoute() error
 
 **功能说明:**
   - 实现types.Command接口
-  - 使用sync.Once确保只执行一次
+  - 可以重复调用，会覆盖之前的解析结果
   - 调用解析器的ParseAndRoute方法
   - 完整的解析和执行流程
+
+**注意事项:**
+  - 重复解析会覆盖之前的解析结果
+  - 如果需要确保只解析一次，请使用 ParseAndRouteOnce
+
+```go
+func ParseAndRouteOnce() error
+```
+
+**ParseAndRouteOnce 解析并路由执行命令（只解析一次）**
+
+**参数:**
+  - args: 命令行参数列表
+
+**返回值:**
+  - error: 解析或执行失败时返回错误
+
+**功能说明:**
+  - 使用sync.Once确保只执行一次
+  - 第二次调用会返回错误
+  - 调用解析器的ParseAndRoute方法
+  - 完整的解析和执行流程
+
+**注意事项:**
+  - 如果需要重复解析，请使用 ParseAndRoute 方法
+  - 建议在普通场景使用此方法，避免误用
 
 ```go
 func ParseOnly() error
 ```
 
-**ParseOnly 仅解析当前命令, 不递归解析子命令**
+**ParseOnly 仅解析当前命令, 不递归解析子命令（可重复解析）**
 
 **参数:**
   - args: 命令行参数列表
@@ -528,9 +580,35 @@ func ParseOnly() error
 
 **功能说明:**
   - 实现types.Command接口
-  - 使用sync.Once确保只执行一次
+  - 可以重复调用，会覆盖之前的解析结果
   - 调用解析器的ParseOnly方法
   - 不处理子命令解析
+
+**注意事项:**
+  - 重复解析会覆盖之前的解析结果
+  - 如果需要确保只解析一次，请使用 ParseOnlyOnce
+
+```go
+func ParseOnlyOnce() error
+```
+
+**ParseOnlyOnce 仅解析当前命令, 不递归解析子命令（只解析一次）**
+
+**参数:**
+  - args: 命令行参数列表
+
+**返回值:**
+  - error: 解析失败时返回错误
+
+**功能说明:**
+  - 使用sync.Once确保只执行一次
+  - 第二次调用会返回错误
+  - 调用解析器的ParseOnly方法
+  - 不处理子命令解析
+
+**注意事项:**
+  - 如果需要重复解析，请使用 ParseOnly 方法
+  - 建议在普通场景使用此方法，避免误用
 
 ## 类型 (TYPES)
 

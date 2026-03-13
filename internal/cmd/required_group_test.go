@@ -86,7 +86,7 @@ func TestAddRequiredGroupWithNonExistentFlag(t *testing.T) {
 	cmd := NewCmd("test", "t", types.ContinueOnError)
 
 	// 添加一个标志
-	if err := cmd.AddFlag(flag.NewStringFlag("host", "h", "Host address", "")); err != nil {
+	if err := cmd.AddFlag(flag.NewStringFlag("host", "H", "Host address", "")); err != nil {
 		t.Fatalf("Failed to add host flag: %v", err)
 	}
 
@@ -102,16 +102,16 @@ func TestGetRequiredGroups(t *testing.T) {
 	cmd := NewCmd("test", "t", types.ContinueOnError)
 
 	// 添加多个必需组
-	if err := cmd.AddFlag(flag.NewStringFlag("host", "h", "Host", "")); err != nil {
+	if err := cmd.AddFlag(flag.NewStringFlag("host", "H", "Host", "")); err != nil {
 		t.Fatalf("Failed to add host flag: %v", err)
 	}
-	if err := cmd.AddFlag(flag.NewStringFlag("port", "p", "Port", "")); err != nil {
+	if err := cmd.AddFlag(flag.NewStringFlag("port", "P", "Port", "")); err != nil {
 		t.Fatalf("Failed to add port flag: %v", err)
 	}
-	if err := cmd.AddFlag(flag.NewStringFlag("username", "u", "Username", "")); err != nil {
+	if err := cmd.AddFlag(flag.NewStringFlag("username", "U", "Username", "")); err != nil {
 		t.Fatalf("Failed to add username flag: %v", err)
 	}
-	if err := cmd.AddFlag(flag.NewStringFlag("password", "P", "Password", "")); err != nil {
+	if err := cmd.AddFlag(flag.NewStringFlag("password", "W", "Password", "")); err != nil {
 		t.Fatalf("Failed to add password flag: %v", err)
 	}
 
@@ -153,7 +153,7 @@ func TestRemoveRequiredGroup(t *testing.T) {
 	cmd := NewCmd("test", "t", types.ContinueOnError)
 
 	// 添加标志
-	if err := cmd.AddFlag(flag.NewStringFlag("host", "h", "Host", "")); err != nil {
+	if err := cmd.AddFlag(flag.NewStringFlag("host", "H", "Host", "")); err != nil {
 		t.Fatalf("Failed to add host flag: %v", err)
 	}
 	if err := cmd.AddFlag(flag.NewStringFlag("port", "p", "Port", "")); err != nil {
@@ -194,7 +194,7 @@ func TestGetRequiredGroup(t *testing.T) {
 	cmd := NewCmd("test", "t", types.ContinueOnError)
 
 	// 添加标志
-	if err := cmd.AddFlag(flag.NewStringFlag("host", "h", "Host", "")); err != nil {
+	if err := cmd.AddFlag(flag.NewStringFlag("host", "H", "Host", "")); err != nil {
 		t.Fatalf("Failed to add host flag: %v", err)
 	}
 	if err := cmd.AddFlag(flag.NewStringFlag("port", "p", "Port", "")); err != nil {
@@ -458,7 +458,7 @@ func TestRequiredGroupConcurrency(t *testing.T) {
 	cmd := NewCmd("test", "t", types.ContinueOnError)
 
 	// 添加标志
-	if err := cmd.AddFlag(flag.NewStringFlag("host", "h", "Host", "")); err != nil {
+	if err := cmd.AddFlag(flag.NewStringFlag("host", "H", "Host", "")); err != nil {
 		t.Fatalf("Failed to add host flag: %v", err)
 	}
 	if err := cmd.AddFlag(flag.NewStringFlag("port", "p", "Port", "")); err != nil {
@@ -618,10 +618,10 @@ func TestConfigReturnsCopy(t *testing.T) {
 	cmd := NewCmd("test", "t", types.ContinueOnError)
 
 	// 添加标志
-	if err := cmd.AddFlag(flag.NewStringFlag("host", "h", "Host", "")); err != nil {
+	if err := cmd.AddFlag(flag.NewStringFlag("host", "H", "Host", "")); err != nil {
 		t.Fatalf("Failed to add host flag: %v", err)
 	}
-	if err := cmd.AddFlag(flag.NewStringFlag("port", "p", "Port", "")); err != nil {
+	if err := cmd.AddFlag(flag.NewStringFlag("port", "P", "Port", "")); err != nil {
 		t.Fatalf("Failed to add port flag: %v", err)
 	}
 

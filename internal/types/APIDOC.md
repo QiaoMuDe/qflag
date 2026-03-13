@@ -503,6 +503,25 @@ type BuiltinFlagHandler interface {
     //   - 例如: 版本标志只有在设置了版本信息时才注册
     //   - 帮助标志总是注册
     ShouldRegister(cmd Command) bool
+
+    // ShouldSkipRegistration 判断是否应该跳过注册
+    //
+    // 参数:
+    //   - cmd: 要检查的命令
+    //
+    // 返回值:
+    //   - bool: 是否应该跳过注册
+    //
+    // 功能说明: 
+    //   - 检查标志是否已经被注册（避免重复注册）
+    //   - 支持重复解析场景
+    //   - 由每个处理器自己实现检查逻辑
+    //
+    // 使用场景:
+    //   - 重复调用 Parse() 方法时避免重复注册
+    //   - 测试场景中多次解析同一命令
+    //   - 支持幂等性操作
+    ShouldSkipRegistration(cmd Command) bool
 }
 ```
 

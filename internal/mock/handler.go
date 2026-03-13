@@ -21,6 +21,11 @@ func (h *CustomHandler) ShouldRegister(cmd types.Command) bool {
 	return true
 }
 
+// ShouldSkipRegistration 判断是否应该跳过注册
+func (h *CustomHandler) ShouldSkipRegistration(cmd types.Command) bool {
+	return false
+}
+
 // Handle 处理内置标志
 func (h *CustomHandler) Handle(cmd types.Command) error {
 	return nil
