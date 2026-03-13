@@ -435,7 +435,7 @@ func (c *Cmd) Parse(args []string) error {
 //
 // 功能说明:
 //   - 使用sync.Once确保只解析一次
-//   - 第二次调用会返回错误
+//   - 重复执行无错误、仅首次执行解析
 //   - 调用解析器的Parse方法
 //   - 递归解析所有子命令
 //
@@ -481,7 +481,7 @@ func (c *Cmd) ParseAndRoute(args []string) error {
 //
 // 功能说明:
 //   - 使用sync.Once确保只执行一次
-//   - 第二次调用会返回错误
+//   - 重复执行无错误、仅首次执行解析
 //   - 调用解析器的ParseAndRoute方法
 //   - 完整的解析和执行流程
 //
@@ -527,7 +527,7 @@ func (c *Cmd) ParseOnly(args []string) error {
 //
 // 功能说明:
 //   - 使用sync.Once确保只执行一次
-//   - 第二次调用会返回错误
+//   - 重复执行无错误、仅首次执行解析
 //   - 调用解析器的ParseOnly方法
 //   - 不处理子命令解析
 //
