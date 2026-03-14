@@ -167,3 +167,129 @@ func TestParser_HelpGeneration(t *testing.T) {
 
 	c.PrintHelp()
 }
+
+// TestParser_ResetOnRepeatedParse 测试重复解析时标志重置
+// 这个测试验证了在重复解析场景下，标志值和状态会被正确重置
+func TestParser_ResetOnRepeatedParse(t *testing.T) {
+	// 场景1：测试基本类型的重复解析
+	t.Run("BasicTypeReset", func(t *testing.T) {
+		c := cmd.NewCmd("test", "t", types.ContinueOnError)
+		nameFlag := c.String("name", "n", "名称", "default")
+		countFlag := c.Int("count", "c", "计数器", 0)
+
+		// 第一次解析：设置值
+		err := c.Parse([]string{"--name", "first", "--count", "42"})
+		if err != nil {
+			t.Fatalf("First parse error: %v", err)
+		}
+
+		if nameFlag.Get() != "first" {
+			t.Errorf("First parse: expected name 'first', got '%s'", nameFlag.Get())
+		}
+		if countFlag.Get() != 42 {
+			t.Errorf("First parse: expected count 42, got %d", countFlag.Get())
+		}
+		if !nameFlag.IsSet() {
+			t.Error("First parse: name flag should be set")
+		}
+		if !countFlag.IsSet() {
+			t.Error("First parse: count flag should be set")
+		}
+
+		// 第二次解析：不设置值，应该重置到默认值
+		err = c.Parse([]string{})
+		if err != nil {
+			t.Fatalf("Second parse error: %v", err)
+		}
+
+		if nameFlag.Get() != "default" {
+			t.Errorf("Second parse: expected name 'default', got '%s'", nameFlag.Get())
+		}
+		if countFlag.Get() != 0 {
+			t.Errorf("Second parse: expected count 0, got %d", countFlag.Get())
+		}
+		if nameFlag.IsSet() {
+			t.Error("Second parse: name flag should not be set")
+		}
+		if countFlag.IsSet() {
+			t.Error("Second parse: count flag should not be set")
+		}
+	})
+
+	// 场景2：测试集合类型的重复解析
+	t.Run("SliceTypeReset", func(t *testing.T) {
+		c := cmd.NewCmd("test", "t", types.ContinueOnError)
+		tagsFlag := c.StringSlice("tags", "t", "标签列表", []string{"default-tag"})
+
+		// 第一次解析：设置值
+		err := c.Parse([]string{"--tags", "a,b,c"})
+		if err != nil {
+			t.Fatalf("First parse error: %v", err)
+		}
+
+		tags := tagsFlag.Get()
+		if len(tags) != 3 {
+			t.Errorf("First parse: expected 3 tags, got %d", len(tags))
+		}
+		if !tagsFlag.IsSet() {
+			t.Error("First parse: tags flag should be set")
+		}
+
+		// 第二次解析：不设置值，应该重置到默认值
+		err = c.Parse([]string{})
+		if err != nil {
+			t.Fatalf("Second parse error: %v", err)
+		}
+
+		tags = tagsFlag.Get()
+		if len(tags) != 1 || tags[0] != "default-tag" {
+			t.Errorf("Second parse: expected default tags, got %v", tags)
+		}
+		if tagsFlag.IsSet() {
+			t.Error("Second parse: tags flag should not be set")
+		}
+	})
+
+	// 场景3：测试环境变量在重复解析中的加载
+	t.Run("EnvVarLoadingAfterReset", func(t *testing.T) {
+		// 设置环境变量
+		if err := os.Setenv("TEST_RESET_NAME", "env-value"); err != nil {
+			t.Fatalf("Failed to set env var: %v", err)
+		}
+		defer func() {
+			if err := os.Unsetenv("TEST_RESET_NAME"); err != nil {
+				t.Logf("Failed to unset env var: %v", err)
+			}
+		}()
+
+		c := cmd.NewCmd("test", "t", types.ContinueOnError)
+		nameFlag := c.String("name", "n", "名称", "default")
+		nameFlag.BindEnv("TEST_RESET_NAME")
+
+		// 第一次解析：命令行参数覆盖环境变量
+		err := c.Parse([]string{"--name", "cli-value"})
+		if err != nil {
+			t.Fatalf("First parse error: %v", err)
+		}
+
+		if nameFlag.Get() != "cli-value" {
+			t.Errorf("First parse: expected 'cli-value', got '%s'", nameFlag.Get())
+		}
+		if !nameFlag.IsSet() {
+			t.Error("First parse: name flag should be set")
+		}
+
+		// 第二次解析：没有命令行参数，应该加载环境变量
+		err = c.Parse([]string{})
+		if err != nil {
+			t.Fatalf("Second parse error: %v", err)
+		}
+
+		if nameFlag.Get() != "env-value" {
+			t.Errorf("Second parse: expected 'env-value', got '%s'", nameFlag.Get())
+		}
+		if !nameFlag.IsSet() {
+			t.Error("Second parse: name flag should be set by env var")
+		}
+	})
+}

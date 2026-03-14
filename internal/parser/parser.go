@@ -50,6 +50,7 @@ func NewDefaultParser(errorHandling types.ErrorHandling) types.Parser {
 //   - error: 如果解析失败返回错误
 //
 // 注意事项:
+//   - 重置所有标志到默认状态（避免重复解析时的遗留值）
 //   - 注册内置标志
 //   - 创建新的FlagSet实例进行解析
 //   - 注册命令的所有标志到FlagSet
@@ -67,6 +68,16 @@ func (p *DefaultParser) ParseOnly(cmd types.Command, args []string) error {
 		cmd.PrintHelp()
 	}
 
+	// 重置所有标志到默认状态
+	// 这对于重复解析场景至关重要：
+	// 1. 清除上次解析的遗留值，恢复到默认值
+	// 2. 重置 isSet 状态，确保环境变量能正确加载
+	// 3. 确保互斥组和必需组验证基于正确的状态
+	flagRegistry := cmd.FlagRegistry()
+	for _, f := range flagRegistry.List() {
+		f.Reset()
+	}
+
 	// 注册内置标志
 	if err := p.builtinMgr.RegisterBuiltinFlags(cmd); err != nil {
 		return err
@@ -77,9 +88,6 @@ func (p *DefaultParser) ParseOnly(cmd types.Command, args []string) error {
 		cmd.SetParsed(true)
 		cmd.SetArgs(p.flagSet.Args())
 	}()
-
-	// 获取命令的标志注册表
-	flagRegistry := cmd.FlagRegistry()
 
 	// 注册命令行标志
 	for _, f := range flagRegistry.List() {
