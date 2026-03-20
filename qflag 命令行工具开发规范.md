@@ -226,13 +226,13 @@ func InitAndRun() (err error) {
     // 应用根命令配置
     if err = qflag.ApplyOpts(rootCmdOpts); err != nil {
         err = fmt.Errorf("apply opts failed: %w", err)
-        return
+        return err
     }
 
     // 解析并自动路由到子命令
     if err = qflag.ParseAndRoute(); err != nil {
         err = fmt.Errorf("parse and route failed: %w", err)
-        return
+        return err
     }
 
     return nil
@@ -1374,12 +1374,12 @@ func InitAndRun() (err error) {
 
     if err = qflag.ApplyOpts(rootCmdOpts); err != nil {
         err = fmt.Errorf("apply opts failed: %w", err)
-        return
+        return err
     }
 
     if err = qflag.ParseAndRoute(); err != nil {
         err = fmt.Errorf("parse and route failed: %w", err)
-        return
+        return err
     }
 
     return nil
