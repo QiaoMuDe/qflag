@@ -251,44 +251,6 @@ var NewCmd = cmd.NewCmd
   - 初始化配置选项
 
 ```go
-var NewCmdFromSpec = cmd.NewCmdFromSpec
-```
-
-**NewCmdFromSpec 从规格创建命令**
-
-**参数:**
-  - spec: 命令规格结构体
-
-**返回值:**
-  - *Cmd: 创建的命令实例
-  - error: 创建失败时返回错误
-
-**功能说明:**
-  - 根据规格结构体创建命令
-  - 自动设置所有属性和配置
-  - 递归创建子命令
-  - 支持默认值处理
-  - 使用defer捕获panic, 转换为错误返回
-
-```go
-var NewCmdSpec = cmd.NewCmdSpec
-```
-
-**NewCmdSpec 创建新的命令规格**
-
-**参数:**
-  - longName: 命令长名称
-  - shortName: 命令短名称
-
-**返回值:**
-  - *CmdSpec: 初始化的命令规格
-
-**功能说明:**
-  - 创建基本命令规格
-  - 设置默认值
-  - 初始化所有字段
-
-```go
 var NewCmdOpts = cmd.NewCmdOpts
 ```
 
@@ -685,16 +647,10 @@ type CmdRegistry = types.CmdRegistry
   - 线程安全由具体实现保证
 
 ```go
-type CmdSpec = cmd.CmdSpec
-```
-
-**CmdSpec 命令规格结构体 CmdSpec 提供了通过规格创建命令的方式, 包含命令的所有属性。 这种方式比函数式配置更加直观和集中。**
-
-```go
 type CmdOpts = cmd.CmdOpts
 ```
 
-**CmdOpts 命令选项结构体 CmdOpts 提供了配置现有命令的方式，包含命令的所有可配置属性。 与 CmdSpec 不同，CmdOpts 用于配置已存在的命令，而不是创建新命令。**
+**CmdOpts 命令选项结构体 CmdOpts 提供了配置现有命令的方式，包含命令的所有可配置属性。**
 
 **使用场景:**
   - 已有命令实例，需要批量设置属性

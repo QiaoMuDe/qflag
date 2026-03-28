@@ -510,63 +510,6 @@ func TestRequiredGroupConcurrency(t *testing.T) {
 	}
 }
 
-// TestRequiredGroupWithCmdSpec 测试通过 CmdSpec 添加必需组
-func TestRequiredGroupWithCmdSpec(t *testing.T) {
-	// 测试1: 满足必需组
-	func() {
-		spec := NewCmdSpec("test", "t")
-		spec.Desc = "Test command"
-
-		cmd, err := NewCmdFromSpec(spec)
-		if err != nil {
-			t.Fatalf("Failed to create command from spec: %v", err)
-		}
-
-		if err := cmd.AddFlag(flag.NewStringFlag("host", "H", "Host", "")); err != nil {
-			t.Fatalf("Failed to add host flag: %v", err)
-		}
-		if err := cmd.AddFlag(flag.NewStringFlag("port", "P", "Port", "")); err != nil {
-			t.Fatalf("Failed to add port flag: %v", err)
-		}
-
-		if err := cmd.AddRequiredGroup("connection", []string{"host", "port"}, false); err != nil {
-			t.Fatalf("Failed to add required group: %v", err)
-		}
-
-		err = cmd.Parse([]string{"--host", "localhost", "--port", "8080"})
-		if err != nil {
-			t.Errorf("Expected no error when all required flags are set, got: %v", err)
-		}
-	}()
-
-	// 测试2: 不满足必需组
-	func() {
-		spec := NewCmdSpec("test2", "t2")
-		spec.Desc = "Test command"
-
-		cmd, err := NewCmdFromSpec(spec)
-		if err != nil {
-			t.Fatalf("Failed to create command from spec: %v", err)
-		}
-
-		if err := cmd.AddFlag(flag.NewStringFlag("host", "H", "Host", "")); err != nil {
-			t.Fatalf("Failed to add host flag: %v", err)
-		}
-		if err := cmd.AddFlag(flag.NewStringFlag("port", "P", "Port", "")); err != nil {
-			t.Fatalf("Failed to add port flag: %v", err)
-		}
-
-		if err := cmd.AddRequiredGroup("connection", []string{"host", "port"}, false); err != nil {
-			t.Fatalf("Failed to add required group: %v", err)
-		}
-
-		err = cmd.Parse([]string{"--host", "localhost"})
-		if err == nil {
-			t.Error("Expected error when not all required flags are set")
-		}
-	}()
-}
-
 // TestRequiredGroupWithCmdOpts 测试通过 CmdOpts 添加必需组
 func TestRequiredGroupWithCmdOpts(t *testing.T) {
 	// 测试1: 满足必需组
@@ -1069,141 +1012,52 @@ func TestConditionalRequiredGroup(t *testing.T) {
 		}()
 	}()
 
-	// 测试8: CmdSpec和CmdOpts支持条件性必需组
+	// 测试8: CmdOpts支持条件性必需组
 	func() {
-		// 测试8.1: 测试CmdSpec
+		// 测试8.1: 不设置任何标志，应该成功
 		func() {
-			// 测试8.1.1: 不设置任何标志，应该成功
-			func() {
-				// 测试CmdSpec
-				spec := NewCmdSpec("test8_1_1", "t8_1_1")
-				spec.Desc = "Test command"
+			cmd2 := NewCmd("test8_1", "t8_1", types.ContinueOnError)
+			cmd2.String("host", "ht", "Host", "")
+			cmd2.String("port", "pt2", "Port", "")
 
-				cmd, err := NewCmdFromSpec(spec)
-				if err != nil {
-					t.Fatalf("Failed to create command from spec: %v", err)
-				}
+			opts := NewCmdOpts()
+			opts.RequiredGroups = []types.RequiredGroup{
+				{Name: "database", Flags: []string{"host", "port"}, Conditional: true},
+			}
 
-				cmd.String("host", "ht", "Host", "")
-				cmd.String("port", "pt2", "Port", "")
+			err := cmd2.ApplyOpts(opts)
+			if err != nil {
+				t.Fatalf("Failed to apply opts: %v", err)
+			}
 
-				// 然后添加RequiredGroups
-				err = cmd.AddRequiredGroup("database", []string{"host", "port"}, true)
-				if err != nil {
-					t.Fatalf("Failed to add required group: %v", err)
-				}
-
-				// 不设置任何标志，应该成功
-				err = cmd.Parse([]string{})
-				if err != nil {
-					t.Errorf("Expected no error when no flags are used in conditional group, got: %v", err)
-				}
-			}()
-
-			// 测试8.1.2: 只设置部分标志，应该失败
-			func() {
-				// 测试CmdSpec
-				spec := NewCmdSpec("test8_1_2", "t8_1_2")
-				spec.Desc = "Test command"
-
-				cmd, err := NewCmdFromSpec(spec)
-				if err != nil {
-					t.Fatalf("Failed to create command from spec: %v", err)
-				}
-
-				cmd.String("host", "ht", "Host", "")
-				cmd.String("port", "pt2", "Port", "")
-
-				// 然后添加RequiredGroups
-				err = cmd.AddRequiredGroup("database", []string{"host", "port"}, true)
-				if err != nil {
-					t.Fatalf("Failed to add required group: %v", err)
-				}
-
-				// 只设置部分标志，应该失败
-				err = cmd.Parse([]string{"--host", "localhost"})
-				if err == nil {
-					t.Error("Expected error when only some flags in conditional group are used")
-				}
-			}()
-
-			// 测试8.1.3: 只设置部分标志，应该失败
-			func() {
-				// 测试CmdSpec
-				spec := NewCmdSpec("test8_1_3", "t8_1_3")
-				spec.Desc = "Test command"
-
-				cmd, err := NewCmdFromSpec(spec)
-				if err != nil {
-					t.Fatalf("Failed to create command from spec: %v", err)
-				}
-
-				cmd.String("host", "ht", "Host", "")
-				cmd.String("port", "pt2", "Port", "")
-
-				// 然后添加RequiredGroups
-				err = cmd.AddRequiredGroup("database", []string{"host", "port"}, true)
-				if err != nil {
-					t.Fatalf("Failed to add required group: %v", err)
-				}
-
-				// 只设置部分标志，应该失败
-				err = cmd.Parse([]string{"--host", "localhost"})
-				if err == nil {
-					t.Error("Expected error when only some flags in conditional group are used")
-				}
-			}()
+			// 不设置任何标志，应该成功
+			err = cmd2.Parse([]string{})
+			if err != nil {
+				t.Errorf("Expected no error when no flags are used in conditional group, got: %v", err)
+			}
 		}()
 
-		// 测试8.2: 测试CmdOpts
+		// 测试8.2: 只设置部分标志，应该失败
 		func() {
-			// 测试8.2.1: 不设置任何标志，应该成功
-			func() {
-				// 测试CmdOpts
-				cmd2 := NewCmd("test8_2_1", "t8_2_1", types.ContinueOnError)
-				cmd2.String("host", "ht", "Host", "")
-				cmd2.String("port", "pt2", "Port", "")
+			cmd2 := NewCmd("test8_2", "t8_2", types.ContinueOnError)
+			cmd2.String("host", "ht", "Host", "")
+			cmd2.String("port", "pt2", "Port", "")
 
-				opts := NewCmdOpts()
-				opts.RequiredGroups = []types.RequiredGroup{
-					{Name: "database", Flags: []string{"host", "port"}, Conditional: true},
-				}
+			opts := NewCmdOpts()
+			opts.RequiredGroups = []types.RequiredGroup{
+				{Name: "database", Flags: []string{"host", "port"}, Conditional: true},
+			}
 
-				err := cmd2.ApplyOpts(opts)
-				if err != nil {
-					t.Fatalf("Failed to apply opts: %v", err)
-				}
+			err := cmd2.ApplyOpts(opts)
+			if err != nil {
+				t.Fatalf("Failed to apply opts: %v", err)
+			}
 
-				// 不设置任何标志，应该成功
-				err = cmd2.Parse([]string{})
-				if err != nil {
-					t.Errorf("Expected no error when no flags are used in conditional group, got: %v", err)
-				}
-			}()
-
-			// 测试8.2.2: 只设置部分标志，应该失败
-			func() {
-				// 测试CmdOpts
-				cmd2 := NewCmd("test8_2_2", "t8_2_2", types.ContinueOnError)
-				cmd2.String("host", "ht", "Host", "")
-				cmd2.String("port", "pt2", "Port", "")
-
-				opts := NewCmdOpts()
-				opts.RequiredGroups = []types.RequiredGroup{
-					{Name: "database", Flags: []string{"host", "port"}, Conditional: true},
-				}
-
-				err := cmd2.ApplyOpts(opts)
-				if err != nil {
-					t.Fatalf("Failed to apply opts: %v", err)
-				}
-
-				// 只设置部分标志，应该失败
-				err = cmd2.Parse([]string{"--host", "localhost"})
-				if err == nil {
-					t.Error("Expected error when only some flags in conditional group are used")
-				}
-			}()
+			// 只设置部分标志，应该失败
+			err = cmd2.Parse([]string{"--host", "localhost"})
+			if err == nil {
+				t.Error("Expected error when only some flags in conditional group are used")
+			}
 		}()
 	}()
 }

@@ -695,6 +695,113 @@ yourapp run --username=admin --password=secret
 
 ---
 
+## 环境变量绑定
+
+QFlag 提供了四种环境变量绑定方式，可根据实际需求选择。
+
+### 方式一：手动指定环境变量名
+
+通过 `BindEnv()` 方法手动指定环境变量名称：
+
+```go
+func init() {
+    Cmd = qflag.NewCmd("run", "r", qflag.ExitOnError)
+    Cmd.SetEnvPrefix("MYAPP")  // 设置环境变量前缀
+    
+    // 手动绑定：绑定到 MYAPP_DATABASE_URL
+    dbFlag := Cmd.String("database", "d", "数据库地址", "localhost")
+    dbFlag.BindEnv("DATABASE_URL")
+    
+    // ...
+}
+```
+
+### 方式二：标志自动绑定
+
+通过 `AutoBindEnv()` 方法自动使用标志长名称的大写形式作为环境变量名：
+
+```go
+func init() {
+    Cmd = qflag.NewCmd("run", "r", qflag.ExitOnError)
+    Cmd.SetEnvPrefix("MYAPP")
+    
+    // 自动绑定：host -> MYAPP_HOST, port -> MYAPP_PORT
+    hostFlag := Cmd.String("host", "H", "主机地址", "localhost")
+    portFlag := Cmd.Int("port", "p", "端口号", 8080)
+    
+    hostFlag.AutoBindEnv()
+    portFlag.AutoBindEnv()
+    
+    // ...
+}
+```
+
+### 方式三：命令批量自动绑定
+
+通过 `AutoBindAllEnv()` 方法一次性为命令的所有标志自动绑定环境变量：
+
+```go
+func init() {
+    Cmd = qflag.NewCmd("run", "r", qflag.ExitOnError)
+    Cmd.SetEnvPrefix("MYAPP")
+    
+    // 创建多个标志
+    Cmd.String("host", "H", "主机地址", "localhost")
+    Cmd.Int("port", "p", "端口号", 8080)
+    Cmd.String("user", "u", "用户名", "admin")
+    
+    // 批量自动绑定所有标志
+    Cmd.AutoBindAllEnv()
+    
+    // ...
+}
+```
+
+### 方式四：通过 CmdOpts 配置
+
+在 `CmdOpts` 中设置 `AutoBindEnv` 字段：
+
+```go
+func init() {
+    Cmd = qflag.NewCmd("run", "r", qflag.ExitOnError)
+    
+    // 创建标志
+    Cmd.String("host", "H", "主机地址", "localhost")
+    Cmd.Int("port", "p", "端口号", 8080)
+    
+    cmdOpts := &qflag.CmdOpts{
+        Desc:        "运行服务",
+        EnvPrefix:   "MYAPP",
+        AutoBindEnv: true,  // 自动绑定所有标志的环境变量
+        UseChinese:  true,
+    }
+    
+    if err := Cmd.ApplyOpts(cmdOpts); err != nil {
+        panic(fmt.Errorf("apply opts err: %w", err))
+    }
+    
+    Cmd.SetRun(run)
+}
+```
+
+### 四种方式对比
+
+| 方式 | 方法 | 适用场景 | 特点 |
+|------|------|----------|------|
+| 手动指定 | `BindEnv("NAME")` | 需要自定义环境变量名 | 灵活，可指定任意名称 |
+| 标志自动绑定 | `AutoBindEnv()` | 单个标志自动绑定 | 使用长名称大写，简洁 |
+| 命令批量绑定 | `AutoBindAllEnv()` | 批量绑定所有标志 | 一次性绑定，高效 |
+| CmdOpts 配置 | `AutoBindEnv: true` | 配置化管理 | 与其他配置一起设置 |
+
+### 环境变量绑定注意事项
+
+1. **前缀设置**：使用 `SetEnvPrefix()` 或 `CmdOpts.EnvPrefix` 设置环境变量前缀
+2. **命名规则**：环境变量名 = 前缀 + _ + 标志名（大写）
+3. **优先级**：命令行参数 > 环境变量 > 默认值
+4. **长名称要求**：`AutoBindEnv()` 和 `AutoBindAllEnv()` 要求标志必须有长名称，否则会 panic
+
+---
+
 ## 自动补全功能
 
 ### 启用自动补全

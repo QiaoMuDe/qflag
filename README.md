@@ -495,6 +495,12 @@ func main() {
 
 #### 环境变量绑定
 
+QFlag 提供了三种环境变量绑定方式，满足不同场景需求。
+
+##### 方式一：手动指定环境变量名
+
+通过 `BindEnv()` 方法手动指定环境变量名称：
+
 ```go
 package main
 
@@ -510,11 +516,10 @@ func main() {
     // 设置环境变量前缀
     cmd.SetEnvPrefix("MYAPP")
 
-    // 使用便捷方法创建并绑定环境变量的标志
+    // 手动指定环境变量名绑定
     dbFlag := cmd.String("database", "d", "数据库地址", "localhost")
-    dbFlag.BindEnv("DATABASE_URL")
+    dbFlag.BindEnv("DATABASE_URL")  // 绑定到 MYAPP_DATABASE_URL
     
-    // 解析参数
     if err := cmd.Parse(os.Args[1:]); err != nil {
         fmt.Printf("错误: %v\n", err)
         return
@@ -523,6 +528,88 @@ func main() {
     fmt.Printf("数据库地址: %s\n", dbFlag.GetStr())
 }
 ```
+
+##### 方式二：标志自动绑定
+
+通过 `AutoBindEnv()` 方法自动使用标志长名称的大写形式作为环境变量名：
+
+```go
+package main
+
+import (
+    "fmt"
+    "os"
+    "gitee.com/MM-Q/qflag"
+)
+
+func main() {
+    cmd := qflag.NewCmd("app", "", qflag.ContinueOnError)
+    cmd.SetEnvPrefix("MYAPP")
+
+    // 创建标志
+    hostFlag := cmd.String("host", "H", "主机地址", "localhost")
+    portFlag := cmd.Int("port", "p", "端口号", 8080)
+
+    // 自动绑定：使用长名称大写作为环境变量名
+    // host -> MYAPP_HOST, port -> MYAPP_PORT
+    hostFlag.AutoBindEnv()
+    portFlag.AutoBindEnv()
+    
+    if err := cmd.Parse(os.Args[1:]); err != nil {
+        fmt.Printf("错误: %v\n", err)
+        return
+    }
+
+    fmt.Printf("主机: %s, 端口: %d\n", hostFlag.GetStr(), portFlag.GetInt())
+}
+```
+
+##### 方式三：命令批量自动绑定
+
+通过 `AutoBindAllEnv()` 方法一次性为命令的所有标志自动绑定环境变量：
+
+```go
+package main
+
+import (
+    "fmt"
+    "os"
+    "gitee.com/MM-Q/qflag"
+)
+
+func main() {
+    cmd := qflag.NewCmd("app", "", qflag.ContinueOnError)
+    cmd.SetEnvPrefix("MYAPP")
+
+    // 创建多个标志
+    cmd.String("host", "H", "主机地址", "localhost")
+    cmd.Int("port", "p", "端口号", 8080)
+    cmd.String("user", "u", "用户名", "admin")
+    cmd.String("password", "P", "密码", "")
+
+    // 批量自动绑定所有标志的环境变量
+    // host -> MYAPP_HOST
+    // port -> MYAPP_PORT
+    // user -> MYAPP_USER
+    // password -> MYAPP_PASSWORD
+    cmd.AutoBindAllEnv()
+    
+    if err := cmd.Parse(os.Args[1:]); err != nil {
+        fmt.Printf("错误: %v\n", err)
+        return
+    }
+
+    fmt.Printf("主机: %s, 端口: %d\n", cmd.GetString("host"), cmd.GetInt("port"))
+}
+```
+
+##### 三种方式对比
+
+| 方式 | 方法 | 适用场景 | 特点 |
+|------|------|----------|------|
+| 手动指定 | `BindEnv("NAME")` | 需要自定义环境变量名 | 灵活，可指定任意名称 |
+| 标志自动绑定 | `AutoBindEnv()` | 单个标志自动绑定 | 使用长名称大写，简洁 |
+| 命令批量绑定 | `AutoBindAllEnv()` | 批量绑定所有标志 | 一次性绑定，高效 |
 
 ---
 
@@ -660,9 +747,86 @@ QFlag 提供了三种错误处理策略:
 - **ExitOnError** - 遇到错误立即退出
 - **ReturnOnError** - 遇到错误返回错误
 
-### 命令配置
+### CmdOpts 配置选项
 
-通过 `CmdConfig` 可以自定义命令的各种行为, 包括版本信息、语言设置、环境变量前缀等。详细的配置选项请参考源代码中的注释。
+`CmdOpts` 提供了配置现有命令的方式，包含命令的所有可配置属性。
+
+#### 字段说明
+
+| 字段 | 类型 | 说明 |
+|------|------|------|
+| `Desc` | `string` | 命令描述 |
+| `RunFunc` | `func(Command) error` | 命令执行函数 |
+| `Version` | `string` | 版本号 |
+| `UseChinese` | `bool` | 是否使用中文 |
+| `EnvPrefix` | `string` | 环境变量前缀 |
+| `UsageSyntax` | `string` | 命令使用语法 |
+| `LogoText` | `string` | Logo文本 |
+| `Completion` | `bool` | 是否启用自动补全标志 |
+| `AutoBindEnv` | `bool` | 是否自动绑定所有标志的环境变量 |
+| `Examples` | `map[string]string` | 示例使用 |
+| `Notes` | `[]string` | 注意事项 |
+| `SubCmds` | `[]Command` | 子命令列表 |
+| `MutexGroups` | `[]MutexGroup` | 互斥组列表 |
+| `RequiredGroups` | `[]RequiredGroup` | 必需组列表 |
+
+#### 使用示例
+
+```go
+package main
+
+import (
+    "fmt"
+    "os"
+    "gitee.com/MM-Q/qflag"
+)
+
+func main() {
+    // 创建命令
+    cmd := qflag.NewCmd("myapp", "m", qflag.ExitOnError)
+    
+    // 添加标志
+    cmd.String("host", "H", "主机地址", "localhost")
+    cmd.Int("port", "p", "端口号", 8080)
+    
+    // 创建配置选项并应用
+    opts := &qflag.CmdOpts{
+        Desc:        "我的应用程序",
+        Version:     "1.0.0",
+        UseChinese:  true,
+        EnvPrefix:   "MYAPP",
+        AutoBindEnv: true,
+        Examples: map[string]string{
+            "启动服务":    "myapp --host 0.0.0.0 --port 8080",
+            "使用环境变量": "MYAPP_HOST=0.0.0.0 MYAPP_PORT=8080 myapp",
+        },
+        Notes: []string{
+            "端口号必须在 1-65535 范围内",
+            "环境变量会自动加上 MYAPP_ 前缀",
+        },
+    }
+    
+    // 应用配置
+    if err := cmd.ApplyOpts(opts); err != nil {
+        fmt.Printf("应用配置失败: %v\n", err)
+        return
+    }
+    
+    // 解析参数
+    if err := cmd.Parse(os.Args[1:]); err != nil {
+        fmt.Printf("解析失败: %v\n", err)
+        return
+    }
+    
+    fmt.Printf("服务启动在 %s:%d\n", cmd.GetString("host"), cmd.GetInt("port"))
+}
+```
+
+#### 特点
+
+- **部分配置**: 未设置的属性不会被修改，保留原有值
+- **批量设置**: 一次性设置多个命令属性
+- **结构化管理**: 通过结构体集中管理配置
 
 ---
 

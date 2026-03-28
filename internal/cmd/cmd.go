@@ -404,7 +404,7 @@ func (c *Cmd) HasSubCmd(name string) bool {
 	return c.cmdRegistry.Has(name)
 }
 
-// Parse 解析命令行参数（可重复解析）
+// Parse 解析命令行参数 (可重复解析)
 //
 // 参数:
 //   - args: 命令行参数列表
@@ -425,7 +425,7 @@ func (c *Cmd) Parse(args []string) error {
 	return c.parser.Parse(c, args)
 }
 
-// ParseOnce 解析命令行参数（只解析一次）
+// ParseOnce 解析命令行参数 (只解析一次)
 //
 // 参数:
 //   - args: 命令行参数列表
@@ -450,7 +450,7 @@ func (c *Cmd) ParseOnce(args []string) error {
 	return err
 }
 
-// ParseAndRoute 解析并路由执行命令（可重复解析）
+// ParseAndRoute 解析并路由执行命令 (可重复解析)
 //
 // 参数:
 //   - args: 命令行参数列表
@@ -471,7 +471,7 @@ func (c *Cmd) ParseAndRoute(args []string) error {
 	return c.parser.ParseAndRoute(c, args)
 }
 
-// ParseAndRouteOnce 解析并路由执行命令（只解析一次）
+// ParseAndRouteOnce 解析并路由执行命令 (只解析一次)
 //
 // 参数:
 //   - args: 命令行参数列表
@@ -496,7 +496,7 @@ func (c *Cmd) ParseAndRouteOnce(args []string) error {
 	return err
 }
 
-// ParseOnly 仅解析当前命令, 不递归解析子命令（可重复解析）
+// ParseOnly 仅解析当前命令, 不递归解析子命令 (可重复解析)
 //
 // 参数:
 //   - args: 命令行参数列表
@@ -517,7 +517,7 @@ func (c *Cmd) ParseOnly(args []string) error {
 	return c.parser.ParseOnly(c, args)
 }
 
-// ParseOnlyOnce 仅解析当前命令, 不递归解析子命令（只解析一次）
+// ParseOnlyOnce 仅解析当前命令, 不递归解析子命令 (只解析一次)
 //
 // 参数:
 //   - args: 命令行参数列表
@@ -1071,15 +1071,15 @@ func (c *Cmd) SetParsed(parsed bool) {
 //
 // 功能说明:
 //   - 将选项结构体的所有属性应用到当前命令
-//   - 支持部分配置（未设置的属性不会被修改）
+//   - 支持部分配置 (未设置的属性不会被修改)
 //   - 使用defer捕获panic, 转换为错误返回
 //
 // 应用顺序:
-//  1. 基本属性（Desc、RunFunc）
-//  2. 配置选项（Version、UseChinese、EnvPrefix、UsageSyntax、LogoText）
-//  3. 示例和说明（Examples、Notes）
-//  4. 互斥组（MutexGroups）
-//  5. 子命令（SubCmds）
+//  1. 基本属性 (Desc、RunFunc)
+//  2. 配置选项 (Version、UseChinese、EnvPrefix、UsageSyntax、LogoText)
+//  3. 示例和说明 (Examples、Notes)
+//  4. 互斥组 (MutexGroups)
+//  5. 子命令 (SubCmds)
 //
 // 错误处理:
 //   - 选项为 nil: 返回 INVALID_CMDOPTS 错误
