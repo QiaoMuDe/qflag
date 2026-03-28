@@ -38,6 +38,9 @@ type CmdOpts struct {
 	LogoText    string // Logo文本
 	Completion  bool   // 是否启用自动补全标志
 
+	// 环境变量绑定
+	AutoBindEnv bool // 是否自动绑定所有标志的环境变量
+
 	// 示例和说明
 	Examples map[string]string // 示例使用, key为描述, value为示例命令
 	Notes    []string          // 注意事项

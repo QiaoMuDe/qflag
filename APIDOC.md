@@ -175,6 +175,40 @@ var IsNotFoundError = types.IsNotFoundError
   - 区分未找到错误和其他错误
   - 简化错误处理逻辑
 
+```go
+var FormatError = types.FormatError
+```
+
+**FormatError 格式化错误信息**
+
+**参数:**
+  - err: 要格式化的错误
+
+**返回值:**
+  - string: 格式化的错误字符串
+
+**功能说明:**
+  - 将错误转换为可读的格式化字符串
+  - 如果是 *Error 类型, 返回详细的错误信息
+  - 如果不是 *Error 类型, 返回普通错误字符串
+
+**输出格式:**
+  - *Error 类型: "[错误码] 错误消息: 原始错误"
+  - 非 *Error 类型: 错误字符串
+
+**使用场景:**
+  - 日志记录
+  - 错误展示
+  - 调试输出
+  - API 响应
+
+**示例:**
+```go
+err := qflag.NewError("INVALID_VALUE", "invalid port value", nil)
+fmt.Println(qflag.FormatError(err))
+// 输出: [INVALID_VALUE] invalid port value
+```
+
 ### 标志创建
 
 推荐使用全局 Root 命令创建标志: 

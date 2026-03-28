@@ -1,6 +1,8 @@
 package mock
 
 import (
+	"strings"
+
 	"gitee.com/MM-Q/qflag/internal/types"
 )
 
@@ -118,6 +120,13 @@ func (f *MockFlag) String() string { return f.GetStr() }
 
 func (f *MockFlag) BindEnv(env string) { f.envVar = env }
 func (f *MockFlag) GetEnvVar() string  { return f.envVar }
+
+func (f *MockFlag) AutoBindEnv() {
+	if f.name == "" {
+		panic(types.NewError("EMPTY_LONG_NAME", "flag must have a long name for AutoBindEnv", nil))
+	}
+	f.envVar = strings.ToUpper(f.name)
+}
 
 func (f *MockFlag) EnumValues() []string { return f.enumValues }
 func (f *MockFlag) Default() string      { return formatValue(f.value) }

@@ -791,6 +791,32 @@ func (c *Cmd) SetEnvPrefix(prefix string) {
 	}
 }
 
+// AutoBindAllEnv 为所有标志自动绑定环境变量
+//
+// 功能说明:
+//   - 遍历命令的所有标志
+//   - 为每个标志调用 AutoBindEnv() 方法
+//   - 批量设置环境变量绑定
+//
+// 使用示例:
+//
+//	cmd.String("host", "h", "主机地址", "localhost")
+//	cmd.Uint("port", "p", "端口号", 8080)
+//	cmd.AutoBindAllEnv()  // 自动绑定 HOST 和 PORT
+//
+// 注意事项:
+//   - 如果标志没有长名称，会触发 panic
+//   - 环境变量名为标志长名称的大写形式
+//   - 环境变量前缀在解析时自动拼接
+func (c *Cmd) AutoBindAllEnv() {
+	c.mu.RLock()
+	defer c.mu.RUnlock()
+
+	for _, f := range c.flagRegistry.List() {
+		f.AutoBindEnv()
+	}
+}
+
 // SetUsageSyntax 设置使用语法
 //
 // 参数:
@@ -992,7 +1018,7 @@ func (c *Cmd) SetParser(p types.Parser) {
 	defer c.mu.Unlock()
 
 	if p == nil {
-		panic("parser cannot be nil")
+		panic(types.NewError("NIL_PARSER", "parser cannot be nil", nil))
 	}
 
 	c.parser = p
@@ -1147,6 +1173,11 @@ func (c *Cmd) ApplyOpts(opts *CmdOpts) error {
 		if err := c.AddSubCmds(opts.SubCmds...); err != nil {
 			return types.WrapError(err, "FAILED_TO_ADD_SUBCMDS", "failed to add subcommands")
 		}
+	}
+
+	// 7. 自动绑定环境变量
+	if opts.AutoBindEnv {
+		c.AutoBindAllEnv()
 	}
 
 	return err

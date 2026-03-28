@@ -116,6 +116,36 @@ var WrapParseError = types.WrapParseError
 //   - 简化错误处理逻辑
 var IsNotFoundError = types.IsNotFoundError
 
+// FormatError 格式化错误信息
+//
+// 参数:
+//   - err: 要格式化的错误
+//
+// 返回值:
+//   - string: 格式化的错误字符串
+//
+// 功能说明:
+//   - 将错误转换为可读的格式化字符串
+//   - 如果是 *Error 类型, 返回详细的错误信息
+//   - 如果不是 *Error 类型, 返回普通错误字符串
+//
+// 输出格式:
+//   - *Error 类型: "[错误码] 错误消息: 原始错误"
+//   - 非 *Error 类型: 错误字符串
+//
+// 使用场景:
+//   - 日志记录
+//   - 错误展示
+//   - 调试输出
+//   - API 响应
+//
+// 示例:
+//
+//	err := qflag.NewError("INVALID_VALUE", "invalid port value", nil)
+//	fmt.Println(qflag.FormatError(err))
+//	// 输出: [INVALID_VALUE] invalid port value
+var FormatError = types.FormatError
+
 // 预定义错误变量
 var (
 	// ErrInvalidFlagType 无效的标志类型错误

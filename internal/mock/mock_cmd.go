@@ -225,3 +225,10 @@ func (c *MockCommandBasic) AddNote(note string) {
 func (c *MockCommandBasic) AddNotes(notes []string) {
 	// 模拟添加多个注意事项
 }
+
+func (c *MockCommandBasic) AutoBindAllEnv() {
+	// 模拟批量绑定环境变量
+	for _, f := range c.flagRegistry.List() {
+		f.AutoBindEnv()
+	}
+}
