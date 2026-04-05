@@ -202,9 +202,9 @@ func run<Command>(cmd qflag.Command) error {
 | Duration | `Duration("long", "short", "说明", 默认值)` | `cmd.Duration("timeout", "t", "超时", 0)` |
 | Time | `Time("long", "short", "说明", 默认值)` | `cmd.Time("start", "s", "开始时间", time.Time{})` |
 | Size | `Size("long", "short", "说明", 默认值)` | `cmd.Size("limit", "l", "限制", 0)` |
-| StringSlice | `StringSlice("long", "short", "说明", 默认值)` | `cmd.StringSlice("tags", "t", "标签", nil)` |
-| IntSlice | `IntSlice("long", "short", "说明", 默认值)` | `cmd.IntSlice("ids", "i", "ID列表", nil)` |
-| Int64Slice | `Int64Slice("long", "short", "说明", 默认值)` | `cmd.Int64Slice("values", "v", "值列表", nil)` |
+| StringSlice | `StringSlice("long", "short", "说明", 默认值)` | `cmd.StringSlice("tags", "t", "标签", []string{})` |
+| IntSlice | `IntSlice("long", "short", "说明", 默认值)` | `cmd.IntSlice("ids", "i", "ID列表", []int{})` |
+| Int64Slice | `Int64Slice("long", "short", "说明", 默认值)` | `cmd.Int64Slice("values", "v", "值列表", []int64{})` |
 | Map | `Map("long", "short", "说明", 默认值)` | `cmd.Map("env", "e", "环境变量", map[string]string{})` |
 
 ### 3. 选项配置规范
