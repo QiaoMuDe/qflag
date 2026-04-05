@@ -70,11 +70,10 @@ const (
 )
 ```
 
-### 帮助信息标题
+### 帮助信息标题 - 中文
 
 ```go
 const (
-    // 中文帮助信息标题
     HelpNameCN     = "名称:\n"
     HelpDescCN     = "\n描述:\n"
     HelpUsageCN    = "\n用法:\n"
@@ -82,8 +81,13 @@ const (
     HelpSubCmdsCN  = "\n子命令:\n"
     HelpExamplesCN = "\n示例:\n"
     HelpNotesCN    = "\n注意:\n"
+)
+```
 
-    // 英文帮助信息标题
+### 帮助信息标题 - 英文
+
+```go
+const (
     HelpNameEN     = "Name:\n"
     HelpDescEN     = "\nDesc:\n"
     HelpUsageEN    = "\nUsage:\n"
@@ -213,30 +217,57 @@ var CommonTimeFormats = []string{
 }
 ```
 
-### 内置补全示例信息 - Linux
+### 内置补全示例信息 - Linux 中文
 
 ```go
-var HelpCompletionExampleLinux = map[string]string{
+var HelpCompletionExampleLinuxCN = map[string]string{
     "Linux 临时启用": fmt.Sprintf("source <(%s --completion bash)", filepath.Base(os.Args[0])),
     "Linux 永久启用": fmt.Sprintf("echo 'source <(%s --completion bash)' >> ~/.bashrc", filepath.Base(os.Args[0])),
 }
 ```
 
-### 内置补全示例信息 - macOS
+### 内置补全示例信息 - Linux 英文
 
 ```go
-var HelpCompletionExampleMac = map[string]string{
+var HelpCompletionExampleLinuxEN = map[string]string{
+    "Linux (Temporary)": fmt.Sprintf("source <(%s --completion bash)", filepath.Base(os.Args[0])),
+    "Linux (Permanent)": fmt.Sprintf("echo 'source <(%s --completion bash)' >> ~/.bashrc", filepath.Base(os.Args[0])),
+}
+```
+
+### 内置补全示例信息 - macOS 中文
+
+```go
+var HelpCompletionExampleMacCN = map[string]string{
     "macOS 临时启用": fmt.Sprintf("source <(%s --completion bash)", filepath.Base(os.Args[0])),
     "macOS 永久启用": fmt.Sprintf("echo 'source <(%s --completion bash)' >> ~/.bash_profile", filepath.Base(os.Args[0])),
 }
 ```
 
-### 内置补全示例信息 - Windows
+### 内置补全示例信息 - macOS 英文
 
 ```go
-var HelpCompletionExampleWin = map[string]string{
+var HelpCompletionExampleMacEN = map[string]string{
+    "macOS (Temporary)": fmt.Sprintf("source <(%s --completion bash)", filepath.Base(os.Args[0])),
+    "macOS (Permanent)": fmt.Sprintf("echo 'source <(%s --completion bash)' >> ~/.bash_profile", filepath.Base(os.Args[0])),
+}
+```
+
+### 内置补全示例信息 - Windows 中文
+
+```go
+var HelpCompletionExampleWinCN = map[string]string{
     "Windows 临时启用": fmt.Sprintf("%s --completion pwsh | Out-String | Invoke-Expression", filepath.Base(os.Args[0])),
     "Windows 永久启用": fmt.Sprintf("echo '%s --completion pwsh | Out-String | Invoke-Expression' >> $PROFILE", filepath.Base(os.Args[0])),
+}
+```
+
+### 内置补全示例信息 - Windows 英文
+
+```go
+var HelpCompletionExampleWinEN = map[string]string{
+    "Windows (Temporary)": fmt.Sprintf("%s --completion pwsh | Out-String | Invoke-Expression", filepath.Base(os.Args[0])),
+    "Windows (Permanent)": fmt.Sprintf("echo '%s --completion pwsh | Out-String | Invoke-Expression' >> $PROFILE", filepath.Base(os.Args[0])),
 }
 ```
 
@@ -273,13 +304,31 @@ CurrentShell 根据当前平台返回对应的Shell类型
 func GetCompletionExample() map[string]string
 ```
 
-GetCompletionExample 获取当前平台的补全示例信息
+GetCompletionExample 获取当前平台的补全示例信息（中文）
 
 **返回值:**
   - map[string]string: 包含补全示例信息的映射
 
-**功能说明: **
-  - 根据当前运行的操作系统返回对应的补全示例
+**功能说明:**
+  - 根据当前运行的操作系统返回对应的中文补全示例
+  - 支持 Windows、Linux 和 macOS 平台
+  - 提供临时启用和永久启用两种方式的示例
+
+---
+
+### func GetCompletionExampleEN() map[string]string
+
+```go
+func GetCompletionExampleEN() map[string]string
+```
+
+GetCompletionExampleEN 获取当前平台的补全示例信息（英文）
+
+**返回值:**
+  - map[string]string: 包含补全示例信息的映射
+
+**功能说明:**
+  - 根据当前运行的操作系统返回对应的英文补全示例
   - 支持 Windows、Linux 和 macOS 平台
   - 提供临时启用和永久启用两种方式的示例
 
@@ -468,6 +517,23 @@ NewCmdConfig 创建新的命令配置
 
 **返回值:**
   - *CmdConfig: 新创建的 CmdConfig 实例, 初始化为零值
+
+#### func (c *CmdConfig) Clone() *CmdConfig
+
+```go
+func (c *CmdConfig) Clone() *CmdConfig
+```
+
+Clone 克隆命令配置
+
+**返回值:**
+  - *CmdConfig: 克隆后的新 CmdConfig 实例
+
+**功能说明:**
+  - 创建当前配置的深拷贝
+  - 复制所有字段值
+  - 复制切片和映射时创建新的底层数组/映射
+  - 用于避免配置共享导致的副作用
 
 ---
 

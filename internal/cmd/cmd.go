@@ -945,30 +945,8 @@ func (c *Cmd) Config() *types.CmdConfig {
 	c.mu.RLock()
 	defer c.mu.RUnlock()
 
-	var mutexGroups []types.MutexGroup
-	if len(c.config.MutexGroups) > 0 {
-		mutexGroups = make([]types.MutexGroup, len(c.config.MutexGroups))
-		copy(mutexGroups, c.config.MutexGroups)
-	}
-
-	var requiredGroups []types.RequiredGroup
-	if len(c.config.RequiredGroups) > 0 {
-		requiredGroups = make([]types.RequiredGroup, len(c.config.RequiredGroups))
-		copy(requiredGroups, c.config.RequiredGroups)
-	}
-
-	return &types.CmdConfig{
-		Version:        c.config.Version,
-		UseChinese:     c.config.UseChinese,
-		EnvPrefix:      c.config.EnvPrefix,
-		UsageSyntax:    c.config.UsageSyntax,
-		Example:        c.config.Example,
-		Notes:          c.config.Notes,
-		LogoText:       c.config.LogoText,
-		MutexGroups:    mutexGroups,
-		RequiredGroups: requiredGroups,
-		Completion:     c.config.Completion,
-	}
+	// 使用克隆方法创建配置的深拷贝
+	return c.config.Clone()
 }
 
 // FlagRegistry 获取标志注册器
