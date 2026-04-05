@@ -1,7 +1,6 @@
 package parser
 
 import (
-	"errors"
 	"testing"
 
 	"gitee.com/MM-Q/qflag/internal/mock"
@@ -70,9 +69,8 @@ func TestValidateMutexGroups(t *testing.T) {
 			mutexGroups: []types.MutexGroup{
 				{Name: "parallel", Flags: []string{"run", "parallel", "r", "p"}, AllowNone: true},
 			},
-			args:           []string{"-r", "-p"},
-			expectedError:  "MUTEX_GROUP_VIOLATION",
-			expectedErrMsg: "mutually exclusive flags [--run/-r --parallel/-p] in group 'parallel' cannot be used together",
+			args:          []string{"-r", "-p"},
+			expectedError: "mutually exclusive flags [--run/-r --parallel/-p] in group 'parallel' cannot be used together",
 		},
 		{
 			name: "混合长短名冲突",
@@ -83,9 +81,8 @@ func TestValidateMutexGroups(t *testing.T) {
 			mutexGroups: []types.MutexGroup{
 				{Name: "parallel", Flags: []string{"run", "parallel", "r", "p"}, AllowNone: true},
 			},
-			args:           []string{"--run", "-p"},
-			expectedError:  "MUTEX_GROUP_VIOLATION",
-			expectedErrMsg: "mutually exclusive flags [--run/-r --parallel/-p] in group 'parallel' cannot be used together",
+			args:          []string{"--run", "-p"},
+			expectedError: "mutually exclusive flags [--run/-r --parallel/-p] in group 'parallel' cannot be used together",
 		},
 		{
 			name: "无效标志名：包含不存在的标志",
@@ -96,9 +93,8 @@ func TestValidateMutexGroups(t *testing.T) {
 			mutexGroups: []types.MutexGroup{
 				{Name: "parallel", Flags: []string{"run", "parallel", "nonexistent", "r", "p"}, AllowNone: true},
 			},
-			args:           []string{"-r"},
-			expectedError:  "INVALID_FLAG_NAME",
-			expectedErrMsg: "invalid flag name 'nonexistent' in mutex group 'parallel'",
+			args:          []string{"-r"},
+			expectedError: "invalid flag 'nonexistent' in mutex group 'parallel'",
 		},
 	}
 
@@ -136,16 +132,8 @@ func TestValidateMutexGroups(t *testing.T) {
 			} else {
 				if err == nil {
 					t.Errorf("期望错误 '%s'，但没有得到错误", tt.expectedError)
-				} else {
-					// 检查错误类型
-					var qflagErr *types.Error
-					if !errors.As(err, &qflagErr) {
-						t.Errorf("期望 qflag 错误，但得到: %T", err)
-					} else if qflagErr.Code != tt.expectedError {
-						t.Errorf("期望错误类型 '%s'，但得到 '%s'", tt.expectedError, qflagErr.Code)
-					} else if qflagErr.Message != tt.expectedErrMsg {
-						t.Errorf("期望错误信息 '%s'，但得到 '%s'", tt.expectedErrMsg, qflagErr.Message)
-					}
+				} else if err.Error() != tt.expectedError {
+					t.Errorf("期望错误 '%s'，但得到 '%s'", tt.expectedError, err.Error())
 				}
 			}
 		})
@@ -160,7 +148,6 @@ func TestValidateRequiredGroups(t *testing.T) {
 		requiredGroups []types.RequiredGroup
 		args           []string
 		expectedError  string
-		expectedErrMsg string
 	}{
 		{
 			name: "正常情况：所有必需标志都已设置",
@@ -183,9 +170,8 @@ func TestValidateRequiredGroups(t *testing.T) {
 			requiredGroups: []types.RequiredGroup{
 				{Name: "io", Flags: []string{"input", "output", "i", "o"}},
 			},
-			args:           []string{"-i"},
-			expectedError:  "REQUIRED_GROUP_VIOLATION",
-			expectedErrMsg: "required flags [--output/-o] in group 'io' must be set",
+			args:          []string{"-i"},
+			expectedError: "required flags [--output/-o] in group 'io' must be set",
 		},
 		{
 			name: "无效标志名：包含不存在的标志",
@@ -196,9 +182,8 @@ func TestValidateRequiredGroups(t *testing.T) {
 			requiredGroups: []types.RequiredGroup{
 				{Name: "io", Flags: []string{"input", "output", "nonexistent", "i", "o"}},
 			},
-			args:           []string{"-i", "-o"},
-			expectedError:  "INVALID_FLAG_NAME",
-			expectedErrMsg: "invalid flag name 'nonexistent' in required group 'io'",
+			args:          []string{"-i", "-o"},
+			expectedError: "invalid flag 'nonexistent' in required group 'io'",
 		},
 	}
 
@@ -236,16 +221,8 @@ func TestValidateRequiredGroups(t *testing.T) {
 			} else {
 				if err == nil {
 					t.Errorf("期望错误 '%s'，但没有得到错误", tt.expectedError)
-				} else {
-					// 检查错误类型
-					var qflagErr *types.Error
-					if !errors.As(err, &qflagErr) {
-						t.Errorf("期望 qflag 错误，但得到: %T", err)
-					} else if qflagErr.Code != tt.expectedError {
-						t.Errorf("期望错误类型 '%s'，但得到 '%s'", tt.expectedError, qflagErr.Code)
-					} else if qflagErr.Message != tt.expectedErrMsg {
-						t.Errorf("期望错误信息 '%s'，但得到 '%s'", tt.expectedErrMsg, qflagErr.Message)
-					}
+				} else if err.Error() != tt.expectedError {
+					t.Errorf("期望错误 '%s'，但得到 '%s'", tt.expectedError, err.Error())
 				}
 			}
 		})

@@ -34,8 +34,10 @@ func TestRegistry_Register(t *testing.T) {
 
 	// 测试重复注册
 	err = reg.Register("value2", "test", "")
-	if err != types.ErrFlagAlreadyExists {
-		t.Errorf("Register() error = %v, want %v", err, types.ErrFlagAlreadyExists)
+	if err == nil {
+		t.Error("Register() duplicate should return error")
+	} else if err.Error() != "'test' already exists" {
+		t.Errorf("Register() error = %v, want 'test' already exists", err)
 	}
 
 	// 测试空名称注册
@@ -68,8 +70,10 @@ func TestRegistry_Unregister(t *testing.T) {
 
 	// 测试注销不存在的项
 	err = reg.Unregister("nonexistent")
-	if err != types.ErrFlagNotFound {
-		t.Errorf("Unregister() error = %v, want %v", err, types.ErrFlagNotFound)
+	if err == nil {
+		t.Error("Unregister() nonexistent should return error")
+	} else if err.Error() != "'nonexistent' not found" {
+		t.Errorf("Unregister() error = %v, want 'nonexistent' not found", err)
 	}
 }
 
@@ -349,8 +353,10 @@ func TestFlagRegistryImpl_Register(t *testing.T) {
 
 	// 测试重复注册
 	err = flagReg.Register(testFlag)
-	if err != types.ErrFlagAlreadyExists {
-		t.Errorf("Register() duplicate error = %v, want %v", err, types.ErrFlagAlreadyExists)
+	if err == nil {
+		t.Error("Register() duplicate should return error")
+	} else if err.Error() != "'test' already exists" {
+		t.Errorf("Register() duplicate error = %v, want 'test' already exists", err)
 	}
 
 	// 测试只有短名称的标志
@@ -443,8 +449,10 @@ func TestCmdRegistryImpl_Register(t *testing.T) {
 
 	// 测试重复注册
 	err = cmdReg.Register(testCmd)
-	if err != types.ErrFlagAlreadyExists {
-		t.Errorf("Register() duplicate error = %v, want %v", err, types.ErrFlagAlreadyExists)
+	if err == nil {
+		t.Error("Register() duplicate should return error")
+	} else if err.Error() != "'test' already exists" {
+		t.Errorf("Register() duplicate error = %v, want 'test' already exists", err)
 	}
 
 	// 测试只有短名称的命令

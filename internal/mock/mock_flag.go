@@ -123,7 +123,7 @@ func (f *MockFlag) GetEnvVar() string  { return f.envVar }
 
 func (f *MockFlag) AutoBindEnv() {
 	if f.name == "" {
-		panic(types.NewError("EMPTY_LONG_NAME", "flag must have a long name for AutoBindEnv", nil))
+		panic("flag must have a long name for AutoBindEnv")
 	}
 	f.envVar = strings.ToUpper(f.name)
 }

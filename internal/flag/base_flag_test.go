@@ -4,8 +4,6 @@ import (
 	"os"
 	"strings"
 	"testing"
-
-	"gitee.com/MM-Q/qflag/internal/types"
 )
 
 func TestAutoBindEnv(t *testing.T) {
@@ -61,15 +59,6 @@ func TestAutoBindEnv(t *testing.T) {
 				defer func() {
 					if r := recover(); r == nil {
 						t.Error("期望 panic 但没有发生")
-					} else {
-						err, ok := r.(*types.Error)
-						if !ok {
-							t.Errorf("panic 类型错误, 期望 *types.Error, 得到 %T", r)
-						} else {
-							if err.Code != "EMPTY_LONG_NAME" {
-								t.Errorf("错误码错误, 期望 EMPTY_LONG_NAME, 得到 %s", err.Code)
-							}
-						}
 					}
 				}()
 			}

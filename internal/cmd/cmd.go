@@ -172,14 +172,14 @@ func (c *Cmd) Desc() string {
 //   - 支持并发安全的添加操作
 //
 // 错误情况:
-//   - 标志为nil: 返回INVALID_FLAG错误
-//   - 标志名称冲突: 返回FLAG_ALREADY_EXISTS错误
+//   - 标志为nil: 返回错误
+//   - 标志名称冲突: 返回错误
 func (c *Cmd) AddFlag(f types.Flag) error {
 	c.mu.Lock()
 	defer c.mu.Unlock()
 
 	if f == nil {
-		return types.NewError("INVALID_FLAG", "flag cannot be nil", nil)
+		return fmt.Errorf("nil flag in '%s'", c.Name())
 	}
 
 	return c.flagRegistry.Register(f)
@@ -199,19 +199,19 @@ func (c *Cmd) AddFlag(f types.Flag) error {
 //   - 支持并发安全的添加操作
 //
 // 错误情况:
-//   - 标志为nil: 返回INVALID_FLAG错误
-//   - 标志名称冲突: 返回FLAG_ALREADY_EXISTS错误
+//   - 标志为nil: 返回错误
+//   - 标志名称冲突: 返回错误
 func (c *Cmd) AddFlags(flags ...types.Flag) error {
 	c.mu.Lock()
 	defer c.mu.Unlock()
 
 	for _, flag := range flags {
 		if flag == nil {
-			return types.NewError("INVALID_FLAG", "flag cannot be nil", nil)
+			return fmt.Errorf("nil flag in '%s'", c.Name())
 		}
 
 		if err := c.flagRegistry.Register(flag); err != nil {
-			return err
+			return fmt.Errorf("register flag failed in '%s': %w", c.Name(), err)
 		}
 	}
 	return nil
@@ -295,28 +295,28 @@ func (c *Cmd) Flags() []types.Flag {
 //   - 支持并发安全的添加操作
 //
 // 错误情况:
-//   - 子命令为nil: 返回INVALID_COMMAND错误
-//   - 子命令类型错误: 返回INVALID_COMMAND_TYPE错误
-//   - 子命令名称冲突: 返回COMMAND_ALREADY_EXISTS错误
+//   - 子命令为nil: 返回错误
+//   - 子命令类型错误: 返回错误
+//   - 子命令名称冲突: 返回错误
 func (c *Cmd) AddSubCmds(cmds ...types.Command) error {
 	c.mu.Lock()
 	defer c.mu.Unlock()
 
 	for _, cmd := range cmds {
 		if cmd == nil {
-			return types.NewError("INVALID_COMMAND", "cmd cannot be nil", nil)
+			return fmt.Errorf("nil subcommand in '%s'", c.Name())
 		}
 
 		// 检查子命令是否为 *Cmd 类型
 		if subCmd, ok := cmd.(*Cmd); ok {
 			subCmd.parent = c // 设置子命令的父命令为当前命令
 		} else {
-			return types.NewError("INVALID_COMMAND_TYPE", "cmd must be *Cmd type", nil)
+			return fmt.Errorf("invalid subcommand type in '%s'", c.Name())
 		}
 
 		// 注册子命令
 		if err := c.cmdRegistry.Register(cmd); err != nil {
-			return err
+			return fmt.Errorf("register subcommand '%s' failed in '%s': %w", cmd.Name(), c.Name(), err)
 		}
 	}
 	return nil
@@ -632,11 +632,11 @@ func (c *Cmd) Run() error {
 	defer c.mu.RUnlock()
 
 	if !c.parsed {
-		return fmt.Errorf("cmd must be parsed before execution")
+		return fmt.Errorf("'%s' not parsed", c.Name())
 	}
 
 	if c.runFunc == nil {
-		return fmt.Errorf("no run function set")
+		return fmt.Errorf("no run function in '%s'", c.Name())
 	}
 
 	return c.runFunc(c)
@@ -1018,7 +1018,7 @@ func (c *Cmd) SetParser(p types.Parser) {
 	defer c.mu.Unlock()
 
 	if p == nil {
-		panic(types.NewError("NIL_PARSER", "parser cannot be nil", nil))
+		panic(fmt.Sprintf("nil parser in '%s'", c.Name()))
 	}
 
 	c.parser = p
@@ -1082,9 +1082,9 @@ func (c *Cmd) SetParsed(parsed bool) {
 //  5. 子命令 (SubCmds)
 //
 // 错误处理:
-//   - 选项为 nil: 返回 INVALID_CMDOPTS 错误
-//   - 添加子命令失败: 返回 FAILED_TO_ADD_SUBCMDS 错误
-//   - panic: 转换为 PANIC 错误
+//   - 选项为 nil: 返回错误
+//   - 添加子命令失败: 返回错误
+//   - panic: 转换为错误
 //
 // 线程安全:
 //   - 方法内部使用读写锁保护并发访问
@@ -1104,18 +1104,18 @@ func (c *Cmd) ApplyOpts(opts *CmdOpts) error {
 			// 将panic转换为错误
 			switch x := r.(type) {
 			case string:
-				err = types.NewError("PANIC", x, nil)
+				err = fmt.Errorf("panic in ApplyOpts '%s': %s", c.Name(), x)
 			case error:
-				err = types.NewError("PANIC", x.Error(), x)
+				err = fmt.Errorf("panic in ApplyOpts '%s': %w", c.Name(), x)
 			default:
-				err = types.NewError("PANIC", fmt.Sprintf("%v", x), nil)
+				err = fmt.Errorf("panic in ApplyOpts '%s': %v", c.Name(), x)
 			}
 		}
 	}()
 
 	// 验证选项
 	if opts == nil {
-		return types.NewError("INVALID_CMDOPTS", "cmd opts cannot be nil", nil)
+		return fmt.Errorf("nil opts in '%s'", c.Name())
 	}
 
 	// 1. 设置基本属性 - 调用现有方法
@@ -1154,7 +1154,7 @@ func (c *Cmd) ApplyOpts(opts *CmdOpts) error {
 	if len(opts.MutexGroups) > 0 {
 		for _, group := range opts.MutexGroups {
 			if err := c.AddMutexGroup(group.Name, group.Flags, group.AllowNone); err != nil {
-				return types.WrapError(err, "FAILED_TO_ADD_MUTEX_GROUP", "failed to add mutex group")
+				return fmt.Errorf("add mutex group '%s' failed in '%s': %w", group.Name, c.Name(), err)
 			}
 		}
 	}
@@ -1163,7 +1163,7 @@ func (c *Cmd) ApplyOpts(opts *CmdOpts) error {
 	if len(opts.RequiredGroups) > 0 {
 		for _, group := range opts.RequiredGroups {
 			if err := c.AddRequiredGroup(group.Name, group.Flags, group.Conditional); err != nil {
-				return types.WrapError(err, "FAILED_TO_ADD_REQUIRED_GROUP", "failed to add required group")
+				return fmt.Errorf("add required group '%s' failed in '%s': %w", group.Name, c.Name(), err)
 			}
 		}
 	}
@@ -1171,7 +1171,7 @@ func (c *Cmd) ApplyOpts(opts *CmdOpts) error {
 	// 6. 添加子命令 - 调用现有方法
 	if len(opts.SubCmds) > 0 {
 		if err := c.AddSubCmds(opts.SubCmds...); err != nil {
-			return types.WrapError(err, "FAILED_TO_ADD_SUBCMDS", "failed to add subcommands")
+			return fmt.Errorf("add subcommands failed in '%s': %w", c.Name(), err)
 		}
 	}
 
@@ -1241,40 +1241,31 @@ func (c *Cmd) Path() string {
 //   - 标志名称必须是已注册的标志
 //   - 互斥组名称在命令中应该唯一
 //   - 如果组名已存在，返回错误
-//
-// 错误码:
-//   - MUTEX_GROUP_ALREADY_EXISTS: 互斥组已存在
-//   - EMPTY_MUTEX_GROUP: 互斥组标志列表为空
-//   - FLAG_NOT_FOUND: 标志不存在
 func (c *Cmd) AddMutexGroup(name string, flags []string, allowNone bool) error {
 	c.mu.Lock()
 	defer c.mu.Unlock()
 
 	// 互斥组名称不能为空
 	if name == "" {
-		return types.NewError("EMPTY_MUTEX_GROUP_NAME",
-			"mutex group name cannot be empty", nil)
+		return fmt.Errorf("empty mutex group name in '%s'", c.Name())
 	}
 
 	// 检查互斥组名称是否已存在
 	for _, group := range c.config.MutexGroups {
 		if group.Name == name {
-			return types.NewError("MUTEX_GROUP_ALREADY_EXISTS",
-				fmt.Sprintf("mutex group '%s' already exists", name), nil)
+			return fmt.Errorf("duplicate mutex group '%s' in '%s'", name, c.Name())
 		}
 	}
 
 	// 检查标志是否为空
 	if len(flags) == 0 {
-		return types.NewError("EMPTY_MUTEX_GROUP",
-			"mutex group cannot be empty", nil)
+		return fmt.Errorf("empty mutex group '%s' in '%s'", name, c.Name())
 	}
 
 	// 检查标志名称是否存在
 	for _, flagName := range flags {
 		if _, exists := c.flagRegistry.Get(flagName); !exists {
-			return types.NewError("FLAG_NOT_FOUND",
-				fmt.Sprintf("flag '%s' not found", flagName), nil)
+			return fmt.Errorf("flag '%s' not found in '%s'", flagName, c.Name())
 		}
 	}
 
@@ -1319,9 +1310,6 @@ func (c *Cmd) GetMutexGroups() []types.MutexGroup {
 //   - 根据名称查找并移除互斥组
 //   - 使用写锁保护并发安全
 //   - 如果找不到对应名称的互斥组, 返回错误
-//
-// 错误码:
-//   - MUTEX_GROUP_NOT_FOUND: 互斥组不存在
 func (c *Cmd) RemoveMutexGroup(name string) error {
 	c.mu.Lock()
 	defer c.mu.Unlock()
@@ -1333,8 +1321,7 @@ func (c *Cmd) RemoveMutexGroup(name string) error {
 		}
 	}
 
-	return types.NewError("MUTEX_GROUP_NOT_FOUND",
-		fmt.Sprintf("mutex group '%s' not found", name), nil)
+	return fmt.Errorf("mutex group '%s' not found in '%s'", name, c.Name())
 }
 
 // GetMutexGroup 获取指定名称的互斥组
@@ -1399,40 +1386,31 @@ func (c *Cmd) MutexGroups() []types.MutexGroup {
 //   - 如果标志列表为空，返回错误
 //   - 如果标志不存在，返回错误
 //   - 支持条件性必需组，当conditional为true时，只有当组中任何一个标志被设置时，才要求所有标志都被设置
-//
-// 错误码:
-//   - REQUIRED_GROUP_ALREADY_EXISTS: 必需组已存在
-//   - EMPTY_REQUIRED_GROUP: 必需组标志列表为空
-//   - FLAG_NOT_FOUND: 标志不存在
 func (c *Cmd) AddRequiredGroup(name string, flags []string, conditional bool) error {
 	c.mu.Lock()
 	defer c.mu.Unlock()
 
 	// 必需组名称不能为空
 	if name == "" {
-		return types.NewError("EMPTY_REQUIRED_GROUP_NAME",
-			"required group name cannot be empty", nil)
+		return fmt.Errorf("empty required group name in '%s'", c.Name())
 	}
 
 	// 检查必需组名称是否已存在
 	for _, group := range c.config.RequiredGroups {
 		if group.Name == name {
-			return types.NewError("REQUIRED_GROUP_ALREADY_EXISTS",
-				fmt.Sprintf("required group '%s' already exists", name), nil)
+			return fmt.Errorf("duplicate required group '%s' in '%s'", name, c.Name())
 		}
 	}
 
 	// 必需组标志列表不能为空
 	if len(flags) == 0 {
-		return types.NewError("EMPTY_REQUIRED_GROUP",
-			"required group cannot be empty", nil)
+		return fmt.Errorf("empty required group '%s' in '%s'", name, c.Name())
 	}
 
 	// 检查必需组标志是否存在
 	for _, flagName := range flags {
 		if _, exists := c.flagRegistry.Get(flagName); !exists {
-			return types.NewError("FLAG_NOT_FOUND",
-				fmt.Sprintf("flag '%s' not found", flagName), nil)
+			return fmt.Errorf("flag '%s' not found in '%s'", flagName, c.Name())
 		}
 	}
 
@@ -1458,9 +1436,6 @@ func (c *Cmd) AddRequiredGroup(name string, flags []string, conditional bool) er
 // 功能说明:
 //   - 从命令配置中移除指定的必需组
 //   - 如果组不存在，返回错误
-//
-// 错误码:
-//   - REQUIRED_GROUP_NOT_FOUND: 必需组不存在
 func (c *Cmd) RemoveRequiredGroup(name string) error {
 	c.mu.Lock()
 	defer c.mu.Unlock()
@@ -1472,8 +1447,7 @@ func (c *Cmd) RemoveRequiredGroup(name string) error {
 		}
 	}
 
-	return types.NewError("REQUIRED_GROUP_NOT_FOUND",
-		fmt.Sprintf("required group '%s' not found", name), nil)
+	return fmt.Errorf("required group '%s' not found in '%s'", name, c.Name())
 }
 
 // GetRequiredGroup 获取必需组

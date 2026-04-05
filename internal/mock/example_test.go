@@ -1,6 +1,8 @@
 package mock
 
 import (
+	"fmt"
+
 	"gitee.com/MM-Q/qflag/internal/types"
 )
 
@@ -82,7 +84,7 @@ func ExampleTestHelper_CreateMockParserWithBehavior() {
 
 	// 创建带有错误的解析器
 	errorParser := helper.CreateMockParserWithBehavior(
-		types.NewError("PARSE_ERROR", "parse failed", nil),
+		fmt.Errorf("parse failed"),
 		nil,
 		true,
 		false,

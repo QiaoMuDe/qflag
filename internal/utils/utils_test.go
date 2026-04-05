@@ -479,7 +479,7 @@ func TestValidateFlagName(t *testing.T) {
 			longName:  "help",
 			shortName: "h",
 			wantErr:   true,
-			errMsg:    "cmd cannot be nil",
+			errMsg:    "nil command",
 		},
 		{
 			name:      "空长名和短名",
@@ -487,7 +487,7 @@ func TestValidateFlagName(t *testing.T) {
 			longName:  "",
 			shortName: "",
 			wantErr:   true,
-			errMsg:    "flag name cannot be empty",
+			errMsg:    "empty flag name",
 		},
 		{
 			name:      "有效的长名和短名",

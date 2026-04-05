@@ -98,10 +98,6 @@ func TestCmd_ApplyOpts_NilOpts(t *testing.T) {
 	if err == nil {
 		t.Fatal("Expected error for nil opts, got nil")
 	}
-
-	if err.(*types.Error).Code != "INVALID_CMDOPTS" {
-		t.Errorf("Expected error code 'INVALID_CMDOPTS', got '%s'", err.(*types.Error).Code)
-	}
 }
 
 func TestCmd_ApplyOpts_AllFields(t *testing.T) {

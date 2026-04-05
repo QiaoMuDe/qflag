@@ -102,7 +102,7 @@ func (p *DefaultParser) ParseOnly(cmd types.Command, args []string) error {
 	// 获取命令配置, 检查是否为nil
 	config := cmd.Config()
 	if config == nil {
-		return types.NewError("CONFIG_ERROR", "command config is nil", nil)
+		return fmt.Errorf("nil config in '%s'", cmd.Name())
 	}
 
 	// 加载环境变量 (仅在标志未被命令行参数设置时)

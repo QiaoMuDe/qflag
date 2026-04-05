@@ -1,6 +1,8 @@
 package mock
 
 import (
+	"fmt"
+
 	"gitee.com/MM-Q/qflag/internal/types"
 )
 
@@ -68,8 +70,7 @@ func (c *MockCommand) Path() string {
 func (c *MockCommand) AddMutexGroup(name string, flags []string, allowNone bool) error {
 	for _, group := range c.mutexGroups {
 		if group.Name == name {
-			return types.NewError("MUTEX_GROUP_ALREADY_EXISTS",
-				"mutex group already exists", nil)
+			return fmt.Errorf("mutex group '%s' already exists", name)
 		}
 	}
 	group := types.MutexGroup{
@@ -94,8 +95,7 @@ func (c *MockCommand) RemoveMutexGroup(name string) error {
 			return nil
 		}
 	}
-	return types.NewError("MUTEX_GROUP_NOT_FOUND",
-		"mutex group not found", nil)
+	return fmt.Errorf("mutex group '%s' not found", name)
 }
 
 // 获取互斥组
@@ -112,8 +112,7 @@ func (c *MockCommand) GetMutexGroup(name string) (*types.MutexGroup, bool) {
 func (c *MockCommand) AddRequiredGroup(name string, flags []string) error {
 	for _, group := range c.requiredGroups {
 		if group.Name == name {
-			return types.NewError("REQUIRED_GROUP_ALREADY_EXISTS",
-				"required group already exists", nil)
+			return fmt.Errorf("required group '%s' already exists", name)
 		}
 	}
 	c.requiredGroups = append(c.requiredGroups, types.RequiredGroup{
@@ -131,8 +130,7 @@ func (c *MockCommand) RemoveRequiredGroup(name string) error {
 			return nil
 		}
 	}
-	return types.NewError("REQUIRED_GROUP_NOT_FOUND",
-		"required group not found", nil)
+	return fmt.Errorf("required group '%s' not found", name)
 }
 
 // 获取必需组

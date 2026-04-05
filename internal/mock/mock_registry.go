@@ -1,6 +1,8 @@
 package mock
 
 import (
+	"fmt"
+
 	"gitee.com/MM-Q/qflag/internal/types"
 )
 
@@ -19,20 +21,20 @@ func NewMockFlagRegistry() *MockFlagRegistry {
 // 实现 FlagRegistry 接口
 func (r *MockFlagRegistry) Register(flag types.Flag) error {
 	if flag == nil {
-		return types.ErrInvalidFlagType
+		return fmt.Errorf("nil flag")
 	}
 
 	name := flag.Name()
 	shortName := flag.ShortName()
 
 	if name == "" && shortName == "" {
-		return types.NewError("INVALID_FLAG_NAME", "flag name and short name cannot both be empty", nil)
+		return fmt.Errorf("empty flag name and short name")
 	}
 
 	// 检查长名称是否已存在
 	if name != "" {
 		if _, exists := r.flags[name]; exists {
-			return types.ErrFlagAlreadyExists
+			return fmt.Errorf("flag '%s' already exists", name)
 		}
 		r.flags[name] = flag
 	}
@@ -40,7 +42,7 @@ func (r *MockFlagRegistry) Register(flag types.Flag) error {
 	// 检查短名称是否已存在
 	if shortName != "" {
 		if _, exists := r.flags[shortName]; exists {
-			return types.ErrFlagAlreadyExists
+			return fmt.Errorf("flag '%s' already exists", shortName)
 		}
 		r.flags[shortName] = flag
 	}
@@ -50,7 +52,7 @@ func (r *MockFlagRegistry) Register(flag types.Flag) error {
 
 func (r *MockFlagRegistry) Unregister(name string) error {
 	if _, exists := r.flags[name]; !exists {
-		return types.ErrFlagNotFound
+		return fmt.Errorf("flag '%s' not found", name)
 	}
 	delete(r.flags, name)
 	return nil
@@ -104,20 +106,20 @@ func NewMockCmdRegistry() *MockCmdRegistry {
 // 实现 CmdRegistry 接口
 func (r *MockCmdRegistry) Register(cmd types.Command) error {
 	if cmd == nil {
-		return types.ErrInvalidFlagType
+		return fmt.Errorf("nil command")
 	}
 
 	name := cmd.Name()
 	shortName := cmd.ShortName()
 
 	if name == "" && shortName == "" {
-		return types.NewError("INVALID_COMMAND_NAME", "command name and short name cannot both be empty", nil)
+		return fmt.Errorf("empty command name and short name")
 	}
 
 	// 检查长名称是否已存在
 	if name != "" {
 		if _, exists := r.commands[name]; exists {
-			return types.ErrCmdAlreadyExists
+			return fmt.Errorf("command '%s' already exists", name)
 		}
 		r.commands[name] = cmd
 	}
@@ -125,7 +127,7 @@ func (r *MockCmdRegistry) Register(cmd types.Command) error {
 	// 检查短名称是否已存在
 	if shortName != "" {
 		if _, exists := r.commands[shortName]; exists {
-			return types.ErrCmdAlreadyExists
+			return fmt.Errorf("command '%s' already exists", shortName)
 		}
 		r.commands[shortName] = cmd
 	}
@@ -135,7 +137,7 @@ func (r *MockCmdRegistry) Register(cmd types.Command) error {
 
 func (r *MockCmdRegistry) Unregister(name string) error {
 	if _, exists := r.commands[name]; !exists {
-		return types.ErrCmdNotFound
+		return fmt.Errorf("command '%s' not found", name)
 	}
 	delete(r.commands, name)
 	return nil

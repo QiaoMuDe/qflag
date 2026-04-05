@@ -17,6 +17,7 @@
 # IDE 配置
 .idea/
 .vscode/
+.codebuddy
 *.swp
 *.swo
 
