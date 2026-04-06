@@ -221,6 +221,8 @@ func run<Command>(cmd qflag.Command) error {
 | `UsageSyntax` | string | 命令使用语法（使用 `fmt.Sprintf` 替换 `%s`） | `fmt.Sprintf("%s 当前子命令名 [选项] [位置参数...]", qflag.Root.Name())` |
 | `LogoText` | string | Logo文本 | `"FCK Tools"` |
 | `Completion` | bool | 启用自动补全（仅在根命令生效） | `true` |
+| `DisableFlagParsing` | bool | 禁用标志解析，所有参数作为位置参数处理 | `true` |
+| `Hidden` | bool | 隐藏命令，不在帮助信息中显示 | `true` |
 | `AutoBindEnv` | bool | 自动绑定所有标志的环境变量 | `true` |
 | `Examples` | map[string]string | 使用示例 | `map[string]string{"创建单个目录": "mkdir test"}` |
 | `Notes` | []string | 注意事项列表 | `[]string{"说明1", "说明2"}` |

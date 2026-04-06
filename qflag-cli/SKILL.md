@@ -312,6 +312,47 @@ opts := &qflag.CmdOpts{
 // yourapp --completion pwsh > yourapp-completion.ps1
 ```
 
+### 禁用标志解析
+
+当需要将所有参数（包括 `--flag` 形式）作为位置参数处理时，可以禁用标志解析。
+
+```go
+// 方式1: 通过 CmdOpts 配置
+opts := &qflag.CmdOpts{
+    Desc:               "执行外部命令",
+    DisableFlagParsing: true,  // 禁用标志解析
+}
+
+// 方式2: 通过方法设置
+cmd := qflag.NewCmd("exec", "e", qflag.ExitOnError)
+cmd.SetDisableFlagParsing(true)
+
+// 使用场景：透传参数给外部命令
+// yourapp exec -- kubectl get pods -n default
+// 所有参数（包括 --flag）都会作为位置参数传递给 kubectl
+```
+
+### 隐藏命令
+
+隐藏命令不会显示在帮助信息的子命令列表中，但仍可通过命令行正常调用。
+
+```go
+// 方式1: 通过 CmdOpts 配置
+opts := &qflag.CmdOpts{
+    Desc:   "调试命令",
+    Hidden: true,  // 隐藏命令
+}
+
+// 方式2: 通过方法设置
+cmd := qflag.NewCmd("debug", "d", qflag.ExitOnError)
+cmd.SetHidden(true)
+
+// 使用场景：
+// - 内部调试命令
+// - 已弃用但仍需兼容的命令
+// - 高级或实验性功能
+```
+
 ### 环境变量绑定
 
 QFlag 提供了四种环境变量绑定方式，满足不同场景需求。

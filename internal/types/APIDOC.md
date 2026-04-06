@@ -707,12 +707,144 @@ type Command interface {
     SetLogoText(logo string)                // 设置命令logo文本
     Config() *CmdConfig                     // 获取命令配置
 
+    // 禁用标志解析
+    IsDisableFlagParsing() bool             // 检查是否禁用标志解析
+    SetDisableFlagParsing(disable bool)     // 设置是否禁用标志解析
+
+    // 隐藏命令
+    IsHidden() bool                         // 检查命令是否隐藏
+    SetHidden(hidden bool)                  // 设置命令是否隐藏
+
     // 环境变量绑定
     AutoBindAllEnv() // 为所有标志自动绑定环境变量
 }
 ```
 
 Command 接口定义了命令的核心行为
+
+#### 禁用标志解析相关方法
+
+##### func IsDisableFlagParsing() bool
+
+```go
+func IsDisableFlagParsing() bool
+```
+
+IsDisableFlagParsing 检查是否禁用标志解析
+
+**返回值:**
+  - bool: 如果禁用标志解析返回 true，否则返回 false
+
+**功能说明:**
+  - 获取命令的禁用标志解析状态
+  - 当返回 true 时，解析器会跳过标志解析阶段
+  - 所有参数（包括 `--flag` 形式）都作为位置参数处理
+  - 不影响子命令的路由功能
+
+**使用场景:**
+  - 包装外部命令（如 kubectl exec、docker run）
+  - 需要透传参数给子进程的场景
+  - Shell 脚本包装器
+
+**注意事项:**
+  - 默认值为 false（不禁用）
+  - 只影响当前命令的标志解析，不影响子命令
+  - 禁用后，`--help` 和 `--version` 等内置标志也不会被特殊处理
+
+---
+
+##### func SetDisableFlagParsing(disable bool)
+
+```go
+func SetDisableFlagParsing(disable bool)
+```
+
+SetDisableFlagParsing 设置是否禁用标志解析
+
+**参数:**
+  - disable: 是否禁用标志解析，true 表示禁用，false 表示不禁用
+
+**功能说明:**
+  - 设置命令的禁用标志解析状态
+  - 设置为 true 后，解析器会跳过标志解析阶段
+  - 所有参数原样保留为位置参数
+  - 子命令路由功能正常工作
+
+**使用示例:**
+```go
+cmd := NewCmd("exec", "e", ExitOnError)
+cmd.SetDisableFlagParsing(true)  // 禁用标志解析
+cmd.SetRun(func(c Command) error {
+    args := c.Args()  // 所有参数都作为位置参数
+    // 透传给外部命令
+    return nil
+})
+```
+
+**注意事项:**
+  - 应在解析前设置，通常在命令创建后立即设置
+  - 每个命令可以独立设置，父命令的设置不影响子命令
+  - 禁用后，环境变量绑定也会被跳过
+
+---
+
+#### 隐藏命令相关方法
+
+##### func IsHidden() bool
+
+```go
+func IsHidden() bool
+```
+
+IsHidden 检查命令是否隐藏
+
+**返回值:**
+  - bool: 如果命令是隐藏的返回 true，否则返回 false
+
+**功能说明:**
+  - 获取命令的隐藏状态
+  - 隐藏命令不会显示在帮助信息的子命令列表中
+  - 但仍可以通过命令行正常调用
+  - 默认值为 false（不隐藏）
+
+**使用场景:**
+  - 创建内部命令或调试命令
+  - 隐藏已弃用但仍需兼容的命令
+  - 隐藏高级或实验性功能
+
+---
+
+##### func SetHidden(hidden bool)
+
+```go
+func SetHidden(hidden bool)
+```
+
+SetHidden 设置命令是否隐藏
+
+**参数:**
+  - hidden: 是否隐藏命令，true 表示隐藏，false 表示不隐藏
+
+**功能说明:**
+  - 设置命令的隐藏状态
+  - 隐藏后命令不会出现在帮助信息中
+  - 不影响命令的正常执行和路由
+  - 子命令可以独立设置隐藏状态
+
+**使用示例:**
+```go
+cmd := NewCmd("debug", "d", ExitOnError)
+cmd.SetHidden(true)  // 隐藏调试命令
+cmd.SetRun(func(c Command) error {
+    // 执行调试逻辑
+    return nil
+})
+```
+
+**注意事项:**
+  - 隐藏命令仍可通过命令行正常调用
+  - 只是不在帮助信息的子命令列表中显示
+  - 适用于内部命令或高级功能
 
 ---
 
