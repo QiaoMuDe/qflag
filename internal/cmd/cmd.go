@@ -50,10 +50,12 @@ import (
 type Cmd struct {
 	mu sync.RWMutex // 读写锁, 用于保护命令的并发访问
 
-	longName  string           // 长命令名
-	shortName string           // 短命令名
-	desc      string           // 命令描述
-	config    *types.CmdConfig // 命令配置
+	longName           string           // 长命令名
+	shortName          string           // 短命令名
+	desc               string           // 命令描述
+	config             *types.CmdConfig // 命令配置
+	hidden             bool             // 是否隐藏命令
+	disableFlagParsing bool             // 是否禁用标志解析
 
 	flagRegistry types.FlagRegistry // 标志注册器
 	cmdRegistry  types.CmdRegistry  // 子命令注册器
@@ -716,6 +718,66 @@ func (c *Cmd) SetDesc(desc string) {
 	c.desc = desc
 }
 
+// SetHidden 设置命令是否隐藏
+//
+// 参数:
+//   - hidden: 是否隐藏命令
+//
+// 功能说明:
+//   - 设置命令的隐藏状态
+//   - 隐藏的命令不会显示在帮助信息中
+//   - 支持并发安全的设置
+func (c *Cmd) SetHidden(hidden bool) {
+	c.mu.Lock()
+	defer c.mu.Unlock()
+	c.hidden = hidden
+}
+
+// IsHidden 检查命令是否隐藏
+//
+// 返回值:
+//   - bool: 是否隐藏, true表示隐藏
+//
+// 功能说明:
+//   - 实现types.Command接口
+//   - 线程安全地检查隐藏状态
+//   - 用于帮助信息过滤
+func (c *Cmd) IsHidden() bool {
+	c.mu.RLock()
+	defer c.mu.RUnlock()
+	return c.hidden
+}
+
+// SetDisableFlagParsing 设置是否禁用标志解析
+//
+// 参数:
+//   - disable: 是否禁用标志解析
+//
+// 功能说明:
+//   - 设置命令的标志解析状态
+//   - 禁用后所有参数（包括--开头的）都作为位置参数
+//   - 支持并发安全的设置
+func (c *Cmd) SetDisableFlagParsing(disable bool) {
+	c.mu.Lock()
+	defer c.mu.Unlock()
+	c.disableFlagParsing = disable
+}
+
+// IsDisableFlagParsing 检查是否禁用标志解析
+//
+// 返回值:
+//   - bool: 是否禁用标志解析, true表示禁用
+//
+// 功能说明:
+//   - 实现types.Command接口
+//   - 线程安全地检查标志解析状态
+//   - 用于解析器决定是否解析标志
+func (c *Cmd) IsDisableFlagParsing() bool {
+	c.mu.RLock()
+	defer c.mu.RUnlock()
+	return c.disableFlagParsing
+}
+
 // SetVersion 设置命令版本
 //
 // 参数:
@@ -1119,6 +1181,8 @@ func (c *Cmd) ApplyOpts(opts *CmdOpts) error {
 	}
 	c.SetChinese(opts.UseChinese)
 	c.SetCompletion(opts.Completion)
+	c.SetHidden(opts.Hidden)
+	c.SetDisableFlagParsing(opts.DisableFlagParsing)
 
 	// 3. 添加示例和说明 - 调用现有方法
 	if len(opts.Examples) > 0 {

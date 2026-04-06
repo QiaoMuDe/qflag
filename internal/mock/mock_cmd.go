@@ -6,20 +6,22 @@ import (
 
 // MockCommandBasic 简化的模拟命令实现
 type MockCommandBasic struct {
-	name         string
-	shortName    string
-	description  string
-	version      string
-	useChinese   bool
-	envPrefix    string
-	usageSyntax  string
-	logoText     string
-	completion   bool
-	args         []string
-	parsed       bool
-	runFunc      func(types.Command) error
-	flagRegistry types.FlagRegistry
-	cmdRegistry  types.CmdRegistry
+	name               string
+	shortName          string
+	description        string
+	hidden             bool
+	disableFlagParsing bool
+	version            string
+	useChinese         bool
+	envPrefix          string
+	usageSyntax        string
+	logoText           string
+	completion         bool
+	args               []string
+	parsed             bool
+	runFunc            func(types.Command) error
+	flagRegistry       types.FlagRegistry
+	cmdRegistry        types.CmdRegistry
 }
 
 // NewMockCommandBasic 创建基础模拟命令
@@ -208,6 +210,22 @@ func (c *MockCommandBasic) SetParser(p types.Parser) {
 
 func (c *MockCommandBasic) SetDesc(desc string) {
 	c.description = desc
+}
+
+func (c *MockCommandBasic) SetHidden(hidden bool) {
+	c.hidden = hidden
+}
+
+func (c *MockCommandBasic) IsHidden() bool {
+	return c.hidden
+}
+
+func (c *MockCommandBasic) SetDisableFlagParsing(disable bool) {
+	c.disableFlagParsing = disable
+}
+
+func (c *MockCommandBasic) IsDisableFlagParsing() bool {
+	return c.disableFlagParsing
 }
 
 func (c *MockCommandBasic) AddExample(title, cmd string) {
