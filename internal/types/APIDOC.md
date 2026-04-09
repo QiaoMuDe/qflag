@@ -502,6 +502,7 @@ type CmdConfig struct {
     MutexGroups    []MutexGroup      // 互斥组列表
     RequiredGroups []RequiredGroup   // 必需组列表
     Completion     bool              // 是否启用自动补全标志
+    EnableDynamicCompletion bool     // 是否启用动态补全
 }
 ```
 

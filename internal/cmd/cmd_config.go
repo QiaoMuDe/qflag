@@ -46,6 +46,19 @@ func (c *Cmd) Config() *types.CmdConfig {
 	return c.config.Clone()
 }
 
+// SetEnableDynamicCompletion 设置是否启用动态补全
+//
+// 参数:
+//   - enable: 是否启用动态补全
+//
+// 功能说明:
+//   - 动态补全需要先启用自动补全标志
+func (c *Cmd) SetEnableDynamicCompletion(enable bool) {
+	c.mu.Lock()
+	defer c.mu.Unlock()
+	c.config.EnableDynamicCompletion = enable
+}
+
 // SetDesc 设置命令描述
 //
 // 参数:
@@ -434,9 +447,10 @@ func (c *Cmd) ApplyOpts(opts *CmdOpts) error {
 		c.SetLogoText(opts.LogoText)
 	}
 	c.SetChinese(opts.UseChinese)
-	c.SetCompletion(opts.Completion)
 	c.SetHidden(opts.Hidden)
 	c.SetDisableFlagParsing(opts.DisableFlagParsing)
+	c.SetCompletion(opts.Completion)
+	c.SetEnableDynamicCompletion(opts.EnableDynamicCompletion)
 
 	// 3. 添加示例和说明 - 调用现有方法
 	if len(opts.Examples) > 0 {
