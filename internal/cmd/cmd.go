@@ -29,48 +29,31 @@ import (
 // Cmd 提供了完整的命令行命令实现, 支持标志管理、子命令、
 // 参数解析和执行等功能。使用读写锁保证并发安全。
 //
-// 字段说明:
-//   - mu: 读写锁, 保护所有字段的并发访问
-//   - longName/shortName: 命令的长名称和短名称
-//   - desc: 命令的描述信息
-//   - config: 命令的配置选项
-//   - hidden: 是否隐藏命令, 隐藏的命令不会显示在帮助信息中
-//   - disableFlagParsing: 是否禁用标志解析, 禁用后所有参数都作为位置参数处理
-//   - flagRegistry: 标志注册器, 管理命令的所有标志
-//   - cmdRegistry: 子命令注册器, 管理所有子命令
-//   - args: 命令行参数列表
-//   - parsed: 标记是否已解析
-//   - parseOnce: 确保解析只执行一次
-//   - runFunc: 命令的执行函数
-//   - parser: 命令的解析器
-//   - parent: 父命令引用, 用于构建命令树
-//
 // 线程安全:
 //   - 所有公共方法都使用读写锁保护
 //   - 支持并发读取和独占写入
 //   - 解析操作使用sync.Once确保只执行一次
 type Cmd struct {
-	mu sync.RWMutex // 读写锁, 用于保护命令的并发访问
+	mu sync.RWMutex // 读写锁, 保护所有字段的并发访问
 
 	longName           string           // 长命令名
 	shortName          string           // 短命令名
-	desc               string           // 命令描述
-	config             *types.CmdConfig // 命令配置
-	hidden             bool             // 是否隐藏命令
-	disableFlagParsing bool             // 是否禁用标志解析
+	desc               string           // 命令的描述信息
+	config             *types.CmdConfig // 命令配置的配置选项
+	hidden             bool             // 是否隐藏命令, 隐藏的命令不会显示在帮助信息中
+	disableFlagParsing bool             // 是否禁用标志解析, 禁用后所有参数都作为位置参数处理
 
-	flagRegistry types.FlagRegistry // 标志注册器
-	cmdRegistry  types.CmdRegistry  // 子命令注册器
+	flagRegistry types.FlagRegistry // 标志注册器, 管理命令的所有标志
+	cmdRegistry  types.CmdRegistry  // 子命令注册器, 管理所有子命令
 
-	args      []string  // 命令行参数
-	parsed    bool      // 是否已解析
-	parseOnce sync.Once // 解析一次标志
+	args      []string  // 命令行参数列表
+	parsed    bool      // 标记是否已解析命令行参数, false 表示未解析, true 表示已解析
+	parseOnce sync.Once // 确保解析只执行一次
 
-	runFunc func(types.Command) error // 运行函数
+	runFunc func(types.Command) error // 命令的运行函数, 用于执行命令逻辑, 返回错误信息或 nil
 
-	parser types.Parser // 解析器
-
-	parent *Cmd // 父命令, 默认为 nil
+	parser types.Parser // 解析器, 用于解析命令行参数
+	parent *Cmd         // 父命令引用, 用于构建命令树, 默认为 nil
 }
 
 // NewCmd 创建新的命令实例
