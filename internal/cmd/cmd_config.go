@@ -57,6 +57,13 @@ func (c *Cmd) SetEnableDynamicCompletion(enable bool) {
 	c.mu.Lock()
 	defer c.mu.Unlock()
 	c.config.EnableDynamicCompletion = enable
+
+	// 启用动态补全时，需要添加动态补全子命令
+	if enable {
+		if err := createCompleteCmd(c); err != nil {
+			panic(err)
+		}
+	}
 }
 
 // SetDesc 设置命令描述
