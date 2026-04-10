@@ -8,20 +8,6 @@
 # 超过此数量将回退到传统前缀匹配以保证性能
 {{.ProgramName}}_FUZZY_MAX_CANDIDATES=150
 
-# ==================== 静态数据定义 ====================
-# 静态命令树定义 - 在函数外预初始化
-declare -A {{.ProgramName}}_cmd_tree
-{{.ProgramName}}_cmd_tree["/"]="{{.RootCmdOpts}}"
-{{.CmdTreeEntries}}
-
-# 标志参数定义 - 存储类型和值类型 (type|valueType)
-declare -A {{.ProgramName}}_flag_params
-{{.FlagParams}}
-
-# 枚举选项定义 - 存储枚举标志的允许值
-declare -A {{.ProgramName}}_enum_options
-{{.EnumOptions}}
-
 # ==================== 智能补全匹配函数 ====================
 # 使用 fuzzy 统一处理所有匹配逻辑
 # 参数: $1=输入模式, $2=候选选项字符串(用|分隔)
@@ -88,55 +74,41 @@ _{{.ProgramName}}_complete() {
 		return 0
 	fi
 
-	# 查找当前命令上下文
-	local context="/"
-	local i
+	# 使用 context 指令动态计算当前上下文
+	# 提取子命令参数（从索引1开始，跳过程序名）
+	local cmd_args=()
 	for ((i=1; i < cword; i++)); do
-		local arg="${words[i]}"
-		# 如果遇到标志, 停止上下文构建
-		if [[ "$arg" =~ ^- ]]; then
-			break
-		fi
-
-		local next_context="$context$arg/"
-		# 验证上下文是否存在
-		if [[ -n "${{{.ProgramName}}_cmd_tree[$next_context]}" ]]; then
-			context="$next_context"
-		else
-			break
-		fi
+		cmd_args+=("${words[i]}")
 	done
+	
+	# 调用 context 指令获取上下文路径
+	local context
+	context=$({{.ProgramName}} __complete context "${cmd_args[@]}")
+	if [[ -z "$context" ]]; then
+		context="/"
+	fi
 
-	# 获取当前上下文的可用选项
-	local current_context_opts="${{{.ProgramName}}_cmd_tree[$context]}"
+	# 使用 candidates 指令获取当前上下文的可用选项
+	local current_context_opts
+	current_context_opts=$({{.ProgramName}} __complete candidates "$context")
 	if [[ -z "$current_context_opts" ]]; then
 		return 1
 	fi
 
-	# 检查前一个参数是否需要值并获取其类型
-	local prev_param_type=""
-	local prev_value_type=""
-	if [[ $cword -gt 1 ]]; then
-		local prev_arg="${words[cword-1]}"
-		local key="${context}|${prev_arg}"
-		local prev_param_info="${{{.ProgramName}}_flag_params[$key]:-}"
-
-		if [[ -n "$prev_param_info" ]]; then
-			IFS='|' read -r prev_param_type prev_value_type <<< "$prev_param_info"
-		fi
-	fi
-
-	# 根据参数类型动态生成补全 - 仅处理需要值的参数
-	if [[ -n "$prev_param_type" && "$prev_param_type" == "required" ]]; then
-		if [[ "$prev_value_type" == "enum" ]]; then
-			local enum_key="${context}|${words[cword-1]}"
-			local enum_opts="${{{.ProgramName}}_enum_options[$enum_key]:-}"
-
-			if [[ -n "$enum_opts" ]]; then
-				# 对枚举选项使用智能匹配
-				_{{.ProgramName}}_intelligent_match "$cur" "$enum_opts"
-				return 0
-			fi
+	# 检查前一个参数是否是标志且需要值
+	local is_flag_value=false
+	local flag_name=""
+	# 只有当当前输入非空时才检查标志值补全
+	# 如果 $cur 为空，说明用户已经输入了值，应该回到正常补全
+	if [[ $cword -gt 1 && "$prev" =~ ^- && -n "$cur" ]]; then
+		flag_name="$prev"
+		# 检查是否是枚举类型标志
+		local enum_values
+		enum_values=$({{.ProgramName}} __complete enum "$context" "$flag_name")
+		if [[ -n "$enum_values" ]]; then
+			# 对枚举选项使用智能匹配
+			_{{.ProgramName}}_intelligent_match "$cur" "${enum_values// /|}"
+			return 0
 		else
 			# 非枚举类型 - 统一使用文件和目录路径补全
 			COMPREPLY=($(compgen -f -d -- "$cur"))
@@ -145,23 +117,8 @@ _{{.ProgramName}}_complete() {
 	fi
 
 	# 主要的标志和命令补全 - 使用智能匹配算法
-	_{{.ProgramName}}_intelligent_match "$cur" "$current_context_opts"
+	_{{.ProgramName}}_intelligent_match "$cur" "${current_context_opts// /|}"
 	return 0
-}
-
-# ==================== 调试和诊断函数 ====================
-# 补全系统健康检查函数 (可选, 用于调试)
-_{{.ProgramName}}_completion_debug() {
-    echo "=== {{.ProgramName}} 补全系统诊断 ==="
-    echo "Bash版本: $BASH_VERSION"
-    echo "补全函数状态: $(type -t _{{.ProgramName}})"
-    echo "命令树条目数: ${#{{.ProgramName}}_cmd_tree[@]}"
-    echo "标志参数数: ${#{{.ProgramName}}_flag_params[@]}"
-    echo "枚举选项数: ${#{{.ProgramName}}_enum_options[@]}"
-    echo "模糊补全状态: $([ ${{.ProgramName}}_FUZZY_COMPLETION_ENABLED -eq 1 ] && echo "启用" || echo "禁用")"
-    echo "候选项阈值: ${{.ProgramName}}_FUZZY_MAX_CANDIDATES"
-    echo ""
-    echo "使用方法: 在命令行输入 '_{{.ProgramName}}_completion_debug' 查看此信息"
 }
 
 # 注册补全函数

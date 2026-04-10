@@ -124,38 +124,20 @@ func GenerateStatic(cmd types.Command, shellType string) (string, error) {
 //   - string: 生成的补全脚本
 //   - error: 生成失败时返回错误
 func GenerateDynamic(cmd types.Command, shellType string) (string, error) {
-	// 缓冲区
-	var buf bytes.Buffer
-
 	// 程序名称
 	programName := filepath.Base(os.Args[0])
-
-	// 获取根命令的补全选项
-	rootCmdOpts := collectCompletionOptions(cmd)
-
-	// 构建命令树条目缓冲区
-	var cmdTreeEntries bytes.Buffer
-
-	// 从根命令的子命令开始添加条目
-	traverseCommandTree(&cmdTreeEntries, "", cmd.SubCmds(), shellType)
-
-	// 缓存标志参数, 避免重复计算
-	params := collectFlagParameters(cmd)
 
 	// 根据shell类型调用对应的处理函数
 	switch shellType {
 	case types.BashShell: // Bash特定处理
-		generateBashDynamicCompletion(&buf, params, rootCmdOpts, cmdTreeEntries.String(), programName)
+		return generateBashDynamicCompletion(programName)
 
 	case types.PwshShell, types.PowershellShell: // PowerShell特定处理
-		generatePwshDynamicCompletion(&buf, params, rootCmdOpts, cmdTreeEntries.String(), programName)
+		return generatePwshDynamicCompletion(programName)
 
 	default:
 		return "", fmt.Errorf("unsupported shell type '%s'", shellType)
 	}
-
-	// 返回自动补全脚本
-	return buf.String(), nil
 }
 
 // traverseCommandTree 遍历命令树

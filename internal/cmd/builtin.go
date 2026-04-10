@@ -2,6 +2,7 @@ package cmd
 
 import (
 	"fmt"
+	"os"
 
 	"gitee.com/MM-Q/qflag/internal/completion"
 	"gitee.com/MM-Q/qflag/internal/types"
@@ -22,25 +23,55 @@ import (
 func createCompleteCmd(root *Cmd) error {
 	cmd := NewCmd(types.CompleteCmdName, "", types.ExitOnError)
 	opts := &CmdOpts{
-		Desc:   "隐藏子命令，用于执行动态补全",
+		Desc:   "内部动态补全指令，为 Shell 补全脚本提供实时命令树查询服务",
 		Hidden: true,
 		Examples: map[string]string{
 			"执行模糊匹配补全": fmt.Sprintf("%s %s %s <模式> <候选1> [候选2] ...", root.Name(), types.CompleteCmdName, types.InstructionFuzzy),
+			"计算上下文路径":  fmt.Sprintf("%s %s %s <arg0> [arg1] ...", root.Name(), types.CompleteCmdName, types.InstructionContext),
+			"获取候选选项":   fmt.Sprintf("%s %s %s <上下文路径>", root.Name(), types.CompleteCmdName, types.InstructionCandidates),
+			"获取枚举值":    fmt.Sprintf("%s %s %s <上下文路径> <标志名>", root.Name(), types.CompleteCmdName, types.InstructionEnum),
+		},
+		Notes: []string{
+			"本命令为内部命令，用于 Shell 自动补全脚本动态获取补全信息",
+			"",
+			"调试模式：",
+			"  设置环境变量 QFLAG_COMPLETE_DEBUG=1 可启用调试输出，",
+			"  此时所有错误信息将显示在终端，便于排查问题",
+			"",
+			"生产模式：",
+			"  默认情况下所有错误都被静默处理，避免干扰补全脚本解析",
 		},
 		RunFunc: func(c types.Command) error {
 			args := c.Args()
 
-			// 校验参数数量
-			if len(args) < 2 {
-				return fmt.Errorf("usage: %s %s <instruction> [args...]", root.Name(), types.CompleteCmdName)
+			// 校验参数数量：至少需要指定指令
+			if len(args) < 1 {
+				// 检查是否启用调试模式
+				if os.Getenv("QFLAG_COMPLETE_DEBUG") == "1" {
+					return fmt.Errorf("usage: %s %s <instruction> [args...]", root.Name(), types.CompleteCmdName)
+				}
+				// 静默处理参数错误，不影响补全脚本
+				return nil
 			}
 
 			// 拆分参数：第一个是指令，后续是参数列表
 			instruction := args[0]
-			params := args[1:]
+			params := []string{}
+			if len(args) > 1 {
+				params = args[1:]
+			}
 
-			// 传递给 completion 包处理
-			return completion.HandleDynamicComplete(instruction, params)
+			// 传递给 completion 包处理，传入 root 命令
+			err := completion.HandleDynamicComplete(root, instruction, params)
+
+			// 检查是否启用调试模式
+			if err != nil && os.Getenv("QFLAG_COMPLETE_DEBUG") == "1" {
+				// 调试模式下返回错误
+				return err
+			}
+
+			// 静默处理错误，避免错误信息干扰补全脚本
+			return nil
 		},
 	}
 

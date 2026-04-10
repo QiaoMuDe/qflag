@@ -159,6 +159,21 @@ const (
 	// 用法: __complete fuzzy <模式> <候选1> [候选2] ...
 	// 输出: 每行一个匹配结果（按匹配质量降序）
 	InstructionFuzzy = "fuzzy"
+
+	// InstructionContext 上下文计算指令
+	// 用法: __complete context <arg0> [arg1] ...
+	// 输出: 上下文路径，如 "/server/start/"
+	InstructionContext = "context"
+
+	// InstructionCandidates 候选选项获取指令
+	// 用法: __complete candidates <context>
+	// 输出: 空格分隔的候选选项列表
+	InstructionCandidates = "candidates"
+
+	// InstructionEnum 枚举值获取指令
+	// 用法: __complete enum <context> <flag-name>
+	// 输出: 空格分隔的枚举值列表
+	InstructionEnum = "enum"
 )
 
 // CompleteCmdName 补全命令名称

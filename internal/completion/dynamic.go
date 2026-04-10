@@ -12,15 +12,22 @@ import (
 // HandleDynamicComplete 处理 __complete 子命令的路由
 //
 // 参数:
+//   - root: 根命令实例，用于查询命令树
 //   - instruction: 指令名称
 //   - params: 指令参数列表
 //
 // 返回值:
 //   - error: 处理错误
-func HandleDynamicComplete(instruction string, params []string) error {
+func HandleDynamicComplete(root types.Command, instruction string, params []string) error {
 	switch instruction {
 	case types.InstructionFuzzy:
 		return handleFuzzy(params)
+	case types.InstructionContext:
+		return HandleContext(root, params)
+	case types.InstructionCandidates:
+		return HandleCandidates(root, params)
+	case types.InstructionEnum:
+		return HandleEnum(root, params)
 	default:
 		return fmt.Errorf("unknown instruction: %s", instruction)
 	}

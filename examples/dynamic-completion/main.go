@@ -11,20 +11,15 @@ func main() {
 	// 创建根命令
 	root := qflag.NewCmd("dynatest", "dt", qflag.ExitOnError)
 	root.SetDesc("动态补全测试工具 - 用于测试 __complete 子命令和模糊匹配功能")
-
-	// 应用动态补全配置
-	opts := qflag.NewCmdOpts()
-	opts.EnableDynamicCompletion = true
-	if err := root.ApplyOpts(opts); err != nil {
-		fmt.Fprintf(os.Stderr, "应用配置失败: %v\n", err)
-		os.Exit(1)
-	}
+	root.SetCompletion(true)
+	root.SetEnableDynamicCompletion(true)
 
 	// 添加全局标志
 	root.String("config", "c", "配置文件路径", "")
 	root.String("output", "o", "输出格式 (json|yaml|table)", "")
 	root.Bool("verbose", "v", "启用详细输出", false)
 	root.Bool("debug", "d", "启用调试模式", false)
+	root.Enum("kind", "k", "资源类型", "service", []string{"service", "pod"})
 
 	// 创建 service 子命令组
 	serviceCmd := qflag.NewCmd("service", "svc", qflag.ExitOnError)
@@ -84,7 +79,10 @@ func main() {
 	})
 
 	// 添加 service 子命令
-	serviceCmd.AddSubCmds(serviceListCmd, serviceCreateCmd, serviceDeleteCmd, serviceUpdateCmd, serviceLogsCmd)
+	if err := serviceCmd.AddSubCmds(serviceListCmd, serviceCreateCmd, serviceDeleteCmd, serviceUpdateCmd, serviceLogsCmd); err != nil {
+		fmt.Fprintf(os.Stderr, "添加 service 子命令失败: %v\n", err)
+		os.Exit(1)
+	}
 
 	// 创建 deployment 子命令组
 	deploymentCmd := qflag.NewCmd("deployment", "deploy", qflag.ExitOnError)
@@ -132,7 +130,10 @@ func main() {
 	})
 
 	// 添加 deployment 子命令
-	deploymentCmd.AddSubCmds(deployListCmd, deployCreateCmd, deployScaleCmd, deployRollbackCmd)
+	if err := deploymentCmd.AddSubCmds(deployListCmd, deployCreateCmd, deployScaleCmd, deployRollbackCmd); err != nil {
+		fmt.Fprintf(os.Stderr, "添加 deployment 子命令失败: %v\n", err)
+		os.Exit(1)
+	}
 
 	// 创建 config 子命令组
 	configCmd := qflag.NewCmd("config", "cfg", qflag.ExitOnError)
@@ -166,7 +167,10 @@ func main() {
 	})
 
 	// 添加 config 子命令
-	configCmd.AddSubCmds(configGetCmd, configSetCmd, configListCmd)
+	if err := configCmd.AddSubCmds(configGetCmd, configSetCmd, configListCmd); err != nil {
+		fmt.Fprintf(os.Stderr, "添加 config 子命令失败: %v\n", err)
+		os.Exit(1)
+	}
 
 	// 创建 completion 子命令
 	completionCmd := qflag.NewCmd("completion", "", qflag.ExitOnError)
@@ -186,7 +190,10 @@ func main() {
 	})
 
 	// 添加所有子命令到根命令
-	root.AddSubCmds(serviceCmd, deploymentCmd, configCmd, completionCmd)
+	if err := root.AddSubCmds(serviceCmd, deploymentCmd, configCmd, completionCmd); err != nil {
+		fmt.Fprintf(os.Stderr, "添加根命令子命令失败: %v\n", err)
+		os.Exit(1)
+	}
 
 	// 设置根命令执行函数
 	root.SetRun(func(c qflag.Command) error {
