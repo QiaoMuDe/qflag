@@ -115,21 +115,135 @@ yourapp __complete fuzzy "po" "port" "path" "pod" "proxy" "server"
 
 ```
 internal/completion/
-├── completion.go              # 现有：补全脚本生成
-├── bash_completion.go         # 现有：Bash 补全
-├── pwsh_completion.go         # 现有：PowerShell 补全
+├── completion.go              # 修改：添加动态补全脚本选择逻辑
+├── bash_completion.go         # 修改：支持动态/静态模板选择
+├── pwsh_completion.go         # 修改：支持动态/静态模板选择
 ├── dynamic.go                 # 新增：动态补全逻辑（路由 + fuzzy 指令）
 ├── dynamic_test.go            # 新增：动态补全单元测试
 └── templates/
-    ├── bash.tmpl              # 现有：Bash 模板
-    ├── pwsh.tmpl              # 现有：PowerShell 模板
-    ├── bash_v2.tmpl           # 新增：Bash 模板 (v2)
-    └── pwsh_v2.tmpl           # 新增：PowerShell 模板 (v2)
+    ├── bash.tmpl              # 现有：静态 Bash 模板
+    ├── pwsh.tmpl              # 现有：静态 PowerShell 模板
+    ├── bash_dynamic.tmpl      # 新增：动态 Bash 模板
+    └── pwsh_dynamic.tmpl      # 新增：动态 PowerShell 模板
 ```
 
-### 4.2 文件实现
+### 4.2 配置字段
 
-#### 4.2.1 dynamic.go - 动态补全逻辑
+`CmdOpts` 中已存在 `EnableDynamicCompletion` 字段：
+
+```go
+type CmdOpts struct {
+    // ... 其他字段 ...
+    Completion              bool   // 是否启用自动补全标志
+    EnableDynamicCompletion bool   // 是否启用动态补全标志
+    // ... 其他字段 ...
+}
+```
+
+### 4.3 脚本生成方案选择
+
+修改 `completion.go` 中的 `Generate` 函数，根据 `EnableDynamicCompletion` 配置选择调用静态或动态生成方案：
+
+#### 4.3.1 新增模板嵌入
+
+文件：`internal/completion/completion.go`
+
+```go
+//go:embed templates/bash.tmpl
+var bashTemplate string
+
+//go:embed templates/pwsh.tmpl
+var pwshTemplate string
+
+//go:embed templates/bash_dynamic.tmpl
+var bashDynamicTemplate string
+
+//go:embed templates/pwsh_dynamic.tmpl
+var pwshDynamicTemplate string
+```
+
+#### 4.3.2 修改后的 Generate 函数
+
+文件：`internal/completion/completion.go`
+
+```go
+// Generate 生成补全脚本
+// 根据 EnableDynamicCompletion 配置选择生成静态或动态补全脚本
+//
+// 参数:
+//   - cmd: 要生成补全脚本的命令
+//   - shellType: Shell类型 (bash, pwsh, powershell)
+//
+// 返回值:
+//   - string: 生成的补全脚本
+//   - error: 生成失败时返回错误
+func Generate(cmd types.Command, shellType string) (string, error) {
+    // 如果启用了动态补全, 则生成动态补全脚本
+    if cmd.Config().EnableDynamicCompletion {
+        return generateDynamic(cmd, shellType)
+    }
+
+    // 默认为生成静态补全脚本
+    return generateStatic(cmd, shellType)
+}
+```
+
+#### 4.3.3 静态生成函数
+
+将原有的 `Generate` 逻辑提取为 `generateStatic` 函数：
+
+```go
+// generateStatic 生成静态补全脚本（原有逻辑）
+//
+// 参数:
+//   - cmd: 要生成补全脚本的命令
+//   - shellType: Shell类型 (bash, pwsh, powershell)
+//
+// 返回值:
+//   - string: 生成的补全脚本
+//   - error: 生成失败时返回错误
+func generateStatic(cmd types.Command, shellType string) (string, error) {
+    // 原有 Generate 函数的实现...
+}
+```
+
+#### 4.3.4 动态生成函数
+
+新增 `generateDynamic` 函数：
+
+```go
+// generateDynamic 生成动态补全脚本
+//
+// 参数:
+//   - cmd: 要生成补全脚本的命令
+//   - shellType: Shell类型 (bash, pwsh, powershell)
+//
+// 返回值:
+//   - string: 生成的补全脚本
+//   - error: 生成失败时返回错误
+func generateDynamic(cmd types.Command, shellType string) (string, error) {
+    var buf bytes.Buffer
+    programName := filepath.Base(os.Args[0])
+    rootCmdOpts := collectCompletionOptions(cmd)
+
+    var cmdTreeEntries bytes.Buffer
+    traverseCommandTree(&cmdTreeEntries, "", cmd.SubCmds(), shellType)
+    params := collectFlagParameters(cmd)
+
+    switch shellType {
+    case types.BashShell:
+        generateBashDynamicCompletion(&buf, params, rootCmdOpts, cmdTreeEntries.String(), programName)
+    case types.PwshShell, types.PowershellShell:
+        generatePwshDynamicCompletion(&buf, params, rootCmdOpts, cmdTreeEntries.String(), programName)
+    default:
+        return "", fmt.Errorf("unsupported shell type '%s'", shellType)
+    }
+
+    return buf.String(), nil
+}
+```
+
+### 4.4 dynamic.go - 动态补全逻辑
 
 文件：`internal/completion/dynamic.go`
 
@@ -188,7 +302,99 @@ func handleFuzzy(args []string) error {
 }
 ```
 
-### 4.4 在 builtin.go 中调用
+### 4.5 新增生成函数
+
+在 `bash_completion.go` 和 `pwsh_completion.go` 中新增动态补全脚本生成函数：
+
+#### 4.5.1 Bash 动态补全生成
+
+文件：`internal/completion/bash_completion.go`
+
+```go
+// generateBashDynamicCompletion 生成使用动态补全的Bash脚本
+//
+// 参数:
+//   - buf: 输出缓冲区
+//   - params: 标志参数列表
+//   - rootCmdOpts: 根命令选项
+//   - cmdTreeEntries: 命令树条目
+//   - programName: 程序名称
+func generateBashDynamicCompletion(buf *bytes.Buffer, params []FlagParam, rootCmdOpts []string, cmdTreeEntries string, programName string) {
+    // 使用动态模板
+    tmpl, err := template.New("bash_dynamic").Parse(bashDynamicTemplate)
+    if err != nil {
+        fmt.Fprintf(buf, "# Error parsing template: %v\n", err)
+        return
+    }
+
+    // 准备模板数据
+    data := struct {
+        ProgramName      string
+        RootCmdOpts      string
+        CmdTreeEntries   string
+        FlagParams       string
+        EnumOptions      string
+    }{
+        ProgramName:    programName,
+        RootCmdOpts:    strings.Join(rootCmdOpts, "|"),
+        CmdTreeEntries: cmdTreeEntries,
+        FlagParams:     formatBashFlagParams(params),
+        EnumOptions:    formatBashEnumOptions(params),
+    }
+
+    // 执行模板
+    if err := tmpl.Execute(buf, data); err != nil {
+        fmt.Fprintf(buf, "# Error executing template: %v\n", err)
+    }
+}
+```
+
+#### 4.5.2 PowerShell 动态补全生成
+
+文件：`internal/completion/pwsh_completion.go`
+
+```go
+// generatePwshDynamicCompletion 生成使用动态补全的PowerShell脚本
+//
+// 参数:
+//   - buf: 输出缓冲区
+//   - params: 标志参数列表
+//   - rootCmdOpts: 根命令选项
+//   - cmdTreeEntries: 命令树条目
+//   - programName: 程序名称
+func generatePwshDynamicCompletion(buf *bytes.Buffer, params []FlagParam, rootCmdOpts []string, cmdTreeEntries string, programName string) {
+    // 使用动态模板
+    tmpl, err := template.New("pwsh_dynamic").Parse(pwshDynamicTemplate)
+    if err != nil {
+        fmt.Fprintf(buf, "# Error parsing template: %v\n", err)
+        return
+    }
+
+    // 准备模板数据
+    data := struct {
+        ProgramName    string
+        SanitizedName  string
+        RootCmdOpts    string
+        CmdTree        string
+        FlagParams     string
+        EnumOptions    string
+    }{
+        ProgramName:   programName,
+        SanitizedName: sanitizeName(programName),
+        RootCmdOpts:   formatPwshRootCmdOpts(rootCmdOpts),
+        CmdTree:       cmdTreeEntries,
+        FlagParams:    formatPwshFlagParams(params),
+        EnumOptions:   formatPwshEnumOptions(params),
+    }
+
+    // 执行模板
+    if err := tmpl.Execute(buf, data); err != nil {
+        fmt.Fprintf(buf, "# Error executing template: %v\n", err)
+    }
+}
+```
+
+### 4.6 在 builtin.go 中调用
 
 修改 `internal/cmd/builtin.go`，负责参数校验和拆分：
 

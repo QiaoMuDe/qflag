@@ -55,6 +55,25 @@ func GenAndPrint(cmd types.Command, shellType string) {
 //   - string: 生成的补全脚本
 //   - error: 生成失败时返回错误
 func Generate(cmd types.Command, shellType string) (string, error) {
+	// 如果启用了动态补全, 则生成动态补全脚本
+	if cmd.Config().EnableDynamicCompletion {
+		return "", nil
+	}
+
+	// 默认为生成静态补全脚本
+	return GenerateStatic(cmd, shellType)
+}
+
+// GenerateStatic 生成补全脚本
+//
+// 参数:
+//   - cmd: 要生成补全脚本的命令
+//   - shellType: Shell类型 (bash, pwsh, powershell)
+//
+// 返回值:
+//   - string: 生成的补全脚本
+//   - error: 生成失败时返回错误
+func GenerateStatic(cmd types.Command, shellType string) (string, error) {
 	// 缓冲区
 	var buf bytes.Buffer
 
