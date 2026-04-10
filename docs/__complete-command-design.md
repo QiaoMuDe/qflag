@@ -256,6 +256,14 @@ import (
 	"github.com/sahilm/fuzzy"
 )
 
+// __complete 子命令的指令常量定义
+const (
+	// InstructionFuzzy 模糊匹配指令
+	// 用法: __complete fuzzy <模式> <候选1> [候选2] ...
+	// 输出: 每行一个匹配结果（按匹配质量降序）
+	InstructionFuzzy = "fuzzy"
+)
+
 // HandleDynamicComplete 处理 __complete 子命令的路由
 //
 // 参数:
@@ -266,7 +274,7 @@ import (
 //   - error: 处理错误
 func HandleDynamicComplete(instruction string, params []string) error {
 	switch instruction {
-	case "fuzzy":
+	case InstructionFuzzy:
 		return handleFuzzy(params)
 	default:
 		return fmt.Errorf("未知指令: %s", instruction)

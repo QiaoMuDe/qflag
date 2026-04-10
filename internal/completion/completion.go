@@ -32,6 +32,12 @@ var bashTemplate string
 //go:embed templates/pwsh.tmpl
 var pwshTemplate string
 
+//go:embed templates/bash_dynamic.tmpl
+var bashDynamicTemplate string
+
+//go:embed templates/pwsh_dynamic.tmpl
+var pwshDynamicTemplate string
+
 // GenAndPrint 生成并打印补全脚本
 //
 // 参数:
@@ -57,7 +63,7 @@ func GenAndPrint(cmd types.Command, shellType string) {
 func Generate(cmd types.Command, shellType string) (string, error) {
 	// 如果启用了动态补全, 则生成动态补全脚本
 	if cmd.Config().EnableDynamicCompletion {
-		return "", nil
+		return GenerateDynamic(cmd, shellType)
 	}
 
 	// 默认为生成静态补全脚本
@@ -99,6 +105,50 @@ func GenerateStatic(cmd types.Command, shellType string) (string, error) {
 
 	case types.PwshShell, types.PowershellShell: // PowerShell特定处理
 		generatePwshCompletion(&buf, params, rootCmdOpts, cmdTreeEntries.String(), programName)
+
+	default:
+		return "", fmt.Errorf("unsupported shell type '%s'", shellType)
+	}
+
+	// 返回自动补全脚本
+	return buf.String(), nil
+}
+
+// GenerateDynamic 生成动态补全脚本
+//
+// 参数:
+//   - cmd: 要生成补全脚本的命令
+//   - shellType: Shell类型 (bash, pwsh, powershell)
+//
+// 返回值:
+//   - string: 生成的补全脚本
+//   - error: 生成失败时返回错误
+func GenerateDynamic(cmd types.Command, shellType string) (string, error) {
+	// 缓冲区
+	var buf bytes.Buffer
+
+	// 程序名称
+	programName := filepath.Base(os.Args[0])
+
+	// 获取根命令的补全选项
+	rootCmdOpts := collectCompletionOptions(cmd)
+
+	// 构建命令树条目缓冲区
+	var cmdTreeEntries bytes.Buffer
+
+	// 从根命令的子命令开始添加条目
+	traverseCommandTree(&cmdTreeEntries, "", cmd.SubCmds(), shellType)
+
+	// 缓存标志参数, 避免重复计算
+	params := collectFlagParameters(cmd)
+
+	// 根据shell类型调用对应的处理函数
+	switch shellType {
+	case types.BashShell: // Bash特定处理
+		generateBashDynamicCompletion(&buf, params, rootCmdOpts, cmdTreeEntries.String(), programName)
+
+	case types.PwshShell, types.PowershellShell: // PowerShell特定处理
+		generatePwshDynamicCompletion(&buf, params, rootCmdOpts, cmdTreeEntries.String(), programName)
 
 	default:
 		return "", fmt.Errorf("unsupported shell type '%s'", shellType)

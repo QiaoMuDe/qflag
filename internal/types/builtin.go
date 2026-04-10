@@ -152,3 +152,14 @@ const (
 	// 防止循环引用导致的无限递归, 一般CLI工具很少超过20层
 	MaxTraverseDepth = 50
 )
+
+// __complete 子命令的指令常量定义
+const (
+	// InstructionFuzzy 模糊匹配指令
+	// 用法: __complete fuzzy <模式> <候选1> [候选2] ...
+	// 输出: 每行一个匹配结果（按匹配质量降序）
+	InstructionFuzzy = "fuzzy"
+)
+
+// CompleteCmdName 补全命令名称
+const CompleteCmdName = "__complete"
