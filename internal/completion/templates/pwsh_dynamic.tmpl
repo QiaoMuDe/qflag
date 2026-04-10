@@ -22,29 +22,8 @@ $script:{{.SanitizedName}}_FUZZY_COMPLETION_ENABLED = $true
 # 超过此数量将回退到传统前缀匹配以保证性能
 $script:{{.SanitizedName}}_FUZZY_MAX_CANDIDATES = 120
 
-# 模糊匹配的最小输入长度 (小于此长度不启用模糊匹配)
-$script:{{.SanitizedName}}_FUZZY_MIN_PATTERN_LENGTH = 2
-
-# 模糊匹配最大返回结果数
-$script:{{.SanitizedName}}_FUZZY_MAX_RESULTS = 10
-
-# ==================== 模糊匹配（调用 Go 实现）====================
-
-# 使用 __complete fuzzy 子命令执行模糊匹配
-# 参数: $Pattern=输入模式, $Candidates=候选字符串数组
-# 返回: 匹配结果数组
-function Get-{{.SanitizedName}}FuzzyMatch {
-    param(
-        [string]$Pattern,
-        [array]$Candidates
-    )
-
-    # 调用 __complete fuzzy 子命令执行模糊匹配
-    $output = & {{.ProgramName}} __complete fuzzy $Pattern $Candidates
-    return $output -split "`n" | Where-Object { $_ }
-}
-
-# 智能补全匹配函数 - 重构版匹配策略
+# ==================== 智能补全匹配函数 ====================
+# 使用 fuzzy 统一处理所有匹配逻辑
 # 参数: $Pattern=输入模式, $Options=候选选项数组
 function Get-{{.SanitizedName}}IntelligentMatches {
     param(
@@ -52,79 +31,24 @@ function Get-{{.SanitizedName}}IntelligentMatches {
         [array]$Options
     )
 
-    $patternLen = $Pattern.Length
     $totalCandidates = $Options.Count
 
-    # 空模式时返回所有选项 (用于Tab补全初始状态)
+    # 快速路径: 空模式时返回所有选项
     if ([string]::IsNullOrEmpty($Pattern)) {
         return $Options
     }
 
-    # 第1级: 精确前缀匹配 (最高优先级)
-    $exactPrefixMatches = [System.Collections.ArrayList]::new()
-    foreach ($option in $Options) {
-        if ($option.StartsWith($Pattern, [System.StringComparison]::Ordinal)) {
-            [void]$exactPrefixMatches.Add($option)
-        }
+    # 性能保护: 候选项过多时回退到传统前缀匹配
+    if ($totalCandidates -gt $script:{{.SanitizedName}}_FUZZY_MAX_CANDIDATES) {
+        return $Options | Where-Object { $_ -like "$Pattern*" }
     }
 
-    # 精确前缀匹配如果有结果, 优先返回
-    if ($exactPrefixMatches.Count -gt 0) {
-        return $exactPrefixMatches.ToArray()
-    }
-
-    # 第2级: 大小写不敏感前缀匹配
-    $caseInsensitiveMatches = [System.Collections.ArrayList]::new()
-    foreach ($option in $Options) {
-        if ($option.StartsWith($Pattern, [System.StringComparison]::OrdinalIgnoreCase)) {
-            [void]$caseInsensitiveMatches.Add($option)
-        }
-    }
-
-    # 大小写不敏感匹配如果有结果, 返回
-    if ($caseInsensitiveMatches.Count -gt 0) {
-        return $caseInsensitiveMatches.ToArray()
-    }
-
-    # 第3级: 子字符串匹配
-    $substringMatches = [System.Collections.ArrayList]::new()
-    $patternLower = $Pattern.ToLowerInvariant()
-    foreach ($option in $Options) {
-        if ($option.ToLowerInvariant().Contains($patternLower)) {
-            [void]$substringMatches.Add($option)
-        }
-    }
-
-    # 子字符串匹配如果有结果, 返回
-    if ($substringMatches.Count -gt 0) {
-        return $substringMatches.ToArray()
-    }
-
-    # 第4级: 模糊匹配 (调用 Go 实现)
-    if ($script:{{.SanitizedName}}_FUZZY_COMPLETION_ENABLED -and
-        $patternLen -ge $script:{{.SanitizedName}}_FUZZY_MIN_PATTERN_LENGTH -and
-        $totalCandidates -le $script:{{.SanitizedName}}_FUZZY_MAX_CANDIDATES) {
-
-        $fuzzyResults = Get-{{.SanitizedName}}FuzzyMatch -Pattern $Pattern -Candidates $Options
-
-        if ($fuzzyResults.Count -gt 0) {
-            $limitedResults = [System.Collections.ArrayList]::new()
-            $count = 0
-            foreach ($match in $fuzzyResults) {
-                if ($count -ge $script:{{.SanitizedName}}_FUZZY_MAX_RESULTS) { break }
-                [void]$limitedResults.Add($match)
-                $count++
-            }
-            return $limitedResults.ToArray()
-        }
-    }
-
-    # 最终 fallback: 返回空数组
-    return @()
+    # 统一使用 fuzzy 处理所有匹配逻辑
+    $output = & {{.ProgramName}} __complete fuzzy $Pattern $Options
+    return $output -split "`n" | Where-Object { $_ }
 }
 
 # ==================== 文件路径补全核心函数 ====================
-
 # 专用文件路径补全函数 - 为{{.SanitizedName}}提供智能路径补全
 # 参数: $WordToComplete=当前输入的单词
 # 返回: 匹配的文件和目录路径数组
@@ -311,7 +235,6 @@ $scriptBlock = {
 }
 
 # ==================== 调试和诊断功能 ====================
-
 # 补全系统健康检查函数 (可选, 用于调试)
 function Get-{{.SanitizedName}}CompletionDebug {
     Write-Host "=== {{.SanitizedName}} PowerShell补全系统诊断 ===" -ForegroundColor Cyan
