@@ -118,22 +118,23 @@ internal/completion/
 ├── completion.go              # 现有：补全脚本生成
 ├── bash_completion.go         # 现有：Bash 补全
 ├── pwsh_completion.go         # 现有：PowerShell 补全
-├── templates/
-│   ├── bash.tmpl              # 现有：Bash 模板
-│   ├── pwsh.tmpl              # 现有：PowerShell 模板
-│   ├── bash_v2.tmpl            # 新增：Bash 模板 (v2)
-│   └── pwsh_v2.tmpl            # 新增：PowerShell 模板 (v2)
-└── cmdcomplete/               # 新增：__complete 命令实现
-    └── fuzzy.go               # 模糊匹配指令实现
+├── dynamic.go                 # 新增：动态补全逻辑（路由 + fuzzy 指令）
+├── dynamic_test.go            # 新增：动态补全单元测试
+└── templates/
+    ├── bash.tmpl              # 现有：Bash 模板
+    ├── pwsh.tmpl              # 现有：PowerShell 模板
+    ├── bash_v2.tmpl           # 新增：Bash 模板 (v2)
+    └── pwsh_v2.tmpl           # 新增：PowerShell 模板 (v2)
 ```
 
-### 4.2 fuzzy 指令实现
+### 4.2 文件实现
 
-文件：`internal/completion/cmdcomplete/fuzzy.go`
+#### 4.2.1 dynamic.go - 动态补全逻辑
+
+文件：`internal/completion/dynamic.go`
 
 ```go
-// Package cmdcomplete 实现 __complete 子命令的核心逻辑
-package cmdcomplete
+package completion
 
 import (
 	"fmt"
@@ -141,7 +142,24 @@ import (
 	"github.com/sahilm/fuzzy"
 )
 
-// HandleFuzzy 处理 fuzzy 指令
+// HandleDynamicComplete 处理 __complete 子命令的路由
+//
+// 参数:
+//   - instruction: 指令名称
+//   - params: 指令参数列表
+//
+// 返回值:
+//   - error: 处理错误
+func HandleDynamicComplete(instruction string, params []string) error {
+	switch instruction {
+	case "fuzzy":
+		return handleFuzzy(params)
+	default:
+		return fmt.Errorf("未知指令: %s", instruction)
+	}
+}
+
+// handleFuzzy 处理 fuzzy 指令
 //
 // 参数:
 //   - args: 参数列表，第一个是模式，后面是候选列表
@@ -150,7 +168,7 @@ import (
 //   - error: 处理错误
 //
 // 输出格式: 每行一个匹配结果（按匹配质量降序）
-func HandleFuzzy(args []string) error {
+func handleFuzzy(args []string) error {
 	if len(args) < 2 {
 		return fmt.Errorf("用法: __complete fuzzy <模式> <候选1> [候选2] ...")
 	}
@@ -158,7 +176,7 @@ func HandleFuzzy(args []string) error {
 	pattern := args[0]
 	candidates := args[1:]
 
-	// 使用 go-kit fuzzy 包执行模糊匹配
+	// 使用 fuzzy 包执行模糊匹配
 	matches := fuzzy.Find(pattern, candidates)
 
 	// 输出匹配结果（只输出匹配的字符串）
@@ -167,34 +185,6 @@ func HandleFuzzy(args []string) error {
 	}
 
 	return nil
-}
-```
-
-### 4.3 路由实现
-
-文件：`internal/completion/cmdcomplete/router.go`
-
-```go
-// Package cmdcomplete 实现 __complete 子命令的核心逻辑
-package cmdcomplete
-
-import "fmt"
-
-// Handle 处理 __complete 子命令的路由
-//
-// 参数:
-//   - instruction: 指令名称
-//   - params: 指令参数列表
-//
-// 返回值:
-//   - error: 处理错误
-func Handle(instruction string, params []string) error {
-	switch instruction {
-	case "fuzzy":
-		return HandleFuzzy(params)
-	default:
-		return fmt.Errorf("未知指令: %s", instruction)
-	}
 }
 ```
 
@@ -208,6 +198,7 @@ package cmd
 import (
 	"fmt"
 
+	"gitee.com/MM-Q/qflag/internal/completion"
 	"gitee.com/MM-Q/qflag/internal/types"
 )
 
@@ -232,7 +223,7 @@ func createCompleteCmd(root *Cmd) error {
 
 	// 设置执行函数
 	cmd.SetRun(func(c types.Command) error {
-        args := c.Args()
+		args := c.Args()
 
 		// 校验参数数量
 		if len(args) < 2 {
@@ -244,9 +235,7 @@ func createCompleteCmd(root *Cmd) error {
 		params := args[1:]
 
 		// 传递给 completion 包处理
-		return cmdcomplete.Handle(instruction, params)
-
-		return nil
+		return completion.HandleDynamicComplete(instruction, params)
 	})
 
 	// 设置补全子命令的父命令
@@ -260,7 +249,6 @@ func createCompleteCmd(root *Cmd) error {
 
 	return nil
 }
-
 ```
 
 ## 5. 新的 Shell 模板
