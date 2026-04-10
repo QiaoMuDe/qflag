@@ -1,13 +1,5 @@
 #!/usr/bin/env bash
 
-# ==================== 模糊补全配置参数 ====================
-# 模糊补全功能开关 (设置为0禁用, 1启用)
-{{.ProgramName}}_FUZZY_COMPLETION_ENABLED=1
-
-# 启用模糊补全的最大候选项数量阈值
-# 超过此数量将回退到传统前缀匹配以保证性能
-{{.ProgramName}}_FUZZY_MAX_CANDIDATES=150
-
 # ==================== 智能补全匹配函数 ====================
 # 使用 fuzzy 统一处理所有匹配逻辑
 # 参数: $1=输入模式, $2=候选选项字符串(用|分隔)
@@ -18,22 +10,12 @@ _{{.ProgramName}}_intelligent_match() {
     # 解析候选选项到数组
     local opts_arr
     IFS='|' read -ra opts_arr <<< "$options_str"
-    local total_candidates=${#opts_arr[@]}
 
     # 快速路径: 模式为空时返回所有选项
     [[ -z "$pattern" ]] && {
         COMPREPLY=("${opts_arr[@]}")
         return 0
     }
-
-    # 性能保护: 候选项过多时回退到传统前缀匹配
-    if [[ $total_candidates -gt {{.ProgramName}}_FUZZY_MAX_CANDIDATES ]]; then
-        local opts
-        printf -v opts '%s ' "${opts_arr[@]}"
-        opts="${opts% }"
-        COMPREPLY=($(compgen -W "$opts" -- "$pattern"))
-        return 0
-    fi
 
     # 统一使用 fuzzy 处理所有匹配逻辑
     local fuzzy_output
