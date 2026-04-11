@@ -1,37 +1,8 @@
 #!/usr/bin/env bash
 
-# ==================== 智能补全匹配函数 ====================
-# 使用 fuzzy 统一处理所有匹配逻辑
-# 参数: $1=输入模式, $2=候选选项字符串(用|分隔)
-_{{.ProgramName}}_intelligent_match() {
-    local pattern="$1"
-    local options_str="$2"
-
-    # 解析候选选项到数组
-    local opts_arr
-    IFS='|' read -ra opts_arr <<< "$options_str"
-
-    # 快速路径: 模式为空时返回所有选项
-    [[ -z "$pattern" ]] && {
-        COMPREPLY=("${opts_arr[@]}")
-        return 0
-    }
-
-    # 统一使用 fuzzy 处理所有匹配逻辑
-    local fuzzy_output
-    fuzzy_output=$({{.ProgramName}} __complete fuzzy "$pattern" "${opts_arr[@]}")
-
-    # 读取匹配结果到 COMPREPLY
-    while IFS= read -r match; do
-        [[ -n "$match" ]] && COMPREPLY+=("$match")
-    done <<< "$fuzzy_output"
-
-    return 0
-}
-
 # ==================== 主补全函数 ====================
 _{{.ProgramName}}_complete() {
-	local cur prev words cword context opts i arg
+	local cur prev words cword i
 	COMPREPLY=()
 
 	# 使用 _get_comp_words_by_ref 获取补全参数以提高健壮性
@@ -56,50 +27,40 @@ _{{.ProgramName}}_complete() {
 		return 0
 	fi
 
-	# 使用 context 指令动态计算当前上下文
 	# 提取子命令参数（从索引1开始，跳过程序名）
 	local cmd_args=()
 	for ((i=1; i < cword; i++)); do
 		cmd_args+=("${words[i]}")
 	done
-	
-	# 调用 context 指令获取上下文路径
-	local context
-	context=$({{.ProgramName}} __complete context "${cmd_args[@]}")
-	if [[ -z "$context" ]]; then
-		context="/"
-	fi
 
-	# 使用 candidates 指令获取当前上下文的可用选项
-	local current_context_opts
-	current_context_opts=$({{.ProgramName}} __complete candidates "$context")
-	if [[ -z "$current_context_opts" ]]; then
-		return 1
-	fi
+	# ========== 使用 all 指令一次性获取所有补全信息 ==========
+	local result candidates enum_values matches is_flag
+	result=$({{.ProgramName}} __complete all "$cur" "$prev" "${cmd_args[@]}")
 
-	# 检查前一个参数是否是标志且需要值
-	local is_flag_value=false
-	local flag_name=""
-	# 当用户输入标志后按 Tab（$cur 为空），应该显示枚举值
-	# 当用户开始输入标志值时（$cur 非空），应该过滤枚举值
-	if [[ $cword -gt 1 && "$prev" =~ ^- ]]; then
-		flag_name="$prev"
-		# 检查是否是枚举类型标志
-		local enum_values
-		enum_values=$({{.ProgramName}} __complete enum "$context" "$flag_name")
-		if [[ -n "$enum_values" ]]; then
-			# 对枚举选项使用智能匹配（$cur 为空时返回所有枚举值）
-			_{{.ProgramName}}_intelligent_match "$cur" "${enum_values// /|}"
-			return 0
-		elif [[ -n "$cur" ]]; then
-			# 非枚举类型且当前输入非空 - 统一使用文件和目录路径补全
-			COMPREPLY=($(compgen -f -d -- "$cur"))
-			return 0
+	# 解析结果（按行读取，根据前缀提取）
+	while IFS= read -r line; do
+		case "$line" in
+			CANDIDATES:*) candidates="${line#CANDIDATES:}" ;;
+			ENUM:*) enum_values="${line#ENUM:}" ;;
+			MATCHES:*) matches="${line#MATCHES:}" ;;
+			IS_FLAG:*) is_flag="${line#IS_FLAG:}" ;;
+		esac
+	done <<< "$result"
+
+	# 根据结果决定补全行为
+	if [[ "$is_flag" == "true" ]]; then
+		# 枚举类型标志，显示匹配结果
+		if [[ -n "$matches" ]]; then
+			read -ra COMPREPLY <<< "$matches"
 		fi
+	elif [[ -z "$enum_values" && "$prev" =~ ^- ]]; then
+		# 非枚举类型标志，使用路径补全
+		COMPREPLY=($(compgen -f -d -- "$cur"))
+	elif [[ -n "$matches" ]]; then
+		# 普通补全，显示匹配结果
+		read -ra COMPREPLY <<< "$matches"
 	fi
 
-	# 主要的标志和命令补全 - 使用智能匹配算法
-	_{{.ProgramName}}_intelligent_match "$cur" "${current_context_opts// /|}"
 	return 0
 }
 

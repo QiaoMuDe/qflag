@@ -1,22 +1,3 @@
-# ==================== 智能补全匹配函数 ====================
-# 使用 fuzzy 统一处理所有匹配逻辑
-# 参数: $Pattern=输入模式, $Options=候选选项数组
-function Get-{{.SanitizedName}}IntelligentMatches {
-    param(
-        [string]$Pattern,
-        [array]$Options
-    )
-
-    # 快速路径: 空模式时返回所有选项
-    if ([string]::IsNullOrEmpty($Pattern)) {
-        return $Options
-    }
-
-    # 统一使用 fuzzy 处理所有匹配逻辑
-    $output = & {{.ProgramName}} __complete fuzzy $Pattern $Options
-    return $output -split "`n" | Where-Object { $_ }
-}
-
 # ==================== 文件路径补全核心函数 ====================
 # 专用文件路径补全函数 - 为{{.SanitizedName}}提供智能路径补全
 # 参数: $WordToComplete=当前输入的单词
@@ -89,19 +70,28 @@ $scriptBlock = {
             return @()
         }
 
-        $currentIndex = $tokens.Count - 1
-        
-        # 计算前一个元素
+        # 计算前一个元素和当前索引
         # 如果 $wordToComplete 为空，说明用户刚按了空格，正在输入新参数
-        # 此时 $tokens 的最后一个元素就是前一个参数
+        # 此时 $tokens 的最后一个元素就是前一个参数，且应该包含在 cmdArgs 中
         # 如果 $wordToComplete 非空，说明用户正在输入当前参数
-        # 此时 $tokens[$currentIndex - 1] 是前一个参数
-        $prevElement = if ([string]::IsNullOrEmpty($wordToComplete)) {
-            # 用户按了空格，最后一个 token 就是前一个参数
-            if ($tokens.Count -gt 0) { $tokens[$tokens.Count - 1] } else { $null }
+        # 此时 $tokens 的最后一个元素是当前正在输入的参数，不应该包含在 cmdArgs 中
+        $prevElement = $null
+        $currentIndex = $tokens.Count - 1
+
+        if ([string]::IsNullOrEmpty($wordToComplete)) {
+            # 用户按了空格，最后一个 token 是前一个参数
+            if ($tokens.Count -gt 0) {
+                $prevElement = $tokens[$tokens.Count - 1]
+            }
+            # 所有 tokens 都应该作为 cmdArgs（包括最后一个）
+            $currentIndex = $tokens.Count
         } else {
             # 用户正在输入，前一个 token 是前一个参数
-            if ($currentIndex -ge 1) { $tokens[$currentIndex - 1] } else { $null }
+            if ($currentIndex -ge 1) {
+                $prevElement = $tokens[$currentIndex - 1]
+            }
+            # 最后一个 token 是当前输入，不应该包含在 cmdArgs 中
+            $currentIndex = $tokens.Count - 1
         }
 
         # 快速路径: 如果当前输入看起来像是路径, 优先提供路径补全
@@ -109,65 +99,59 @@ $scriptBlock = {
             return Get-{{.SanitizedName}}PathCompletions -WordToComplete $wordToComplete
         }
 
-        # 2. 使用 context 指令动态计算当前上下文
-        # 提取子命令参数（从索引1开始，跳过程序名）
+        # 2. 提取子命令参数（从索引1开始，跳过程序名）
         $cmdArgs = @()
         for ($i = 1; $i -lt $currentIndex; $i++) {
             $cmdArgs += $tokens[$i]
         }
-        
-        # 调用 context 指令获取上下文路径
-        $context = & {{.ProgramName}} __complete context @cmdArgs
-        if ([string]::IsNullOrEmpty($context)) {
-            $context = "/"
-        }
 
-        # 3. 使用 candidates 指令获取当前上下文的可用选项
-        $candidatesOutput = & {{.ProgramName}} __complete candidates $context
-        $currentOptions = if ($candidatesOutput) { $candidatesOutput -split ' ' } else { @() }
+        # ========== 使用 all 指令一次性获取所有补全信息 ==========
+        $result = & {{.ProgramName}} __complete all $wordToComplete $prevElement @cmdArgs
 
-        if ($currentOptions.Count -eq 0) {
-            return @()
-        }
+        # 解析结果
+        $candidates = @()
+        $enumValues = @()
+        $matchResults = @()
+        $isFlag = $false
 
-        # 4. 检查前一个参数是否是标志且需要值
-        $flagRegex = [regex]::new('^-', [System.Text.RegularExpressions.RegexOptions]::Compiled)
-
-        # 当用户输入标志后按 Tab（$wordToComplete 为空），应该显示枚举值
-        # 当用户开始输入标志值时（$wordToComplete 非空），应该过滤枚举值
-        if ($prevElement -and $flagRegex.IsMatch($prevElement)) {
-            # 使用 enum 指令检查是否是枚举类型标志
-            $enumValues = & {{.ProgramName}} __complete enum $context $prevElement
-
-            if ($enumValues) {
-                # 对枚举选项使用智能匹配（$wordToComplete 为空时返回所有枚举值）
-                $enumOptions = $enumValues -split ' '
-                $matches = Get-{{.SanitizedName}}IntelligentMatches -Pattern $wordToComplete -Options $enumOptions
-                return $matches
+        foreach ($line in $result) {
+            if ($line -match '^CANDIDATES:(.*)$') {
+                $candidates = $matches[1] -split ' ' | Where-Object { $_ }
             }
-            elseif (-not [string]::IsNullOrEmpty($wordToComplete)) {
-                # 非枚举类型且当前输入非空 - 统一使用文件和目录路径补全
-                return Get-{{.SanitizedName}}PathCompletions -WordToComplete $wordToComplete
+            elseif ($line -match '^ENUM:(.*)$') {
+                $enumValues = $matches[1] -split ' ' | Where-Object { $_ }
+            }
+            elseif ($line -match '^MATCHES:(.*)$') {
+                $matchResults = $matches[1] -split ' ' | Where-Object { $_ }
+            }
+            elseif ($line -match '^IS_FLAG:(.+)$') {
+                $isFlag = [bool]::Parse($matches[1])
             }
         }
 
-        # 5. 主要的标志和命令补全 - 使用智能匹配算法
-        $intelligentMatches = Get-{{.SanitizedName}}IntelligentMatches -Pattern $wordToComplete -Options $currentOptions
-
-        if ($intelligentMatches.Count -gt 0) {
+        # 3. 根据结果决定补全行为
+        if ($isFlag -and $enumValues.Count -gt 0) {
+            # 枚举类型标志，返回匹配结果
+            return $matchResults
+        }
+        elseif ($prevElement -match '^-') {
+            # 前一个元素是标志但不是枚举类型，使用路径补全
+            return Get-{{.SanitizedName}}PathCompletions -WordToComplete $wordToComplete
+        }
+        elseif ($matchResults.Count -gt 0) {
+            # 普通补全，处理匹配结果
             $matchingOptions = [System.Collections.ArrayList]::new()
-
-            foreach ($option in $intelligentMatches) {
-                # 标志后面不加空格，子命令后面加空格
-                $result = if ($flagRegex.IsMatch($option)) { $option } else { "$option " }
+            $flagRegex = [regex]::new('^-')
+            foreach ($match in $matchResults) {
+                $result = if ($flagRegex.IsMatch($match)) { $match } else { "$match " }
                 [void]$matchingOptions.Add($result)
             }
-
             return $matchingOptions.ToArray()
         }
-
-        # 6. 无匹配
-        return @()
+        else {
+            # 没有匹配结果，返回空数组
+            return @()
+        }
     }
     catch {
         Write-Debug "PowerShell补全错误: $($_.Exception.Message)"

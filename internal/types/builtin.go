@@ -174,6 +174,11 @@ const (
 	// 用法: __complete enum <context> <flag-name>
 	// 输出: 空格分隔的枚举值列表
 	InstructionEnum = "enum"
+
+	// InstructionAll 统一补全指令
+	// 用法: __complete all <cur> <prev> [cmd_args...]
+	// 输出: 多行格式，包含 CONTEXT, CUR, PREV, CANDIDATES, ENUM, MATCHES, IS_FLAG
+	InstructionAll = "all"
 )
 
 // CompleteCmdName 补全命令名称
