@@ -30,6 +30,7 @@ func createCompleteCmd(root *Cmd) error {
 			"计算上下文路径":  fmt.Sprintf("%s %s %s <arg0> [arg1] ...", root.Name(), types.CompleteCmdName, types.InstructionContext),
 			"获取候选选项":   fmt.Sprintf("%s %s %s <上下文路径>", root.Name(), types.CompleteCmdName, types.InstructionCandidates),
 			"获取枚举值":    fmt.Sprintf("%s %s %s <上下文路径> <标志名>", root.Name(), types.CompleteCmdName, types.InstructionEnum),
+			"统一获取补全信息": fmt.Sprintf("%s %s %s <当前输入> <前一个输入> [子命令参数...]", root.Name(), types.CompleteCmdName, types.InstructionAll),
 		},
 		Notes: []string{
 			"本命令为内部命令，用于 Shell 自动补全脚本动态获取补全信息",
