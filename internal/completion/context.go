@@ -148,12 +148,16 @@ func CalculateContext(root types.Command, tokens []string, cursorPos int) *Conte
 //   - cmd: 命令实例
 //
 // 返回值:
-//   - []string: 子命令名称列表
+//   - []string: 子命令名称列表（过滤掉以 __ 开头的内部命令）
 func getSubCommandNames(cmd types.Command) []string {
 	subCmds := cmd.SubCmds()
-	names := make([]string, len(subCmds))
-	for i, subCmd := range subCmds {
-		names[i] = subCmd.Name()
+	names := make([]string, 0, len(subCmds))
+	for _, subCmd := range subCmds {
+		name := subCmd.Name()
+		// 过滤掉以 __ 开头的内部命令（如 __complete）
+		if !strings.HasPrefix(name, "__") {
+			names = append(names, name)
+		}
 	}
 	return names
 }
