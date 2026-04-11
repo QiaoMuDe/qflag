@@ -48,17 +48,18 @@ _{{.ProgramName}}_complete() {
 	done <<< "$result"
 
 	# 根据结果决定补全行为
+	# IS_FLAG 为 true 表示当前是枚举类型标志的值补全
 	if [[ "$is_flag" == "true" ]]; then
 		# 枚举类型标志, 显示匹配结果
 		if [[ -n "$matches" ]]; then
 			read -ra COMPREPLY <<< "$matches"
 		fi
-	elif [[ "$prev" =~ ^- ]]; then
-		# 非枚举类型标志, 使用路径补全
-		COMPREPLY=($(compgen -f -d -- "$cur"))
 	elif [[ -n "$matches" ]]; then
-		# 普通补全, 显示匹配结果
+		# 普通补全（包括布尔标志后的候选项补全）, 显示匹配结果
 		read -ra COMPREPLY <<< "$matches"
+	elif [[ "$prev" =~ ^- ]]; then
+		# 非枚举类型标志（如 String/Int 等）, 使用路径补全
+		COMPREPLY=($(compgen -f -d -- "$cur"))
 	fi
 
 	return 0

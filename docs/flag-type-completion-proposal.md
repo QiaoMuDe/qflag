@@ -132,10 +132,7 @@ func handleAll(root types.Command, args []string) error {
             default:
                 // 其他类型（String/Int/Duration/Size等）：需要值
                 // matchStrings 保持为空，由 Shell 回退到路径补全
-                // 但如果是枚举类型，需要设置 enumValues 供 Shell 判断
-                if flagType == types.FlagTypeEnum {
-                    enumValues, _ = GetEnumValues(root, context, prev)
-                }
+                // 这些类型不是枚举类型，不需要获取 enumValues
             }
         }
     } else {

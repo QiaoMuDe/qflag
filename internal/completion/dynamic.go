@@ -114,51 +114,40 @@ func handleAll(root types.Command, args []string) error {
 	// 2. 获取候选项
 	candidates, _ := GetCandidates(root, context)
 
-	// 3. 检查是否是标志值补全
-	var enumValues []string
+	// 3. 执行补全逻辑
 	var matchStrings []string
-	isFlag := false
+	var enumValues []string
 
-	// 检查 prev 是否是标志：以 "-" 开头，不是 "--"，不包含 "=" 字符
-	// 注意：当在根命令下刚输入命令名后按 Tab, prev 是程序名 (如 "dynamic.exe")
-	// 正常情况下程序名不会以 "-" 开头，所以不会误判为标志
-	// -- 是标志结束符，不是标志，应该按普通参数处理
-	// 已完成的等号赋值 (如 --config=value) 也不是标志, 应该按普通参数处理
+	// 判断是否是标志值补全上下文
+	// 条件：prev 是待补全值的标志（以 - 开头，不是 --，不包含 =）
 	isFlagValueCompletion := strings.HasPrefix(prev, "-") && prev != "--" && !strings.Contains(prev, "=")
 
-	// 4. 处理标志值补全
 	if isFlagValueCompletion {
-		isFlag = true
-		// 是标志，获取枚举值
-		enumValues, _ = GetEnumValues(root, context, prev)
+		// ========== 标志值补全 ==========
+		flagType, found := getFlagType(root, context, prev)
 
-		// 如果标志有枚举值，对枚举值进行模糊匹配
-		if len(enumValues) > 0 {
-			// 枚举类型：对枚举值进行模糊匹配
-			if cur == "" {
-				// 空输入时返回所有枚举值
-				matchStrings = enumValues
-			} else {
-				matches := fuzzy.CompletePrefix(cur, enumValues)
-				matchStrings = make([]string, len(matches))
-				for i, match := range matches {
-					matchStrings[i] = match.Str
-				}
-			}
-		}
-		// 非枚举类型: matchStrings 保持为空，由 Shell 处理为路径补全
-	} else {
-		// 不是标志，对候选项进行模糊匹配
-		if cur == "" {
-			// 空输入时返回所有候选项
-			matchStrings = candidates
+		if !found {
+			// 标志不存在，按普通候选项补全
+			matchStrings = fuzzyMatch(candidates, cur)
 		} else {
-			matches := fuzzy.CompletePrefix(cur, candidates)
-			matchStrings = make([]string, len(matches))
-			for i, match := range matches {
-				matchStrings[i] = match.Str
+			switch flagType {
+			case types.FlagTypeBool:
+				// 布尔标志：不需要值，补全其他标志/子命令
+				matchStrings = fuzzyMatch(candidates, cur)
+
+			case types.FlagTypeEnum:
+				// 枚举标志：获取枚举值并模糊匹配
+				enumValues, _ = GetEnumValues(root, context, prev)
+				matchStrings = fuzzyMatch(enumValues, cur)
+
+			default:
+				// 其他类型（String/Int/Duration/Size等）：需要值
+				// matchStrings 保持为空，由 Shell 回退到路径补全
 			}
 		}
+	} else {
+		// ========== 普通候选项补全 ==========
+		matchStrings = fuzzyMatch(candidates, cur)
 	}
 
 	// 5. 输出结果（带前缀的多行格式）
@@ -168,7 +157,105 @@ func handleAll(root types.Command, args []string) error {
 	fmt.Printf("CANDIDATES:%s\n", strings.Join(candidates, " "))
 	fmt.Printf("ENUM:%s\n", strings.Join(enumValues, " "))
 	fmt.Printf("MATCHES:%s\n", strings.Join(matchStrings, " "))
-	fmt.Printf("IS_FLAG:%v\n", isFlag && len(enumValues) > 0)
+	fmt.Printf("IS_FLAG:%v\n", isFlagValueCompletion && len(enumValues) > 0)
 
 	return nil
+}
+
+// getFlagType 获取指定上下文中标志的类型
+//
+// 参数:
+//   - root: 根命令实例
+//   - context: 上下文路径
+//   - flagName: 标志名称
+//
+// 返回值:
+//   - FlagType: 标志类型
+//   - bool: 是否找到标志
+//
+// 说明:
+//   - 内置标志（如 --help, --version）在解析时动态注册
+//   - 这里通过名称匹配来识别内置标志的类型
+func getFlagType(root types.Command, context string, flagName string) (types.FlagType, bool) {
+	cmd := findCommandByContext(root, context)
+	if cmd == nil {
+		return types.FlagTypeUnknown, false
+	}
+
+	// 首先尝试从命令的 Flags() 中查找
+	flag := findFlagByName(cmd, flagName)
+	if flag != nil {
+		return flag.Type(), true
+	}
+
+	// 如果没有找到，检查是否是内置标志
+	// 内置标志在解析时动态注册，但我们可以根据名称识别其类型
+	return getBuiltinFlagType(flagName, context, cmd)
+}
+
+// getBuiltinFlagType 根据标志名称识别内置标志的类型
+//
+// 参数:
+//   - flagName: 标志名称
+//   - context: 上下文路径
+//   - cmd: 命令实例
+//
+// 返回值:
+//   - FlagType: 标志类型
+//   - bool: 是否为内置标志
+func getBuiltinFlagType(flagName string, context string, cmd types.Command) (types.FlagType, bool) {
+	// 移除 "-" 或 "--" 前缀
+	name := strings.TrimPrefix(flagName, "--")
+	if name == flagName {
+		name = strings.TrimPrefix(flagName, "-")
+	}
+
+	// 帮助标志：所有命令都有
+	if name == types.HelpFlagName || name == types.HelpFlagShortName {
+		return types.FlagTypeBool, true
+	}
+
+	// 根命令特有的内置标志
+	if context == "/" {
+		config := cmd.Config()
+
+		// 版本标志
+		if config.Version != "" {
+			if name == types.VersionFlagName || name == types.VersionFlagShortName {
+				return types.FlagTypeBool, true
+			}
+		}
+
+		// 补全标志
+		if config.Completion {
+			if name == types.CompletionFlagName {
+				return types.FlagTypeEnum, true
+			}
+		}
+	}
+
+	return types.FlagTypeUnknown, false
+}
+
+// fuzzyMatch 对候选列表进行模糊匹配
+//
+// 参数:
+//   - candidates: 候选列表
+//   - cur: 当前输入
+//
+// 返回值:
+//   - []string: 匹配结果
+func fuzzyMatch(candidates []string, cur string) []string {
+	// 如果当前输入为空，返回所有候选项
+	if cur == "" {
+		return candidates
+	}
+
+	// 执行模糊匹配
+	matches := fuzzy.CompletePrefix(cur, candidates)
+	result := make([]string, len(matches))
+	for i, match := range matches {
+		result[i] = match.Str
+	}
+	return result
 }

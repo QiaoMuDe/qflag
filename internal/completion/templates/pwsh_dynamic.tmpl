@@ -130,16 +130,13 @@ $scriptBlock = {
         }
 
         # 3. 根据结果决定补全行为
+        # IS_FLAG 为 true 表示当前是枚举类型标志的值补全
         if ($isFlag -and $enumValues.Count -gt 0) {
             # 枚举类型标志, 返回匹配结果
             return $matchResults
         }
-        elseif ($prevElement -match '^-') {
-            # 前一个元素是标志但不是枚举类型, 使用路径补全
-            return Get-{{.SanitizedName}}PathCompletions -WordToComplete $wordToComplete
-        }
         elseif ($matchResults.Count -gt 0) {
-            # 普通补全, 处理匹配结果
+            # 普通补全（包括布尔标志后的候选项补全）, 处理匹配结果
             $matchingOptions = [System.Collections.ArrayList]::new()
             $flagRegex = [regex]::new('^-')
             foreach ($match in $matchResults) {
@@ -147,6 +144,10 @@ $scriptBlock = {
                 [void]$matchingOptions.Add($result)
             }
             return $matchingOptions.ToArray()
+        }
+        elseif ($prevElement -match '^-') {
+            # 非枚举类型标志（如 String/Int 等）, 使用路径补全
+            return Get-{{.SanitizedName}}PathCompletions -WordToComplete $wordToComplete
         }
         else {
             # 没有匹配结果, 返回空数组
