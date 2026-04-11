@@ -60,6 +60,10 @@ func (c *Cmd) SetEnableDynamicCompletion(enable bool) {
 
 	// 启用动态补全时，需要添加动态补全子命令
 	if enable {
+		if !c.config.Completion {
+			panic("dynamic completion cannot be enabled when completion is disabled")
+		}
+
 		if err := createCompleteCmd(c); err != nil {
 			panic(err)
 		}

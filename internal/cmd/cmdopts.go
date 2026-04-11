@@ -38,7 +38,7 @@ type CmdOpts struct {
 	UsageSyntax             string // 命令使用语法
 	LogoText                string // Logo文本
 	Completion              bool   // 是否启用自动补全标志
-	EnableDynamicCompletion bool   // 是否启用动态补全标志
+	EnableDynamicCompletion bool   // 是否启用动态补全
 
 	// 环境变量绑定
 	AutoBindEnv bool // 是否自动绑定所有标志的环境变量
