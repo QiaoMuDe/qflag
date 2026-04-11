@@ -119,15 +119,20 @@ func handleAll(root types.Command, args []string) error {
 	var matchStrings []string
 	isFlag := false
 
-	// 检查 prev 是否是标志：以 "-" 开头
+	// 检查 prev 是否是标志：以 "-" 开头，不是 "--"，不包含 "=" 字符
 	// 注意：当在根命令下刚输入命令名后按 Tab, prev 是程序名 (如 "dynamic.exe")
 	// 正常情况下程序名不会以 "-" 开头，所以不会误判为标志
 	// -- 是标志结束符，不是标志，应该按普通参数处理
-	if strings.HasPrefix(prev, "-") && prev != "--" {
+	// 已完成的等号赋值 (如 --config=value) 也不是标志, 应该按普通参数处理
+	isFlagValueCompletion := strings.HasPrefix(prev, "-") && prev != "--" && !strings.Contains(prev, "=")
+
+	// 4. 处理标志值补全
+	if isFlagValueCompletion {
 		isFlag = true
 		// 是标志，获取枚举值
 		enumValues, _ = GetEnumValues(root, context, prev)
 
+		// 如果标志有枚举值，对枚举值进行模糊匹配
 		if len(enumValues) > 0 {
 			// 枚举类型：对枚举值进行模糊匹配
 			if cur == "" {

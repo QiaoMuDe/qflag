@@ -98,15 +98,20 @@ func CalculateContext(root types.Command, tokens []string, cursorPos int) *Conte
 
 	currentCmd := root
 
-	// 从索引 1 开始遍历（跳过程序名 arg0）
+	// 从索引 1 开始遍历 (跳过程序名 arg0)
 	for i := 1; i < cursorPos && i < len(tokens); i++ {
 		token := tokens[i]
 
 		// 规则 1: 遇到标志，停止上下文构建
 		// 但 -- 是标志结束符，应该跳过继续解析后面的内容
+		// 已完成的等号赋值 (如 --config=value) 也不是标志, 应该跳过
 		if strings.HasPrefix(token, "-") {
 			if token == "--" {
 				// 标志结束符，继续解析后面的位置参数
+				continue
+			}
+			if strings.Contains(token, "=") {
+				// 已完成的等号赋值，跳过继续解析
 				continue
 			}
 			result.IsFlagContext = true

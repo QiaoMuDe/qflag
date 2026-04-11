@@ -30,8 +30,8 @@ func HandleEnum(root types.Command, args []string) error {
 		return fmt.Errorf("用法: __complete enum <context> <flag-name>")
 	}
 
-	context := args[0]
-	flagName := args[1]
+	context := args[0]  // 获取上下文路径
+	flagName := args[1] // 获取标志名称
 
 	// 根据上下文查找命令
 	cmd := findCommandByContext(root, context)
