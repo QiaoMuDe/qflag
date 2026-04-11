@@ -71,26 +71,26 @@ $scriptBlock = {
         }
 
         # 计算前一个元素和当前索引
-        # 如果 $wordToComplete 为空，说明用户刚按了空格，正在输入新参数
-        # 此时 $tokens 的最后一个元素就是前一个参数，且应该包含在 cmdArgs 中
-        # 如果 $wordToComplete 非空，说明用户正在输入当前参数
-        # 此时 $tokens 的最后一个元素是当前正在输入的参数，不应该包含在 cmdArgs 中
+        # 如果 $wordToComplete 为空, 说明用户刚按了空格, 正在输入新参数
+        # 此时 $tokens 的最后一个元素就是前一个参数, 且应该包含在 cmdArgs 中
+        # 如果 $wordToComplete 非空, 说明用户正在输入当前参数
+        # 此时 $tokens 的最后一个元素是当前正在输入的参数, 不应该包含在 cmdArgs 中
         $prevElement = $null
         $currentIndex = $tokens.Count - 1
 
         if ([string]::IsNullOrEmpty($wordToComplete)) {
-            # 用户按了空格，最后一个 token 是前一个参数
+            # 用户按了空格, 最后一个 token 是前一个参数
             if ($tokens.Count -gt 0) {
                 $prevElement = $tokens[$tokens.Count - 1]
             }
-            # 所有 tokens 都应该作为 cmdArgs（包括最后一个）
+            # 所有 tokens 都应该作为 cmdArgs (包括最后一个) 
             $currentIndex = $tokens.Count
         } else {
-            # 用户正在输入，前一个 token 是前一个参数
+            # 用户正在输入, 前一个 token 是前一个参数
             if ($currentIndex -ge 1) {
                 $prevElement = $tokens[$currentIndex - 1]
             }
-            # 最后一个 token 是当前输入，不应该包含在 cmdArgs 中
+            # 最后一个 token 是当前输入, 不应该包含在 cmdArgs 中
             $currentIndex = $tokens.Count - 1
         }
 
@@ -99,7 +99,7 @@ $scriptBlock = {
             return Get-{{.SanitizedName}}PathCompletions -WordToComplete $wordToComplete
         }
 
-        # 2. 提取子命令参数（从索引1开始，跳过程序名）
+        # 2. 提取子命令参数 (从索引1开始, 跳过程序名) 
         $cmdArgs = @()
         for ($i = 1; $i -lt $currentIndex; $i++) {
             $cmdArgs += $tokens[$i]
@@ -131,15 +131,15 @@ $scriptBlock = {
 
         # 3. 根据结果决定补全行为
         if ($isFlag -and $enumValues.Count -gt 0) {
-            # 枚举类型标志，返回匹配结果
+            # 枚举类型标志, 返回匹配结果
             return $matchResults
         }
         elseif ($prevElement -match '^-') {
-            # 前一个元素是标志但不是枚举类型，使用路径补全
+            # 前一个元素是标志但不是枚举类型, 使用路径补全
             return Get-{{.SanitizedName}}PathCompletions -WordToComplete $wordToComplete
         }
         elseif ($matchResults.Count -gt 0) {
-            # 普通补全，处理匹配结果
+            # 普通补全, 处理匹配结果
             $matchingOptions = [System.Collections.ArrayList]::new()
             $flagRegex = [regex]::new('^-')
             foreach ($match in $matchResults) {
@@ -149,7 +149,7 @@ $scriptBlock = {
             return $matchingOptions.ToArray()
         }
         else {
-            # 没有匹配结果，返回空数组
+            # 没有匹配结果, 返回空数组
             return @()
         }
     }

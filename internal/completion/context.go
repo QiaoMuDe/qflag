@@ -103,7 +103,12 @@ func CalculateContext(root types.Command, tokens []string, cursorPos int) *Conte
 		token := tokens[i]
 
 		// 规则 1: 遇到标志，停止上下文构建
+		// 但 -- 是标志结束符，应该跳过继续解析后面的内容
 		if strings.HasPrefix(token, "-") {
+			if token == "--" {
+				// 标志结束符，继续解析后面的位置参数
+				continue
+			}
 			result.IsFlagContext = true
 			result.FlagsStartIndex = i
 			break

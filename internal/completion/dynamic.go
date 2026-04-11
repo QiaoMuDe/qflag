@@ -91,16 +91,19 @@ func handleAll(root types.Command, args []string) error {
 	}
 
 	// 解析参数
-	cur := args[0]  // 当前输入
-	prev := args[1] // 前一个词
+	// 去除可能的引号 (PowerShell 等 shell 会保留引号在输入中)
+	cur := strings.Trim(args[0], `"'`)  // 当前输入
+	prev := strings.Trim(args[1], `"'`) // 前一个词
 	cmdArgs := []string{}
 	if len(args) > 2 {
 		cmdArgs = args[2:] // 子命令参数
 	}
 
 	// 1. 计算上下文
-	// CalculateContext 期望 tokens 包含程序名作为第一个元素
-	// 所以我们需要在 cmdArgs 前面添加一个占位符
+	// CalculateContext 期望 tokens 包含程序名作为第一个元素 (从索引1开始遍历)
+	// 当 cmdArgs 为空时 (如刚输入命令名后按 Tab) ,tokens = [""] 表示只有程序名
+	// 当 cmdArgs = ["config"] 时, tokens = ["", "config"], CalculateContext 能正确识别子命令
+	// 所以我们需要在 cmdArgs 前面添加一个空字符串作为占位符
 	tokens := append([]string{""}, cmdArgs...)
 	contextResult := CalculateContext(root, tokens, len(tokens))
 	context := "/"
@@ -116,7 +119,11 @@ func handleAll(root types.Command, args []string) error {
 	var matchStrings []string
 	isFlag := false
 
-	if strings.HasPrefix(prev, "-") {
+	// 检查 prev 是否是标志：以 "-" 开头
+	// 注意：当在根命令下刚输入命令名后按 Tab, prev 是程序名 (如 "dynamic.exe")
+	// 正常情况下程序名不会以 "-" 开头，所以不会误判为标志
+	// -- 是标志结束符，不是标志，应该按普通参数处理
+	if strings.HasPrefix(prev, "-") && prev != "--" {
 		isFlag = true
 		// 是标志，获取枚举值
 		enumValues, _ = GetEnumValues(root, context, prev)
@@ -134,7 +141,7 @@ func handleAll(root types.Command, args []string) error {
 				}
 			}
 		}
-		// 非枚举类型：matchStrings 保持为空，由 Shell 处理为路径补全
+		// 非枚举类型: matchStrings 保持为空，由 Shell 处理为路径补全
 	} else {
 		// 不是标志，对候选项进行模糊匹配
 		if cur == "" {

@@ -27,7 +27,7 @@ _{{.ProgramName}}_complete() {
 		return 0
 	fi
 
-	# 提取子命令参数（从索引1开始，跳过程序名）
+	# 提取子命令参数 (从索引1开始, 跳过程序名) 
 	local cmd_args=()
 	for ((i=1; i < cword; i++)); do
 		cmd_args+=("${words[i]}")
@@ -37,7 +37,7 @@ _{{.ProgramName}}_complete() {
 	local result candidates enum_values matches is_flag
 	result=$({{.ProgramName}} __complete all "$cur" "$prev" "${cmd_args[@]}")
 
-	# 解析结果（按行读取，根据前缀提取）
+	# 解析结果 (按行读取, 根据前缀提取) 
 	while IFS= read -r line; do
 		case "$line" in
 			CANDIDATES:*) candidates="${line#CANDIDATES:}" ;;
@@ -49,15 +49,15 @@ _{{.ProgramName}}_complete() {
 
 	# 根据结果决定补全行为
 	if [[ "$is_flag" == "true" ]]; then
-		# 枚举类型标志，显示匹配结果
+		# 枚举类型标志, 显示匹配结果
 		if [[ -n "$matches" ]]; then
 			read -ra COMPREPLY <<< "$matches"
 		fi
-	elif [[ -z "$enum_values" && "$prev" =~ ^- ]]; then
-		# 非枚举类型标志，使用路径补全
+	elif [[ "$prev" =~ ^- ]]; then
+		# 非枚举类型标志, 使用路径补全
 		COMPREPLY=($(compgen -f -d -- "$cur"))
 	elif [[ -n "$matches" ]]; then
-		# 普通补全，显示匹配结果
+		# 普通补全, 显示匹配结果
 		read -ra COMPREPLY <<< "$matches"
 	fi
 
