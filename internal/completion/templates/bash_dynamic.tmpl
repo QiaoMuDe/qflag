@@ -80,19 +80,19 @@ _{{.ProgramName}}_complete() {
 	# 检查前一个参数是否是标志且需要值
 	local is_flag_value=false
 	local flag_name=""
-	# 只有当当前输入非空时才检查标志值补全
-	# 如果 $cur 为空，说明用户已经输入了值，应该回到正常补全
-	if [[ $cword -gt 1 && "$prev" =~ ^- && -n "$cur" ]]; then
+	# 当用户输入标志后按 Tab（$cur 为空），应该显示枚举值
+	# 当用户开始输入标志值时（$cur 非空），应该过滤枚举值
+	if [[ $cword -gt 1 && "$prev" =~ ^- ]]; then
 		flag_name="$prev"
 		# 检查是否是枚举类型标志
 		local enum_values
 		enum_values=$({{.ProgramName}} __complete enum "$context" "$flag_name")
 		if [[ -n "$enum_values" ]]; then
-			# 对枚举选项使用智能匹配
+			# 对枚举选项使用智能匹配（$cur 为空时返回所有枚举值）
 			_{{.ProgramName}}_intelligent_match "$cur" "${enum_values// /|}"
 			return 0
-		else
-			# 非枚举类型 - 统一使用文件和目录路径补全
+		elif [[ -n "$cur" ]]; then
+			# 非枚举类型且当前输入非空 - 统一使用文件和目录路径补全
 			COMPREPLY=($(compgen -f -d -- "$cur"))
 			return 0
 		fi

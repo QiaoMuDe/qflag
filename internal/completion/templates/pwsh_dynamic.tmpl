@@ -132,21 +132,21 @@ $scriptBlock = {
 
         # 4. 检查前一个参数是否是标志且需要值
         $flagRegex = [regex]::new('^-', [System.Text.RegularExpressions.RegexOptions]::Compiled)
-        
-        # 只有当当前输入非空时才检查标志值补全
-        # 如果 $wordToComplete 为空，说明用户已经输入了值，应该回到正常补全
-        if ($prevElement -and $flagRegex.IsMatch($prevElement) -and -not [string]::IsNullOrEmpty($wordToComplete)) {
+
+        # 当用户输入标志后按 Tab（$wordToComplete 为空），应该显示枚举值
+        # 当用户开始输入标志值时（$wordToComplete 非空），应该过滤枚举值
+        if ($prevElement -and $flagRegex.IsMatch($prevElement)) {
             # 使用 enum 指令检查是否是枚举类型标志
             $enumValues = & {{.ProgramName}} __complete enum $context $prevElement
-            
+
             if ($enumValues) {
-                # 对枚举选项使用智能匹配
+                # 对枚举选项使用智能匹配（$wordToComplete 为空时返回所有枚举值）
                 $enumOptions = $enumValues -split ' '
                 $matches = Get-{{.SanitizedName}}IntelligentMatches -Pattern $wordToComplete -Options $enumOptions
                 return $matches
             }
-            else {
-                # 非枚举类型 - 统一使用文件和目录路径补全
+            elseif (-not [string]::IsNullOrEmpty($wordToComplete)) {
+                # 非枚举类型且当前输入非空 - 统一使用文件和目录路径补全
                 return Get-{{.SanitizedName}}PathCompletions -WordToComplete $wordToComplete
             }
         }

@@ -50,8 +50,8 @@ func handleFuzzy(args []string) error {
 	pattern := args[0]     // 模式参数
 	candidates := args[1:] // 候选参数
 
-	// 使用 fuzzy 包执行模糊匹配
-	matches := fuzzy.Find(pattern, candidates)
+	// 使用 fuzzy 包执行前缀补全
+	matches := fuzzy.CompletePrefix(pattern, candidates)
 
 	// 输出匹配结果（只输出匹配的字符串）
 	for _, match := range matches {
