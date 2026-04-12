@@ -154,7 +154,7 @@ func (r *MockCmdRegistry) List() []types.Command {
 
 	for _, cmd := range r.commands {
 		name := cmd.Name()
-		if !seen[name] {
+		if !seen[name] && !cmd.IsHidden() {
 			result = append(result, cmd)
 			seen[name] = true
 		}
@@ -169,7 +169,16 @@ func (r *MockCmdRegistry) Has(name string) bool {
 }
 
 func (r *MockCmdRegistry) Count() int {
-	return len(r.commands)
+	count := 0
+	seen := make(map[string]bool)
+	for _, cmd := range r.commands {
+		name := cmd.Name()
+		if !seen[name] && !cmd.IsHidden() {
+			count++
+			seen[name] = true
+		}
+	}
+	return count
 }
 
 func (r *MockCmdRegistry) Clear() {

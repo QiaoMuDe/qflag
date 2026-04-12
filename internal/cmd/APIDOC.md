@@ -1416,6 +1416,34 @@ cmd.SetCompletion(true)              // 先启用自动补全
 cmd.SetDynamicCompletion(true) // 再启用动态补全
 ```
 
+#### func (c *Cmd) SubCmds() []types.Command
+
+```go
+func (c *Cmd) SubCmds() []types.Command
+```
+
+SubCmds 获取所有非隐藏子命令
+
+**返回值:**
+  - []types.Command: 非隐藏子命令的切片
+
+**功能说明:**
+  - 实现types.Command接口
+  - 返回所有非隐藏的子命令列表
+  - 自动过滤隐藏的命令（如 __complete）
+  - 支持并发安全的访问
+
+**使用场景:**
+  - 获取命令的子命令列表
+  - 帮助信息生成
+  - 补全候选计算
+  - 子命令遍历操作
+
+**注意事项:**
+  - 隐藏命令（通过 SetHidden(true) 设置）不会出现在返回结果中
+  - 如需访问隐藏命令，请使用 GetSubCmd(name) 按名称获取
+  - 返回的切片是副本，修改不影响原命令状态
+
 #### func (c *Cmd) SetDesc(desc string)
 
 ```go

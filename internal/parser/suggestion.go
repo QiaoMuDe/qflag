@@ -47,11 +47,6 @@ func (f *SuggestionFinder) FindForSubcommand(input string, cmd types.Command) []
 
 	names := make([]string, 0, len(subCmds)*2)
 	for _, sc := range subCmds {
-		// 跳过隐藏命令（如内置补全命令）
-		if sc.IsHidden() {
-			continue
-		}
-
 		if sc.LongName() != "" {
 			names = append(names, sc.LongName())
 		}

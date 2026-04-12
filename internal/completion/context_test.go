@@ -209,12 +209,13 @@ func TestCalculateContext_PartialInput(t *testing.T) {
 
 // TestGetSubCommandNames 测试获取子命令名称
 //
-// 验证子命令名称列表的获取和过滤
+// 验证子命令名称列表的获取和过滤（隐藏命令应被过滤）
 func TestGetSubCommandNames(t *testing.T) {
 	root := mock.NewMockCommandBasic("myapp", "", "Test application")
 	serverCmd := mock.NewMockCommandBasic("server", "", "Server management")
 	clientCmd := mock.NewMockCommandBasic("client", "", "Client management")
 	internalCmd := mock.NewMockCommandBasic("__internal", "", "Internal command")
+	internalCmd.SetHidden(true) // 设置为隐藏命令
 
 	_ = root.AddSubCmds(serverCmd, clientCmd, internalCmd)
 

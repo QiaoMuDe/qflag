@@ -349,27 +349,20 @@ func (c *Cmd) GetSubCmd(name string) (types.Command, bool) {
 	return c.cmdRegistry.Get(name)
 }
 
-// SubCmds 获取所有子命令
+// SubCmds 获取所有非隐藏子命令
 //
 // 返回值:
-//   - []types.Command: 所有子命令的切片副本
+//   - []types.Command: 非隐藏子命令的切片
 //
 // 功能说明:
 //   - 实现types.Command接口
-//   - 返回所有注册的子命令
-//   - 创建副本避免外部修改
+//   - 返回所有非隐藏的子命令列表
+//   - 自动过滤隐藏的命令（如 __complete）
 //   - 支持并发安全的访问
 func (c *Cmd) SubCmds() []types.Command {
 	c.mu.RLock()
 	defer c.mu.RUnlock()
-
-	cmds := c.cmdRegistry.List()
-	if len(cmds) == 0 {
-		return []types.Command{}
-	}
-	result := make([]types.Command, len(cmds))
-	copy(result, cmds)
-	return result
+	return c.cmdRegistry.List()
 }
 
 // HasSubCmd 检查是否存在指定名称的子命令

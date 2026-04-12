@@ -307,11 +307,12 @@ func TestGetCandidates_PossibleDuplicates(t *testing.T) {
 
 // TestGetCandidates_FiltersInternalCommands 测试过滤内部命令
 //
-// 验证以 __ 开头的内部命令被过滤
+// 验证隐藏的内部命令被过滤
 func TestGetCandidates_FiltersInternalCommands(t *testing.T) {
 	root := mock.NewMockCommandBasic("myapp", "", "Test application")
 	serverCmd := mock.NewMockCommandBasic("server", "", "Server management")
 	internalCmd := mock.NewMockCommandBasic("__complete", "", "Internal command")
+	internalCmd.SetHidden(true) // 设置为隐藏命令
 	_ = root.AddSubCmds(serverCmd, internalCmd)
 
 	candidates, err := GetCandidates(root, "/")
