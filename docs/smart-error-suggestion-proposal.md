@@ -137,13 +137,105 @@ func FindSimilarFlags(input string, flags []*Flag, maxResults int) []string {
 }
 ```
 
-### 4. 集成点分析
+### 4. 智能纠错查找器封装
 
-根据代码结构，需要在以下两个位置集成智能纠错：
+将建议查找逻辑封装到独立的查找器中，保持解析方法简洁：
 
-#### 4.1 子命令纠错 - `parser.go`
+```go
+// internal/parser/suggestion.go
 
-在 `Parse` 和 `ParseAndRoute` 方法中，当子命令不存在时返回带建议的错误：
+// SuggestionFinder 智能纠错查找器
+type SuggestionFinder struct {
+    maxSuggestions int
+}
+
+// NewSuggestionFinder 创建查找器
+func NewSuggestionFinder(maxSuggestions int) *SuggestionFinder {
+    return &SuggestionFinder{maxSuggestions: maxSuggestions}
+}
+
+// FindForSubcommand 查找子命令建议
+func (f *SuggestionFinder) FindForSubcommand(input string, cmd types.Command) []string {
+    subCmds := cmd.SubCmds()
+    if len(subCmds) == 0 {
+        return nil
+    }
+    
+    names := make([]string, len(subCmds))
+    for i, sc := range subCmds {
+        names[i] = sc.Name()
+    }
+    
+    return f.findSimilar(input, names)
+}
+
+// FindForFlag 查找标志建议
+func (f *SuggestionFinder) FindForFlag(input string, cmd types.Command) []string {
+    flags := cmd.FlagRegistry().List()
+    if len(flags) == 0 {
+        return nil
+    }
+    
+    names := make([]string, 0, len(flags)*2)
+    for _, fl := range flags {
+        if fl.LongName != "" {
+            names = append(names, "--"+fl.LongName)
+        }
+        if fl.ShortName != "" {
+            names = append(names, "-"+fl.ShortName)
+        }
+    }
+    
+    cleanInput := strings.TrimLeft(input, "-")
+    return f.findSimilar(cleanInput, names)
+}
+
+// 内部模糊匹配
+func (f *SuggestionFinder) findSimilar(input string, candidates []string) []string {
+    matches := fuzzy.CompletePrefix(input, candidates)
+    if len(matches) > f.maxSuggestions {
+        matches = matches[:f.maxSuggestions]
+    }
+    result := make([]string, len(matches))
+    for i, m := range matches {
+        result[i] = m.Str
+    }
+    return result
+}
+
+// newUnknownSubcommandError 创建未知子命令错误（带建议）
+func newUnknownSubcommandError(cmd types.Command, input string) error {
+    finder := NewSuggestionFinder(3)
+    suggestions := finder.FindForSubcommand(input, cmd)
+    
+    return &UnknownSubcommandError{
+        Command:     cmd.Name(),
+        Input:       input,
+        Suggestions: suggestions,
+    }
+}
+
+// newUnknownFlagError 创建未知标志错误（带建议）
+func newUnknownFlagError(cmd types.Command, input string) error {
+    finder := NewSuggestionFinder(3)
+    suggestions := finder.FindForFlag(input, cmd)
+    
+    return &UnknownFlagError{
+        Command:     cmd.Name(),
+        Input:       input,
+        Suggestions: suggestions,
+    }
+}
+```
+
+### 5. 集成点分析
+
+#### 5.1 子命令纠错 - `parser.go`
+
+**判断逻辑：**
+- 如果命令**有子命令**，第一个参数**必须**是子命令
+- 如果不是已知的子命令，就认为是输错了，进行纠错
+- 如果命令**没有子命令**，第一个参数是普通位置参数，不纠错
 
 ```go
 // Parse 方法修改（约第 158-172 行）
@@ -163,18 +255,12 @@ func (p *DefaultParser) Parse(cmd types.Command, args []string) error {
             return subCmd.Parse(remainingArgs[1:])
         }
 
-        // 子命令不存在，返回带建议的错误
-        availableSubs := make([]string, 0, len(cmd.SubCmds()))
-        for _, sc := range cmd.SubCmds() {
-            availableSubs = append(availableSubs, sc.Name())
+        // 有子命令但没匹配上 → 一定是输错了，纠错
+        if len(cmd.SubCmds()) > 0 {
+            return newUnknownSubcommandError(cmd, firstArg)
         }
-        suggestions := FindSimilarSubcommands(firstArg, availableSubs, 3)
-
-        return &UnknownSubcommandError{
-            Command:     cmd.Name(),
-            Input:       firstArg,
-            Suggestions: suggestions,
-        }
+        
+        // 没有子命令 → 是普通参数，正常处理
     }
 
     return nil
@@ -193,35 +279,32 @@ func (p *DefaultParser) ParseAndRoute(cmd types.Command, args []string) error {
             return subCmd.ParseAndRoute(remainingArgs[1:])
         }
 
-        // 子命令不存在，返回带建议的错误
-        availableSubs := make([]string, 0, len(cmd.SubCmds()))
-        for _, sc := range cmd.SubCmds() {
-            availableSubs = append(availableSubs, sc.Name())
+        // 有子命令但没匹配上 → 一定是输错了，纠错
+        if len(cmd.SubCmds()) > 0 {
+            return newUnknownSubcommandError(cmd, firstArg)
         }
-        suggestions := FindSimilarSubcommands(firstArg, availableSubs, 3)
-
-        return &UnknownSubcommandError{
-            Command:     cmd.Name(),
-            Input:       firstArg,
-            Suggestions: suggestions,
-        }
+        
+        // 没有子命令 → 是普通参数，正常处理
     }
 
     // ... 后面的代码不变 ...
 }
 ```
 
-#### 4.2 标志纠错 - 预解析检查方案
+#### 5.2 标志纠错 - 预解析检查方案
 
-在调用标准库 `flag.FlagSet.Parse()` 之前，先扫描参数列表，提前发现未知标志：
+**判断逻辑：**
+- 以 `-` 或 `--` 开头的参数**一定是标志**
+- 如果不在已注册标志列表中，就是错误的标志，进行纠错
+- 遇到 `--` 停止扫描，后面的都视为位置参数（即使以 `-` 开头）
 
 ```go
 // ParseOnly 方法修改（约第 105 行附近）
 func (p *DefaultParser) ParseOnly(cmd types.Command, args []string) error {
     // ... 前面的代码不变 ...
 
-    // 预检查：扫描未知标志
-    if err := p.checkUnknownFlags(cmd, args); err != nil {
+    // 预检查：扫描未知标志（调用封装函数）
+    if err := checkUnknownFlags(cmd, args); err != nil {
         return err
     }
 
@@ -233,8 +316,8 @@ func (p *DefaultParser) ParseOnly(cmd types.Command, args []string) error {
     // ... 后面的代码不变 ...
 }
 
-// checkUnknownFlags 预扫描参数，检查未知标志
-func (p *DefaultParser) checkUnknownFlags(cmd types.Command, args []string) error {
+// checkUnknownFlags 预扫描参数，检查未知标志（独立函数）
+func checkUnknownFlags(cmd types.Command, args []string) error {
     // 获取所有已注册的标志名（长短名称都包括）
     registeredFlags := make(map[string]bool)
     for _, f := range cmd.FlagRegistry().List() {
@@ -251,17 +334,13 @@ func (p *DefaultParser) checkUnknownFlags(cmd types.Command, args []string) erro
     for i := 0; i < len(args); i++ {
         arg := args[i]
 
-        // 遇到 -- 停止扫描（标志终止符）
+        // 【关键】遇到 -- 停止扫描，后面的都视为位置参数
         if arg == "--" {
             break
         }
 
-        // 跳过非标志参数（可能是子命令或位置参数）
+        // 不是标志格式，跳过
         if !strings.HasPrefix(arg, "-") {
-            // 检查是否为子命令，如果是则不再检查后续参数
-            if _, isSubCmd := cmd.CmdRegistry().Get(arg); isSubCmd {
-                break
-            }
             continue
         }
 
@@ -271,20 +350,9 @@ func (p *DefaultParser) checkUnknownFlags(cmd types.Command, args []string) erro
             flagName = arg[:idx]
         }
 
-        // 检查是否为已注册标志
+        // 不是已注册的标志 → 纠错
         if !registeredFlags[flagName] {
-            // 未知标志，查找相似建议
-            availableFlags := make([]*Flag, 0)
-            for _, f := range cmd.FlagRegistry().List() {
-                availableFlags = append(availableFlags, f)
-            }
-            suggestions := FindSimilarFlags(flagName, availableFlags, 3)
-
-            return &UnknownFlagError{
-                Command:     cmd.Name(),
-                Input:       flagName,
-                Suggestions: suggestions,
-            }
+            return newUnknownFlagError(cmd, flagName)
         }
     }
 
@@ -297,8 +365,18 @@ func (p *DefaultParser) checkUnknownFlags(cmd types.Command, args []string) erro
 - 完全控制错误信息，易于国际化
 - 实现简洁，不拷贝源码或嵌入类型
 - 性能好，只扫描一次参数列表
+- 解析方法中只需一行调用，逻辑清晰
 
-### 5. 使用示例
+**判断逻辑总结：**
+
+| 场景 | 判断条件 | 处理方式 |
+|------|---------|---------|
+| **子命令纠错** | 命令有子命令，但第一个参数不匹配任何子命令 | 报错并推荐相似子命令 |
+| **子命令正常** | 命令没有子命令 | 第一个参数视为普通位置参数，不纠错 |
+| **标志纠错** | 以 `-` 开头，且不在已注册标志列表中 | 报错并推荐相似标志 |
+| **标志终止** | 遇到 `--` | 停止扫描，后面所有参数视为位置参数 |
+
+### 6. 使用示例
 
 ```go
 package main
@@ -336,7 +414,7 @@ func main() {
 }
 ```
 
-### 6. 预期输出效果
+### 7. 预期输出效果
 
 **子命令纠错：**
 ```bash
@@ -375,15 +453,15 @@ The most similar flags are
 ### 第一阶段：基础实现
 1. 添加 `gitee.com/MM-Q/go-kit/fuzzy` 依赖
 2. 在 `internal/types/error.go` 创建 `UnknownSubcommandError` 和 `UnknownFlagError` 错误类型
-3. 在 `internal/parser` 包实现 `FindSimilarSubcommands` 和 `FindSimilarFlags` 函数
+3. 在 `internal/parser` 包创建 `suggestion.go`，实现 `SuggestionFinder` 和封装函数
 
 ### 第二阶段：子命令纠错集成
-1. 修改 `parser.go` 的 `Parse` 方法，集成子命令纠错
-2. 修改 `parser.go` 的 `ParseAndRoute` 方法，集成子命令纠错
+1. 修改 `parser.go` 的 `Parse` 方法，调用 `newUnknownSubcommandError`
+2. 修改 `parser.go` 的 `ParseAndRoute` 方法，调用 `newUnknownSubcommandError`
 3. 添加单元测试
 
 ### 第三阶段：标志纠错集成
-1. 实现 `checkUnknownFlags` 方法预扫描未知标志
+1. 实现 `checkUnknownFlags` 函数预扫描未知标志
 2. 修改 `ParseOnly` 方法，在 `flagSet.Parse()` 之前调用 `checkUnknownFlags`
 3. 添加单元测试
 
@@ -403,5 +481,6 @@ The most similar flags are
 ## 相关文件
 
 - `internal/types/error.go` - 错误类型定义（需要新建或扩展）
+- `internal/parser/suggestion.go` - 智能纠错查找器（新建）
 - `internal/parser/parser.go` - 解析器修改（Parse、ParseAndRoute、ParseOnly 方法）
 - `go.mod` - 添加 fuzzy 依赖
