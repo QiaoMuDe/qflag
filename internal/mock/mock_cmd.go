@@ -51,8 +51,8 @@ func (c *MockCommandBasic) SetEnvPrefix(prefix string)    { c.config.EnvPrefix =
 func (c *MockCommandBasic) SetUsageSyntax(syntax string)  { c.config.UsageSyntax = syntax }
 func (c *MockCommandBasic) SetLogoText(logo string)       { c.config.LogoText = logo }
 func (c *MockCommandBasic) SetCompletion(completion bool) { c.config.Completion = completion }
-func (c *MockCommandBasic) SetEnableDynamicCompletion(enable bool) {
-	c.config.EnableDynamicCompletion = enable
+func (c *MockCommandBasic) SetDynamicCompletion(enable bool) {
+	c.config.DynamicCompletion = enable
 }
 
 func (c *MockCommandBasic) AddFlag(f types.Flag) error {

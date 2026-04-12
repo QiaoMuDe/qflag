@@ -118,7 +118,7 @@ func getBuiltinFlagNames(cmd types.Command, context string) []string {
 		}
 
 		// 补全标志 - 根据配置决定
-		if config.EnableDynamicCompletion {
+		if config.DynamicCompletion {
 			names = append(names, "--"+types.CompletionFlagName)
 		}
 	}

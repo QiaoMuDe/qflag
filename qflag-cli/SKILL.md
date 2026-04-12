@@ -305,7 +305,7 @@ opts := &qflag.CmdOpts{
 ```go
 opts := &qflag.CmdOpts{
     Completion:              true,  // 启用自动补全
-    EnableDynamicCompletion: true,  // 启用动态补全（可选）
+    DynamicCompletion: true,  // 启用动态补全（可选）
 }
 
 // 生成补全脚本
@@ -313,7 +313,7 @@ opts := &qflag.CmdOpts{
 // yourapp --completion pwsh > yourapp-completion.ps1
 ```
 
-**动态补全**：将跨平台补全逻辑统一到内部 `__complete` 子命令实现，提升一致性并降低脚本体积。需先启用 `Completion` 才能启用 `EnableDynamicCompletion`。
+**动态补全**：将跨平台补全逻辑统一到内部 `__complete` 子命令实现，提升一致性并降低脚本体积。需先启用 `Completion` 才能启用 `DynamicCompletion`。
 
 ### 禁用标志解析
 
@@ -468,7 +468,7 @@ cmd.ApplyOpts(cmdOpts)
 
 1. **使用中文帮助**: `UseChinese: true` 提供更友好的中文帮助
 2. **启用自动补全**: `Completion: true` 提升用户体验
-3. **启用动态补全**: `EnableDynamicCompletion: true` 统一补全逻辑，降低脚本体积
+3. **启用动态补全**: `DynamicCompletion: true` 统一补全逻辑，降低脚本体积
 4. **添加示例**: 在 `Examples` 中提供常用用法示例
 5. **验证输入**: 使用验证器确保输入有效性
 6. **合理分组**: 使用互斥组和必需组管理标志关系

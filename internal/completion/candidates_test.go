@@ -146,12 +146,12 @@ func TestGetCandidates_WithVersionFlag(t *testing.T) {
 // TestGetCandidates_WithCompletionFlag 测试带补全标志的候选选项
 //
 // 验证根命令启用动态补全时包含补全标志
-// 注意：mock.Config() 返回的 EnableDynamicCompletion 默认为 false，
-// 所以此测试主要验证当 EnableDynamicCompletion 为 true 时的行为
+// 注意：mock.Config() 返回的 DynamicCompletion 默认为 false，
+// 所以此测试主要验证当 DynamicCompletion 为 true 时的行为
 func TestGetCandidates_WithCompletionFlag(t *testing.T) {
-	// 由于 mock 的 Config() 方法不返回 EnableDynamicCompletion 字段，
+	// 由于 mock 的 Config() 方法不返回 DynamicCompletion 字段，
 	// 我们需要测试的是：当该字段为 true 时，补全标志会被包含
-	// 这里我们验证当 EnableDynamicCompletion 为 false（默认值）时，不包含补全标志
+	// 这里我们验证当 DynamicCompletion 为 false（默认值）时，不包含补全标志
 	root := mock.NewMockCommandBasic("myapp", "", "Test application")
 
 	candidates, err := GetCandidates(root, "/")
@@ -159,10 +159,10 @@ func TestGetCandidates_WithCompletionFlag(t *testing.T) {
 		t.Errorf("Expected no error, got %v", err)
 	}
 
-	// 默认情况下不应该包含补全标志（因为 EnableDynamicCompletion 默认为 false）
+	// 默认情况下不应该包含补全标志（因为 DynamicCompletion 默认为 false）
 	for _, c := range candidates {
 		if c == "--completion" {
-			t.Error("Should not include '--completion' when EnableDynamicCompletion is false")
+			t.Error("Should not include '--completion' when DynamicCompletion is false")
 		}
 	}
 }

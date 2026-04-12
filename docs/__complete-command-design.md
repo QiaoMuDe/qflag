@@ -129,20 +129,20 @@ internal/completion/
 
 ### 4.2 配置字段
 
-`CmdOpts` 中已存在 `EnableDynamicCompletion` 字段：
+`CmdOpts` 中已存在 `DynamicCompletion` 字段：
 
 ```go
 type CmdOpts struct {
     // ... 其他字段 ...
     Completion              bool   // 是否启用自动补全标志
-    EnableDynamicCompletion bool   // 是否启用动态补全标志
+    DynamicCompletion bool   // 是否启用动态补全标志
     // ... 其他字段 ...
 }
 ```
 
 ### 4.3 脚本生成方案选择
 
-修改 `completion.go` 中的 `Generate` 函数，根据 `EnableDynamicCompletion` 配置选择调用静态或动态生成方案：
+修改 `completion.go` 中的 `Generate` 函数，根据 `DynamicCompletion` 配置选择调用静态或动态生成方案：
 
 #### 4.3.1 新增模板嵌入
 
@@ -168,7 +168,7 @@ var pwshDynamicTemplate string
 
 ```go
 // Generate 生成补全脚本
-// 根据 EnableDynamicCompletion 配置选择生成静态或动态补全脚本
+// 根据 DynamicCompletion 配置选择生成静态或动态补全脚本
 //
 // 参数:
 //   - cmd: 要生成补全脚本的命令
@@ -179,7 +179,7 @@ var pwshDynamicTemplate string
 //   - error: 生成失败时返回错误
 func Generate(cmd types.Command, shellType string) (string, error) {
     // 如果启用了动态补全, 则生成动态补全脚本
-    if cmd.Config().EnableDynamicCompletion {
+    if cmd.Config().DynamicCompletion {
         return generateDynamic(cmd, shellType)
     }
 

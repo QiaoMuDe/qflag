@@ -135,9 +135,9 @@ func (h *DynamicCompletionHandler) handleCompletion(cmd types.Command) error {
 ```go
 package qflag
 
-// EnableDynamicCompletion 启用动态补全模式
+// DynamicCompletion 启用动态补全模式
 // 在程序初始化时调用，注册内置的动态补全标志
-func (c *Cmd) EnableDynamicCompletion() {
+func (c *Cmd) DynamicCompletion() {
     c.Config().DynamicCompletion = true
 }
 
@@ -167,7 +167,7 @@ func main() {
     cmd := qflag.NewCmd("myapp", "示例应用", qflag.ExitOnError)
     
     // 启用动态补全（注册内置标志）
-    cmd.EnableDynamicCompletion()
+    cmd.DynamicCompletion()
     
     // 添加子命令和标志
     deploy := cmd.SubCmd("deploy", "部署应用")

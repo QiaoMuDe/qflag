@@ -928,7 +928,7 @@ func main() {
 ### 8.3 向后兼容
 
 - 保留原有静态模板作为 fallback
-- 新增 `EnableDynamicCompletion` 配置选项
+- 新增 `DynamicCompletion` 配置选项
 - 默认使用动态方案，可选静态方案
 
 ---

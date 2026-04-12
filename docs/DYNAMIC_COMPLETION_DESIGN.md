@@ -16,7 +16,7 @@
 │  │  cmd.AddSubCmds(sub1, sub2)                             │   │
 │  │                                                         │   │
 │  │  // 启用动态补全                                        │   │
-│  │  cmd.EnableDynamicCompletion()                          │   │
+│  │  cmd.DynamicCompletion()                          │   │
 │  │                                                         │   │
 │  │  // 或注册自定义补全函数                                │   │
 │  │  cmd.RegisterCompleter("user", func(ctx CompletionContext) []string {
@@ -137,8 +137,8 @@ type DynamicCompleter func(ctx CompletionContext) CompletionResult
 
 // Command 接口扩展
 
-// EnableDynamicCompletion 启用动态补全模式
-func (c *Cmd) EnableDynamicCompletion()
+// DynamicCompletion 启用动态补全模式
+func (c *Cmd) DynamicCompletion()
 
 // RegisterCompleter 为特定标志或路径注册自定义补全函数
 func (c *Cmd) RegisterCompleter(flagOrPath string, completer DynamicCompleter)
@@ -163,7 +163,7 @@ func main() {
     cmd := qflag.NewCmd("myapp", "示例应用", qflag.ExitOnError)
     
     // 启用动态补全
-    cmd.EnableDynamicCompletion()
+    cmd.DynamicCompletion()
     
     // 添加子命令
     deploy := cmd.SubCmd("deploy", "部署应用")
@@ -436,7 +436,7 @@ cmd := qflag.NewCmd("myapp", "", qflag.ExitOnError)
 cmd.ParseAndRoute(os.Args[1:])
 
 // 新增一行启用动态补全
-cmd.EnableDynamicCompletion()
+cmd.DynamicCompletion()
 
 // 可选：注册自定义补全
 cmd.RegisterCompleter("user", userCompleter)

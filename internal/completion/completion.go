@@ -62,7 +62,7 @@ func GenAndPrint(cmd types.Command, shellType string) {
 //   - error: 生成失败时返回错误
 func Generate(cmd types.Command, shellType string) (string, error) {
 	// 如果启用了动态补全, 则生成动态补全脚本
-	if cmd.Config().EnableDynamicCompletion {
+	if cmd.Config().DynamicCompletion {
 		return GenerateDynamic(cmd, shellType)
 	}
 

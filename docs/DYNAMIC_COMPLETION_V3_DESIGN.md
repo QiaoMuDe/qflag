@@ -251,7 +251,7 @@ func main() {
     cmd := qflag.NewCmd("myapp", "示例应用", qflag.ExitOnError)
     
     // 启用动态补全（注册 --comp-mode 标志）
-    cmd.EnableDynamicCompletion()
+    cmd.DynamicCompletion()
     
     // 添加子命令和标志
     deploy := cmd.SubCmd("deploy", "部署应用")

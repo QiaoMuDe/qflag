@@ -36,7 +36,7 @@ SmartSuggestion bool // 是否启用智能纠错（默认 false，即禁用）
 type CmdConfig struct {
     // ... 现有字段 ...
     Completion              bool // 是否启用自动补全标志
-    EnableDynamicCompletion bool // 是否启用动态补全
+    DynamicCompletion bool // 是否启用动态补全
     SmartSuggestion         bool // 是否启用智能纠错（默认 false）
 }
 ```
@@ -213,7 +213,7 @@ qflag.Root.SetSmartSuggestion(true)
 
 - **简洁直观**：`SmartSuggestion` 比 `EnableSmartSuggestion` 更简洁
 - **语义清晰**：bool 类型的配置项，true 表示启用，false 表示禁用，约定俗成
-- **与现有配置保持一致**：如 `Completion`、`EnableDynamicCompletion` 等
+- **与现有配置保持一致**：如 `Completion`、`DynamicCompletion` 等
 
 ### 为什么默认禁用？
 
