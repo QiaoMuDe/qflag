@@ -430,9 +430,58 @@ func AddSubCmds(cmds ...Command) error { return Root.AddSubCmds(cmds...) }
 | `internal/flag/base_flag.go` | 泛型标志基类 |
 | `internal/cmd/cmd.go` | 命令实现 |
 | `internal/parser/parser.go` | 解析器实现 |
+| `internal/parser/suggestion.go` | 智能纠错功能 |
 | `internal/registry/*.go` | 注册表实现 |
 | `validators/validators.go` | 验证器库 |
 
 ---
 
-*报告生成完成 - 可用于后续项目细节查询*
+## 九、近期更新记录
+
+### 2026-04-12 智能纠错功能优化
+
+#### 9.1 功能改进
+
+**智能纠错行为优化**:
+- 子命令纠错：只有当模糊匹配找到相似建议时才返回错误，否则不拦截
+- 标志纠错：保持原样，未知标志始终报错
+- 影响：动态命令、插件系统等场景不再被误拦截
+
+**配置项命名规范化**:
+- `EnableDynamicCompletion` → `DynamicCompletion`（移除 Enable 前缀）
+- 与 `Completion` 字段保持一致风格
+
+#### 9.2 修改文件
+
+| 文件 | 修改内容 |
+|------|---------|
+| `internal/parser/suggestion.go` | `newUnknownSubcommandError` 无建议时返回 nil |
+| `internal/parser/parser.go` | 解析逻辑适配：无建议时不拦截，继续执行 |
+| `internal/types/config.go` | 字段重命名 `EnableDynamicCompletion` → `DynamicCompletion` |
+| `internal/cmd/cmd_config.go` | 方法名和引用更新 |
+| `internal/cmd/cmd_opts.go` | CmdOpts 字段更新 |
+| `internal/mock/mock_cmd.go` | Mock 对象方法更新 |
+| `internal/completion/candidates_test.go` | 测试用例字段引用更新 |
+| `internal/types/APIDOC.md` | API 文档更新 |
+| `internal/cmd/APIDOC.md` | API 文档更新 |
+
+#### 9.3 设计决策
+
+```
+智能纠错策略:
+├── 子命令纠错
+│   ├── 找到相似建议 → 返回 UnknownSubcommandError（拦截）
+│   └── 未找到建议 → 返回 nil（不拦截，作为普通参数）
+│
+└── 标志纠错
+    └── 始终返回错误（标志通常是固定的）
+```
+
+**优点**:
+- 无需配置项控制，自动适应不同场景
+- 向后兼容，不影响自定义路由的用户
+- 提升用户体验，真正的拼写错误会给出建议
+
+---
+
+*报告更新完成 - 最后更新: 2026-04-12*
