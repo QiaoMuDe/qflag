@@ -53,22 +53,30 @@ func (c *Cmd) Config() *types.CmdConfig {
 //
 // 功能说明:
 //   - 动态补全需要先启用自动补全标志
+//   - 只能在根命令上启用动态补全, 子命令上无效
 func (c *Cmd) SetDynamicCompletion(enable bool) {
 	c.mu.Lock()
 	defer c.mu.Unlock()
+
+	// 只有根命令才能启用动态补全
+	if c.parent != nil {
+		// 静默忽略或返回错误
+		return
+	}
+
+	// 如果启用动态补全没有启用自动补全, 则panic
+	if enable && !c.config.Completion {
+		panic("dynamic completion cannot be enabled when completion is disabled")
+	}
+
+	// 设置动态补全并创建动态补全命令
 	c.config.DynamicCompletion = enable
-
-	// 启用动态补全时，需要添加动态补全子命令
 	if enable {
-		// 检查是否已启用自动补全
-		if !c.config.Completion {
-			panic("dynamic completion cannot be enabled when completion is disabled")
-		}
-
 		if err := createCompleteCmd(c); err != nil {
 			panic(err)
 		}
 	}
+
 }
 
 // SetDesc 设置命令描述
