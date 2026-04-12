@@ -21,6 +21,12 @@ import (
 //   - 接收当前命令行作为参数
 //   - 计算并返回补全结果
 func createCompleteCmd(root *Cmd) error {
+	// 检查是否已存在相同名称的子命令
+	if root.cmdRegistry.Has(types.CompleteCmdName) {
+		return nil
+	}
+
+	// 创建子命令
 	cmd := NewCmd(types.CompleteCmdName, "", types.ExitOnError)
 	opts := &CmdOpts{
 		Desc:   "内部动态补全指令，为 Shell 补全脚本提供实时命令树查询服务",

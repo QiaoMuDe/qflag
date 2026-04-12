@@ -1,43 +1,43 @@
 #!/usr/bin/env bash
 
-# ==================== 主补全函数 ====================
+# ==================== Main Completion Function ====================
 _{{.ProgramName}}_complete() {
 	local cur prev words cword i
 	COMPREPLY=()
 
-	# 使用 _get_comp_words_by_ref 获取补全参数以提高健壮性
+	# Use _get_comp_words_by_ref to get completion arguments for better robustness
 	if declare -F _get_comp_words_by_ref >/dev/null 2>&1; then
 		_get_comp_words_by_ref -n =: cur prev words cword
 	else
-		# 与旧版本 Bash 补全环境的兼容性
+		# Compatibility with older Bash completion environments
 		words=("${COMP_WORDS[@]}")
 		cword=$COMP_CWORD
 		cur="${words[cword]}"
 		prev="${words[cword-1]}"
 	fi
 
-	# 输入验证
+	# Input validation
 	if [[ $cword -lt 0 || ${#words[@]} -eq 0 ]]; then
 		return 1
 	fi
 
-	# 快速路径: 如果当前输入看起来像是路径, 优先提供路径补全
+	# Fast path: if current input looks like a path, prioritize path completion
 	if [[ "$cur" == *"/"* || "$cur" == *"."* || "$cur" == *"~"* ]]; then
 		COMPREPLY=($(compgen -f -d -- "$cur"))
 		return 0
 	fi
 
-	# 提取子命令参数 (从索引1开始, 跳过程序名) 
+	# Extract subcommand arguments (starting from index 1, skipping program name)
 	local cmd_args=()
 	for ((i=1; i < cword; i++)); do
 		cmd_args+=("${words[i]}")
 	done
 
-	# ========== 使用 all 指令一次性获取所有补全信息 ==========
+	# ========== Use all instruction to get all completion info at once ==========
 	local result candidates enum_values matches is_flag
 	result=$({{.ProgramName}} __complete all "$cur" "$prev" "${cmd_args[@]}")
 
-	# 解析结果 (按行读取, 根据前缀提取) 
+	# Parse result (read by line, extract based on prefix)
 	while IFS= read -r line; do
 		case "$line" in
 			CANDIDATES:*) candidates="${line#CANDIDATES:}" ;;
@@ -47,23 +47,23 @@ _{{.ProgramName}}_complete() {
 		esac
 	done <<< "$result"
 
-	# 根据结果决定补全行为
-	# IS_FLAG 为 true 表示当前是枚举类型标志的值补全
+	# Decide completion behavior based on results
+	# IS_FLAG is true means current completion is for enum type flag value
 	if [[ "$is_flag" == "true" ]]; then
-		# 枚举类型标志, 显示匹配结果
+		# Enum type flag, display matching results
 		if [[ -n "$matches" ]]; then
 			read -ra COMPREPLY <<< "$matches"
 		fi
 	elif [[ -n "$matches" ]]; then
-		# 普通补全（包括布尔标志后的候选项补全）, 显示匹配结果
+		# Normal completion (including candidates after boolean flags), display matching results
 		read -ra COMPREPLY <<< "$matches"
 	elif [[ "$prev" =~ ^- ]]; then
-		# 非枚举类型标志（如 String/Int 等）, 使用路径补全
+		# Non-enum type flags (like String/Int etc.), use path completion
 		COMPREPLY=($(compgen -f -d -- "$cur"))
 	fi
 
 	return 0
 }
 
-# 注册补全函数
+# Register completion function
 complete -F _{{.ProgramName}}_complete {{.ProgramName}}

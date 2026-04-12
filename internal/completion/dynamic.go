@@ -23,14 +23,19 @@ func HandleDynamicComplete(root types.Command, instruction string, params []stri
 	switch instruction {
 	case types.InstructionFuzzy:
 		return handleFuzzy(params)
+
 	case types.InstructionContext:
 		return HandleContext(root, params)
+
 	case types.InstructionCandidates:
 		return HandleCandidates(root, params)
+
 	case types.InstructionEnum:
 		return HandleEnum(root, params)
+
 	case types.InstructionAll:
 		return handleAll(root, params)
+
 	default:
 		return fmt.Errorf("unknown instruction: %s", instruction)
 	}
@@ -47,7 +52,7 @@ func HandleDynamicComplete(root types.Command, instruction string, params []stri
 // 输出格式: 每行一个匹配结果（按匹配质量降序）
 func handleFuzzy(args []string) error {
 	if len(args) < 2 {
-		return fmt.Errorf("%s instruction requires at least 2 arguments: pattern and candidates", types.InstructionFuzzy)
+		return fmt.Errorf("usage: __complete fuzzy <pattern> <candidates...>")
 	}
 
 	pattern := args[0]     // 模式参数
@@ -87,7 +92,7 @@ func handleFuzzy(args []string) error {
 //	IS_FLAG:<true|false>
 func handleAll(root types.Command, args []string) error {
 	if len(args) < 2 {
-		return fmt.Errorf("用法: __complete all <cur> <prev> [cmd_args...]")
+		return fmt.Errorf("usage: __complete all <cur> <prev> [cmd_args...]")
 	}
 
 	// 解析参数

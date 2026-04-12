@@ -53,7 +53,7 @@ func HandleContext(root types.Command, args []string) error {
 	// 构建完整的 tokens 列表（程序名 + 子命令路径）
 	tokens := append([]string{root.Name()}, args...)
 
-	// 自动计算 cursorPos：使用 tokens 的长度
+	// 自动计算 cursorPos: 使用 tokens 的长度
 	cursorPos := len(tokens)
 
 	// 计算上下文

@@ -1,6 +1,6 @@
 // enum.go - 枚举值补全指令实现
 //
-// 该文件实现了 __complete enum 指令，用于根据上下文路径和标志名
+// 该文件实现了 __complete enum 指令, 用于根据上下文路径和标志名
 // 获取枚举类型标志的所有可选值
 
 package completion
@@ -27,7 +27,7 @@ import (
 //	HandleEnum(root, []string{"/server/start/", "-o"})
 func HandleEnum(root types.Command, args []string) error {
 	if len(args) < 2 {
-		return fmt.Errorf("用法: __complete enum <context> <flag-name>")
+		return fmt.Errorf("usage: __complete enum <context> <flag-name>")
 	}
 
 	context := args[0]  // 获取上下文路径
@@ -36,31 +36,31 @@ func HandleEnum(root types.Command, args []string) error {
 	// 根据上下文查找命令
 	cmd := findCommandByContext(root, context)
 	if cmd == nil {
-		// 无效的上下文，返回空
+		// 无效的上下文, 返回空
 		return nil
 	}
 
 	// 查找标志
 	targetFlag := findFlagByName(cmd, flagName)
 	if targetFlag == nil {
-		// 标志不存在，返回空
+		// 标志不存在, 返回空
 		return nil
 	}
 
 	// 获取枚举值
 	enumValues := getEnumValues(targetFlag)
 	if len(enumValues) == 0 {
-		// 不是枚举类型或没有枚举值，返回空
+		// 不是枚举类型或没有枚举值, 返回空
 		return nil
 	}
 
-	// 输出（空格分隔）
+	// 输出 (空格分隔)
 	fmt.Println(strings.Join(enumValues, " "))
 
 	return nil
 }
 
-// GetEnumValues 获取枚举值（供程序内部使用）
+// GetEnumValues 获取枚举值 (供程序内部使用)
 //
 // 参数:
 //   - root: 根命令实例
@@ -74,14 +74,14 @@ func GetEnumValues(root types.Command, context string, flagName string) ([]strin
 	// 根据上下文查找命令
 	cmd := findCommandByContext(root, context)
 	if cmd == nil {
-		// 无效的上下文，返回空列表
+		// 无效的上下文, 返回空列表
 		return []string{}, nil
 	}
 
 	// 查找标志
 	targetFlag := findFlagByName(cmd, flagName)
 	if targetFlag == nil {
-		// 标志不存在，返回空列表
+		// 标志不存在, 返回空列表
 		return []string{}, nil
 	}
 
@@ -93,22 +93,22 @@ func GetEnumValues(root types.Command, context string, flagName string) ([]strin
 //
 // 参数:
 //   - cmd: 命令实例
-//   - flagName: 标志名称（支持长名称带 "--"、短名称带 "-"，以及带 "=" 后缀的形式）
+//   - flagName: 标志名称 (支持长名称带 "--"、短名称带 "-", 以及带 "=" 后缀的形式)
 //
 // 返回值:
-//   - types.Flag: 找到的标志，如果未找到则返回 nil
+//   - types.Flag: 找到的标志, 如果未找到则返回 nil
 func findFlagByName(cmd types.Command, flagName string) types.Flag {
 	// 移除可能的 "=" 后缀
 	flagName = strings.TrimSuffix(flagName, "=")
 
 	for _, flag := range cmd.Flags() {
-		// 匹配长名称（flagName 带 "--" 前缀，flag.LongName() 不带）
+		// 匹配长名称 (flagName 带 "--" 前缀, flag.LongName() 不带)
 		if strings.HasPrefix(flagName, "--") {
 			if flag.LongName() == flagName[2:] { // 去掉 "--" 前缀再比较
 				return flag
 			}
 		}
-		// 匹配短名称（flagName 带 "-" 前缀，flag.ShortName() 不带）
+		// 匹配短名称 (flagName 带 "-" 前缀, flag.ShortName() 不带)
 		if strings.HasPrefix(flagName, "-") && flag.ShortName() != "" {
 			if flag.ShortName() == flagName[1:] { // 去掉 "-" 前缀再比较
 				return flag
@@ -125,7 +125,7 @@ func findFlagByName(cmd types.Command, flagName string) types.Flag {
 //   - flag: 标志实例
 //
 // 返回值:
-//   - []string: 枚举值列表，如果不是枚举类型则返回空切片
+//   - []string: 枚举值列表, 如果不是枚举类型则返回空切片
 func getEnumValues(flag types.Flag) []string {
 	// 检查是否是枚举类型
 	if flag.Type() != types.FlagTypeEnum {

@@ -26,7 +26,7 @@ import (
 //	HandleCandidates(root, []string{"/server/start/"})
 func HandleCandidates(root types.Command, args []string) error {
 	if len(args) < 1 {
-		return fmt.Errorf("用法: __complete candidates <context>")
+		return fmt.Errorf("usage: __complete candidates <context>")
 	}
 
 	context := args[0]
