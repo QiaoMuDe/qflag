@@ -6,7 +6,7 @@
 
 [![Go Version](https://img.shields.io/badge/Go-1.24+-00ADD8E6?style=flat&logo=go)](https://golang.org/) [![MIT License](https://img.shields.io/badge/License-MIT-green?style=flat)](https://opensource.org/licenses/MIT) [![Gitee](https://img.shields.io/badge/Gitee-qflag-red?style=flat)](https://gitee.com/MM-Q/qflag) [![GitHub](https://img.shields.io/badge/GitHub-qflag-black?style=flat)](https://github.com/QiaoMuDe/qflag) [![Ask DeepWiki](https://deepwiki.com/badge.svg?style=flat)](https://deepwiki.com/QiaoMuDe/qflag)
 
-*泛型设计 • 自动路由 • 类型安全 • 并发安全 • 自动补全 • 子命令管理*
+*泛型设计 • 自动路由 • 类型安全 • 并发安全 • 自动补全 • 智能纠错*
 
 </div>
 

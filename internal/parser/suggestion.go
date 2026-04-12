@@ -102,7 +102,8 @@ func (f *SuggestionFinder) FindForFlag(input string, cmd types.Command) []string
 // 返回值:
 //   - []string: 匹配结果列表
 func (f *SuggestionFinder) findSimilar(input string, candidates []string) []string {
-	matches := fuzzy.Find(input, candidates)
+	// 使用前缀匹配, 其次模糊匹配
+	matches := fuzzy.Complete(input, candidates)
 
 	// 限制返回结果数量
 	if len(matches) > f.maxSuggestions {

@@ -189,8 +189,192 @@ func main() {
 		return nil
 	})
 
+	// 创建更多子命令用于测试智能纠错
+	// status 子命令
+	statusCmd := qflag.NewCmd("status", "st", qflag.ExitOnError)
+	statusCmd.SetDesc("查看系统状态")
+	statusCmd.SetRun(func(c qflag.Command) error {
+		fmt.Println("系统状态: 正常运行")
+		return nil
+	})
+
+	// version 子命令
+	versionCmd := qflag.NewCmd("version", "v", qflag.ExitOnError)
+	versionCmd.SetDesc("显示版本信息")
+	versionCmd.SetRun(func(c qflag.Command) error {
+		fmt.Println("版本: v1.0.0")
+		return nil
+	})
+
+	// info 子命令
+	infoCmd := qflag.NewCmd("info", "i", qflag.ExitOnError)
+	infoCmd.SetDesc("显示系统信息")
+	infoCmd.SetRun(func(c qflag.Command) error {
+		fmt.Println("系统信息")
+		return nil
+	})
+
+	// init 子命令
+	initCmd := qflag.NewCmd("init", "", qflag.ExitOnError)
+	initCmd.SetDesc("初始化配置")
+	initCmd.SetRun(func(c qflag.Command) error {
+		fmt.Println("初始化完成")
+		return nil
+	})
+
+	// validate 子命令
+	validateCmd := qflag.NewCmd("validate", "val", qflag.ExitOnError)
+	validateCmd.SetDesc("验证配置")
+	validateCmd.SetRun(func(c qflag.Command) error {
+		fmt.Println("配置验证通过")
+		return nil
+	})
+
+	// add 子命令
+	addCmd := qflag.NewCmd("add", "a", qflag.ExitOnError)
+	addCmd.SetDesc("添加资源")
+	addCmd.SetRun(func(c qflag.Command) error {
+		fmt.Println("资源已添加")
+		return nil
+	})
+
+	// remove 子命令
+	removeCmd := qflag.NewCmd("remove", "rm", qflag.ExitOnError)
+	removeCmd.SetDesc("移除资源")
+	removeCmd.SetRun(func(c qflag.Command) error {
+		fmt.Println("资源已移除")
+		return nil
+	})
+
+	// list 子命令（根命令级别）
+	listCmd := qflag.NewCmd("list", "ls", qflag.ExitOnError)
+	listCmd.SetDesc("列出所有资源")
+	listCmd.SetRun(func(c qflag.Command) error {
+		fmt.Println("资源列表")
+		return nil
+	})
+
+	// describe 子命令
+	describeCmd := qflag.NewCmd("describe", "desc", qflag.ExitOnError)
+	describeCmd.SetDesc("描述资源详情")
+	describeCmd.SetRun(func(c qflag.Command) error {
+		fmt.Println("资源详情")
+		return nil
+	})
+
+	// edit 子命令
+	editCmd := qflag.NewCmd("edit", "e", qflag.ExitOnError)
+	editCmd.SetDesc("编辑资源")
+	editCmd.SetRun(func(c qflag.Command) error {
+		fmt.Println("进入编辑模式")
+		return nil
+	})
+
+	// apply 子命令
+	applyCmd := qflag.NewCmd("apply", "", qflag.ExitOnError)
+	applyCmd.SetDesc("应用配置")
+	applyCmd.SetRun(func(c qflag.Command) error {
+		fmt.Println("配置已应用")
+		return nil
+	})
+
+	// delete 子命令（根命令级别）
+	deleteCmd := qflag.NewCmd("delete", "del", qflag.ExitOnError)
+	deleteCmd.SetDesc("删除资源")
+	deleteCmd.SetRun(func(c qflag.Command) error {
+		fmt.Println("资源已删除")
+		return nil
+	})
+
+	// watch 子命令
+	watchCmd := qflag.NewCmd("watch", "w", qflag.ExitOnError)
+	watchCmd.SetDesc("监视资源变化")
+	watchCmd.SetRun(func(c qflag.Command) error {
+		fmt.Println("开始监视...")
+		return nil
+	})
+
+	// exec 子命令
+	execCmd := qflag.NewCmd("exec", "", qflag.ExitOnError)
+	execCmd.SetDesc("执行命令")
+	execCmd.SetRun(func(c qflag.Command) error {
+		fmt.Println("执行命令")
+		return nil
+	})
+
+	// port-forward 子命令
+	portForwardCmd := qflag.NewCmd("port-forward", "pf", qflag.ExitOnError)
+	portForwardCmd.SetDesc("端口转发")
+	portForwardCmd.SetRun(func(c qflag.Command) error {
+		fmt.Println("端口转发已建立")
+		return nil
+	})
+
+	// proxy 子命令
+	proxyCmd := qflag.NewCmd("proxy", "", qflag.ExitOnError)
+	proxyCmd.SetDesc("代理服务")
+	proxyCmd.SetRun(func(c qflag.Command) error {
+		fmt.Println("代理服务已启动")
+		return nil
+	})
+
+	// cp 子命令
+	cpCmd := qflag.NewCmd("cp", "", qflag.ExitOnError)
+	cpCmd.SetDesc("复制文件")
+	cpCmd.SetRun(func(c qflag.Command) error {
+		fmt.Println("文件复制完成")
+		return nil
+	})
+
+	// auth 子命令
+	authCmd := qflag.NewCmd("auth", "", qflag.ExitOnError)
+	authCmd.SetDesc("认证管理")
+	authCmd.SetRun(func(c qflag.Command) error {
+		fmt.Println("认证信息")
+		return nil
+	})
+
+	// login 子命令
+	loginCmd := qflag.NewCmd("login", "", qflag.ExitOnError)
+	loginCmd.SetDesc("登录系统")
+	loginCmd.SetRun(func(c qflag.Command) error {
+		fmt.Println("登录成功")
+		return nil
+	})
+
+	// logout 子命令
+	logoutCmd := qflag.NewCmd("logout", "", qflag.ExitOnError)
+	logoutCmd.SetDesc("退出登录")
+	logoutCmd.SetRun(func(c qflag.Command) error {
+		fmt.Println("已退出登录")
+		return nil
+	})
+
+	// whoami 子命令
+	whoamiCmd := qflag.NewCmd("whoami", "", qflag.ExitOnError)
+	whoamiCmd.SetDesc("显示当前用户")
+	whoamiCmd.SetRun(func(c qflag.Command) error {
+		fmt.Println("当前用户: admin")
+		return nil
+	})
+
+	// plugin 子命令
+	pluginCmd := qflag.NewCmd("plugin", "", qflag.ExitOnError)
+	pluginCmd.SetDesc("插件管理")
+	pluginCmd.SetRun(func(c qflag.Command) error {
+		fmt.Println("插件管理")
+		return nil
+	})
+
 	// 添加所有子命令到根命令
-	if err := root.AddSubCmds(serviceCmd, deploymentCmd, configCmd, completionCmd); err != nil {
+	if err := root.AddSubCmds(
+		serviceCmd, deploymentCmd, configCmd, completionCmd,
+		statusCmd, versionCmd, infoCmd, initCmd, validateCmd,
+		addCmd, removeCmd, listCmd, describeCmd, editCmd,
+		applyCmd, deleteCmd, watchCmd, execCmd, portForwardCmd,
+		proxyCmd, cpCmd, authCmd, loginCmd, logoutCmd, whoamiCmd,
+		pluginCmd,
+	); err != nil {
 		fmt.Fprintf(os.Stderr, "添加根命令子命令失败: %v\n", err)
 		os.Exit(1)
 	}
