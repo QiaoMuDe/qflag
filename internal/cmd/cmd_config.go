@@ -172,11 +172,17 @@ func (c *Cmd) SetChinese(useChinese bool) {
 // 功能说明:
 //   - 控制是否注册 --completion 标志
 //   - 默认为 false, 不启用自动补全
-//   - 存储在配置中
+//   - 只有根命令才能启用自动补全
 //   - 支持并发安全的设置
 func (c *Cmd) SetCompletion(enable bool) {
 	c.mu.Lock()
 	defer c.mu.Unlock()
+
+	// 只能在根命令上启用自动补全
+	if c.parent != nil {
+		return
+	}
+
 	c.config.Completion = enable
 }
 
