@@ -11,12 +11,7 @@ type MockCommandBasic struct {
 	description        string
 	hidden             bool
 	disableFlagParsing bool
-	version            string
-	useChinese         bool
-	envPrefix          string
-	usageSyntax        string
-	logoText           string
-	completion         bool
+	config             *types.CmdConfig
 	args               []string
 	parsed             bool
 	runFunc            func(types.Command) error
@@ -30,11 +25,7 @@ func NewMockCommandBasic(name, shortName, description string) *MockCommandBasic 
 		name:         name,
 		shortName:    shortName,
 		description:  description,
-		version:      "",
-		useChinese:   false,
-		envPrefix:    "",
-		usageSyntax:  "",
-		logoText:     "",
+		config:       types.NewCmdConfig(),
 		args:         []string{},
 		parsed:       false,
 		runFunc:      nil,
@@ -50,22 +41,19 @@ func (c *MockCommandBasic) ShortName() string { return c.shortName }
 func (c *MockCommandBasic) Desc() string      { return c.description }
 
 func (c *MockCommandBasic) Config() *types.CmdConfig {
-	return &types.CmdConfig{
-		Version:     c.version,
-		UseChinese:  c.useChinese,
-		EnvPrefix:   c.envPrefix,
-		UsageSyntax: c.usageSyntax,
-		LogoText:    c.logoText,
-		Completion:  c.completion,
-	}
+	// 返回配置的克隆，避免外部修改影响内部状态
+	return c.config.Clone()
 }
 
-func (c *MockCommandBasic) SetVersion(version string)     { c.version = version }
-func (c *MockCommandBasic) SetChinese(useChinese bool)    { c.useChinese = useChinese }
-func (c *MockCommandBasic) SetEnvPrefix(prefix string)    { c.envPrefix = prefix }
-func (c *MockCommandBasic) SetUsageSyntax(syntax string)  { c.usageSyntax = syntax }
-func (c *MockCommandBasic) SetLogoText(logo string)       { c.logoText = logo }
-func (c *MockCommandBasic) SetCompletion(completion bool) { c.completion = completion }
+func (c *MockCommandBasic) SetVersion(version string)     { c.config.Version = version }
+func (c *MockCommandBasic) SetChinese(useChinese bool)    { c.config.UseChinese = useChinese }
+func (c *MockCommandBasic) SetEnvPrefix(prefix string)    { c.config.EnvPrefix = prefix }
+func (c *MockCommandBasic) SetUsageSyntax(syntax string)  { c.config.UsageSyntax = syntax }
+func (c *MockCommandBasic) SetLogoText(logo string)       { c.config.LogoText = logo }
+func (c *MockCommandBasic) SetCompletion(completion bool) { c.config.Completion = completion }
+func (c *MockCommandBasic) SetEnableDynamicCompletion(enable bool) {
+	c.config.EnableDynamicCompletion = enable
+}
 
 func (c *MockCommandBasic) AddFlag(f types.Flag) error {
 	return c.flagRegistry.Register(f)
