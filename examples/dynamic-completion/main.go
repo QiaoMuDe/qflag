@@ -13,6 +13,7 @@ func main() {
 	root.SetDesc("动态补全测试工具 - 用于测试 __complete 子命令和模糊匹配功能")
 	root.SetCompletion(true)
 	root.SetDynamicCompletion(true)
+	//root.SetChinese(true)
 
 	// 添加全局标志
 	root.String("config", "c", "配置文件路径", "")
