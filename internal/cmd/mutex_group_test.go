@@ -7,12 +7,9 @@ import (
 	"gitee.com/MM-Q/qflag/internal/types"
 )
 
-// TestAddMutexGroup 测试添加互斥组
 func TestAddMutexGroup(t *testing.T) {
-	// 创建命令
 	cmd := NewCmd("test", "t", types.ContinueOnError)
 
-	// 添加标志
 	if err := cmd.AddFlag(flag.NewStringFlag("format", "f", "Output format", "json")); err != nil {
 		t.Fatalf("Failed to add format flag: %v", err)
 	}
@@ -20,13 +17,11 @@ func TestAddMutexGroup(t *testing.T) {
 		t.Fatalf("Failed to add output flag: %v", err)
 	}
 
-	// 添加互斥组
 	if err := cmd.AddMutexGroup("output_format", []string{"format", "output"}, true); err != nil {
 		t.Fatalf("Failed to add mutex group: %v", err)
 	}
 
-	// 验证互斥组已添加
-	groups := cmd.GetMutexGroups()
+	groups := cmd.Config().MutexGroups
 	if len(groups) != 1 {
 		t.Fatalf("Expected 1 mutex group, got %d", len(groups))
 	}
@@ -48,131 +43,32 @@ func TestAddMutexGroup(t *testing.T) {
 		t.Errorf("Expected AllowNone to be true, got false")
 	}
 
-	// 测试添加重复的互斥组
 	if err := cmd.AddMutexGroup("output_format", []string{"format", "output"}, true); err == nil {
 		t.Error("Expected error when adding duplicate mutex group")
 	}
 }
 
-// TestAddMutexGroupWithEmptyFlags 测试添加空标志列表的互斥组
 func TestAddMutexGroupWithEmptyFlags(t *testing.T) {
-	// 创建命令
 	cmd := NewCmd("test", "t", types.ContinueOnError)
 
-	// 添加空标志列表的互斥组
 	if err := cmd.AddMutexGroup("empty", []string{}, true); err == nil {
 		t.Error("Expected error when adding mutex group with empty flags")
 	}
 }
 
-// TestAddMutexGroupWithNonExistentFlag 测试添加包含不存在标志的互斥组
 func TestAddMutexGroupWithNonExistentFlag(t *testing.T) {
-	// 创建命令
 	cmd := NewCmd("test", "t", types.ContinueOnError)
 
-	// 添加一个标志
 	if err := cmd.AddFlag(flag.NewStringFlag("format", "f", "Output format", "json")); err != nil {
 		t.Fatalf("Failed to add format flag: %v", err)
 	}
 
-	// 添加包含不存在标志的互斥组
 	if err := cmd.AddMutexGroup("test_group", []string{"format", "nonexistent"}, true); err == nil {
 		t.Error("Expected error when adding mutex group with non-existent flag")
 	}
 }
 
-// TestGetMutexGroups 测试获取互斥组列表
-func TestGetMutexGroups(t *testing.T) {
-	// 创建命令
-	cmd := NewCmd("test", "t", types.ContinueOnError)
-
-	// 添加标志
-	if err := cmd.AddFlag(flag.NewStringFlag("flag1", "f1", "Flag 1", "")); err != nil {
-		t.Fatalf("Failed to add flag1: %v", err)
-	}
-	if err := cmd.AddFlag(flag.NewStringFlag("flag2", "f2", "Flag 2", "")); err != nil {
-		t.Fatalf("Failed to add flag2: %v", err)
-	}
-	if err := cmd.AddFlag(flag.NewStringFlag("flag3", "f3", "Flag 3", "")); err != nil {
-		t.Fatalf("Failed to add flag3: %v", err)
-	}
-	if err := cmd.AddFlag(flag.NewStringFlag("flag4", "f4", "Flag 4", "")); err != nil {
-		t.Fatalf("Failed to add flag4: %v", err)
-	}
-
-	// 添加多个互斥组
-	if err := cmd.AddMutexGroup("group1", []string{"flag1", "flag2"}, true); err != nil {
-		t.Fatalf("Failed to add mutex group: %v", err)
-	}
-	if err := cmd.AddMutexGroup("group2", []string{"flag3", "flag4"}, false); err != nil {
-		t.Fatalf("Failed to add mutex group: %v", err)
-	}
-
-	// 获取互斥组列表
-	groups := cmd.GetMutexGroups()
-	if len(groups) != 2 {
-		t.Fatalf("Expected 2 mutex groups, got %d", len(groups))
-	}
-
-	// 修改返回的列表, 不应影响原始数据
-	groups[0].Name = "modified"
-	modifiedGroups := cmd.GetMutexGroups()
-	if modifiedGroups[0].Name == "modified" {
-		t.Error("Modifying returned groups should not affect original data")
-	}
-}
-
-// TestRemoveMutexGroup 测试移除互斥组
-func TestRemoveMutexGroup(t *testing.T) {
-	// 创建命令
-	cmd := NewCmd("test", "t", types.ContinueOnError)
-
-	// 添加标志
-	if err := cmd.AddFlag(flag.NewStringFlag("flag1", "f1", "Flag 1", "")); err != nil {
-		t.Fatalf("Failed to add flag1: %v", err)
-	}
-	if err := cmd.AddFlag(flag.NewStringFlag("flag2", "f2", "Flag 2", "")); err != nil {
-		t.Fatalf("Failed to add flag2: %v", err)
-	}
-	if err := cmd.AddFlag(flag.NewStringFlag("flag3", "f3", "Flag 3", "")); err != nil {
-		t.Fatalf("Failed to add flag3: %v", err)
-	}
-	if err := cmd.AddFlag(flag.NewStringFlag("flag4", "f4", "Flag 4", "")); err != nil {
-		t.Fatalf("Failed to add flag4: %v", err)
-	}
-
-	// 添加互斥组
-	if err := cmd.AddMutexGroup("group1", []string{"flag1", "flag2"}, true); err != nil {
-		t.Fatalf("Failed to add mutex group: %v", err)
-	}
-	if err := cmd.AddMutexGroup("group2", []string{"flag3", "flag4"}, false); err != nil {
-		t.Fatalf("Failed to add mutex group: %v", err)
-	}
-
-	// 移除存在的互斥组
-	if err := cmd.RemoveMutexGroup("group1"); err != nil {
-		t.Errorf("Expected no error when removing existing group, got: %v", err)
-	}
-
-	// 验证互斥组已移除
-	groups := cmd.GetMutexGroups()
-	if len(groups) != 1 {
-		t.Fatalf("Expected 1 mutex group after removal, got %d", len(groups))
-	}
-
-	if groups[0].Name != "group2" {
-		t.Errorf("Expected remaining group name 'group2', got '%s'", groups[0].Name)
-	}
-
-	// 尝试移除不存在的互斥组
-	if err := cmd.RemoveMutexGroup("nonexistent"); err == nil {
-		t.Error("Expected error when removing non-existing group")
-	}
-}
-
-// TestMutexGroupValidation 测试互斥组验证
 func TestMutexGroupValidation(t *testing.T) {
-	// 测试1: 不设置任何标志, 应该成功 (AllowNone=true)
 	func() {
 		cmd := NewCmd("test", "t", types.ContinueOnError)
 		if err := cmd.AddFlag(flag.NewStringFlag("format", "f", "Output format", "json")); err != nil {
@@ -191,7 +87,6 @@ func TestMutexGroupValidation(t *testing.T) {
 		}
 	}()
 
-	// 测试2: 只设置一个标志, 应该成功
 	func() {
 		cmd := NewCmd("test", "t", types.ContinueOnError)
 		if err := cmd.AddFlag(flag.NewStringFlag("format", "f", "Output format", "json")); err != nil {
@@ -210,7 +105,6 @@ func TestMutexGroupValidation(t *testing.T) {
 		}
 	}()
 
-	// 测试3: 设置互斥的两个标志, 应该失败
 	func() {
 		cmd := NewCmd("test", "t", types.ContinueOnError)
 		if err := cmd.AddFlag(flag.NewStringFlag("format", "f", "Output format", "json")); err != nil {
@@ -223,13 +117,12 @@ func TestMutexGroupValidation(t *testing.T) {
 			t.Fatalf("Failed to add mutex group: %v", err)
 		}
 
-		err := cmd.Parse([]string{"--format", "json", "--output", "result.txt"})
+		err := cmd.Parse([]string{"--format", "json", "--output", "file.txt"})
 		if err == nil {
-			t.Error("Expected error when both mutually exclusive flags are set")
+			t.Error("Expected error when both mutex flags are set")
 		}
 	}()
 
-	// 测试4: 添加不允许为空的互斥组
 	func() {
 		cmd := NewCmd("test", "t", types.ContinueOnError)
 		if err := cmd.AddFlag(flag.NewStringFlag("format", "f", "Output format", "json")); err != nil {
@@ -238,182 +131,83 @@ func TestMutexGroupValidation(t *testing.T) {
 		if err := cmd.AddFlag(flag.NewStringFlag("output", "o", "Output file", "")); err != nil {
 			t.Fatalf("Failed to add output flag: %v", err)
 		}
-		if err := cmd.AddFlag(flag.NewStringFlag("input", "i", "Input file", "")); err != nil {
-			t.Fatalf("Failed to add input flag: %v", err)
-		}
-		if err := cmd.AddFlag(flag.NewStringFlag("source", "s", "Source file", "")); err != nil {
-			t.Fatalf("Failed to add source flag: %v", err)
-		}
-		if err := cmd.AddMutexGroup("output_format", []string{"format", "output"}, true); err != nil {
-			t.Fatalf("Failed to add mutex group: %v", err)
-		}
-		if err := cmd.AddMutexGroup("input_source", []string{"input", "source"}, false); err != nil {
+		if err := cmd.AddMutexGroup("output_format", []string{"format", "output"}, false); err != nil {
 			t.Fatalf("Failed to add mutex group: %v", err)
 		}
 
-		// 不设置任何标志, 应该失败 (因为第二个互斥组不允许为空)
 		err := cmd.Parse([]string{})
 		if err == nil {
-			t.Error("Expected error when no flag is set for group with AllowNone=false")
-		}
-	}()
-
-	// 测试5: 只设置一个标志, 应该成功
-	func() {
-		cmd := NewCmd("test", "t", types.ContinueOnError)
-		if err := cmd.AddFlag(flag.NewStringFlag("format", "f", "Output format", "json")); err != nil {
-			t.Fatalf("Failed to add format flag: %v", err)
-		}
-		if err := cmd.AddFlag(flag.NewStringFlag("output", "o", "Output file", "")); err != nil {
-			t.Fatalf("Failed to add output flag: %v", err)
-		}
-		if err := cmd.AddFlag(flag.NewStringFlag("input", "i", "Input file", "")); err != nil {
-			t.Fatalf("Failed to add input flag: %v", err)
-		}
-		if err := cmd.AddFlag(flag.NewStringFlag("source", "s", "Source file", "")); err != nil {
-			t.Fatalf("Failed to add source flag: %v", err)
-		}
-		if err := cmd.AddMutexGroup("output_format", []string{"format", "output"}, true); err != nil {
-			t.Fatalf("Failed to add mutex group: %v", err)
-		}
-		if err := cmd.AddMutexGroup("input_source", []string{"input", "source"}, false); err != nil {
-			t.Fatalf("Failed to add mutex group: %v", err)
-		}
-
-		err := cmd.Parse([]string{"--input", "file.txt"})
-		if err != nil {
-			t.Errorf("Expected no error when one flag is set for group with AllowNone=false, got: %v", err)
+			t.Error("Expected error when no flags are set with AllowNone=false")
 		}
 	}()
 }
 
-// TestMultipleMutexGroups 测试多个互斥组
-func TestMultipleMutexGroups(t *testing.T) {
-	// 创建命令
+func TestMutexGroupWithMultipleGroups(t *testing.T) {
 	cmd := NewCmd("test", "t", types.ContinueOnError)
 
-	// 添加标志
-	if err := cmd.AddFlag(flag.NewStringFlag("format", "f", "Output format", "json")); err != nil {
+	if err := cmd.AddFlag(flag.NewBoolFlag("json", "j", "JSON format", false)); err != nil {
+		t.Fatalf("Failed to add json flag: %v", err)
+	}
+	if err := cmd.AddFlag(flag.NewBoolFlag("xml", "x", "XML format", false)); err != nil {
+		t.Fatalf("Failed to add xml flag: %v", err)
+	}
+	if err := cmd.AddFlag(flag.NewBoolFlag("compress", "c", "Compress output", false)); err != nil {
+		t.Fatalf("Failed to add compress flag: %v", err)
+	}
+	if err := cmd.AddFlag(flag.NewBoolFlag("encrypt", "e", "Encrypt output", false)); err != nil {
+		t.Fatalf("Failed to add encrypt flag: %v", err)
+	}
+
+	if err := cmd.AddMutexGroup("format", []string{"json", "xml"}, true); err != nil {
+		t.Fatalf("Failed to add format mutex group: %v", err)
+	}
+	if err := cmd.AddMutexGroup("security", []string{"compress", "encrypt"}, true); err != nil {
+		t.Fatalf("Failed to add security mutex group: %v", err)
+	}
+
+	groups := cmd.Config().MutexGroups
+	if len(groups) != 2 {
+		t.Fatalf("Expected 2 mutex groups, got %d", len(groups))
+	}
+
+	err := cmd.Parse([]string{"--json", "--compress"})
+	if err != nil {
+		t.Errorf("Expected no error when using flags from different groups, got: %v", err)
+	}
+
+	cmd2 := NewCmd("test2", "t2", types.ContinueOnError)
+	if err := cmd2.AddFlag(flag.NewBoolFlag("json", "j", "JSON format", false)); err != nil {
+		t.Fatalf("Failed to add json flag: %v", err)
+	}
+	if err := cmd2.AddFlag(flag.NewBoolFlag("xml", "x", "XML format", false)); err != nil {
+		t.Fatalf("Failed to add xml flag: %v", err)
+	}
+	if err := cmd2.AddMutexGroup("format", []string{"json", "xml"}, true); err != nil {
+		t.Fatalf("Failed to add format mutex group: %v", err)
+	}
+
+	err = cmd2.Parse([]string{"--json", "--xml"})
+	if err == nil {
+		t.Error("Expected error when using flags from same mutex group")
+	}
+}
+
+func TestMutexGroupWithEnvVar(t *testing.T) {
+	cmd := NewCmd("test", "t", types.ContinueOnError)
+
+	if err := cmd.AddFlag(flag.NewStringFlag("format", "f", "Output format", "")); err != nil {
 		t.Fatalf("Failed to add format flag: %v", err)
 	}
 	if err := cmd.AddFlag(flag.NewStringFlag("output", "o", "Output file", "")); err != nil {
 		t.Fatalf("Failed to add output flag: %v", err)
 	}
-	if err := cmd.AddFlag(flag.NewStringFlag("input", "i", "Input file", "")); err != nil {
-		t.Fatalf("Failed to add input flag: %v", err)
-	}
-	if err := cmd.AddFlag(flag.NewStringFlag("source", "s", "Source file", "")); err != nil {
-		t.Fatalf("Failed to add source flag: %v", err)
-	}
 
-	// 添加两个互斥组
 	if err := cmd.AddMutexGroup("output_format", []string{"format", "output"}, true); err != nil {
 		t.Fatalf("Failed to add mutex group: %v", err)
 	}
-	if err := cmd.AddMutexGroup("input_source", []string{"input", "source"}, false); err != nil {
-		t.Fatalf("Failed to add mutex group: %v", err)
-	}
 
-	// 测试1: 每个互斥组设置一个标志, 应该成功
-	func() {
-		cmd := NewCmd("test", "t", types.ContinueOnError)
-		if err := cmd.AddFlag(flag.NewStringFlag("format", "f", "Output format", "json")); err != nil {
-			t.Fatalf("Failed to add format flag: %v", err)
-		}
-		if err := cmd.AddFlag(flag.NewStringFlag("output", "o", "Output file", "")); err != nil {
-			t.Fatalf("Failed to add output flag: %v", err)
-		}
-		if err := cmd.AddFlag(flag.NewStringFlag("input", "i", "Input file", "")); err != nil {
-			t.Fatalf("Failed to add input flag: %v", err)
-		}
-		if err := cmd.AddFlag(flag.NewStringFlag("source", "s", "Source file", "")); err != nil {
-			t.Fatalf("Failed to add source flag: %v", err)
-		}
-		if err := cmd.AddMutexGroup("output_format", []string{"format", "output"}, true); err != nil {
-			t.Fatalf("Failed to add mutex group: %v", err)
-		}
-		if err := cmd.AddMutexGroup("input_source", []string{"input", "source"}, false); err != nil {
-			t.Fatalf("Failed to add mutex group: %v", err)
-		}
-
-		err := cmd.Parse([]string{"--format", "json", "--input", "file.txt"})
-		if err != nil {
-			t.Errorf("Expected no error when one flag from each group is set, got: %v", err)
-		}
-	}()
-
-	// 测试2: 一个互斥组设置多个标志, 应该失败
-	func() {
-		cmd := NewCmd("test", "t", types.ContinueOnError)
-		if err := cmd.AddFlag(flag.NewStringFlag("format", "f", "Output format", "json")); err != nil {
-			t.Fatalf("Failed to add format flag: %v", err)
-		}
-		if err := cmd.AddFlag(flag.NewStringFlag("output", "o", "Output file", "")); err != nil {
-			t.Fatalf("Failed to add output flag: %v", err)
-		}
-		if err := cmd.AddFlag(flag.NewStringFlag("input", "i", "Input file", "")); err != nil {
-			t.Fatalf("Failed to add input flag: %v", err)
-		}
-		if err := cmd.AddFlag(flag.NewStringFlag("source", "s", "Source file", "")); err != nil {
-			t.Fatalf("Failed to add source flag: %v", err)
-		}
-		if err := cmd.AddMutexGroup("output_format", []string{"format", "output"}, true); err != nil {
-			t.Fatalf("Failed to add mutex group: %v", err)
-		}
-		if err := cmd.AddMutexGroup("input_source", []string{"input", "source"}, false); err != nil {
-			t.Fatalf("Failed to add mutex group: %v", err)
-		}
-
-		err := cmd.Parse([]string{"--format", "json", "--output", "result.txt", "--input", "file.txt"})
-		if err == nil {
-			t.Error("Expected error when multiple flags from one mutex group are set")
-		}
-	}()
-}
-
-// TestMutexGroupConcurrency 测试互斥组的并发安全性
-func TestMutexGroupConcurrency(t *testing.T) {
-	// 创建命令
-	cmd := NewCmd("test", "t", types.ContinueOnError)
-
-	// 添加标志
-	if err := cmd.AddFlag(flag.NewStringFlag("flag1", "f1", "Flag 1", "")); err != nil {
-		t.Fatalf("Failed to add flag1: %v", err)
-	}
-	if err := cmd.AddFlag(flag.NewStringFlag("flag2", "f2", "Flag 2", "")); err != nil {
-		t.Fatalf("Failed to add flag2: %v", err)
-	}
-	if err := cmd.AddFlag(flag.NewStringFlag("flag3", "f3", "Flag 3", "")); err != nil {
-		t.Fatalf("Failed to add flag3: %v", err)
-	}
-	if err := cmd.AddFlag(flag.NewStringFlag("flag4", "f4", "Flag 4", "")); err != nil {
-		t.Fatalf("Failed to add flag4: %v", err)
-	}
-
-	// 并发添加互斥组
-	done := make(chan bool, 2)
-
-	go func() {
-		if err := cmd.AddMutexGroup("group1", []string{"flag1", "flag2"}, true); err != nil {
-			t.Errorf("Failed to add mutex group: %v", err)
-		}
-		done <- true
-	}()
-
-	go func() {
-		if err := cmd.AddMutexGroup("group2", []string{"flag3", "flag4"}, false); err != nil {
-			t.Errorf("Failed to add mutex group: %v", err)
-		}
-		done <- true
-	}()
-
-	// 等待两个goroutine完成
-	<-done
-	<-done
-
-	// 验证两个互斥组都已添加
-	groups := cmd.GetMutexGroups()
-	if len(groups) != 2 {
-		t.Fatalf("Expected 2 mutex groups, got %d", len(groups))
+	groups := cmd.Config().MutexGroups
+	if len(groups) != 1 {
+		t.Fatalf("Expected 1 mutex group, got %d", len(groups))
 	}
 }

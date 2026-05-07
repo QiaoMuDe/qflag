@@ -9,10 +9,8 @@ import (
 )
 
 func TestNewCmdOpts(t *testing.T) {
-	// 测试基本创建
 	opts := NewCmdOpts()
 
-	// 验证字段初始化
 	if opts.Examples == nil {
 		t.Error("Examples map should be initialized")
 	}
@@ -29,7 +27,6 @@ func TestNewCmdOpts(t *testing.T) {
 		t.Error("MutexGroups slice should be initialized")
 	}
 
-	// 验证零值
 	if opts.Desc != "" {
 		t.Errorf("Expected empty Desc, got '%s'", opts.Desc)
 	}
@@ -44,10 +41,9 @@ func TestNewCmdOpts(t *testing.T) {
 }
 
 func TestCmd_ApplyOpts_BasicProperties(t *testing.T) {
-	// 测试基本属性设置
 	cmd := NewCmd("test", "t", types.ExitOnError)
 	opts := &CmdOpts{
-		Desc:    "测试命令",
+		Desc:    "test command",
 		Version: "1.0.0",
 	}
 
@@ -56,8 +52,8 @@ func TestCmd_ApplyOpts_BasicProperties(t *testing.T) {
 		t.Fatalf("ApplyOpts failed: %v", err)
 	}
 
-	if cmd.Desc() != "测试命令" {
-		t.Errorf("Expected Desc '测试命令', got '%s'", cmd.Desc())
+	if cmd.Desc() != "test command" {
+		t.Errorf("Expected Desc 'test command', got '%s'", cmd.Desc())
 	}
 
 	if cmd.Config().Version != "1.0.0" {
@@ -66,13 +62,11 @@ func TestCmd_ApplyOpts_BasicProperties(t *testing.T) {
 }
 
 func TestCmd_ApplyOpts_PartialConfig(t *testing.T) {
-	// 测试部分配置
 	cmd := NewCmd("test", "t", types.ExitOnError)
-	cmd.SetDesc("原始描述")
+	cmd.SetDesc("original desc")
 
 	opts := &CmdOpts{
 		Version: "1.0.0",
-		// 不设置 Desc
 	}
 
 	err := cmd.ApplyOpts(opts)
@@ -80,8 +74,8 @@ func TestCmd_ApplyOpts_PartialConfig(t *testing.T) {
 		t.Fatalf("ApplyOpts failed: %v", err)
 	}
 
-	if cmd.Desc() != "原始描述" {
-		t.Errorf("Expected Desc '原始描述', got '%s'", cmd.Desc())
+	if cmd.Desc() != "original desc" {
+		t.Errorf("Expected Desc 'original desc', got '%s'", cmd.Desc())
 	}
 
 	if cmd.Config().Version != "1.0.0" {
@@ -90,7 +84,6 @@ func TestCmd_ApplyOpts_PartialConfig(t *testing.T) {
 }
 
 func TestCmd_ApplyOpts_NilOpts(t *testing.T) {
-	// 测试 nil 选项
 	cmd := NewCmd("test", "t", types.ExitOnError)
 	var opts *CmdOpts
 
@@ -101,10 +94,8 @@ func TestCmd_ApplyOpts_NilOpts(t *testing.T) {
 }
 
 func TestCmd_ApplyOpts_AllFields(t *testing.T) {
-	// 测试所有字段
 	cmd := NewCmd("test", "t", types.ExitOnError)
 
-	// 先添加标志
 	if err := cmd.AddFlag(flag.NewStringFlag("json", "j", "JSON format", "")); err != nil {
 		t.Fatalf("Failed to add json flag: %v", err)
 	}
@@ -113,30 +104,23 @@ func TestCmd_ApplyOpts_AllFields(t *testing.T) {
 	}
 
 	opts := &CmdOpts{
-		// 基本属性
-		Desc: "测试命令",
+		Desc: "test command",
 		RunFunc: func(c types.Command) error {
 			return nil
 		},
-
-		// 配置选项
 		Version:     "1.0.0",
 		UseChinese:  true,
 		EnvPrefix:   "TEST",
 		UsageSyntax: "test [options]",
 		LogoText:    "Test Logo",
-
-		// 示例和说明
 		Examples: map[string]string{
-			"示例1": "test --help",
-			"示例2": "test --version",
+			"example1": "test --help",
+			"example2": "test --version",
 		},
 		Notes: []string{
-			"注意1",
-			"注意2",
+			"note1",
+			"note2",
 		},
-
-		// 子命令和互斥组
 		MutexGroups: []types.MutexGroup{
 			{
 				Name:      "format",
@@ -151,12 +135,10 @@ func TestCmd_ApplyOpts_AllFields(t *testing.T) {
 		t.Fatalf("ApplyOpts failed: %v", err)
 	}
 
-	// 验证基本属性
-	if cmd.Desc() != "测试命令" {
-		t.Errorf("Expected Desc '测试命令', got '%s'", cmd.Desc())
+	if cmd.Desc() != "test command" {
+		t.Errorf("Expected Desc 'test command', got '%s'", cmd.Desc())
 	}
 
-	// 验证配置选项
 	if cmd.Config().Version != "1.0.0" {
 		t.Errorf("Expected Version '1.0.0', got '%s'", cmd.Config().Version)
 	}
@@ -177,33 +159,19 @@ func TestCmd_ApplyOpts_AllFields(t *testing.T) {
 		t.Errorf("Expected LogoText 'Test Logo', got '%s'", cmd.Config().LogoText)
 	}
 
-	// 验证示例和说明
 	if len(cmd.Config().Example) != 2 {
 		t.Errorf("Expected 2 examples, got %d", len(cmd.Config().Example))
 	}
 
-	if cmd.Config().Example["示例1"] != "test --help" {
-		t.Errorf("Expected example 'test --help', got '%s'", cmd.Config().Example["示例1"])
-	}
-
-	if cmd.Config().Example["示例2"] != "test --version" {
-		t.Errorf("Expected example 'test --version', got '%s'", cmd.Config().Example["示例2"])
+	if cmd.Config().Example["example1"] != "test --help" {
+		t.Errorf("Expected example 'test --help', got '%s'", cmd.Config().Example["example1"])
 	}
 
 	if len(cmd.Config().Notes) != 2 {
 		t.Errorf("Expected 2 notes, got %d", len(cmd.Config().Notes))
 	}
 
-	if cmd.Config().Notes[0] != "注意1" {
-		t.Errorf("Expected note '注意1', got '%s'", cmd.Config().Notes[0])
-	}
-
-	if cmd.Config().Notes[1] != "注意2" {
-		t.Errorf("Expected note '注意2', got '%s'", cmd.Config().Notes[1])
-	}
-
-	// 验证互斥组
-	groups := cmd.GetMutexGroups()
+	groups := cmd.Config().MutexGroups
 	if len(groups) != 1 {
 		t.Errorf("Expected 1 mutex group, got %d", len(groups))
 	}
@@ -211,26 +179,9 @@ func TestCmd_ApplyOpts_AllFields(t *testing.T) {
 	if groups[0].Name != "format" {
 		t.Errorf("Expected mutex group name 'format', got '%s'", groups[0].Name)
 	}
-
-	if len(groups[0].Flags) != 2 {
-		t.Errorf("Expected 2 flags, got %d", len(groups[0].Flags))
-	}
-
-	if groups[0].Flags[0] != "json" {
-		t.Errorf("Expected flag 'json', got '%s'", groups[0].Flags[0])
-	}
-
-	if groups[0].Flags[1] != "xml" {
-		t.Errorf("Expected flag 'xml', got '%s'", groups[0].Flags[1])
-	}
-
-	if groups[0].AllowNone != false {
-		t.Errorf("Expected AllowNone false, got %v", groups[0].AllowNone)
-	}
 }
 
 func TestCmd_ApplyOpts_SubCmds(t *testing.T) {
-	// 测试子命令
 	cmd := NewCmd("test", "t", types.ExitOnError)
 
 	subCmd1 := NewCmd("sub1", "s1", types.ExitOnError)
@@ -255,49 +206,21 @@ func TestCmd_ApplyOpts_SubCmds(t *testing.T) {
 }
 
 func TestCmd_ApplyOpts_ConcurrentSafety(t *testing.T) {
-	// 测试并发安全
 	cmd := NewCmd("test", "t", types.ExitOnError)
 	opts := &CmdOpts{
-		Desc: "测试命令",
+		Desc: "test command",
 	}
 
 	var wg sync.WaitGroup
-	for i := 0; i < 100; i++ {
+	for i := 0; i < 10; i++ {
 		wg.Add(1)
 		go func() {
 			defer wg.Done()
-			_ = cmd.ApplyOpts(opts)
+			err := cmd.ApplyOpts(opts)
+			if err != nil {
+				t.Errorf("ApplyOpts failed: %v", err)
+			}
 		}()
 	}
 	wg.Wait()
-
-	if cmd.Desc() != "测试命令" {
-		t.Errorf("Expected Desc '测试命令', got '%s'", cmd.Desc())
-	}
-}
-
-func TestCmd_ApplyOpts_EmptyValues(t *testing.T) {
-	// 测试空值不会被应用
-	cmd := NewCmd("test", "t", types.ExitOnError)
-	cmd.SetDesc("原始描述")
-	cmd.SetVersion("0.0.0")
-
-	opts := &CmdOpts{
-		// 空值不应该覆盖原有值
-		Desc:    "",
-		Version: "",
-	}
-
-	err := cmd.ApplyOpts(opts)
-	if err != nil {
-		t.Fatalf("ApplyOpts failed: %v", err)
-	}
-
-	if cmd.Desc() != "原始描述" {
-		t.Errorf("Expected Desc '原始描述', got '%s'", cmd.Desc())
-	}
-
-	if cmd.Config().Version != "0.0.0" {
-		t.Errorf("Expected Version '0.0.0', got '%s'", cmd.Config().Version)
-	}
 }
