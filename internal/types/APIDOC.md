@@ -715,17 +715,18 @@ const (
 
 ```go
 type CmdConfig struct {
-    Version        string            // 版本号
-    UseChinese     bool              // 是否使用中文
-    EnvPrefix      string            // 环境变量前缀
-    UsageSyntax    string            // 命令使用语法
-    Example        map[string]string // 示例使用, key为描述, value为示例命令
-    Notes          []string          // 注意事项
-    LogoText       string            // 命令logo文本
-    MutexGroups    []MutexGroup      // 互斥组列表
-    RequiredGroups []RequiredGroup   // 必需组列表
-    Completion     bool              // 是否启用自动补全标志
-    DynamicCompletion bool           // 是否启用动态补全
+    Version           string            // 版本号
+    UseChinese        bool              // 是否使用中文
+    EnvPrefix         string            // 环境变量前缀
+    UsageSyntax       string            // 命令使用语法
+    Example           map[string]string // 示例使用, key为描述, value为示例命令
+    Notes             []string          // 注意事项
+    LogoText          string            // 命令logo文本
+    MutexGroups       []MutexGroup      // 互斥组列表
+    RequiredGroups    []RequiredGroup   // 必需组列表
+    FlagDependencies  []FlagDependency  // 标志依赖关系列表
+    Completion        bool              // 是否启用自动补全标志
+    DynamicCompletion bool              // 是否启用动态补全
 }
 ```
 
@@ -1747,6 +1748,83 @@ port.SetValidator(func(value int) error {
   - 验证器执行时已经持有锁，验证器本身不需要处理并发
   - 空字符串（对于 BoolFlag 和集合类型）不经过验证
   - 验证器可以随时通过 ClearValidator 清除
+
+---
+
+### type DepType int
+
+```go
+type DepType int
+```
+
+DepType 依赖关系类型
+
+DepType 定义了标志依赖关系的类型，用于区分互斥依赖和必需依赖。
+
+```go
+const (
+    // DepMutex 互斥依赖
+    // 当触发标志被设置时，目标标志不能被设置
+    DepMutex DepType = iota
+
+    // DepRequired 必需依赖
+    // 当触发标志被设置时，所有目标标志必须被设置
+    DepRequired
+)
+```
+
+**使用场景:**
+  - DepMutex: 远程模式与本地路径互斥 (trigger="remote", targets=["local-path"])
+  - DepRequired: SSL模式需要证书和密钥 (trigger="ssl", targets=["cert","key"])
+  - DepMutex: 配置文件模式与其他配置互斥 (trigger="config", targets=["port","host"])
+
+#### func (d DepType) String() string
+
+```go
+func (d DepType) String() string
+```
+
+String 返回依赖类型的字符串表示
+
+**返回值:**
+  - string: 依赖类型的字符串表示
+    - DepMutex -> "mutex"
+    - DepRequired -> "required"
+    - 其他 -> "unknown"
+
+---
+
+### type FlagDependency struct
+
+```go
+type FlagDependency struct {
+    Name    string   // 依赖关系名称，用于错误提示和标识
+    Trigger string   // 触发标志名称
+    Targets []string // 目标标志名称列表
+    Type    DepType  // 依赖关系类型
+}
+```
+
+FlagDependency 标志依赖关系定义
+
+FlagDependency 定义了当某个标志（触发标志）被设置时，对其他标志（目标标志）的约束条件。
+
+**字段说明:**
+  - Name: 依赖关系名称，用于错误提示和标识
+  - Trigger: 触发标志的名称，当此标志被设置时触发依赖检查
+  - Targets: 目标标志名称列表，这些标志会受到约束
+  - Type: 依赖关系类型（互斥或必需）
+
+**使用场景:**
+  - 远程模式与本地路径互斥 (trigger="remote", targets=["local-path"], type=DepMutex)
+  - SSL模式需要证书和密钥 (trigger="ssl", targets=["cert","key"], type=DepRequired)
+  - 配置文件模式与其他配置互斥 (trigger="config", targets=["port","host"], type=DepMutex)
+
+**注意事项:**
+  - 依赖关系是单向的，从触发标志指向目标标志
+  - 触发标志和目标标志必须都已注册
+  - 触发标志不能在目标标志列表中（不能自依赖）
+  - 依赖关系名称在命令中应该唯一
 
 ---
 
