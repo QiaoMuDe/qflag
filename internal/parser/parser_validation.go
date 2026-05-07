@@ -275,10 +275,15 @@ func (p *DefaultParser) validateFlagDependencies(config *types.CmdConfig) error 
 			seenConflicts := make(map[string]bool)
 
 			for _, target := range dep.Targets {
+				// 检查目标标志是否存在
+				displayName, ok := p.flagDisplayNames[target]
+				if !ok {
+					return fmt.Errorf("invalid target flag '%s' in dependency '%s'", target, dep.Name)
+				}
+
 				// 如果目标标志被设置, 添加到冲突列表
 				if setFlags[target] {
 					// 添加去重检查，避免同一个标志的多个名称重复显示
-					displayName := p.flagDisplayNames[target]
 					if !seenConflicts[displayName] {
 						seenConflicts[displayName] = true
 						conflictFlags = append(conflictFlags, displayName)
@@ -299,10 +304,15 @@ func (p *DefaultParser) validateFlagDependencies(config *types.CmdConfig) error 
 			seenMissing := make(map[string]bool)
 
 			for _, target := range dep.Targets {
+				// 检查目标标志是否存在
+				displayName, ok := p.flagDisplayNames[target]
+				if !ok {
+					return fmt.Errorf("invalid target flag '%s' in dependency '%s'", target, dep.Name)
+				}
+
 				// 如果目标标志未被设置, 添加到缺失列表
 				if !setFlags[target] {
 					// 添加去重检查，避免同一个标志的多个名称重复显示
-					displayName := p.flagDisplayNames[target]
 					if !seenMissing[displayName] {
 						seenMissing[displayName] = true
 						missingFlags = append(missingFlags, displayName)
