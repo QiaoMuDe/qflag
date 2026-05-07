@@ -620,6 +620,8 @@ func main() {
 
 确保组内**最多只有一个**标志被设置。
 
+**方式一：通过 CmdOpts 配置（推荐）**
+
 ```go
 cmdOpts := &qflag.CmdOpts{
     Desc: "部署命令",
@@ -631,6 +633,13 @@ cmdOpts := &qflag.CmdOpts{
         },
     },
 }
+```
+
+**方式二：通过 Root 直接添加（全局根命令）**
+
+```go
+// 在全局根命令上直接添加互斥组
+qflag.Root.AddMutexGroup("format", []string{"json", "xml", "yaml"}, false)
 ```
 
 **使用场景**：
@@ -649,6 +658,8 @@ yourapp deploy --dev --staging  # 报错：互斥标志冲突
 
 确保组内**所有**标志都被设置。
 
+**方式一：通过 CmdOpts 配置（推荐）**
+
 ```go
 cmdOpts := &qflag.CmdOpts{
     Desc: "数据库配置",
@@ -660,6 +671,16 @@ cmdOpts := &qflag.CmdOpts{
         },
     },
 }
+```
+
+**方式二：通过 Root 直接添加（全局根命令）**
+
+```go
+// 添加普通必需组
+qflag.Root.AddRequiredGroup("connection", []string{"host", "port"}, false)
+
+// 添加条件性必需组
+qflag.Root.AddRequiredGroup("database", []string{"dbhost", "dbport"}, true)
 ```
 
 **条件性必需组**：
@@ -692,6 +713,46 @@ yourapp run --username=admin  # 缺少 password
 # ✅ 正确：设置全部
 yourapp run --username=admin --password=secret
 ```
+
+### 标志依赖关系（FlagDependency）
+
+定义标志之间的依赖约束，当触发标志被设置时，目标标志会受到约束（互斥或必需）。
+
+**方式一：通过 CmdOpts 配置（推荐）**
+
+```go
+cmdOpts := &qflag.CmdOpts{
+    Desc: "服务器配置",
+    FlagDependencies: []qflag.FlagDependency{
+        {
+            Name:    "remote_mutex_local",
+            Trigger: "remote",
+            Targets: []string{"local-path"},
+            Type:    qflag.DepMutex,
+        },
+        {
+            Name:    "ssl_requires_cert_key",
+            Trigger: "ssl",
+            Targets: []string{"cert", "key"},
+            Type:    qflag.DepRequired,
+        },
+    },
+}
+```
+
+**方式二：通过 Root 直接添加（全局根命令）**
+
+```go
+// 互斥依赖：远程模式与本地路径互斥
+qflag.Root.AddFlagDependency("remote_mutex_local", "remote", []string{"local-path"}, qflag.DepMutex)
+
+// 必需依赖：SSL模式需要证书和密钥
+qflag.Root.AddFlagDependency("ssl_requires_cert_key", "ssl", []string{"cert", "key"}, qflag.DepRequired)
+```
+
+**依赖类型说明：**
+- `qflag.DepMutex`：互斥依赖，触发标志被设置时，目标标志不能被设置
+- `qflag.DepRequired`：必需依赖，触发标志被设置时，目标标志必须被设置
 
 ---
 

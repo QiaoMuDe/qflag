@@ -230,6 +230,7 @@ func run<Command>(cmd qflag.Command) error {
 | `SubCmds` | []Command | 子命令列表 | `[]qflag.Command{RunCmd}` |
 | `MutexGroups` | []MutexGroup | 互斥组 | 定义互斥的标志 |
 | `RequiredGroups` | []RequiredGroup | 必需组 | 定义必需的标志 |
+| `FlagDependencies` | []FlagDependency | 标志依赖关系 | 定义标志之间的依赖约束 |
 
 **基础配置示例：**
 ```go
@@ -283,6 +284,23 @@ cmdOpts := &qflag.CmdOpts{
         },
     },
 }
+```
+
+### 通过全局根命令直接添加
+
+除了使用 `CmdOpts` 配置外，还可以通过全局根命令 `qflag.Root` 直接添加互斥组、必需组和标志依赖关系：
+
+```go
+// 添加互斥组
+qflag.Root.AddMutexGroup("format", []string{"json", "xml"}, false)
+
+// 添加必需组
+qflag.Root.AddRequiredGroup("connection", []string{"host", "port"}, false)
+qflag.Root.AddRequiredGroup("database", []string{"dbhost", "dbport"}, true)
+
+// 添加标志依赖关系
+qflag.Root.AddFlagDependency("ssl_requires_cert", "ssl", []string{"cert", "key"}, qflag.DepRequired)
+qflag.Root.AddFlagDependency("remote_mutex_local", "remote", []string{"local-path"}, qflag.DepMutex)
 ```
 
 ## 环境变量绑定规范

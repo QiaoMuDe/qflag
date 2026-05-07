@@ -184,7 +184,7 @@ func run<Command>(cmd qflag.Command) error {
 }
 ```
 
-### 2. 选项定义规范
+### 2. 标志定义规范
 
 | 类型 | 方法 | 示例 |
 |------|------|------|
@@ -230,6 +230,7 @@ func run<Command>(cmd qflag.Command) error {
 | `SubCmds` | []Command | 子命令列表 | `[]qflag.Command{RunCmd}` |
 | `MutexGroups` | []MutexGroup | 互斥组 | 定义互斥的标志 |
 | `RequiredGroups` | []RequiredGroup | 必需组 | 定义必需的标志 |
+| `FlagDependencies` | []FlagDependency | 标志依赖关系 | 定义标志之间的依赖约束 |
 
 **基础配置示例：**
 ```go
@@ -252,10 +253,10 @@ cmdOpts := &qflag.CmdOpts{
     Version:     "1.0.0",                // 版本号（仅在根命令生效）
     UseChinese:  true,
     EnvPrefix:   "FCK",                  // 环境变量前缀
-    AutoBindEnv: true,                   // 自动绑定所有标志的环境变量
     UsageSyntax: fmt.Sprintf("%s 当前子命令名 [选项] [位置参数...]", qflag.Root.Name()),
     LogoText:    "FCK Tools",
     Completion:  true,                   // 启用自动补全（仅在根命令生效）
+    AutoBindEnv: true,                   // 自动绑定所有标志的环境变量
     Examples: map[string]string{
         "创建单个目录":   "mkdir test",
         "递归创建目录":   "mkdir -p a/b/c",
@@ -285,9 +286,26 @@ cmdOpts := &qflag.CmdOpts{
 }
 ```
 
+### 通过全局根命令直接添加
+
+除了使用 `CmdOpts` 配置外，还可以通过全局根命令 `qflag.Root` 直接添加互斥组、必需组和标志依赖关系：
+
+```go
+// 添加互斥组
+qflag.Root.AddMutexGroup("format", []string{"json", "xml"}, false)
+
+// 添加必需组
+qflag.Root.AddRequiredGroup("connection", []string{"host", "port"}, false)
+qflag.Root.AddRequiredGroup("database", []string{"dbhost", "dbport"}, true)
+
+// 添加标志依赖关系
+qflag.Root.AddFlagDependency("ssl_requires_cert", "ssl", []string{"cert", "key"}, qflag.DepRequired)
+qflag.Root.AddFlagDependency("remote_mutex_local", "remote", []string{"local-path"}, qflag.DepMutex)
+```
+
 ## 环境变量绑定规范
 
-QFlag 提供了四种环境变量绑定方式，可根据实际需求选择。
+QFlag 提供了三种环境变量绑定方式，可根据实际需求选择。
 
 ### 1. 手动指定环境变量名
 
@@ -374,7 +392,7 @@ func init() {
 }
 ```
 
-### 5. 四种方式对比
+### 5. 三种方式对比
 
 | 方式 | 方法 | 适用场景 | 特点 |
 |------|------|----------|------|
