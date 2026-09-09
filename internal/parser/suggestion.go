@@ -163,8 +163,11 @@ func newUnknownFlagError(cmd types.Command, input string) error {
 // 判断逻辑:
 //   - 以 - 或 -- 开头的参数一定是标志
 //   - 如果不在已注册标志列表中，就是错误的标志
-//   - 遇到 -- 停止扫描，后面的都视为位置参数
+//   - 遇到 -- 或单独的 - 停止扫描，后面的都视为位置参数
 //   - 遇到子命令名时停止扫描（后续标志由子命令处理）
+//   - 非布尔取值标志（未使用 --flag=value 内联形式）会消费紧随其后的
+//     下一个 token 作为它的值，因此该 token（即使以 - 开头，如负数 -8080）
+//     不能被当作标志名检查，需跳过
 //
 // 参数:
 //   - cmd: 当前命令
@@ -173,24 +176,33 @@ func newUnknownFlagError(cmd types.Command, input string) error {
 // 返回值:
 //   - error: 如果发现未知标志返回错误，否则返回 nil
 func checkUnknownFlags(cmd types.Command, args []string) error {
-	// 获取所有已注册的标志名（长短名称都包括）
-	registeredFlags := make(map[string]bool)
+	// 获取所有已注册的标志名（长短名称都包括）并映射到标志实例，便于判断是否取值
+	registeredFlags := make(map[string]types.Flag)
 	for _, f := range cmd.FlagRegistry().List() {
 		if f.LongName() != "" {
-			registeredFlags["--"+f.LongName()] = true
-			registeredFlags["-"+f.LongName()] = true // 支持单横杠长名称
+			registeredFlags["--"+f.LongName()] = f
+			registeredFlags["-"+f.LongName()] = f // 支持单横杠长名称
 		}
 		if f.ShortName() != "" {
-			registeredFlags["-"+f.ShortName()] = true
+			registeredFlags["-"+f.ShortName()] = f
 		}
 	}
+
+	// skipNextAsValue 标记下一个 token 是否被上一个取值标志消费为「值」
+	skipNextAsValue := false
 
 	// 扫描参数
 	for i := 0; i < len(args); i++ {
 		arg := args[i]
 
-		// 遇到 -- 停止扫描，后面的都视为位置参数
-		if arg == "--" {
+		// 上一个非布尔取值标志已消费该 token 作为其值，跳过不检查
+		if skipNextAsValue {
+			skipNextAsValue = false
+			continue
+		}
+
+		// 遇到 -- 或单独的 - 停止扫描，后面的都视为位置参数
+		if arg == "--" || arg == "-" {
 			break
 		}
 
@@ -205,13 +217,21 @@ func checkUnknownFlags(cmd types.Command, args []string) error {
 
 		// 处理 --flag=value 格式
 		flagName := arg
+		hasInlineValue := false
 		if idx := strings.Index(arg, "="); idx != -1 {
 			flagName = arg[:idx]
+			hasInlineValue = true
 		}
 
 		// 不是已注册的标志 → 纠错
-		if !registeredFlags[flagName] {
+		f, ok := registeredFlags[flagName]
+		if !ok {
 			return newUnknownFlagError(cmd, flagName)
+		}
+
+		// 非布尔标志且未内联取值 → 下一个 token 是它的值，需跳过
+		if f.Type() != types.FlagTypeBool && !hasInlineValue {
+			skipNextAsValue = true
 		}
 	}
 

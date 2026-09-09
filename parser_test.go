@@ -1,6 +1,8 @@
 package qflag
 
 import (
+	"errors"
+	"math"
 	"os"
 	"testing"
 	"time"
@@ -290,6 +292,146 @@ func TestParser_ResetOnRepeatedParse(t *testing.T) {
 		}
 		if !nameFlag.IsSet() {
 			t.Error("Second parse: name flag should be set by env var")
+		}
+	})
+}
+
+// TestParser_NegativeValues 测试取值标志的负值（以 - 开头）解析
+//
+// 验证修复后的预扫描不会把值误判为未知标志，且最终能正确解析到负值。
+// 涵盖常见的 int、int64、float64、string 类型的空格分隔负值场景。
+func TestParser_NegativeValues(t *testing.T) {
+	c := cmd.NewCmd("test", "t", types.ContinueOnError)
+	intFlag := c.Int("count", "c", "计数器", 0)
+	int64Flag := c.Int64("big", "b", "大数", 0)
+	floatFlag := c.Float64("ratio", "r", "比例", 0.0)
+	stringFlag := c.String("name", "n", "名称", "")
+
+	err := c.Parse([]string{"--count", "-8080", "--big", "-9223372036854775808", "--ratio", "-1.5", "--name", "-foo"})
+	if err != nil {
+		t.Fatalf("Parse error: %v", err)
+	}
+
+	if intFlag.Get() != -8080 {
+		t.Errorf("int flag: expected -8080, got %d", intFlag.Get())
+	}
+	if int64Flag.Get() != -9223372036854775808 {
+		t.Errorf("int64 flag: expected -9223372036854775808, got %d", int64Flag.Get())
+	}
+	if floatFlag.Get() != -1.5 {
+		t.Errorf("float64 flag: expected -1.5, got %f", floatFlag.Get())
+	}
+	if stringFlag.Get() != "-foo" {
+		t.Errorf("string flag: expected '-foo', got '%s'", stringFlag.Get())
+	}
+}
+
+// TestParser_InlineNegative 测试内联形式（--flag=-value）的负值解析
+//
+// 内联形式原本就正常，本用例用于回归保护，确保修复后行为不变。
+func TestParser_InlineNegative(t *testing.T) {
+	c := cmd.NewCmd("test", "t", types.ContinueOnError)
+	intFlag := c.Int("count", "c", "计数器", 0)
+	floatFlag := c.Float64("ratio", "r", "比例", 0.0)
+	stringFlag := c.String("name", "n", "名称", "")
+
+	err := c.Parse([]string{"--count=-42", "--ratio=-3.14", "--name=-hello-world"})
+	if err != nil {
+		t.Fatalf("Parse error: %v", err)
+	}
+
+	if intFlag.Get() != -42 {
+		t.Errorf("int flag: expected -42, got %d", intFlag.Get())
+	}
+	if floatFlag.Get() != -3.14 {
+		t.Errorf("float64 flag: expected -3.14, got %f", floatFlag.Get())
+	}
+	if stringFlag.Get() != "-hello-world" {
+		t.Errorf("string flag: expected '-hello-world', got '%s'", stringFlag.Get())
+	}
+}
+
+// TestParser_BoolFollowedByUnknown 验证布尔标志后仍报错未知标志（行为不变）
+//
+// 布尔标志不消费下一个参数，因此后跟未知标志必须仍然报错。
+// 该用例确保本次修复没有破坏原有行为。
+func TestParser_BoolFollowedByUnknown(t *testing.T) {
+	c := cmd.NewCmd("test", "t", types.ContinueOnError)
+	c.Bool("verbose", "v", "详细输出", false)
+
+	err := c.Parse([]string{"--verbose", "-x"})
+	if err == nil {
+		t.Fatalf("expected unknown flag error, got nil")
+	}
+
+	var ufe *types.UnknownFlagError
+	if !errors.As(err, &ufe) {
+		t.Fatalf("expected *types.UnknownFlagError, got %T: %v", err, err)
+	}
+	if ufe.Input != "-x" {
+		t.Errorf("expected error input '-x', got '%s'", ufe.Input)
+	}
+}
+
+// TestParser_BoundaryValues 验证各种边界场景的解析
+//
+// 涵盖 float NaN/Inf、duration 负值、int slice 含负数成员等边界情况。
+func TestParser_BoundaryValues(t *testing.T) {
+	t.Run("float special values", func(t *testing.T) {
+		c := cmd.NewCmd("test", "t", types.ContinueOnError)
+		nanFlag := c.Float64("nan", "", "NaN", 0)
+		posInfFlag := c.Float64("pinf", "", "+Inf", 0)
+		negInfFlag := c.Float64("ninf", "", "-Inf", 0)
+
+		err := c.Parse([]string{"--nan", "NaN", "--pinf", "+Inf", "--ninf", "-Inf"})
+		if err != nil {
+			t.Fatalf("Parse error: %v", err)
+		}
+
+		if !math.IsNaN(nanFlag.Get()) {
+			t.Errorf("nan flag: expected NaN, got %f", nanFlag.Get())
+		}
+		if !math.IsInf(posInfFlag.Get(), 1) {
+			t.Errorf("+Inf flag: expected +Inf, got %f", posInfFlag.Get())
+		}
+		if !math.IsInf(negInfFlag.Get(), -1) {
+			t.Errorf("-Inf flag: expected -Inf, got %f", negInfFlag.Get())
+		}
+	})
+
+	t.Run("negative duration", func(t *testing.T) {
+		c := cmd.NewCmd("test", "t", types.ContinueOnError)
+		durFlag := c.Duration("offset", "o", "偏移", 0)
+
+		err := c.Parse([]string{"--offset", "-1m30s"})
+		if err != nil {
+			t.Fatalf("Parse error: %v", err)
+		}
+
+		expected := -(time.Minute*1 + time.Second*30)
+		if durFlag.Get() != expected {
+			t.Errorf("duration: expected %v, got %v", expected, durFlag.Get())
+		}
+	})
+
+	t.Run("int slice with negative values", func(t *testing.T) {
+		c := cmd.NewCmd("test", "t", types.ContinueOnError)
+		sliceFlag := c.IntSlice("nums", "n", "数值列表", nil)
+
+		err := c.Parse([]string{"--nums", "-10,5,-3,0"})
+		if err != nil {
+			t.Fatalf("Parse error: %v", err)
+		}
+
+		expected := []int{-10, 5, -3, 0}
+		got := sliceFlag.Get()
+		if len(got) != len(expected) {
+			t.Fatalf("expected %d items, got %d", len(expected), len(got))
+		}
+		for i := range expected {
+			if got[i] != expected[i] {
+				t.Errorf("index %d: expected %d, got %d", i, expected[i], got[i])
+			}
 		}
 	})
 }
