@@ -25,4 +25,4 @@
 logs/
 tmp/
 test/
-.trae/
+# .trae/
