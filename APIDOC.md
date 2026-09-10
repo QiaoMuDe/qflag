@@ -190,6 +190,30 @@ func ApplyOpts(opts *CmdOpts) error
 - 支持部分配置（未设置的属性不会被修改）
 - 使用写锁保护并发安全
 
+### EnumHelp
+
+```go
+func EnumHelp(desc string, options []string, indent string) string
+```
+
+生成 enum 标志完整的帮助描述文本
+
+**参数:**
+
+- `desc`: 选项开头的描述文案（结尾无需换行，函数会自动追加）
+- `options`: 选项列表，每项为 "值" 或 "值: 描述"
+- `indent`: 每行选项的缩进前缀（如 "\t"），保持项目统一风格
+
+**返回值:**
+
+- `string`: 拼好的完整 enum desc 字符串
+
+**功能说明:**
+
+- 支持 "值" → "[值]" 与 "值: 描述" → "[值]   - 描述" 两种形态
+- 按终端显示宽度对齐（全角/CJK 占 2 列，其余占 1 列）
+- 自动跳过空值选项，避免输出空盒子
+
 ### Parse
 
 ```go

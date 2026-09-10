@@ -264,3 +264,9 @@ graph LR
 - 能力点：互斥组/（条件性）必需组/标志依赖校验、环境变量绑定（命令行>环境变量>默认值）、Shell 补全（内嵌模板）、智能纠错（go-kit/fuzzy）、中英双语帮助。仅一个外依赖 `go-kit v0.0.19`。
 - 解析主链路见第五章；`cmd.Cmd.Int(...)` 等构造器名冲突时 panic（快速失败），运行期错误走 `ErrorHandling` 策略。
 - 近期已修复：`internal/parser/suggestion.go` 的 `checkUnknownFlags` 预扫描误判负号开头值/过度拦截单独 `-`，已对齐标准库 `flag` 语义并补充白盒（`suggestion_test.go`）与集成（pars.go 根测试）用例。
+
+**记忆点 2**（新增 EnumHelp）：
+- 新增公开辅助函数 `EnumHelp`（根包 `enum_help.go`），生成枚举标志帮助文本，支持 `值` 与 `值: 描述` 两种形态。
+- 对齐按终端显示宽度计算（CJK/全角计 2 列，`isWideRune`），修复中英混排对齐失真。
+- 自动跳过空值选项；解析约定：值本身不能含冒号（冒号仅作值与描述分隔），首个冒号拆分。
+- 配套测试位于 `enum_help_test.go`，示例位于 `_examples/enum-help/`；已在 `APIDOC.md`、`README.md`、`qflag-cli` 技能包补充文档。

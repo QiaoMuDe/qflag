@@ -399,6 +399,8 @@ tagsFlag := cmd.IntSlice("tags", "", "标签列表", []int{})
 
 完整的 API 文档和示例代码, 请参考项目中的 [_examples/](_examples/) 目录和源代码中的注释。
 
+> 提示: 枚举标志的帮助描述文本可使用便捷函数 `EnumHelp` 生成（支持 "值" 与 "值: 描述" 两种形态、CJK 全角对齐、空值过滤），示例见 [`_examples/enum-help/`](_examples/enum-help/)。
+
 ### 📚 更多文档
 
 - [API 文档](APIDOC.md) - 完整的 API 参考
